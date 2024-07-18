@@ -44,15 +44,15 @@ const Account = ({ currentTab }: { currentTab: TabEnum }) => {
       label: t('common:user.Personal Information'),
       value: TabEnum.info
     },
-    ...(feConfigs?.isPlus
-      ? [
-          {
-            icon: 'support/usage/usageRecordLight',
-            label: t('common:user.Usage Record'),
-            value: TabEnum.usage
-          }
-        ]
-      : []),
+    // ...(feConfigs?.isPlus
+    //   ? [
+    //       {
+    //         icon: 'support/usage/usageRecordLight',
+    //         label: t('common:user.Usage Record'),
+    //         value: TabEnum.usage
+    //       }
+    //     ]
+    //   : []),
     ...(feConfigs?.show_pay && userInfo?.team?.permission.hasWritePer
       ? [
           {
@@ -86,15 +86,15 @@ const Account = ({ currentTab }: { currentTab: TabEnum }) => {
       label: t('common:support.account.Individuation'),
       value: TabEnum.individuation
     },
-    ...(feConfigs.isPlus
-      ? [
-          {
-            icon: 'support/user/informLight',
-            label: t('common:user.Notice'),
-            value: TabEnum.inform
-          }
-        ]
-      : []),
+    // ...(feConfigs.isPlus
+    //   ? [
+    //       {
+    //         icon: 'support/user/informLight',
+    //         label: t('common:user.Notice'),
+    //         value: TabEnum.inform
+    //       }
+    //     ]
+    //   : []),
 
     {
       icon: 'support/account/loginoutLight',

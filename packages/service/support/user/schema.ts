@@ -2,7 +2,7 @@ import { connectionMongo, getMongoModel, type Model } from '../../common/mongo';
 const { Schema, model, models } = connectionMongo;
 import { hashStr } from '@fastgpt/global/common/string/tools';
 import type { UserModelSchema } from '@fastgpt/global/support/user/type';
-import { UserStatusEnum, userStatusMap } from '@fastgpt/global/support/user/constant';
+import { OAuthEnum, UserStatusEnum, userStatusMap } from '@fastgpt/global/support/user/constant';
 
 export const userCollectionName = 'users';
 
@@ -29,10 +29,12 @@ const UserSchema = new Schema({
   },
   password: {
     type: String,
-    required: true,
     set: (val: string) => hashStr(val),
     get: (val: string) => hashStr(val),
     select: false
+  },
+  loginType: {
+    type: String
   },
   createTime: {
     type: Date,

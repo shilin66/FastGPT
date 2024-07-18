@@ -12,6 +12,7 @@ import { AppContext } from '../context';
 import { cardStyles } from '../constants';
 
 import Link from './Link';
+import ChromeExtension from '@/pages/app/detail/components/Publish/ChromeExtension';
 const API = dynamic(() => import('./API'));
 const FeiShu = dynamic(() => import('./FeiShu'));
 
@@ -33,6 +34,12 @@ const OutLink = () => {
       title: t('common:core.app.Api request'),
       desc: t('common:core.app.Api request desc'),
       value: PublishChannelEnum.apikey
+    },
+    {
+      icon: 'support/outlink/chromeExtension',
+      title: 'Chrome 插件',
+      desc: '集成到浏览器中,在任意页面使用Chatbot',
+      value: PublishChannelEnum.chromeExtension
     }
     // {
     //   icon: 'core/app/publish/lark',
@@ -69,7 +76,7 @@ const OutLink = () => {
           <Link appId={appId} type={PublishChannelEnum.share} />
         )}
         {linkType === PublishChannelEnum.apikey && <API appId={appId} />}
-        {linkType === PublishChannelEnum.feishu && <FeiShu appId={appId} />}
+        {linkType === PublishChannelEnum.chromeExtension && <ChromeExtension />}
       </Flex>
     </>
   );

@@ -23,8 +23,8 @@ export async function uploadMongoImg({
     return Promise.reject('Image too large');
   }
 
-  const [base64Mime, base64Data] = base64Img.split(',')
-  const mime = `image/${base64Mime.match(base64MimeRegex)?.[1] ?? 'jpeg'}`
+  const [base64Mime, base64Data] = base64Img.split(',');
+  const mime = `image/${base64Mime.match(base64MimeRegex)?.[1] ?? 'jpeg'}`;
   const binary = Buffer.from(base64Data, 'base64');
 
   const { _id } = await MongoImage.create({

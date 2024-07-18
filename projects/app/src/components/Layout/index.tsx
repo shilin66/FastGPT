@@ -54,7 +54,7 @@ const Layout = ({ children }: { children: JSX.Element }) => {
   );
 
   const { data, refetch: refetchUnRead } = useQuery(['getUnreadCount'], getUnreadCount, {
-    enabled: !!userInfo && !!feConfigs.isPlus,
+    enabled: false,
     refetchInterval: 10000
   });
   const unread = data?.unReadCount || 0;
@@ -102,7 +102,7 @@ const Layout = ({ children }: { children: JSX.Element }) => {
         <>
           {!!userInfo && <UpdateInviteModal />}
           {isNotSufficientModal && <NotSufficientModal />}
-          {!!userInfo && <SystemMsgModal />}
+          {/*{!!userInfo && <SystemMsgModal />}*/}
           {!!userInfo && importantInforms.length > 0 && (
             <ImportantInform informs={importantInforms} refetch={refetchUnRead} />
           )}

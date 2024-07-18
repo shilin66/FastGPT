@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       method: req.method,
       headers: req.headers
     });
-    req.pipe(requestResult);
+    // req.pipe(requestResult);
 
     requestResult.on('response', (response) => {
       Object.keys(response.headers).forEach((key) => {

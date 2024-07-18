@@ -36,6 +36,17 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
           }
         ]
       : []),
+
+    ...(feConfigs?.oauth?.microsoft
+      ? [
+          {
+            label: t('common:support.user.login.Microsoft'),
+            provider: OAuthEnum.microsoft,
+            icon: 'common/microsoftFill',
+            redirectUrl: `https://login.microsoftonline.com/${feConfigs?.oauth?.microsoft.tenantId}/oauth2/v2.0/authorize?response_type=code&client_id=${feConfigs?.oauth?.microsoft.clientId}&redirect_uri=${redirectUri}&state=${state.current}&scope=user.read&prompt=select_account`
+          }
+        ]
+      : []),
     ...(feConfigs?.oauth?.google
       ? [
           {
@@ -52,7 +63,7 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
             label: t('common:support.user.login.Github'),
             provider: OAuthEnum.github,
             icon: 'common/gitFill',
-            redirectUrl: `https://github.com/login/oauth/authorize?client_id=${feConfigs?.oauth?.github}&redirect_uri=${redirectUri}&state=${state.current}&scope=user:email%20read:user`
+            redirectUrl: `https://github.com/login/oauth/authorize?client_id=${feConfigs?.oauth?.github.clientId}&redirect_uri=${redirectUri}&state=${state.current}&scope=user:email%20read:user`
           }
         ]
       : []),

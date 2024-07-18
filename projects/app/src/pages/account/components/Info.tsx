@@ -249,7 +249,7 @@ const MyInfo = () => {
           <Box {...labelStyles}>{t('common:user.Account')}:&nbsp;</Box>
           <Box flex={1}>{userInfo?.username}</Box>
         </Flex>
-        {feConfigs.isPlus && (
+        {feConfigs.isPlus && userInfo?.loginType === 'password' && (
           <Flex mt={6} alignItems={'center'}>
             <Box {...labelStyles}>{t('common:user.Password')}:&nbsp;</Box>
             <Box flex={1}>*****</Box>

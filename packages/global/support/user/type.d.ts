@@ -7,7 +7,8 @@ export type UserModelSchema = {
   email?: string;
   phonePrefix?: number;
   phone?: string;
-  password: string;
+  loginType: string;
+  password?: string;
   avatar: string;
   promotionRate: number;
   inviterId?: string;
@@ -27,6 +28,7 @@ export type UserType = {
   username: string;
   avatar: string;
   timezone: string;
+  loginType: string;
   promotionRate: UserModelSchema['promotionRate'];
   openaiAccount: UserModelSchema['openaiAccount'];
   team: TeamTmbItemType;

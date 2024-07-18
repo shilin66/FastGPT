@@ -18,4 +18,5 @@ export type AuthResponseType<T = Permission> = {
   appId?: string;
   apikey?: string;
   permission: T;
+  userId?: string;
 };

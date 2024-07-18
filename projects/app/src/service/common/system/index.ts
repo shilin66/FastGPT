@@ -3,12 +3,16 @@ import { existsSync, readdirSync, readFileSync } from 'fs';
 import type { FastGPTFeConfigsType } from '@fastgpt/global/common/system/types/index.d';
 import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types/index.d';
 import { PluginSourceEnum } from '@fastgpt/global/core/plugin/constants';
-import { getFastGPTConfigFromDB } from '@fastgpt/service/common/system/config/controller';
+import {
+  getFastGPTConfigFromDB,
+  initFastGPTConfigToDB
+} from '@fastgpt/service/common/system/config/controller';
 import { PluginTemplateType } from '@fastgpt/global/core/plugin/type';
 import { FastGPTProUrl } from '@fastgpt/service/common/system/constants';
 import { initFastGPTConfig } from '@fastgpt/service/common/system/tools';
 import json5 from 'json5';
 import { SystemPluginTemplateItemType } from '@fastgpt/global/core/workflow/type';
+import { fi } from 'date-fns/locale';
 
 export const readConfigData = (name: string) => {
   const isDev = process.env.NODE_ENV === 'development';
@@ -80,6 +84,10 @@ export async function initSystemConfig() {
     readConfigData('config.json')
   ]);
   const fileRes = json5.parse(fileConfig) as FastGPTConfigFileType;
+  // 如果dbConfig不存在，用fileRes创建dbconfig
+  if (!dbConfig || Object.keys(dbConfig).length === 0) {
+    await initFastGPTConfigToDB(fileRes);
+  }
 
   // get config from database
   const config: FastGPTConfigFileType = {

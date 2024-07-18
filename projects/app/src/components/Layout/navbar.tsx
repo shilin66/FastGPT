@@ -53,9 +53,20 @@ const Navbar = ({ unread }: { unread: number }) => {
         activeIcon: 'support/user/userFill',
         link: '/account',
         activeLink: ['/account']
-      }
+      },
+      ...(userInfo && userInfo.username === 'root'
+        ? [
+            {
+              label: t('common:navbar.System Config'),
+              icon: 'support/system/settingLight',
+              activeIcon: 'support/system/settingFill',
+              link: '/system',
+              activeLink: ['/system']
+            }
+          ]
+        : [])
     ],
-    [lastChatAppId, lastChatId, t]
+    [lastChatAppId, lastChatId, t, userInfo]
   );
 
   const itemStyles: BoxProps & LinkProps = {

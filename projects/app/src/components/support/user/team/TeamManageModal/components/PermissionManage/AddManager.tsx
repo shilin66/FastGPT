@@ -24,6 +24,7 @@ import MyIcon from '@fastgpt/web/components/common/Icon';
 import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { TeamModalContext } from '../../context';
 import { useI18n } from '@/web/context/I18n';
+import MyAvatar from '@/components/Avatar';
 
 function AddManagerModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const { t } = useTranslation();
@@ -93,27 +94,38 @@ function AddManagerModal({ onClose, onSuccess }: { onClose: () => void; onSucces
             </InputGroup>
             <Flex flexDirection="column" mt={3}>
               {filterMembers.map((member) => {
+                const onChange = () => {
+                  if (selected.includes(member)) {
+                    setSelected(selected.filter((item) => item.tmbId !== member.tmbId));
+                  } else {
+                    setSelected([...selected, member]);
+                  }
+                };
                 return (
                   <Flex
-                    py="2"
-                    px={3}
-                    borderRadius={'md'}
-                    alignItems="center"
                     key={member.tmbId}
-                    cursor={'pointer'}
-                    _hover={{ bg: 'myGray.50' }}
-                    _notLast={{ mb: 2 }}
-                    onClick={() => {
-                      if (selected.indexOf(member) == -1) {
-                        setSelected([...selected, member]);
-                      } else {
-                        setSelected([...selected.filter((item) => item.tmbId != member.tmbId)]);
-                      }
+                    mt="1"
+                    py="1"
+                    px="3"
+                    borderRadius="sm"
+                    alignItems="center"
+                    _hover={{
+                      bgColor: 'myGray.50',
+                      cursor: 'pointer'
                     }}
                   >
-                    <Checkbox isChecked={selected.includes(member)} />
-                    <Avatar ml={2} src={member.avatar} w="1.5rem" />
-                    {member.memberName}
+                    <Checkbox mr="3" isChecked={selected.includes(member)} onChange={onChange} />
+                    <Flex
+                      flexDirection="row"
+                      onClick={onChange}
+                      w="full"
+                      justifyContent="space-between"
+                    >
+                      <Flex flexDirection="row" alignItems="center">
+                        <MyAvatar src={member.avatar} w="32px" />
+                        <Box ml="2">{member.memberName}</Box>
+                      </Flex>
+                    </Flex>
                   </Flex>
                 );
               })}

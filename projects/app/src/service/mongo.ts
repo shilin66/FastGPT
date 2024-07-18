@@ -66,7 +66,8 @@ async function initRootUser(retry = 3): Promise<any> {
           [
             {
               username: 'root',
-              password: hashStr(psw)
+              password: hashStr(psw),
+              loginType: 'password'
             }
           ],
           { session }

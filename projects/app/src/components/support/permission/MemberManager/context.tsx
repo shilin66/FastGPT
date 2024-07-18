@@ -81,11 +81,11 @@ const CollaboratorContextProvider = ({
 }) => {
   const onUpdateCollaboratorsThen = async (props: UpdateClbPermissionProps) => {
     await onUpdateCollaborators(props);
-    refetchCollaboratorList();
+    await refetchCollaboratorList();
   };
   const onDelOneCollaboratorThen = async (tmbId: string) => {
     await onDelOneCollaborator(tmbId);
-    refetchCollaboratorList();
+    await refetchCollaboratorList();
   };
 
   const { feConfigs } = useSystemStore();
