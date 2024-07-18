@@ -15,6 +15,7 @@ import { useTranslation } from 'next-i18next';
 import { EventNameEnum, eventBus } from '@/web/common/utils/eventbus';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { MARKDOWN_QUOTE_SIGN } from '@fastgpt/global/core/chat/constants';
+import RehypeRaw from 'rehype-raw';
 
 const CodeLight = dynamic(() => import('./CodeLight'), { ssr: false });
 const MermaidCodeBlock = dynamic(() => import('./img/MermaidCodeBlock'), { ssr: false });
@@ -62,7 +63,7 @@ const Markdown = ({
       ${showAnimation ? `${formatSource ? styles.waitingAnimation : styles.animation}` : ''}
     `}
       remarkPlugins={[RemarkMath, [RemarkGfm, { singleTilde: false }], RemarkBreaks]}
-      rehypePlugins={[RehypeKatex]}
+      rehypePlugins={[RehypeKatex, RehypeRaw]}
       components={components}
       linkTarget={'_blank'}
     >
@@ -106,8 +107,8 @@ const Code = React.memo(function Code(e: any) {
   return Component;
 });
 
-const Image = React.memo(function Image({ src }: { src?: string }) {
-  return <MdImage src={src} />;
+const Image = React.memo(function Image({ src, ...props }: { src?: string; [key: string]: any }) {
+  return <MdImage src={src} {...props} />;
 });
 const A = React.memo(function A({ children, ...props }: any) {
   const { t } = useTranslation();

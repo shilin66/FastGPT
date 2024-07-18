@@ -32,7 +32,7 @@ function TeamList() {
           {t('common:common.Team')}
         </Box>
         {/* if there is no team */}
-        {myTeams.length < 1 && (
+        {/*{myTeams.length < 1 && (
           <IconButton
             variant={'ghost'}
             border={'none'}
@@ -47,7 +47,22 @@ function TeamList() {
             aria-label={''}
             onClick={() => setEditTeamData(defaultForm)}
           />
-        )}
+        )}*/}
+
+        <IconButton
+          variant={'ghost'}
+          border={'none'}
+          icon={
+            <MyIcon
+              name={'common/addCircleLight'}
+              w={['16px', '18px']}
+              color={'primary.500'}
+              cursor={'pointer'}
+            />
+          }
+          aria-label={''}
+          onClick={() => setEditTeamData(defaultForm)}
+        />
       </Flex>
       <Box flex={['auto', '1 0 0']} overflow={'auto'}>
         {myTeams.map((team) => (

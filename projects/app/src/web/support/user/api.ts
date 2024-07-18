@@ -20,9 +20,21 @@ export const sendAuthCode = (data: {
 export const getTokenLogin = () =>
   GET<UserType>('/support/user/account/tokenLogin', {}, { maxQuantity: 1 });
 export const oauthLogin = (params: OauthLoginProps) =>
-  POST<ResLogin>('/proApi/support/user/account/login/oauth', params);
+  POST<ResLogin>('/support/user/account/login/oauth', params);
 export const postFastLogin = (params: FastLoginProps) =>
   POST<ResLogin>('/proApi/support/user/account/login/fastLogin', params);
+
+export const postSimpleRegister = ({
+  username,
+  password
+}: {
+  username: string;
+  password: string;
+}) =>
+  POST<ResLogin>(`support/user/account/register/simple`, {
+    username,
+    password: hashStr(password)
+  });
 
 export const postRegister = ({
   username,

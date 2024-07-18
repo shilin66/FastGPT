@@ -33,10 +33,13 @@ COPY --from=mainDeps /app/projects/app/node_modules ./projects/app/node_modules
 
 RUN [ -z "$proxy" ] || sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 
+RUN apk update && apk add zip
+RUN zip -r /app/projects/app/public/chrome_extension/fastgpt_agent.zip /app/projects/app/public/chrome_extension/fastgpt_agent
+
 RUN apk add --no-cache libc6-compat && npm install -g pnpm@9.4.0
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN pnpm --filter=app build
+RUN PNPM_LOG_LEVEL=verbose pnpm --filter=app build
 
 # --------- runner -----------
 FROM node:20.14.0-alpine AS runner

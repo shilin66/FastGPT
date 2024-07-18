@@ -39,12 +39,14 @@ export type FastGPTFeConfigsType = {
   systemDescription?: string;
   googleClientVerKey?: string;
   isPlus?: boolean;
+  userDefaultTeam?: string;
   show_phoneLogin?: boolean;
   show_emailLogin?: boolean;
   oauth?: {
-    github?: string;
+    github?: GithubType;
     google?: string;
     wechat?: string;
+    microsoft?: MicrosoftType;
   };
   limit?: {
     exportDatasetLimitMinutes?: number;
@@ -58,6 +60,17 @@ export type FastGPTFeConfigsType = {
   uploadFileMaxAmount?: number;
   uploadFileMaxSize?: number;
   lafEnv?: string;
+};
+
+export type GithubType = {
+  clientId: string;
+  clientSecret: string;
+};
+
+export type MicrosoftType = {
+  clientId: string;
+  tenantId: string;
+  clientSecret?: string;
 };
 
 export type SystemEnvType = {

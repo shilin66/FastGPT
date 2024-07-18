@@ -2,7 +2,7 @@ import React, { useState, Dispatch, useCallback } from 'react';
 import { FormControl, Box, Input, Button } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { LoginPageTypeEnum } from '@/web/support/user/login/constants';
-import { postRegister } from '@/web/support/user/api';
+import { postRegister, postSimpleRegister } from '@/web/support/user/api';
 import { useSendCode } from '@/web/support/user/hooks/useSendCode';
 import type { ResLogin } from '@/global/support/api/userRes';
 import { useToast } from '@fastgpt/web/hooks/useToast';
@@ -51,15 +51,13 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
   const [requesting, setRequesting] = useState(false);
 
   const onclickRegister = useCallback(
-    async ({ username, password, code }: RegisterType) => {
+    async ({ username, password }: RegisterType) => {
       setRequesting(true);
       try {
         loginSuccess(
-          await postRegister({
+          await postSimpleRegister({
             username,
-            code,
-            password,
-            inviterId: localStorage.getItem('inviterId') || undefined
+            password
           })
         );
         toast({
@@ -105,50 +103,15 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
         <FormControl isInvalid={!!errors.username}>
           <Input
             bg={'myGray.50'}
-            placeholder="邮箱/手机号"
+            placeholder="用户名"
             {...register('username', {
-              required: '邮箱/手机号不能为空',
+              required: '用户名不能为空',
               pattern: {
-                value:
-                  /(^1[3456789]\d{9}$)|(^[A-Za-z0-9]+([_\.][A-Za-z0-9]+)*@([A-Za-z0-9\-]+\.)+[A-Za-z]{2,6}$)/,
-                message: '邮箱/手机号格式错误'
+                value: /^[A-Za-z][A-Za-z0-9_]{0,31}$/,
+                message: '用户名格式错误'
               }
             })}
           ></Input>
-        </FormControl>
-        <FormControl
-          mt={6}
-          isInvalid={!!errors.code}
-          display={'flex'}
-          alignItems={'center'}
-          position={'relative'}
-        >
-          <Input
-            bg={'myGray.50'}
-            flex={1}
-            maxLength={8}
-            placeholder="验证码"
-            {...register('code', {
-              required: '验证码不能为空'
-            })}
-          ></Input>
-          <Box
-            position={'absolute'}
-            right={3}
-            zIndex={1}
-            fontSize={'sm'}
-            {...(codeCountDown > 0
-              ? {
-                  color: 'myGray.500'
-                }
-              : {
-                  color: 'primary.700',
-                  cursor: 'pointer',
-                  onClick: onclickSendCode
-                })}
-          >
-            {sendCodeText}
-          </Box>
         </FormControl>
         <FormControl mt={6} isInvalid={!!errors.password}>
           <Input

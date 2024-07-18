@@ -1227,7 +1227,8 @@
     "Plugin": "Plugin",
     "Store": "App Store",
     "Studio": "Studio",
-    "Tools": "Tools"
+    "Tools": "Tools",
+    "System Config": "System Config"
   },
   "permission": {
     "Collaborator": "",
@@ -1361,6 +1362,7 @@
         "Forget Password": "Forgot password?",
         "Github": "Login with Github",
         "Google": "Login with Google",
+        "Microsoft": "Login with Microsoft",
         "Password": "Password",
         "Password login": "Password login",
         "Phone": "Login with phone number",
@@ -1572,6 +1574,7 @@
     "Time": "Time",
     "Timezone": "Timezone",
     "Total Amount": "Total amount",
+    "Account Exist": "Account Exist",
     "Update Password": "Update password",
     "Update password failed": "Failed to update password",
     "Update password successful": "Password updated successfully",
@@ -1631,7 +1634,8 @@
         "Confirm Leave": "Confirm to leave this team?",
         "active": "Joined",
         "reject": "Reject",
-        "waiting": "Waiting for Acceptance"
+        "waiting": "Waiting for Acceptance",
+        "leave": "Leave"
       },
       "role": {
         "Admin": "Admin",

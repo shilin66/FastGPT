@@ -9,7 +9,16 @@ import { FileTokenQuery } from '@fastgpt/global/common/file/type';
 import { MongoResourcePermission } from './schema';
 import { ClientSession } from 'mongoose';
 import { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
-import { ResourcePermissionType } from '@fastgpt/global/support/permission/type';
+import {
+  ResourcePermissionType,
+  ResourcePerWithTmbWithUser
+} from '@fastgpt/global/support/permission/type';
+import {
+  CollaboratorItemType,
+  UpdateClbPermissionProps
+} from '@fastgpt/global/support/permission/collaborator';
+import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
+import { TeamMemberRoleEnum } from '@fastgpt/global/support/user/team/constant';
 
 export const getResourcePermission = async ({
   resourceType,
@@ -57,6 +66,26 @@ export async function getResourceAllClbs({
       session
     }
   ).lean();
+}
+
+export async function getResourceAllClbsWithUser({
+  resourceId,
+  teamId,
+  resourceType
+}: {
+  resourceId: ParentIdType;
+  teamId: string;
+  resourceType: PerResourceTypeEnum;
+}): Promise<ResourcePerWithTmbWithUser[]> {
+  if (!resourceId) return [];
+
+  const res = (await MongoResourcePermission.find({
+    resourceId,
+    resourceType: resourceType,
+    teamId: teamId
+  }).populate({ path: 'tmbId', populate: { path: 'userId' } })) as ResourcePerWithTmbWithUser[];
+
+  return res;
 }
 export const delResourcePermissionById = (id: string) => {
   return MongoResourcePermission.findByIdAndRemove(id);
@@ -287,3 +316,83 @@ export const authFileToken = (token?: string) =>
       });
     });
   });
+
+export async function updateCollaborators(
+  updateClbPermissionProps: UpdateClbPermissionProps,
+  resourceType: PerResourceTypeEnum,
+  resourceId: string,
+  teamId: string
+) {
+  const { tmbIds, permission } = updateClbPermissionProps;
+
+  const existPermissions = await MongoResourcePermission.find({
+    resourceType,
+    resourceId,
+    teamId
+  });
+  const existPermissionMap = new Map(existPermissions.map((item) => [item.tmbId.toString(), item]));
+
+  await Promise.all(
+    tmbIds.map(async (tmbId) => {
+      if (existPermissionMap.get(tmbId)) {
+        await MongoResourcePermission.updateOne(
+          {
+            resourceType,
+            resourceId,
+            tmbId,
+            teamId
+          },
+          {
+            permission
+          }
+        );
+      } else {
+        await MongoResourcePermission.create({
+          resourceType,
+          resourceId,
+          tmbId,
+          teamId,
+          permission
+        });
+      }
+    })
+  );
+}
+
+export async function listCollaborator(
+  resourceType: PerResourceTypeEnum,
+  resourceId: string,
+  teamId: string
+): Promise<CollaboratorItemType[]> {
+  const permissionTypes = await getResourceAllClbsWithUser({
+    resourceType,
+    resourceId,
+    teamId
+  });
+  return permissionTypes.map((item) => {
+    return {
+      teamId: item.teamId,
+      tmbId: item.tmbId._id,
+      permission: new TeamPermission({
+        per: item.permission,
+        isOwner: item.tmbId.role === TeamMemberRoleEnum.owner
+      }),
+      name: item.tmbId.userId.username,
+      avatar: item.tmbId.userId.avatar
+    };
+  });
+}
+
+export async function deleteCollaborators(
+  resourceType: PerResourceTypeEnum,
+  resourceId: string,
+  teamId: string,
+  tmbId: string
+) {
+  await MongoResourcePermission.deleteOne({
+    resourceType: resourceType,
+    resourceId: resourceId,
+    tmbId,
+    teamId: teamId
+  });
+}

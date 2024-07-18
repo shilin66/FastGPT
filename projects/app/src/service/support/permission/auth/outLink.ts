@@ -12,12 +12,14 @@ import { OutLinkErrEnum } from '@fastgpt/global/common/error/code/outLink';
 import { OutLinkSchema } from '@fastgpt/global/support/outLink/type';
 
 export function authOutLinkInit(data: AuthOutLinkInitProps): Promise<AuthOutLinkResponse> {
-  if (!global.feConfigs?.isPlus) return Promise.resolve({ uid: data.outLinkUid });
-  return POST<AuthOutLinkResponse>('/support/outLink/authInit', data);
+  return Promise.resolve({ uid: data.outLinkUid });
+  // if (!global.feConfigs?.isPlus) return Promise.resolve({ uid: data.outLinkUid });
+  // return POST<AuthOutLinkResponse>('/support/outLink/authInit', data);
 }
 export function authOutLinkChatLimit(data: AuthOutLinkLimitProps): Promise<AuthOutLinkResponse> {
-  if (!global.feConfigs?.isPlus) return Promise.resolve({ uid: data.outLinkUid });
-  return POST<AuthOutLinkResponse>('/support/outLink/authChatStart', data);
+  return Promise.resolve({ uid: data.outLinkUid });
+  // if (!global.feConfigs?.isPlus) return Promise.resolve({ uid: data.outLinkUid });
+  // return POST<AuthOutLinkResponse>('/support/outLink/authChatStart', data);
 }
 
 export const authOutLink = async ({

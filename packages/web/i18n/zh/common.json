@@ -1236,7 +1236,8 @@
     "Plugin": "插件",
     "Store": "应用市场",
     "Studio": "工作台",
-    "Tools": "工具"
+    "Tools": "工具",
+    "System Config": "系统配置"
   },
   "permission": {
     "Collaborator": "协作者",
@@ -1370,6 +1371,7 @@
         "Forget Password": "忘记密码？",
         "Github": "GitHub 登录",
         "Google": "Google 登录",
+        "Microsoft": "Microsoft 登录",
         "Password": "密码",
         "Password login": "密码登录",
         "Phone": "手机号登录",
@@ -1581,6 +1583,7 @@
     "Time": "时间",
     "Timezone": "时区",
     "Total Amount": "总金额",
+    "Account Exist": "用户名已存在",
     "Update Password": "修改密码",
     "Update password failed": "修改密码异常",
     "Update password successful": "修改密码成功",
@@ -1640,7 +1643,8 @@
         "Confirm Leave": "确认离开该团队？",
         "active": "已加入",
         "reject": "拒绝",
-        "waiting": "待接受"
+        "waiting": "待接受",
+        "leave": "已离开"
       },
       "role": {
         "Admin": "管理员",
