@@ -62,14 +62,14 @@ export async function createUserWithDefaultTeamAndPermission(
   username: string,
   loginType: string
 ): Promise<string> {
-  const [{ _id: userId }] = await MongoUser.create([{ username, loginType }]);
-
   const userDefaultTeam = feConfigs.userDefaultTeam;
   const defaultTeam = await MongoTeam.findOne({ name: userDefaultTeam });
 
   if (!defaultTeam) {
     throw new Error('默认团队不存在');
   }
+
+  const [{ _id: userId }] = await MongoUser.create([{ username, loginType }]);
 
   const [{ _id: tmbId }] = await MongoTeamMember.create([
     {
