@@ -11,13 +11,13 @@ const ChromeExtension = () => {
 - 固定插件到浏览器顶部： <Image src='/imgs/outlink/desc/img.png' width="50%" ml="0"/>
 # 配置
 - 需要创建一个免登录窗口的链接,复制链接地址<Image src='/imgs/outlink/desc/img_1.png' width="50%" ml="0"/><br>
-- 点击插件图标，打开设置<Image src='/imgs/outlink/desc/img_2.png' width="50%" ml="0"/><br>
-- 在设置页面配置机器人地址，点击✅保存，可添加多个地址 <Image src='/imgs/outlink/desc/img_3.png' width="50%" ml="0"/><br>
-- 添加完成在\`选择BOT\` 列，选中想要使用的机器人即可<Image src='/imgs/outlink/desc/img_7.png' width="50%" ml="0"/>
+- 点击插件图标，打开设置<Image src='/imgs/outlink/desc/img_2.png' width="30%" ml="0"/><br>
+- 在设置页面配置机器人地址，点击✅保存，可添加多个地址 <Image src='/imgs/outlink/desc/img_3.png' width="30%" ml="0"/><br>
+- 添加完成在\`选择BOT\` 列，选中想要使用的机器人即可<Image src='/imgs/outlink/desc/img_7.png' width="30%" ml="0"/>
 # 使用
 有两种使用方式：
-- 1.在插件的弹出页面，点击插件图标，弹出插件页面，输入问题，点击发送按钮，即可获取回答<Image src='/imgs/outlink/desc/img_4.png' width="50%" ml="0"/><br>
-- 2.在任意网站页面，点击ChatBot图标，在弹出的聊天窗口，输入问题，点击发送按钮，即可获取回答<Image src='/imgs/outlink/desc/img_5.png' width="50%" ml="0"/><br><Image src='/imgs/outlink/desc/img_6.png' width="50%" ml="0"/>
+- 1.在插件的弹出页面，点击插件图标，弹出插件页面，输入问题，点击发送按钮，即可获取回答<Image src='/imgs/outlink/desc/img_4.png' width="30%" ml="0"/><br>
+- 2.在任意网站页面，点击ChatBot图标，在弹出的聊天窗口，输入问题，点击发送按钮，即可获取回答<Image src='/imgs/outlink/desc/img_5.png' width="30%" ml="0"/><br><Image src='/imgs/outlink/desc/img_6.png' width="30%" ml="0"/>
 `;
   const handleDownloadClick = () => {
     // 创建一个隐藏的可下载链接
