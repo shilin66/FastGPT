@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChatBot Extension",
-  "version": "1.0",
+  "version": "1.1",
   "description": "A ChatBot",
   "permissions": [
     "storage",
@@ -9,8 +9,7 @@
     "tabs",
     "activeTab",
     "scripting",
-    "webRequest",
-    "webRequestBlocking"
+    "webRequest"
   ],
   "host_permissions": [
     "<all_urls>"

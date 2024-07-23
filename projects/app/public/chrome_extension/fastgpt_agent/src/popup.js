@@ -22,10 +22,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 fastUID: fastUID
             });
         }
-        chrome.runtime.sendMessage({
-            action: "startRequestInterception",
-            chatbotSrc: botSrc
-        });
         console.log('fastUID is', fastUID);
         console.log("chatbotSrc is " + botSrc);
         console.log("shareId is " + result.shareId);
@@ -39,6 +35,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log('chatbotIframe.src', chatbotIframe.src);
             }
             overlay.style.display = 'none';
+            chrome.runtime.sendMessage({
+                action: "startRequestInterception",
+                chatbotSrc: botSrc
+            });
         }
     });
 

@@ -255,16 +255,16 @@ chrome.storage.local.get(["showChatBot"], function (result) {
             let lastDownY = 0;
             let resizeDirection = '';
 
-            // Create four resize handles
-            const topLeftHandle = createResizeHandle('nw-resize');
-            const topRightHandle = createResizeHandle('ne-resize');
-            const bottomLeftHandle = createResizeHandle('sw-resize');
-            const bottomRightHandle = createResizeHandle('se-resize');
+            // 创建四个调整大小的句柄
+            const handles = ['nw-resize', 'ne-resize', 'sw-resize', 'se-resize'];
+            const directions = ['tl', 'tr', 'bl', 'br'];
 
-            iframeWrapper.appendChild(topLeftHandle);
-            iframeWrapper.appendChild(topRightHandle);
-            iframeWrapper.appendChild(bottomLeftHandle);
-            iframeWrapper.appendChild(bottomRightHandle);
+            handles.forEach((cursorType, index) => {
+                const handle = createResizeHandle(cursorType);
+                iframeWrapper.appendChild(handle);
+                positionHandle(handle, directions[index]);
+                handle.addEventListener('mousedown', (e) => startResizing(e, directions[index]));
+            });
 
             function createResizeHandle(cursorType) {
                 const handle = document.createElement('div');
@@ -276,37 +276,34 @@ chrome.storage.local.get(["showChatBot"], function (result) {
                 return handle;
             }
 
-            topLeftHandle.style.top = '0';
-            topLeftHandle.style.left = '0';
+            function positionHandle(handle, direction) {
+                switch (direction) {
+                    case 'tl':
+                        handle.style.top = '0';
+                        handle.style.left = '0';
+                        break;
+                    case 'tr':
+                        handle.style.top = '0';
+                        handle.style.right = '0';
+                        break;
+                    case 'bl':
+                        handle.style.bottom = '0';
+                        handle.style.left = '0';
+                        break;
+                    case 'br':
+                        handle.style.bottom = '0';
+                        handle.style.right = '0';
+                        break;
+                }
+            }
 
-            topRightHandle.style.top = '0';
-            topRightHandle.style.right = '0';
-
-            bottomLeftHandle.style.bottom = '0';
-            bottomLeftHandle.style.left = '0';
-
-            bottomRightHandle.style.bottom = '0';
-            bottomRightHandle.style.right = '0';
-
-            // Add event listeners to each handle
-            [topLeftHandle, topRightHandle, bottomLeftHandle, bottomRightHandle].forEach(handle => {
-                handle.addEventListener('mousedown', (e) => {
-                    isResizing = true;
-                    lastDownX = e.clientX;
-                    lastDownY = e.clientY;
-                    resizeDirection = getResizeDirection(e.target);
-                    e.preventDefault();
-                });
-            });
-
-            document.addEventListener('mousemove', throttle(handleResizeMouseMove, 50));
-            document.addEventListener('mouseup', handleResizeMouseUp);
-
-            function getResizeDirection(handle) {
-                if (handle === topLeftHandle) return 'tl';
-                if (handle === topRightHandle) return 'tr';
-                if (handle === bottomLeftHandle) return 'bl';
-                if (handle === bottomRightHandle) return 'br';
+            function startResizing(e, direction) {
+                isResizing = true;
+                lastDownX = e.clientX;
+                lastDownY = e.clientY;
+                resizeDirection = direction;
+                e.preventDefault();
+                addIframeMask();
             }
 
             function handleResizeMouseMove(e) {
@@ -340,25 +337,44 @@ chrome.storage.local.get(["showChatBot"], function (result) {
                     lastDownX = e.clientX;
                     lastDownY = e.clientY;
                 });
-
             }
 
             function handleResizeMouseUp() {
-                console.log('ssssssss')
+                console.log('handleResizeMouseUp');
                 if (isResizing) {
-
-                    isResizing = false; // 将 isResizing 重置为 false
-
+                    isResizing = false;
                     chrome.storage.local.set({
                         chatBotWidth: iframeWrapper.offsetWidth,
                         chatBotHeight: iframeWrapper.offsetHeight
                     });
                 }
+                removeIframeMask();
+            }
 
-                document.removeEventListener('mousemove', handleResizeMouseMove);
+            function addIframeMask() {
+                const mask = document.createElement('div');
+                mask.id = 'iframe-mask';
+                mask.style.position = 'fixed';
+                mask.style.top = 0;
+                mask.style.left = 0;
+                mask.style.width = '100vw';
+                mask.style.height = '100vh';
+                mask.style.background = 'transparent';
+                mask.style.zIndex = 2147483647; // 设置一个较高的 z-index
+                document.body.appendChild(mask);
+                mask.addEventListener('mousemove', throttle(handleResizeMouseMove, 50));
+                mask.addEventListener('mouseup', handleResizeMouseUp);
+            }
+
+            function removeIframeMask() {
+                const mask = document.getElementById('iframe-mask');
+                if (mask) {
+                    mask.removeEventListener('mousemove', handleResizeMouseMove);
+                    mask.removeEventListener('mouseup', handleResizeMouseUp);
+                    document.body.removeChild(mask);
+                }
             }
         }
-
 
         enableResize(iframeWrapper);
     }

@@ -12,7 +12,6 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
         // 移除已有的拦截器（如果存在）
         if (requestInterceptor) {
-            console.log("Removing existing request interceptor");
             chrome.webRequest.onBeforeRequest.removeListener(requestInterceptor);
         }
 
