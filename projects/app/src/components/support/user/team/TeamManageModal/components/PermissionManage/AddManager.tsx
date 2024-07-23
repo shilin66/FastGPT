@@ -24,7 +24,6 @@ import MyIcon from '@fastgpt/web/components/common/Icon';
 import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { TeamModalContext } from '../../context';
 import { useI18n } from '@/web/context/I18n';
-import MyAvatar from '@/components/Avatar';
 
 function AddManagerModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const { t } = useTranslation();
@@ -122,7 +121,7 @@ function AddManagerModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                       justifyContent="space-between"
                     >
                       <Flex flexDirection="row" alignItems="center">
-                        <MyAvatar src={member.avatar} w="32px" />
+                        <Avatar src={member.avatar} w="32px" />
                         <Box ml="2">{member.memberName}</Box>
                       </Flex>
                     </Flex>
