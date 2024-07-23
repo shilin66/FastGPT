@@ -95,8 +95,7 @@ export async function initSystemConfig() {
     feConfigs: {
       ...fileRes?.feConfigs,
       ...defaultFeConfigs,
-      ...(dbConfig.feConfigs || {}),
-      isPlus: !!FastGPTProUrl
+      ...(dbConfig.feConfigs || {})
     },
     systemEnv: {
       ...fileRes.systemEnv,
