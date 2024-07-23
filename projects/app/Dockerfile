@@ -34,7 +34,7 @@ COPY --from=mainDeps /app/projects/app/node_modules ./projects/app/node_modules
 RUN [ -z "$proxy" ] || sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 
 RUN apk update && apk add zip
-RUN zip -r /app/projects/app/public/chrome_extension/fastgpt_agent.zip /app/projects/app/public/chrome_extension/fastgpt_agent
+RUN cd /app/projects/app/public/chrome_extension && zip -r fastgpt_agent.zip fastgpt_agent
 
 RUN apk add --no-cache libc6-compat && npm install -g pnpm@9.4.0
 
