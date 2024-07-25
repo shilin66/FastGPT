@@ -71,6 +71,7 @@ const OutLink = () => {
         px={[4, 8]}
         py={[4, 6]}
         flex={'1 0 0'}
+        overflow={'auto'}
       >
         {linkType === PublishChannelEnum.share && (
           <Link appId={appId} type={PublishChannelEnum.share} />

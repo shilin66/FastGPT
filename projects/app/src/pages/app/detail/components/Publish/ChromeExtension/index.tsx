@@ -59,7 +59,7 @@ const ChromeExtension = () => {
           使用说明
         </Text>
       </Flex>
-      <Box pt={[4, 8]}>
+      <Box pt={4}>
         <Markdown source={description}></Markdown>
       </Box>
     </MyBox>
