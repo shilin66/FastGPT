@@ -77,8 +77,8 @@ const Login = () => {
       )}
       <Flex
         alignItems={'center'}
-        justifyContent={'center'}
-        bg={`url('/icon/login-bg.svg') no-repeat`}
+        justifyContent={'flex-end'}
+        bg={`url('/icon/login-bg1.svg') no-repeat`}
         backgroundSize={'cover'}
         userSelect={'none'}
         h={'100%'}
