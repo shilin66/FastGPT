@@ -75,8 +75,8 @@ export async function createUserWithDefaultTeamAndPermission(
     {
       teamId: defaultTeam._id,
       userId,
-      name: 'Visitor',
-      role: TeamMemberRoleEnum.visitor,
+      name: username,
+      // role: TeamMemberRoleEnum.visitor,
       status: TeamMemberStatusEnum.active,
       createTime: new Date(),
       defaultTeam: true

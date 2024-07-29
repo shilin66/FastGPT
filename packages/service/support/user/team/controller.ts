@@ -292,7 +292,7 @@ export async function inviteTeamMember({
         teamId,
         userId: userMap.get(username),
         name: username,
-        role: TeamMemberRoleEnum.visitor,
+        // role: TeamMemberRoleEnum.visitor,
         status: TeamMemberStatusEnum.waiting,
         createTime: new Date(),
         defaultTeam: false
