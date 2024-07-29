@@ -37,4 +37,4 @@ const MdImage = ({ src, ...props }: { src?: string; [key: string]: any }) => {
   );
 };
 
-export default React.memo(MdImage);
+export default MdImage;

@@ -34,6 +34,7 @@ import { useContextSelector } from 'use-context-selector';
 import { AppContext } from '@/pages/app/detail/components/context';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
+import VariableTip from '@/components/common/Textarea/MyTextarea/VariableTip';
 
 const DatasetSelectModal = dynamic(() => import('@/components/core/app/DatasetSelectModal'));
 const DatasetParamsModal = dynamic(() => import('@/components/core/app/DatasetParamsModal'));
@@ -57,7 +58,8 @@ const LabelStyles: BoxProps = {
   w: ['60px', '100px'],
   whiteSpace: 'nowrap',
   flexShrink: 0,
-  fontSize: 'xs'
+  fontSize: 'sm',
+  color: 'myGray.900'
 };
 
 const EditForm = ({
@@ -102,12 +104,19 @@ const EditForm = ({
     onClose: onCloseToolsSelect
   } = useDisclosure();
 
-  const formatVariables: any = useMemo(
+  const formatVariables = useMemo(
     () =>
       formatEditorVariablePickerIcon([
         ...getSystemVariables(t),
         ...(appForm.chatConfig.variables || [])
-      ]),
+      ]).map((item) => ({
+        ...item,
+        parent: {
+          id: 'VARIABLE_NODE_ID',
+          label: t('common:core.module.Variable'),
+          avatar: 'core/workflow/template/variable'
+        }
+      })),
     [appForm.chatConfig.variables, t]
   );
 
@@ -155,10 +164,13 @@ const EditForm = ({
             </Box>
           </Flex>
 
-          <Box mt={3}>
-            <HStack {...LabelStyles}>
+          <Box mt={4}>
+            <HStack {...LabelStyles} w={'100%'}>
               <Box>{t('common:core.ai.Prompt')}</Box>
               <QuestionTip label={t('common:core.app.tip.chatNodeSystemPromptTip')} />
+
+              <Box flex={1} />
+              <VariableTip color={'myGray.500'} />
             </HStack>
             <Box mt={1}>
               <PromptEditor
@@ -174,6 +186,7 @@ const EditForm = ({
                     }));
                   });
                 }}
+                variableLabels={formatVariables}
                 variables={formatVariables}
                 placeholder={t('common:core.app.tip.chatNodeSystemPromptTip')}
                 title={t('common:core.ai.Prompt')}
@@ -217,6 +230,7 @@ const EditForm = ({
                 similarity={appForm.dataset.similarity}
                 limit={appForm.dataset.limit}
                 usingReRank={appForm.dataset.usingReRank}
+                datasetSearchUsingExtensionQuery={appForm.dataset.datasetSearchUsingExtensionQuery}
                 queryExtensionModel={appForm.dataset.datasetSearchExtensionModel}
               />
             </Box>
