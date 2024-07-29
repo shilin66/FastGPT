@@ -6,9 +6,10 @@ import { addHours } from 'date-fns';
 import { WorkerNameEnum, runWorker } from '../../../worker/utils';
 import fs from 'fs';
 import { detectFileEncoding } from '@fastgpt/global/common/file/tools';
-import { ReadFileResponse } from '../../../worker/file/type';
+import type { ReadFileResponse } from '../../../worker/readFile/type';
 
-export const initMarkdownText = ({
+// match md img text and upload to db
+export const matchMdImgTextAndUpload = ({
   teamId,
   md,
   metadata
@@ -79,7 +80,7 @@ export const readRawContentByFileBuffer = async ({
 
   // markdown data format
   if (['md', 'html', 'docx'].includes(extension)) {
-    rawText = await initMarkdownText({
+    rawText = await matchMdImgTextAndUpload({
       teamId: teamId,
       md: rawText,
       metadata: metadata

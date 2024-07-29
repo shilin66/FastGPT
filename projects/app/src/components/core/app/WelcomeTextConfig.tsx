@@ -17,8 +17,9 @@ const WelcomeTextConfig = (props: TextareaProps) => {
         <ChatFunctionTip type={'welcome'} />
       </Flex>
       <MyTextarea
+        iconSrc={'core/app/simpleMode/chat'}
+        title={t('common:core.app.Welcome Text')}
         mt={2}
-        bg={'myWhite.400'}
         rows={6}
         fontSize={'sm'}
         placeholder={t('common:core.app.tip.welcomeTextTip')}
