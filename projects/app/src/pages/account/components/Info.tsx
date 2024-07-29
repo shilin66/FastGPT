@@ -264,21 +264,21 @@ const MyInfo = () => {
             <TeamMenu />
           </Box>
         </Flex>
-        {feConfigs.isPlus && (
-          <Box mt={6} whiteSpace={'nowrap'}>
-            <Flex alignItems={'center'}>
-              <Box {...labelStyles}>{t('common:user.team.Balance')}:&nbsp;</Box>
-              <Box flex={1}>
-                <strong>{formatStorePrice2Read(userInfo?.team?.balance).toFixed(3)}</strong> 元
-              </Box>
-              {feConfigs?.show_pay && userInfo?.team?.permission.hasWritePer && (
-                <Button variant={'whitePrimary'} size={'sm'} ml={5} onClick={onOpenPayModal}>
-                  {t('common:user.Pay')}
-                </Button>
-              )}
-            </Flex>
-          </Box>
-        )}
+        {/*{feConfigs.isPlus && (*/}
+        {/*  <Box mt={6} whiteSpace={'nowrap'}>*/}
+        {/*    <Flex alignItems={'center'}>*/}
+        {/*      <Box {...labelStyles}>{t('common:user.team.Balance')}:&nbsp;</Box>*/}
+        {/*      <Box flex={1}>*/}
+        {/*        <strong>{formatStorePrice2Read(userInfo?.team?.balance).toFixed(3)}</strong> 元*/}
+        {/*      </Box>*/}
+        {/*      {feConfigs?.show_pay && userInfo?.team?.permission.hasWritePer && (*/}
+        {/*        <Button variant={'whitePrimary'} size={'sm'} ml={5} onClick={onOpenPayModal}>*/}
+        {/*          {t('common:user.Pay')}*/}
+        {/*        </Button>*/}
+        {/*      )}*/}
+        {/*    </Flex>*/}
+        {/*  </Box>*/}
+        {/*)}*/}
       </Box>
       {isOpenPayModal && <PayModal onClose={onClosePayModal} />}
       {isOpenUpdatePsw && <UpdatePswModal onClose={onCloseUpdatePsw} />}

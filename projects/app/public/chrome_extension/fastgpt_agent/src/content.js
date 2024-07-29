@@ -105,6 +105,7 @@ chrome.storage.local.get(["showChatBot"], function (result) {
                         chatWindow.style.visibility = 'unset';
                     }
                     adjustIframePosition(chatWindow);
+                    enableResize(iframeWrapper);
                     setTimeout(() => {
                         iframe.src = botSrc;
                         iframe.onload = function () {
@@ -255,9 +256,9 @@ chrome.storage.local.get(["showChatBot"], function (result) {
             let lastDownY = 0;
             let resizeDirection = '';
 
-            // 创建四个调整大小的句柄
-            const handles = ['nw-resize', 'ne-resize', 'sw-resize', 'se-resize'];
-            const directions = ['tl', 'tr', 'bl', 'br'];
+            // 创建八个调整大小的句柄
+            const handles = ['nw-resize', 'ne-resize', 'sw-resize', 'se-resize', 'n-resize', 's-resize', 'w-resize', 'e-resize'];
+            const directions = ['tl', 'tr', 'bl', 'br', 't', 'b', 'l', 'r'];
 
             handles.forEach((cursorType, index) => {
                 const handle = createResizeHandle(cursorType);
@@ -268,9 +269,9 @@ chrome.storage.local.get(["showChatBot"], function (result) {
 
             function createResizeHandle(cursorType) {
                 const handle = document.createElement('div');
-                handle.style.width = '10px';
-                handle.style.height = '10px';
-                handle.style.background = '#f0f0f0';
+                handle.style.width = '15px';
+                handle.style.height = '15px';
+                handle.style.background = 'transparent';
                 handle.style.position = 'absolute';
                 handle.style.cursor = cursorType;
                 return handle;
@@ -294,6 +295,34 @@ chrome.storage.local.get(["showChatBot"], function (result) {
                         handle.style.bottom = '0';
                         handle.style.right = '0';
                         break;
+                    case 't':
+                        handle.style.top = '0';
+                        handle.style.left = '50%';
+                        handle.style.transform = 'translateX(-50%)';
+                        handle.style.width = `${iframeWrapper.offsetWidth - 30}px`;
+                        handle.style.height = '3px';
+                        break;
+                    case 'b':
+                        handle.style.bottom = '0';
+                        handle.style.left = '50%';
+                        handle.style.transform = 'translateX(-50%)';
+                        handle.style.width = `${iframeWrapper.offsetWidth - 30}px`;
+                        handle.style.height = '3px';
+                        break;
+                    case 'l':
+                        handle.style.top = '50%';
+                        handle.style.left = '0';
+                        handle.style.transform = 'translateY(-50%)';
+                        handle.style.width = '3px';
+                        handle.style.height = `${iframeWrapper.offsetHeight - 30}px`;
+                        break;
+                    case 'r':
+                        handle.style.top = '50%';
+                        handle.style.right = '0';
+                        handle.style.transform = 'translateY(-50%)';
+                        handle.style.width = '3px';
+                        handle.style.height = `${iframeWrapper.offsetHeight - 30}px`;
+                        break;
                 }
             }
 
@@ -302,9 +331,12 @@ chrome.storage.local.get(["showChatBot"], function (result) {
                 lastDownX = e.clientX;
                 lastDownY = e.clientY;
                 resizeDirection = direction;
+                iframeWrapper.style.pointerEvents = 'none'; // 禁用 iframe 的鼠标事件
                 e.preventDefault();
-                addIframeMask();
             }
+
+            document.addEventListener('mousemove', throttle(handleResizeMouseMove, 50));
+            document.addEventListener('mouseup', handleResizeMouseUp);
 
             function handleResizeMouseMove(e) {
                 if (!isResizing) return;
@@ -333,6 +365,20 @@ chrome.storage.local.get(["showChatBot"], function (result) {
                             iframeWrapper.style.width = `${iframeWrapper.offsetWidth + offsetX}px`;
                             iframeWrapper.style.height = `${iframeWrapper.offsetHeight + offsetY}px`;
                             break;
+                        case 't':
+                            iframeWrapper.style.height = `${iframeWrapper.offsetHeight - offsetY}px`;
+                            iframeWrapper.style.top = `${iframeWrapper.offsetTop + offsetY}px`;
+                            break;
+                        case 'b':
+                            iframeWrapper.style.height = `${iframeWrapper.offsetHeight + offsetY}px`;
+                            break;
+                        case 'l':
+                            iframeWrapper.style.width = `${iframeWrapper.offsetWidth - offsetX}px`;
+                            iframeWrapper.style.left = `${iframeWrapper.offsetLeft + offsetX}px`;
+                            break;
+                        case 'r':
+                            iframeWrapper.style.width = `${iframeWrapper.offsetWidth + offsetX}px`;
+                            break;
                     }
                     lastDownX = e.clientX;
                     lastDownY = e.clientY;
@@ -342,40 +388,15 @@ chrome.storage.local.get(["showChatBot"], function (result) {
             function handleResizeMouseUp() {
                 console.log('handleResizeMouseUp');
                 if (isResizing) {
-                    isResizing = false;
+                    isResizing = false; // 将 isResizing 重置为 false
+                    enableResize(iframeWrapper);
+                    iframeWrapper.style.pointerEvents = 'auto'; // 恢复 iframe 的鼠标事件
                     chrome.storage.local.set({
                         chatBotWidth: iframeWrapper.offsetWidth,
                         chatBotHeight: iframeWrapper.offsetHeight
                     });
                 }
-                removeIframeMask();
-            }
-
-            function addIframeMask() {
-                const mask = document.createElement('div');
-                mask.id = 'iframe-mask';
-                mask.style.position = 'fixed';
-                mask.style.top = 0;
-                mask.style.left = 0;
-                mask.style.width = '100vw';
-                mask.style.height = '100vh';
-                mask.style.background = 'transparent';
-                mask.style.zIndex = 2147483647; // 设置一个较高的 z-index
-                document.body.appendChild(mask);
-                mask.addEventListener('mousemove', throttle(handleResizeMouseMove, 50));
-                mask.addEventListener('mouseup', handleResizeMouseUp);
-            }
-
-            function removeIframeMask() {
-                const mask = document.getElementById('iframe-mask');
-                if (mask) {
-                    mask.removeEventListener('mousemove', handleResizeMouseMove);
-                    mask.removeEventListener('mouseup', handleResizeMouseUp);
-                    document.body.removeChild(mask);
-                }
             }
         }
-
-        enableResize(iframeWrapper);
     }
 });
