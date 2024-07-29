@@ -140,29 +140,29 @@ const LoginForm = ({ setPageType, loginSuccess }: Props) => {
           {t('common:Login')}
         </Button>
 
-        {feConfigs?.show_register && (
-          <>
-            <Flex align={'center'} justifyContent={'flex-end'} color={'primary.700'}>
-              <Box
-                cursor={'pointer'}
-                _hover={{ textDecoration: 'underline' }}
-                onClick={() => setPageType('forgetPassword')}
-                fontSize="sm"
-              >
-                {t('common:support.user.login.Forget Password')}
-              </Box>
-              <Box mx={3} h={'16px'} w={'1.5px'} bg={'myGray.250'}></Box>
-              <Box
-                cursor={'pointer'}
-                _hover={{ textDecoration: 'underline' }}
-                onClick={() => setPageType('register')}
-                fontSize="sm"
-              >
-                {t('common:support.user.login.Register')}
-              </Box>
-            </Flex>
-          </>
-        )}
+        {/*{feConfigs?.show_register && (*/}
+        {/*  <>*/}
+        {/*    <Flex align={'center'} justifyContent={'flex-end'} color={'primary.700'}>*/}
+        {/*      <Box*/}
+        {/*        cursor={'pointer'}*/}
+        {/*        _hover={{ textDecoration: 'underline' }}*/}
+        {/*        onClick={() => setPageType('forgetPassword')}*/}
+        {/*        fontSize="sm"*/}
+        {/*      >*/}
+        {/*        {t('common:support.user.login.Forget Password')}*/}
+        {/*      </Box>*/}
+        {/*      <Box mx={3} h={'16px'} w={'1.5px'} bg={'myGray.250'}></Box>*/}
+        {/*      <Box*/}
+        {/*        cursor={'pointer'}*/}
+        {/*        _hover={{ textDecoration: 'underline' }}*/}
+        {/*        onClick={() => setPageType('register')}*/}
+        {/*        fontSize="sm"*/}
+        {/*      >*/}
+        {/*        {t('common:support.user.login.Register')}*/}
+        {/*      </Box>*/}
+        {/*    </Flex>*/}
+        {/*  </>*/}
+        {/*)}*/}
       </Box>
     </FormLayout>
   );
