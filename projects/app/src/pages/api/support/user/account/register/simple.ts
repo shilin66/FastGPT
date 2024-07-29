@@ -49,8 +49,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       {
         teamId: defaultTeam._id,
         userId,
-        name: 'Visitor',
-        role: TeamMemberRoleEnum.visitor,
+        name: username,
+        // role: TeamMemberRoleEnum.visitor,
         status: TeamMemberStatusEnum.active,
         createTime: new Date(),
         defaultTeam: true
