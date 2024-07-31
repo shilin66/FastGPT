@@ -9,6 +9,10 @@ const ChromeExtension = () => {
 - 解压fastgpt-agent.zip
 - chrome浏览器地址栏输入\`chrome://extensions/\`, 打开开发者模式(点击右上角开关，chrome版本不同可能位置差异)，点击加载已解压的扩展程序，选择fastgpt-agent文件夹
 - 固定插件到浏览器顶部： <Image src='/imgs/outlink/desc/img.png' width="50%" ml="0"/>
+- 更新插件的时候，保持安装目录不变，无需卸载(会清空配置)插件，只需要更新里面的文件即可，然后刷新插件，这样可保证配置不丢失。
+<Image src='/imgs/outlink/desc/img_8.png' width="30%" ml="0"/>
+刷新一下插件
+<Image src='/imgs/outlink/desc/img_9.png' width="20%" ml="0"/>
 # 配置
 - 需要创建一个免登录窗口的链接,复制链接地址<Image src='/imgs/outlink/desc/img_1.png' width="50%" ml="0"/><br>
 - 点击插件图标，打开设置<Image src='/imgs/outlink/desc/img_2.png' width="30%" ml="0"/><br>
@@ -20,7 +24,7 @@ const ChromeExtension = () => {
 ### 方式1
 - 1.在插件的弹出页面，点击插件图标，弹出插件页面，输入问题，点击发送按钮，即可获取回答<Image src='/imgs/outlink/desc/img_4.png' width="30%" ml="0"/><br>
 ### 方式2
-- 2.在任意网站页面，点击ChatBot图标，在弹出的聊天窗口，输入问题，点击发送按钮，即可获取回答<Image src='/imgs/outlink/desc/img_5.png' width="30%" ml="0"/><br><Image src='/imgs/outlink/desc/img_6.png' width="30%" ml="0"/>
+- 2.在任意网站页面，点击ChatBot图标，在弹出的聊天窗口，输入问题，点击发送按钮，即可获取回答。如果插件发生过更新或者重装，需要刷新页面后才可使用<Image src='/imgs/outlink/desc/img_5.png' width="30%" ml="0"/><br><Image src='/imgs/outlink/desc/img_6.png' width="30%" ml="0"/>
 `;
   const handleDownloadClick = () => {
     // 创建一个隐藏的可下载链接
