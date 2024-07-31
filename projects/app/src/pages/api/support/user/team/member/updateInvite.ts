@@ -2,8 +2,6 @@ import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/nex
 import { NextAPI } from '@/service/middleware/entry';
 import { UpdateInviteProps } from '@fastgpt/global/support/user/team/controller';
 import { updateInviteResult } from '@fastgpt/service/support/user/team/controller';
-import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
-import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { parseHeaderCert } from '@fastgpt/service/support/permission/controller';
 
 async function handler(req: ApiRequestProps, res: ApiResponseType<any>) {
