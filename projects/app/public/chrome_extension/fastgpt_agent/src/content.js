@@ -65,13 +65,12 @@ chrome.storage.local.get(["showChatBot"], function (result) {
         switchBtn.style.width = '35px';
 
         switchBtn.addEventListener('click', function () {
-
             chrome.storage.local.get(["configs", "chatbotSrc",], function (result) {
                 const configs = result.configs || [];
                 // 创建或更新列表容器
                 let listWrapper = document.getElementById('configList');
                 if (listWrapper) {
-                    document.body.removeChild(listWrapper);
+                    iframeWrapper.removeChild(listWrapper);
                     return;
                 }
                 listWrapper = document.createElement('div');
@@ -84,8 +83,12 @@ chrome.storage.local.get(["showChatBot"], function (result) {
                 listWrapper.style.borderRadius = '4px';
                 listWrapper.classList.add('ant-dropdown', 'ant-dropdown-placement-bottomRight');
                 const switchBtnRect = switchBtn.getBoundingClientRect();
-                listWrapper.style.top = `${switchBtnRect.bottom}px`;
-                listWrapper.style.left = `${switchBtnRect.left}px`;
+                const iframeWrapperRect = iframeWrapper.getBoundingClientRect();
+                const switchBtnOffsetRight =  iframeWrapperRect.right - switchBtnRect.right;
+                const switchBtnOffsetTop = switchBtnRect.top - iframeWrapperRect.top;
+                // 确保listWrapper存在并调整其位置
+                listWrapper.style.right = switchBtnOffsetRight + 'px';
+                listWrapper.style.top = (switchBtnOffsetTop + switchBtn.offsetHeight) + 'px';
                 listWrapper.style.padding = '5px';
                 // 显示所有chatbot名称
                 configs.forEach((config) => {
@@ -142,8 +145,8 @@ chrome.storage.local.get(["showChatBot"], function (result) {
                 });
 
                 // 将列表容器添加到body中或确保它已经存在
-                if (!document.body.contains(listWrapper)) {
-                    document.body.appendChild(listWrapper);
+                if (!iframeWrapper.contains(listWrapper)) {
+                    iframeWrapper.appendChild(listWrapper);
                 }
             });
         });
@@ -179,7 +182,7 @@ chrome.storage.local.get(["showChatBot"], function (result) {
                     chatWindow.removeChild(tmpBtn1);
                 }
                 if (tmpEl) {
-                    document.body.removeChild(tmpEl);
+                    chatWindow.removeChild(tmpEl);
                 }
                 ChatBtnDiv.src = MessageIcon;
             }
