@@ -35,6 +35,7 @@ import { AppContext } from '@/pages/app/detail/components/context';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 import VariableTip from '@/components/common/Textarea/MyTextarea/VariableTip';
+import { getWebLLMModel } from '@/web/common/system/utils';
 
 const DatasetSelectModal = dynamic(() => import('@/components/core/app/DatasetSelectModal'));
 const DatasetParamsModal = dynamic(() => import('@/components/core/app/DatasetParamsModal'));
@@ -47,6 +48,7 @@ const ScheduledTriggerConfig = dynamic(
   () => import('@/components/core/app/ScheduledTriggerConfig')
 );
 const WelcomeTextConfig = dynamic(() => import('@/components/core/app/WelcomeTextConfig'));
+const FileSelectConfig = dynamic(() => import('@/components/core/app/FileSelect'));
 
 const BoxStyles: BoxProps = {
   px: [4, 6],
@@ -120,11 +122,10 @@ const EditForm = ({
     [appForm.chatConfig.variables, t]
   );
 
+  const selectedModel = getWebLLMModel(appForm.aiSettings.model);
   const tokenLimit = useMemo(() => {
-    return (
-      llmModelList.find((item) => item.model === appForm.aiSettings.model)?.quoteMaxToken || 3000
-    );
-  }, [llmModelList, appForm.aiSettings.model]);
+    return selectedModel?.quoteMaxToken || 3000;
+  }, [selectedModel.quoteMaxToken]);
 
   return (
     <>
@@ -336,6 +337,23 @@ const EditForm = ({
               </MyTooltip>
             ))}
           </Grid>
+        </Box>
+
+        {/* File select */}
+        <Box {...BoxStyles}>
+          <FileSelectConfig
+            forbidVision={!selectedModel.vision}
+            value={appForm.chatConfig.fileSelectConfig}
+            onChange={(e) => {
+              setAppForm((state) => ({
+                ...state,
+                chatConfig: {
+                  ...state.chatConfig,
+                  fileSelectConfig: e
+                }
+              }));
+            }}
+          />
         </Box>
 
         {/* variable */}

@@ -10,7 +10,6 @@ import { postCreateApp } from '@/web/core/app/api';
 import { defaultAppTemplates } from '@/web/core/app/templates';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useTranslation } from 'next-i18next';
-
 interface Props {
   loginSuccess: (e: ResLogin) => void;
   setPageType: Dispatch<`${LoginPageTypeEnum}`>;
@@ -26,6 +25,7 @@ interface RegisterType {
 const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
   const { toast } = useToast();
   const { t } = useTranslation();
+
   const { feConfigs } = useSystemStore();
   const {
     register,
@@ -61,7 +61,7 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
           })
         );
         toast({
-          title: `注册成功`,
+          title: t('user:register.success'),
           status: 'success'
         });
         // auto register template app
@@ -78,7 +78,7 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
         }, 100);
       } catch (error: any) {
         toast({
-          title: error.message || '注册异常',
+          title: error.message || t('user:register.error'),
           status: 'error'
         });
       }
@@ -90,7 +90,7 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
   return (
     <>
       <Box fontWeight={'bold'} fontSize={'2xl'} textAlign={'center'}>
-        注册 {feConfigs?.systemTitle} 账号
+        {t('user:register.register_account', { account: feConfigs?.systemTitle })}
       </Box>
       <Box
         mt={'42px'}
@@ -103,30 +103,65 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
         <FormControl isInvalid={!!errors.username}>
           <Input
             bg={'myGray.50'}
-            placeholder="用户名"
+            placeholder={t('user:password.email_phone')}
             {...register('username', {
-              required: '用户名不能为空',
+              required: t('user:password.email_phone_void'),
               pattern: {
-                value: /^[A-Za-z][A-Za-z0-9_]{0,31}$/,
-                message: '用户名格式错误'
+                value:
+                  /(^1[3456789]\d{9}$)|(^[A-Za-z0-9]+([_\.][A-Za-z0-9]+)*@([A-Za-z0-9\-]+\.)+[A-Za-z]{2,6}$)/,
+                message: t('user:password.email_phone_error')
               }
             })}
           ></Input>
+        </FormControl>
+        <FormControl
+          mt={6}
+          isInvalid={!!errors.code}
+          display={'flex'}
+          alignItems={'center'}
+          position={'relative'}
+        >
+          <Input
+            bg={'myGray.50'}
+            flex={1}
+            maxLength={8}
+            placeholder={t('user:password.verification_code')}
+            {...register('code', {
+              required: t('user:password.code_required')
+            })}
+          ></Input>
+          <Box
+            position={'absolute'}
+            right={3}
+            zIndex={1}
+            fontSize={'sm'}
+            {...(codeCountDown > 0
+              ? {
+                  color: 'myGray.500'
+                }
+              : {
+                  color: 'primary.700',
+                  cursor: 'pointer',
+                  onClick: onclickSendCode
+                })}
+          >
+            {sendCodeText}
+          </Box>
         </FormControl>
         <FormControl mt={6} isInvalid={!!errors.password}>
           <Input
             bg={'myGray.50'}
             type={'password'}
-            placeholder="密码(4~20位)"
+            placeholder={t('user:password.new_password')}
             {...register('password', {
-              required: '密码不能为空',
+              required: t('user:password.password_required'),
               minLength: {
                 value: 4,
-                message: '密码最少 4 位最多 20 位'
+                message: t('user:password.password_condition')
               },
               maxLength: {
                 value: 20,
-                message: '密码最少 4 位最多 20 位'
+                message: t('user:password.password_condition')
               }
             })}
           ></Input>
@@ -135,9 +170,10 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
           <Input
             bg={'myGray.50'}
             type={'password'}
-            placeholder="确认密码"
+            placeholder={t('user:password.confirm')}
             {...register('password2', {
-              validate: (val) => (getValues('password') === val ? true : '两次密码不一致')
+              validate: (val) =>
+                getValues('password') === val ? true : t('user:password.not_match')
             })}
           ></Input>
         </FormControl>
@@ -150,7 +186,7 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
           isLoading={requesting}
           onClick={handleSubmit(onclickRegister)}
         >
-          确认注册
+          {t('user:register.confirm')}
         </Button>
         <Box
           float={'right'}
@@ -162,7 +198,7 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
           _hover={{ textDecoration: 'underline' }}
           onClick={() => setPageType(LoginPageTypeEnum.passwordLogin)}
         >
-          已有账号，去登录
+          {t('user:register.to_login')}
         </Box>
       </Box>
     </>
