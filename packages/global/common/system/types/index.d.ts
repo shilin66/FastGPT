@@ -59,7 +59,7 @@ export type FastGPTFeConfigsType = {
   favicon?: string;
   customApiDomain?: string;
   customSharePageDomain?: string;
-
+  perplexica_url?: string;
   uploadFileMaxAmount?: number;
   uploadFileMaxSize?: number;
   lafEnv?: string;
