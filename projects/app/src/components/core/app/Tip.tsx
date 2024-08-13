@@ -9,7 +9,9 @@ enum FnTypeEnum {
   nextQuestion = 'nextQuestion',
   tts = 'tts',
   variable = 'variable',
-  welcome = 'welcome'
+  welcome = 'welcome',
+  file = 'file',
+  visionModel = 'visionModel'
 }
 
 const ChatFunctionTip = ({ type }: { type: `${FnTypeEnum}` }) => {
@@ -46,6 +48,18 @@ const ChatFunctionTip = ({ type }: { type: `${FnTypeEnum}` }) => {
       title: t('common:core.app.Welcome Text'),
       desc: t('common:core.app.tip.welcomeTextTip'),
       imgUrl: '/imgs/app/welcome.svg'
+    },
+    [FnTypeEnum.file]: {
+      icon: '/imgs/app/welcome-icon.svg',
+      title: t('app:file_upload'),
+      desc: t('app:file_upload_tip'),
+      imgUrl: '/imgs/app/fileUploadPlaceholder.png'
+    },
+    [FnTypeEnum.visionModel]: {
+      icon: '/imgs/app/question.svg',
+      title: t('app:vision_model_title'),
+      desc: t('app:llm_use_vision_tip'),
+      imgUrl: '/imgs/app/visionModel.png'
     }
   });
   const data = map.current[type];
@@ -55,8 +69,8 @@ const ChatFunctionTip = ({ type }: { type: `${FnTypeEnum}` }) => {
       maxW={'420px'}
       ml={1}
       label={
-        <Box>
-          <Flex>
+        <Box pt={2}>
+          <Flex alignItems={'flex-start'}>
             <Image src={data.icon} w={'36px'} alt={''} />
             <Box ml={3}>
               <Box fontWeight="bold">{data.title}</Box>
