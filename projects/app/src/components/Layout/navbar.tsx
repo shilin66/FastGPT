@@ -54,17 +54,13 @@ const Navbar = ({ unread }: { unread: number }) => {
         link: '/account',
         activeLink: ['/account']
       },
-      ...(feConfigs.perplexica_url && feConfigs.perplexica_url.trim().length > 0
-        ? [
-            {
-              label: t('common:navbar.AI Search'),
-              icon: 'support/search/searchLight',
-              activeIcon: 'support/search/searchFill',
-              link: '/search',
-              activeLink: ['/search']
-            }
-          ]
-        : []),
+      {
+        label: t('common:navbar.AI Search'),
+        icon: 'support/search/searchLight',
+        activeIcon: 'support/search/searchFill',
+        link: '/search',
+        activeLink: ['/search']
+      },
       ...(userInfo && userInfo.username === 'root'
         ? [
             {
