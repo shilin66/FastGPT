@@ -406,6 +406,7 @@ async function streamResponse({
           if (lastToolCall?.id !== toolCallId) {
             toolCalls.push({
               ...toolCall,
+              type: 'function',
               id: toolCallId,
               toolName: toolNode.name,
               toolAvatar: toolNode.avatar
