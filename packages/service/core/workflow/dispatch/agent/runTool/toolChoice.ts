@@ -362,6 +362,7 @@ async function streamResponse({
 
   let textAnswer = '';
   let toolCalls: ChatCompletionMessageToolCall[] = [];
+  let toolCallId = '';
 
   for await (const part of stream) {
     if (res.closed) {
@@ -385,8 +386,12 @@ async function streamResponse({
     } else if (responseChoice?.tool_calls?.[0]) {
       const toolCall: ChatCompletionMessageToolCall = responseChoice.tool_calls[0];
 
-      // In a stream response, only one tool is returned at a time.  If have id, description is executing a tool
       if (toolCall.id) {
+        toolCallId = toolCall.id;
+      }
+
+      // In a stream response, only one tool is returned at a time.  If have id, description is executing a tool
+      if (toolCallId && toolCall.function?.name) {
         const toolNode = toolNodes.find((item) => item.nodeId === toolCall.function?.name);
 
         if (toolNode) {
@@ -398,9 +403,10 @@ async function streamResponse({
           const lastToolCall = toolCalls[toolCalls.length - 1];
 
           // new tool
-          if (lastToolCall?.id !== toolCall.id) {
+          if (lastToolCall?.id !== toolCallId) {
             toolCalls.push({
               ...toolCall,
+              id: toolCallId,
               toolName: toolNode.name,
               toolAvatar: toolNode.avatar
             });
@@ -411,7 +417,7 @@ async function streamResponse({
                 event: SseResponseEventEnum.toolCall,
                 data: JSON.stringify({
                   tool: {
-                    id: toolCall.id,
+                    id: toolCallId,
                     toolName: toolNode.name,
                     toolAvatar: toolNode.avatar,
                     functionName: toolCall.function.name,
