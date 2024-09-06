@@ -78,6 +78,9 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
         ]
       : [])
   ];
+
+  const show_oauth = !!(feConfigs?.sso || oAuthList.length > 0);
+
   return (
     <Flex flexDirection={'column'} h={'100%'}>
       <Flex alignItems={'center'}>
@@ -98,9 +101,9 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
         </Box>
       </Flex>
       {children}
-      <Box flex={1} />
-      {feConfigs?.show_register && oAuthList.length > 0 && (
+      {show_oauth && (
         <>
+          <Box flex={1} />
           <Box position={'relative'}>
             <Divider />
             <AbsoluteCenter bg="white" px="4" color={'myGray.500'}>
@@ -137,6 +140,22 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
                 </Button>
               </Box>
             ))}
+
+            {feConfigs?.sso && (
+              <Box mt={4} color={'primary.700'} cursor={'pointer'} textAlign={'center'}>
+                <Button
+                  variant={'whitePrimary'}
+                  w={'100%'}
+                  h={'42px'}
+                  leftIcon={<Image alt="" src={feConfigs.sso.icon as any} w="20px" />}
+                  onClick={() => {
+                    feConfigs.sso?.url && router.replace(feConfigs.sso?.url, '_self');
+                  }}
+                >
+                  {feConfigs.sso.title}
+                </Button>
+              </Box>
+            )}
           </Box>
         </>
       )}

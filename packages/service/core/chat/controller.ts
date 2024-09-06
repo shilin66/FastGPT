@@ -35,7 +35,8 @@ export async function getChatItems({
 
   return { histories };
 }
-/* 临时适配旧的对话记录 */
+
+/* Temporary adaptation for old conversation records */
 export const adaptStringValue = (value: any): ChatItemValueItemType[] => {
   if (typeof value === 'string') {
     return [

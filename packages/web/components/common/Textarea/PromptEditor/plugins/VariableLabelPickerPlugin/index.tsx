@@ -8,7 +8,7 @@ import { Box, Flex } from '@chakra-ui/react';
 import { useBasicTypeaheadTriggerMatch } from '../../utils';
 import { EditorVariableLabelPickerType } from '../../type';
 import { WorkflowIOValueTypeEnum } from '@fastgpt/global/core/workflow/constants';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'next-i18next';
 import Avatar from '../../../../Avatar';
 
 interface EditorVariableItemType {
@@ -77,10 +77,7 @@ export default function VariableLabelPickerPlugin({
       onSelectOption={onSelectOption}
       triggerFn={checkForTriggerMatch}
       options={variableFilter(variables, queryString || '')}
-      menuRenderFn={(
-        anchorElementRef,
-        { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex }
-      ) => {
+      menuRenderFn={(anchorElementRef, { selectedIndex, selectOptionAndCleanUp }) => {
         if (anchorElementRef.current == null) {
           return null;
         }

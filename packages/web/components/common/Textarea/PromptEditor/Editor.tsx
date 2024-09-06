@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ */
+
 import { useState, useRef, useTransition } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
@@ -35,7 +43,8 @@ export default function Editor({
   onBlur,
   value,
   placeholder = '',
-  isFlow
+  isFlow,
+  bg = 'white'
 }: {
   h?: number;
   maxLength?: number;
@@ -49,6 +58,7 @@ export default function Editor({
   value?: string;
   placeholder?: string;
   isFlow?: boolean;
+  bg?: string;
 }) {
   const [key, setKey] = useState(getNanoid(6));
   const [_, startSts] = useTransition();
@@ -95,6 +105,8 @@ export default function Editor({
       h={`${height}px`}
       cursor={'text'}
       color={'myGray.700'}
+      bg={focus ? 'white' : bg}
+      borderRadius={'md'}
     >
       <LexicalComposer initialConfig={initialConfig} key={key}>
         <PlainTextPlugin

@@ -25,7 +25,6 @@ import {
 } from '@/web/support/openapi/api';
 import type { EditApiKeyProps } from '@/global/support/openapi/api.d';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useLoading } from '@fastgpt/web/hooks/useLoading';
 import dayjs from 'dayjs';
 import { AddIcon } from '@chakra-ui/icons';
 import { useCopyData } from '@/web/common/hooks/useCopyData';
@@ -53,13 +52,13 @@ const defaultEditData: EditProps = {
 
 const ApiKeyTable = ({ tips, appId }: { tips: string; appId?: string }) => {
   const { t } = useTranslation();
-  const { Loading } = useLoading();
   const theme = useTheme();
   const { copyData } = useCopyData();
   const { feConfigs } = useSystemStore();
   const [baseUrl, setBaseUrl] = useState('https://fastgpt.in/api');
   const [editData, setEditData] = useState<EditProps>();
   const [apiKey, setApiKey] = useState('');
+
   const { ConfirmModal, openConfirm } = useConfirm({
     type: 'delete',
     content: t('workflow:delete_api')
@@ -82,7 +81,7 @@ const ApiKeyTable = ({ tips, appId }: { tips: string; appId?: string }) => {
 
   useEffect(() => {
     setBaseUrl(feConfigs?.customApiDomain || `${location.origin}/api`);
-  }, []);
+  }, [feConfigs?.customApiDomain]);
 
   return (
     <MyBox
@@ -273,6 +272,7 @@ const ApiKeyTable = ({ tips, appId }: { tips: string; appId?: string }) => {
             wordBreak={'break-all'}
             cursor={'pointer'}
             borderRadius={'md'}
+            userSelect={'all'}
             onClick={() => copyData(apiKey)}
           >
             <Box flex={1}>{apiKey}</Box>

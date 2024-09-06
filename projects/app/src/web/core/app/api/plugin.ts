@@ -7,7 +7,7 @@ import type {
 } from '@fastgpt/global/core/workflow/type/node';
 import { getMyApps } from '../api';
 import type { ListAppBody } from '@/pages/api/core/app/list';
-import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
+import { defaultNodeVersion, FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { FlowNodeTemplateTypeEnum } from '@fastgpt/global/core/workflow/constants';
 import type { GetPreviewNodeQuery } from '@/pages/api/core/app/plugin/getPreviewNode';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
@@ -17,17 +17,21 @@ import { GetSystemPluginTemplatesBody } from '@/pages/api/core/app/plugin/getSys
 /* ============ team plugin ============== */
 export const getTeamPlugTemplates = (data?: ListAppBody) =>
   getMyApps(data).then((res) =>
-    res.map<NodeTemplateListItemType>((app) => ({
+    res.map((app) => ({
+      tmbId: app.tmbId,
       id: app._id,
       pluginId: app._id,
       isFolder: app.type === AppTypeEnum.folder || app.type === AppTypeEnum.httpPlugin,
       templateType: FlowNodeTemplateTypeEnum.teamApp,
-      flowNodeType: FlowNodeTypeEnum.pluginModule,
+      flowNodeType:
+        app.type === AppTypeEnum.workflow
+          ? FlowNodeTypeEnum.appModule
+          : FlowNodeTypeEnum.pluginModule,
       avatar: app.avatar,
       name: app.name,
       intro: app.intro,
       showStatus: false,
-      version: app.pluginData?.nodeVersion || '481',
+      version: app.pluginData?.nodeVersion || defaultNodeVersion,
       isTool: true
     }))
   );

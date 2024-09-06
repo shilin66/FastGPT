@@ -1,6 +1,6 @@
 import { StandardSubLevelEnum, SubModeEnum, SubTypeEnum } from '../sub/constants';
 import { BillPayWayEnum, BillTypeEnum } from './constants';
-
+import { TeamInvoiceHeaderType } from '../../user/team/type';
 export type BillSchemaType = {
   _id: string;
   userId: string;
@@ -19,7 +19,6 @@ export type BillSchemaType = {
     month?: number;
     datasetSize?: number;
     extraPoints?: number;
-    invoice: boolean;
   };
 };
 
@@ -29,3 +28,17 @@ export type ChatNodeUsageType = {
   moduleName: string;
   model?: string;
 };
+
+export type InvoiceType = {
+  amount: number;
+  billIdList: string[];
+} & TeamInvoiceHeaderType;
+
+export type InvoiceSchemaType = {
+  _id: string;
+  teamId: string;
+  status: 1 | 2;
+  createTime: Date;
+  finishTime?: Date;
+  file?: Buffer;
+} & InvoiceType;

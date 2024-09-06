@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Box, Flex, Button, ModalFooter, ModalBody, Input } from '@chakra-ui/react';
+import React, { useCallback, useMemo } from 'react';
+import { Box, Flex, Button, ModalFooter, ModalBody, Input, HStack } from '@chakra-ui/react';
 import { useSelectFile } from '@/web/common/file/hooks/useSelectFile';
 import { useForm } from 'react-hook-form';
 import { compressImgFileAndUpload } from '@/web/common/file/controller';
@@ -14,29 +14,56 @@ import MyModal from '@fastgpt/web/components/common/MyModal';
 import { postCreateDataset } from '@/web/core/dataset/api';
 import type { CreateDatasetParams } from '@/global/core/dataset/api.d';
 import { useTranslation } from 'next-i18next';
-import MyRadio from '@/components/common/MyRadio';
 import { DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
 import { MongoImageTypeEnum } from '@fastgpt/global/common/file/image/constants';
 import AIModelSelector from '@/components/Select/AIModelSelector';
-import { useI18n } from '@/web/context/I18n';
-import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
+import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
+import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 
-const CreateModal = ({ onClose, parentId }: { onClose: () => void; parentId?: string }) => {
+export type CreateDatasetType =
+  | DatasetTypeEnum.dataset
+  | DatasetTypeEnum.externalFile
+  | DatasetTypeEnum.websiteDataset;
+
+const CreateModal = ({
+  onClose,
+  parentId,
+  type
+}: {
+  onClose: () => void;
+  parentId?: string;
+  type: CreateDatasetType;
+}) => {
   const { t } = useTranslation();
-  const { datasetT } = useI18n();
   const { toast } = useToast();
   const router = useRouter();
-  const { feConfigs, vectorModelList, datasetModelList } = useSystemStore();
+  const { vectorModelList, datasetModelList } = useSystemStore();
   const { isPc } = useSystem();
+
+  const databaseNameMap = useMemo(() => {
+    return {
+      [DatasetTypeEnum.dataset]: t('dataset:common_dataset'),
+      [DatasetTypeEnum.externalFile]: t('dataset:external_file'),
+      [DatasetTypeEnum.websiteDataset]: t('dataset:website_dataset')
+    };
+  }, [t]);
+
+  const iconMap = useMemo(() => {
+    return {
+      [DatasetTypeEnum.dataset]: 'core/dataset/commonDatasetColor',
+      [DatasetTypeEnum.externalFile]: 'core/dataset/externalDatasetColor',
+      [DatasetTypeEnum.websiteDataset]: 'core/dataset/websiteDatasetColor'
+    };
+  }, []);
 
   const filterNotHiddenVectorModelList = vectorModelList.filter((item) => !item.hidden);
 
   const { register, setValue, handleSubmit, watch } = useForm<CreateDatasetParams>({
     defaultValues: {
       parentId,
-      type: DatasetTypeEnum.dataset,
-      avatar: '/icon/logo.svg',
+      type: type || DatasetTypeEnum.dataset,
+      avatar: iconMap[type] || 'core/dataset/commonDatasetColor',
       name: '',
       intro: '',
       vectorModel: filterNotHiddenVectorModelList[0].model,
@@ -44,7 +71,6 @@ const CreateModal = ({ onClose, parentId }: { onClose: () => void; parentId?: st
     }
   });
   const avatar = watch('avatar');
-  const datasetType = watch('type');
   const vectorModel = watch('vectorModel');
   const agentModel = watch('agentModel');
 
@@ -88,66 +114,25 @@ const CreateModal = ({ onClose, parentId }: { onClose: () => void; parentId?: st
     }
   });
 
-  const onSelectDatasetType = useCallback(
-    (e: DatasetTypeEnum) => {
-      if (
-        !feConfigs?.isPlus &&
-        (e === DatasetTypeEnum.websiteDataset || e === DatasetTypeEnum.externalFile)
-      ) {
-        return toast({
-          status: 'warning',
-          title: t('common:common.system.Commercial version function')
-        });
-      }
-      setValue('type', e);
-    },
-    [feConfigs?.isPlus, setValue, t, toast]
-  );
-
   return (
     <MyModal
-      iconSrc="/imgs/workflow/db.png"
-      title={t('common:core.dataset.Create dataset')}
+      title={
+        <Flex alignItems={'center'} ml={-3}>
+          <Avatar w={'20px'} h={'20px'} borderRadius={'xs'} src={iconMap[type]} pr={'10px'} />
+          {t('common:core.dataset.Create dataset', { name: databaseNameMap[type] })}
+        </Flex>
+      }
       isOpen
       onClose={onClose}
       isCentered={!isPc}
-      w={'450px'}
+      w={'490px'}
     >
-      <ModalBody py={2}>
-        <>
-          <Box mb={1} color={'myGray.900'}>
-            {t('common:core.dataset.Dataset Type')}
+      <ModalBody py={6} px={9}>
+        <Box>
+          <Box color={'myGray.900'} fontWeight={500} fontSize={'sm'}>
+            {t('common:common.Set Name')}
           </Box>
-          <MyRadio
-            gridGap={2}
-            gridTemplateColumns={'repeat(1,1fr)'}
-            list={[
-              {
-                title: datasetT('common_dataset'),
-                value: DatasetTypeEnum.dataset,
-                icon: 'core/dataset/commonDataset',
-                desc: datasetT('common_dataset_desc')
-              },
-              {
-                title: datasetT('website_dataset'),
-                value: DatasetTypeEnum.websiteDataset,
-                icon: 'core/dataset/websiteDataset',
-                desc: datasetT('website_dataset_desc')
-              },
-              {
-                title: datasetT('external_file'),
-                value: DatasetTypeEnum.externalFile,
-                icon: 'core/dataset/externalDataset',
-                desc: datasetT('external_file_dataset_desc')
-              }
-            ]}
-            value={datasetType}
-            onChange={onSelectDatasetType}
-          />
-        </>
-        <Box mt={5}>
-          <Box color={'myGray.900'}>{t('common:common.Set Name')}</Box>
-          <Flex mt={1} alignItems={'center'}>
+          <Flex mt={'12px'} alignItems={'center'}>
             <MyTooltip label={t('common:common.avatar.Select Avatar')}>
               <Avatar
                 flexShrink={0}
@@ -173,14 +158,27 @@ const CreateModal = ({ onClose, parentId }: { onClose: () => void; parentId?: st
           </Flex>
         </Box>
         {filterNotHiddenVectorModelList.length > 1 && (
-          <Flex mt={6} alignItems={'center'}>
-            <Flex alignItems={'center'} flex={'0 0 100px'} fontSize={'sm'}>
-              {t('common:core.ai.model.Vector Model')}
+          <Flex
+            mt={6}
+            alignItems={['flex-start', 'center']}
+            justify={'space-between'}
+            flexDir={['column', 'row']}
+          >
+            <HStack
+              spacing={1}
+              alignItems={'center'}
+              flex={['', '0 0 110px']}
+              fontSize={'sm'}
+              color={'myGray.900'}
+              fontWeight={500}
+              pb={['12px', '0']}
+            >
+              <Box>{t('common:core.ai.model.Vector Model')}</Box>
               <QuestionTip label={t('common:core.dataset.embedding model tip')} />
-            </Flex>
-            <Box flex={1}>
+            </HStack>
+            <Box w={['100%', '300px']}>
               <AIModelSelector
-                w={'100%'}
+                w={['100%', '300px']}
                 value={vectorModel}
                 list={filterNotHiddenVectorModelList.map((item) => ({
                   label: item.name,
@@ -194,13 +192,26 @@ const CreateModal = ({ onClose, parentId }: { onClose: () => void; parentId?: st
           </Flex>
         )}
         {datasetModelList.length > 1 && (
-          <Flex mt={6} alignItems={'center'}>
-            <Box flex={'0 0 100px'} fontSize={'sm'}>
-              {t('common:core.ai.model.Dataset Agent Model')}
-            </Box>
-            <Box flex={1}>
+          <Flex
+            mt={6}
+            alignItems={['flex-start', 'center']}
+            justify={'space-between'}
+            flexDir={['column', 'row']}
+          >
+            <HStack
+              spacing={1}
+              flex={['', '0 0 110px']}
+              fontSize={'sm'}
+              color={'myGray.900'}
+              fontWeight={500}
+              pb={['12px', '0']}
+            >
+              <Box>{t('common:core.ai.model.Dataset Agent Model')}</Box>
+              <QuestionTip label={t('dataset:file_model_function_tip')} />
+            </HStack>
+            <Box w={['100%', '300px']}>
               <AIModelSelector
-                w={'100%'}
+                w={['100%', '300px']}
                 value={agentModel}
                 list={datasetModelList.map((item) => ({
                   label: item.name,
@@ -215,7 +226,7 @@ const CreateModal = ({ onClose, parentId }: { onClose: () => void; parentId?: st
         )}
       </ModalBody>
 
-      <ModalFooter>
+      <ModalFooter px={9}>
         <Button variant={'whiteBase'} mr={3} onClick={onClose}>
           {t('common:common.Close')}
         </Button>

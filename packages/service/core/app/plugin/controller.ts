@@ -1,6 +1,6 @@
 import { FlowNodeTemplateType } from '@fastgpt/global/core/workflow/type/node.d';
 import { FlowNodeTypeEnum, defaultNodeVersion } from '@fastgpt/global/core/workflow/node/constant';
-import { pluginData2FlowNodeIO } from '@fastgpt/global/core/workflow/utils';
+import { appData2FlowNodeIO, pluginData2FlowNodeIO } from '@fastgpt/global/core/workflow/utils';
 import { PluginSourceEnum } from '@fastgpt/global/core/plugin/constants';
 import type { PluginRuntimeType } from '@fastgpt/global/core/workflow/runtime/type';
 import { FlowNodeTemplateTypeEnum } from '@fastgpt/global/core/workflow/constants';
@@ -52,18 +52,16 @@ const getPluginTemplateById = async (
       showStatus: true,
       workflow: {
         nodes: item.modules,
-        edges: item.edges
+        edges: item.edges,
+        chatConfig: item.chatConfig
       },
       templateType: FlowNodeTemplateTypeEnum.teamApp,
-      isTool: true,
       version: item?.pluginData?.nodeVersion || defaultNodeVersion,
       originCost: 0,
       currentCost: 0
     };
   } else {
-    const item = [...global.communityPlugins, ...(await getSystemPluginTemplates())].find(
-      (plugin) => plugin.id === pluginId
-    );
+    const item = getSystemPluginTemplates().find((plugin) => plugin.id === pluginId);
     if (!item) return Promise.reject('plugin not found');
 
     return cloneDeep(item);
@@ -73,22 +71,27 @@ const getPluginTemplateById = async (
 /* format plugin modules to plugin preview module */
 export async function getPluginPreviewNode({ id }: { id: string }): Promise<FlowNodeTemplateType> {
   const plugin = await getPluginTemplateById(id);
+  const isPlugin = !!plugin.workflow.nodes.find(
+    (node) => node.flowNodeType === FlowNodeTypeEnum.pluginInput
+  );
 
   return {
     id: getNanoid(),
     pluginId: plugin.id,
     templateType: plugin.templateType,
-    flowNodeType: FlowNodeTypeEnum.pluginModule,
+    flowNodeType: isPlugin ? FlowNodeTypeEnum.pluginModule : FlowNodeTypeEnum.appModule,
     avatar: plugin.avatar,
     name: plugin.name,
     intro: plugin.intro,
     inputExplanationUrl: plugin.inputExplanationUrl,
     showStatus: plugin.showStatus,
-    isTool: plugin.isTool,
+    isTool: isPlugin,
     version: plugin.version,
     sourceHandle: getHandleConfig(true, true, true, true),
     targetHandle: getHandleConfig(true, true, true, true),
-    ...pluginData2FlowNodeIO(plugin.workflow.nodes)
+    ...(isPlugin
+      ? pluginData2FlowNodeIO({ nodes: plugin.workflow.nodes })
+      : appData2FlowNodeIO({ chatConfig: plugin.workflow.chatConfig }))
   };
 }
 

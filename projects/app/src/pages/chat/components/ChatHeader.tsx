@@ -36,6 +36,7 @@ const ChatHeader = ({
   apps?: AppListItemType[];
   onRouteToAppDetail?: () => void;
 }) => {
+  const { t } = useTranslation();
   const isPlugin = chatData.app.type === AppTypeEnum.plugin;
   const { isPc } = useSystem();
 
@@ -50,7 +51,11 @@ const ChatHeader = ({
     >
       {isPc ? (
         <>
-          <PcHeader title={chatData.title} chatModels={chatData.app.chatModels} history={history} />
+          <PcHeader
+            title={chatData.title || t('common:core.chat.New Chat')}
+            chatModels={chatData.app.chatModels}
+            history={history}
+          />
           <Box flex={1} />
         </>
       ) : (
@@ -243,7 +248,7 @@ const MobileHeader = ({
   );
 };
 
-const PcHeader = ({
+export const PcHeader = ({
   title,
   chatModels,
   history
@@ -255,7 +260,7 @@ const PcHeader = ({
   const { t } = useTranslation();
   return (
     <>
-      <Box mr={3} maxW={'160px'} className="textEllipsis" color={'myGray.1000'}>
+      <Box mr={3} maxW={'200px'} className="textEllipsis" color={'myGray.1000'}>
         {title}
       </Box>
       <MyTag>

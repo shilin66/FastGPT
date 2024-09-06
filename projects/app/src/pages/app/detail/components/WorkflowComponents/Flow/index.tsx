@@ -1,13 +1,5 @@
-import React, { useMemo } from 'react';
-import ReactFlow, {
-  Background,
-  Controls,
-  ControlButton,
-  MiniMap,
-  NodeProps,
-  ReactFlowProvider,
-  useReactFlow
-} from 'reactflow';
+import React from 'react';
+import ReactFlow, { NodeProps, ReactFlowProvider } from 'reactflow';
 import { Box, IconButton, useDisclosure } from '@chakra-ui/react';
 import { SmallCloseIcon } from '@chakra-ui/icons';
 import { EDGE_TYPE, FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
@@ -19,13 +11,15 @@ import NodeTemplatesModal from './NodeTemplatesModal';
 
 import 'reactflow/dist/style.css';
 import { FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node.d';
-import MyIcon from '@fastgpt/web/components/common/Icon';
-import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { connectionLineStyle, defaultEdgeOptions } from '../constants';
 import { useContextSelector } from 'use-context-selector';
 import { WorkflowContext } from '../context';
 import { useWorkflow } from './hooks/useWorkflow';
-import { t } from 'i18next';
+import HelperLines from './components/HelperLines';
+import FlowController from './components/FlowController';
+
+export const minZoom = 0.1;
+export const maxZoom = 1.5;
 
 const NodeSimple = dynamic(() => import('./nodes/NodeSimple'));
 const nodeTypes: Record<FlowNodeTypeEnum, any> = {
@@ -34,6 +28,7 @@ const nodeTypes: Record<FlowNodeTypeEnum, any> = {
   [FlowNodeTypeEnum.textEditor]: NodeSimple,
   [FlowNodeTypeEnum.customFeedback]: NodeSimple,
   [FlowNodeTypeEnum.systemConfig]: dynamic(() => import('./nodes/NodeSystemConfig')),
+  [FlowNodeTypeEnum.pluginConfig]: dynamic(() => import('./nodes/NodePluginIO/NodePluginConfig')),
   [FlowNodeTypeEnum.workflowStart]: dynamic(() => import('./nodes/NodeWorkflowStart')),
   [FlowNodeTypeEnum.chatNode]: NodeSimple,
   [FlowNodeTypeEnum.readFiles]: NodeSimple,
@@ -44,6 +39,7 @@ const nodeTypes: Record<FlowNodeTypeEnum, any> = {
   [FlowNodeTypeEnum.contentExtract]: dynamic(() => import('./nodes/NodeExtract')),
   [FlowNodeTypeEnum.httpRequest468]: dynamic(() => import('./nodes/NodeHttp')),
   [FlowNodeTypeEnum.runApp]: NodeSimple,
+  [FlowNodeTypeEnum.appModule]: NodeSimple,
   [FlowNodeTypeEnum.pluginInput]: dynamic(() => import('./nodes/NodePluginIO/PluginInput')),
   [FlowNodeTypeEnum.pluginOutput]: dynamic(() => import('./nodes/NodePluginIO/PluginOutput')),
   [FlowNodeTypeEnum.pluginModule]: NodeSimple,
@@ -55,7 +51,8 @@ const nodeTypes: Record<FlowNodeTypeEnum, any> = {
   [FlowNodeTypeEnum.lafModule]: dynamic(() => import('./nodes/NodeLaf')),
   [FlowNodeTypeEnum.ifElseNode]: dynamic(() => import('./nodes/NodeIfElse')),
   [FlowNodeTypeEnum.variableUpdate]: dynamic(() => import('./nodes/NodeVariableUpdate')),
-  [FlowNodeTypeEnum.code]: dynamic(() => import('./nodes/NodeCode'))
+  [FlowNodeTypeEnum.code]: dynamic(() => import('./nodes/NodeCode')),
+  [FlowNodeTypeEnum.userSelect]: dynamic(() => import('./nodes/NodeUserSelect'))
 };
 const edgeTypes = {
   [EDGE_TYPE]: ButtonEdge
@@ -65,14 +62,15 @@ const Workflow = () => {
   const { nodes, edges, reactFlowWrapper } = useContextSelector(WorkflowContext, (v) => v);
 
   const {
-    ConfirmDeleteModal,
     handleNodesChange,
     handleEdgeChange,
     onConnectStart,
     onConnectEnd,
     customOnConnect,
     onEdgeMouseEnter,
-    onEdgeMouseLeave
+    onEdgeMouseLeave,
+    helperLineHorizontal,
+    helperLineVertical
   } = useWorkflow();
 
   const {
@@ -82,7 +80,7 @@ const Workflow = () => {
   } = useDisclosure();
 
   return (
-    <ReactFlowProvider>
+    <>
       <Box
         flex={'1 0 0'}
         h={0}
@@ -119,8 +117,8 @@ const Workflow = () => {
           fitView
           nodes={nodes}
           edges={edges}
-          minZoom={0.1}
-          maxZoom={1.5}
+          minZoom={minZoom}
+          maxZoom={maxZoom}
           defaultEdgeOptions={defaultEdgeOptions}
           elevateEdgesOnSelect
           connectionLineStyle={connectionLineStyle}
@@ -135,54 +133,19 @@ const Workflow = () => {
           onEdgeMouseLeave={onEdgeMouseLeave}
         >
           <FlowController />
+          <HelperLines horizontal={helperLineHorizontal} vertical={helperLineVertical} />
         </ReactFlow>
       </Box>
+    </>
+  );
+};
 
-      <ConfirmDeleteModal />
+const Render = () => {
+  return (
+    <ReactFlowProvider>
+      <Workflow />
     </ReactFlowProvider>
   );
 };
 
-export default React.memo(Workflow);
-
-const FlowController = React.memo(function FlowController() {
-  const { fitView } = useReactFlow();
-
-  const Render = useMemo(() => {
-    return (
-      <>
-        <MiniMap
-          style={{
-            height: 78,
-            width: 126,
-            marginBottom: 35
-          }}
-          pannable
-        />
-        <Controls
-          position={'bottom-right'}
-          style={{
-            display: 'flex',
-            marginBottom: 5,
-            background: 'white',
-            borderRadius: '6px',
-            overflow: 'hidden',
-            boxShadow:
-              '0px 0px 1px 0px rgba(19, 51, 107, 0.20), 0px 12px 16px -4px rgba(19, 51, 107, 0.20)'
-          }}
-          showInteractive={false}
-          showFitView={false}
-        >
-          <MyTooltip label={t('common:common.page_center')}>
-            <ControlButton className="custom-workflow-fix_view" onClick={() => fitView()}>
-              <MyIcon name={'core/modules/fixview'} w={'14px'} />
-            </ControlButton>
-          </MyTooltip>
-        </Controls>
-        <Background />
-      </>
-    );
-  }, [fitView]);
-
-  return Render;
-});
+export default React.memo(Render);

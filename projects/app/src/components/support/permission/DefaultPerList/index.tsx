@@ -5,7 +5,7 @@ import type { PermissionValueType } from '@fastgpt/global/support/permission/typ
 import { ReadPermissionVal, WritePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'next-i18next';
 
 export enum defaultPermissionEnum {
   private = 'private',
@@ -41,15 +41,12 @@ const DefaultPermissionList = ({
     { label: t('user:permission.team_write'), value: writePer }
   ];
 
-  const { runAsync: onRequestChange, loading } = useRequest2((v: PermissionValueType) =>
-    onChange(v)
-  );
+  const { runAsync: onRequestChange } = useRequest2((v: PermissionValueType) => onChange(v));
 
   return (
     <>
       <Box {...styles}>
         <MySelect
-          isLoading={loading}
           list={defaultPermissionSelectList}
           value={per}
           onchange={(per) => {
@@ -63,6 +60,7 @@ const DefaultPermissionList = ({
               return onRequestChange(per);
             }
           }}
+          fontSize={styles?.fontSize}
         />
       </Box>
       <ConfirmModal />
