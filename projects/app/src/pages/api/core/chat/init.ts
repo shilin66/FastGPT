@@ -14,7 +14,7 @@ import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { transformPreviewHistories } from '@/global/core/chat/utils';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
-import { i18nT } from '@fastgpt/web/i18n/utils';
+
 async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -45,7 +45,7 @@ async function handler(
   }
 
   // get app and history
-  const [{ histories }, { nodes }] = await Promise.all([
+  const [{ histories }, { nodes, chatConfig }] = await Promise.all([
     getChatItems({
       appId,
       chatId,
@@ -62,13 +62,13 @@ async function handler(
   return {
     chatId,
     appId,
-    title: chat?.title || i18nT('chat:new_chat'),
+    title: chat?.title,
     userAvatar: undefined,
     variables: chat?.variables || {},
     history: app.type === AppTypeEnum.plugin ? histories : transformPreviewHistories(histories),
     app: {
       chatConfig: getAppChatConfig({
-        chatConfig: app.chatConfig,
+        chatConfig,
         systemConfigNode: getGuideModule(nodes),
         storeVariables: chat?.variableList,
         storeWelcomeText: chat?.welcomeText,

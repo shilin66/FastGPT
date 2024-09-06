@@ -43,11 +43,11 @@ const StandardPlanContentList = ({
   }, [subPlans?.standard, level, mode]);
 
   return planContent ? (
-    <Grid gap={4} fontSize={'sm'}>
+    <Grid gap={4} fontSize={'sm'} fontWeight={500}>
       <Flex alignItems={'center'}>
         <MyIcon name={'price/right'} w={'16px'} mr={3} />
         <Box color={'myGray.600'}>
-          {t('support.wallet.subscription.function.Max members', {
+          {t('common:support.wallet.subscription.function.Max members', {
             amount: planContent.maxTeamMember
           })}
         </Box>
@@ -55,7 +55,7 @@ const StandardPlanContentList = ({
       <Flex alignItems={'center'}>
         <MyIcon name={'price/right'} w={'16px'} mr={3} />
         <Box color={'myGray.600'}>
-          {t('support.wallet.subscription.function.Max app', {
+          {t('common:support.wallet.subscription.function.Max app', {
             amount: planContent.maxAppAmount
           })}
         </Box>
@@ -63,7 +63,7 @@ const StandardPlanContentList = ({
       <Flex alignItems={'center'}>
         <MyIcon name={'price/right'} w={'16px'} mr={3} />
         <Box color={'myGray.600'}>
-          {t('support.wallet.subscription.function.Max dataset', {
+          {t('common:support.wallet.subscription.function.Max dataset', {
             amount: planContent.maxDatasetAmount
           })}
         </Box>
@@ -71,15 +71,15 @@ const StandardPlanContentList = ({
       <Flex alignItems={'center'}>
         <MyIcon name={'price/right'} w={'16px'} mr={3} />
         <Box color={'myGray.600'}>
-          {t('support.wallet.subscription.function.History store', {
+          {t('common:support.wallet.subscription.function.History store', {
             amount: planContent.chatHistoryStoreDuration
           })}
         </Box>
       </Flex>
       <Flex alignItems={'center'}>
         <MyIcon name={'price/right'} w={'16px'} mr={3} />
-        <Box fontWeight={'bold'}>
-          {t('support.wallet.subscription.function.Max dataset size', {
+        <Box fontWeight={'bold'} color={'myGray.600'}>
+          {t('common:support.wallet.subscription.function.Max dataset size', {
             amount: planContent.maxDatasetSize
           })}
         </Box>
@@ -87,8 +87,8 @@ const StandardPlanContentList = ({
       <Flex alignItems={'center'}>
         <MyIcon name={'price/right'} w={'16px'} mr={3} />
         <Flex alignItems={'center'}>
-          <Box fontWeight={'bold'}>
-            {t('support.wallet.subscription.function.Points', {
+          <Box fontWeight={'bold'} color={'myGray.600'}>
+            {t('common:support.wallet.subscription.function.Points', {
               amount: planContent.totalPoints
             })}
           </Box>
@@ -104,7 +104,7 @@ const StandardPlanContentList = ({
       <Flex alignItems={'center'}>
         <MyIcon name={'price/right'} w={'16px'} mr={3} />
         <Box color={'myGray.600'}>
-          {t('support.wallet.subscription.Training weight', {
+          {t('common:support.wallet.subscription.Training weight', {
             weight: planContent.trainingWeight
           })}
         </Box>
@@ -112,13 +112,13 @@ const StandardPlanContentList = ({
       {!!planContent.permissionReRank && (
         <Flex alignItems={'center'}>
           <MyIcon name={'price/right'} w={'16px'} mr={3} />
-          <Box color={'myGray.600'}>{t('chat:rearrangement')}</Box>
+          <Box color={'myGray.600'}>{t('common:support.wallet.subscription.rerank')}</Box>
         </Flex>
       )}
       {!!planContent.permissionWebsiteSync && (
         <Flex alignItems={'center'}>
           <MyIcon name={'price/right'} w={'16px'} mr={3} />
-          <Box color={'myGray.600'}>{t('chat:web_site_sync')}</Box>
+          <Box color={'myGray.600'}>{t('common:support.wallet.subscription.web_site_sync')}</Box>
         </Flex>
       )}
     </Grid>

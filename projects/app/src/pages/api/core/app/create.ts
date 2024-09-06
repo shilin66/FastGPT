@@ -14,6 +14,8 @@ import { defaultNodeVersion } from '@fastgpt/global/core/workflow/node/constant'
 import { ClientSession } from '@fastgpt/service/common/mongo';
 import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
+import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
+import { MongoUser } from '@fastgpt/service/support/user/schema';
 
 export type CreateAppBody = {
   parentId?: ParentIdType;
@@ -22,10 +24,11 @@ export type CreateAppBody = {
   type?: AppTypeEnum;
   modules: AppSchema['modules'];
   edges?: AppSchema['edges'];
+  chatConfig?: AppSchema['chatConfig'];
 };
 
 async function handler(req: ApiRequestProps<CreateAppBody>) {
-  const { parentId, name, avatar, type, modules, edges } = req.body;
+  const { parentId, name, avatar, type, modules, edges, chatConfig } = req.body;
 
   if (!name || !type || !Array.isArray(modules)) {
     return Promise.reject(CommonErrEnum.inheritPermissionError);
@@ -41,6 +44,8 @@ async function handler(req: ApiRequestProps<CreateAppBody>) {
 
   // 上限校验
   await checkTeamAppLimit(teamId);
+  const tmb = await MongoTeamMember.findById({ _id: tmbId });
+  const user = await MongoUser.findById({ _id: tmb?.userId });
 
   // 创建app
   const appId = await onCreateApp({
@@ -50,8 +55,11 @@ async function handler(req: ApiRequestProps<CreateAppBody>) {
     type,
     modules,
     edges,
+    chatConfig,
     teamId,
-    tmbId
+    tmbId,
+    userAvatar: user?.avatar,
+    username: user?.username
   });
 
   return appId;
@@ -67,9 +75,12 @@ export const onCreateApp = async ({
   type,
   modules,
   edges,
+  chatConfig,
   teamId,
   tmbId,
   pluginData,
+  username,
+  userAvatar,
   session
 }: {
   parentId?: ParentIdType;
@@ -78,10 +89,13 @@ export const onCreateApp = async ({
   type?: AppTypeEnum;
   modules?: AppSchema['modules'];
   edges?: AppSchema['edges'];
+  chatConfig?: AppSchema['chatConfig'];
   intro?: string;
   teamId: string;
   tmbId: string;
   pluginData?: AppSchema['pluginData'];
+  username?: string;
+  userAvatar?: string;
   session?: ClientSession;
 }) => {
   const create = async (session: ClientSession) => {
@@ -96,10 +110,11 @@ export const onCreateApp = async ({
           tmbId,
           modules,
           edges,
+          chatConfig,
           type,
           version: 'v2',
           pluginData,
-          ...(type === AppTypeEnum.plugin && { 'pluginData.nodeVersion': defaultNodeVersion })
+          'pluginData.nodeVersion': defaultNodeVersion
         }
       ],
       { session }
@@ -111,7 +126,11 @@ export const onCreateApp = async ({
           {
             appId,
             nodes: modules,
-            edges
+            edges,
+            chatConfig,
+            versionName: name,
+            username,
+            avatar: userAvatar
           }
         ],
         { session }

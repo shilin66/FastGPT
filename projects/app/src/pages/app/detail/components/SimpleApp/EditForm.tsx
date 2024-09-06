@@ -28,7 +28,7 @@ import SettingLLMModel from '@/components/core/ai/SettingLLMModel';
 import type { SettingAIDataType } from '@fastgpt/global/core/app/type.d';
 import DeleteIcon, { hoverDeleteStyles } from '@fastgpt/web/components/common/Icon/delete';
 import { TTSTypeEnum } from '@/web/core/app/constants';
-import { getSystemVariables } from '@/web/core/app/utils';
+import { workflowSystemVariables } from '@/web/core/app/utils';
 import { useI18n } from '@/web/context/I18n';
 import { useContextSelector } from 'use-context-selector';
 import { AppContext } from '@/pages/app/detail/components/context';
@@ -109,10 +109,11 @@ const EditForm = ({
   const formatVariables = useMemo(
     () =>
       formatEditorVariablePickerIcon([
-        ...getSystemVariables(t),
+        ...workflowSystemVariables,
         ...(appForm.chatConfig.variables || [])
       ]).map((item) => ({
         ...item,
+        label: t(item.label as any),
         parent: {
           id: 'VARIABLE_NODE_ID',
           label: t('common:core.module.Variable'),
@@ -135,13 +136,14 @@ const EditForm = ({
           <Flex alignItems={'center'}>
             <MyIcon name={'core/app/simpleMode/ai'} w={'20px'} />
             <FormLabel ml={2} flex={1}>
-              {appT('ai_settings')}
+              {t('app:ai_settings')}
             </FormLabel>
           </Flex>
           <Flex alignItems={'center'} mt={5}>
             <Box {...LabelStyles}>{t('common:core.ai.Model')}</Box>
             <Box flex={'1 0 0'}>
               <SettingLLMModel
+                bg="myGray.50"
                 llmModelType={'all'}
                 defaultData={{
                   model: appForm.aiSettings.model,
@@ -176,6 +178,7 @@ const EditForm = ({
             <Box mt={1}>
               <PromptEditor
                 value={appForm.aiSettings.systemPrompt}
+                bg={'myGray.50'}
                 onChange={(text) => {
                   startTst(() => {
                     setAppForm((state) => ({

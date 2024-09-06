@@ -6,7 +6,7 @@ import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { delay } from '@fastgpt/global/common/system/utils';
 import { ChatItemValueTypeEnum } from '@fastgpt/global/core/chat/constants';
 import {
-  getDefaultEntryNodeIds,
+  getWorkflowEntryNodeIds,
   initWorkflowEdgeStatus,
   storeNodes2RuntimeNodes
 } from '@fastgpt/global/core/workflow/runtime/utils';
@@ -35,10 +35,13 @@ export const getScheduleTriggerApp = async () => {
           chatId: getNanoid(),
           user,
           mode: 'chat',
-          teamId: String(app.teamId),
-          tmbId: String(app.tmbId),
-          app,
-          runtimeNodes: storeNodes2RuntimeNodes(app.modules, getDefaultEntryNodeIds(app.modules)),
+          runningAppInfo: {
+            id: String(app._id),
+            teamId: String(app.teamId),
+            tmbId: String(app.tmbId)
+          },
+          uid: String(app.tmbId),
+          runtimeNodes: storeNodes2RuntimeNodes(app.modules, getWorkflowEntryNodeIds(app.modules)),
           runtimeEdges: initWorkflowEdgeStatus(app.edges),
           variables: {},
           query: [
@@ -52,7 +55,6 @@ export const getScheduleTriggerApp = async () => {
           chatConfig: defaultApp.chatConfig,
           histories: [],
           stream: false,
-          detail: false,
           maxRunTimes: 200
         });
         pushChatUsage({

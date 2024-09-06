@@ -15,6 +15,7 @@ export const sendAuthCode = (data: {
   username: string;
   type: `${UserAuthTypeEnum}`;
   googleToken: string;
+  captcha: string;
 }) => POST(`/proApi/support/user/inform/sendAuthCode`, data);
 
 export const getTokenLogin = () =>
@@ -23,6 +24,7 @@ export const oauthLogin = (params: OauthLoginProps) =>
   POST<ResLogin>('/support/user/account/login/oauth', params);
 export const postFastLogin = (params: FastLoginProps) =>
   POST<ResLogin>('/proApi/support/user/account/login/fastLogin', params);
+export const ssoLogin = (params: any) => GET<ResLogin>('/proApi/support/user/account/sso', params);
 
 export const postSimpleRegister = ({
   username,
@@ -93,3 +95,8 @@ export const getWXLoginQR = () =>
 
 export const getWXLoginResult = (code: string) =>
   GET<ResLogin>(`/proApi/support/user/account/login/wx/getResult`, { code });
+
+export const getCaptchaPic = (username: string) =>
+  GET<{
+    captchaImage: string;
+  }>('/proApi/support/user/account/captcha/getImgCaptcha', { username });

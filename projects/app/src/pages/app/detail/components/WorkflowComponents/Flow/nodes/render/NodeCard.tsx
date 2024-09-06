@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Box, Button, Card, Flex } from '@chakra-ui/react';
+import { Box, Button, Card, Flex, Image } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import type { FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node.d';
@@ -19,7 +19,6 @@ import { storeNode2FlowNode, getLatestNodeTemplate } from '@/web/core/workflow/u
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { useContextSelector } from 'use-context-selector';
 import { WorkflowContext } from '../../../context';
-import { useI18n } from '@/web/context/I18n';
 import { moduleTemplatesFlat } from '@fastgpt/global/core/workflow/template/constants';
 import { QuestionOutlineIcon } from '@chakra-ui/icons';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
@@ -42,7 +41,6 @@ type Props = FlowNodeItemType & {
 
 const NodeCard = (props: Props) => {
   const { t } = useTranslation();
-  const { appT } = useI18n();
 
   const { toast } = useToast();
 
@@ -70,7 +68,7 @@ const NodeCard = (props: Props) => {
   // custom title edit
   const { onOpenModal: onOpenCustomTitleModal, EditModal: EditTitleModal } = useEditTitle({
     title: t('common:common.Custom Title'),
-    placeholder: appT('module.Custom Title Tip') || ''
+    placeholder: t('app:module.Custom Title Tip') || ''
   });
 
   const showToolHandle = useMemo(
@@ -85,7 +83,10 @@ const NodeCard = (props: Props) => {
 
   const { data: nodeTemplate, runAsync: getNodeLatestTemplate } = useRequest2(
     async () => {
-      if (node?.flowNodeType === FlowNodeTypeEnum.pluginModule) {
+      if (
+        node?.flowNodeType === FlowNodeTypeEnum.pluginModule ||
+        node?.flowNodeType === FlowNodeTypeEnum.appModule
+      ) {
         if (!node?.pluginId) return;
         const template = await getPreviewPluginNode({ appId: node.pluginId });
 
@@ -116,7 +117,10 @@ const NodeCard = (props: Props) => {
       const template = moduleTemplatesFlat.find((item) => item.flowNodeType === node?.flowNodeType);
       if (!node || !template) return;
 
-      if (node?.flowNodeType === FlowNodeTypeEnum.pluginModule) {
+      if (
+        node?.flowNodeType === FlowNodeTypeEnum.pluginModule ||
+        node?.flowNodeType === FlowNodeTypeEnum.appModule
+      ) {
         if (!node.pluginId) return;
         onResetNode({
           id: nodeId,
@@ -166,7 +170,7 @@ const NodeCard = (props: Props) => {
                     onSuccess: (e) => {
                       if (!e) {
                         return toast({
-                          title: appT('modules.Title is required'),
+                          title: t('app:modules.Title is required'),
                           status: 'warning'
                         });
                       }
@@ -183,7 +187,7 @@ const NodeCard = (props: Props) => {
             )}
             <Box flex={1} />
             {hasNewVersion && (
-              <MyTooltip label={appT('app.modules.click to update')}>
+              <MyTooltip label={t('app:app.modules.click to update')}>
                 <Button
                   bg={'yellow.50'}
                   color={'yellow.600'}
@@ -197,9 +201,27 @@ const NodeCard = (props: Props) => {
                   _hover={{ bg: 'yellow.100' }}
                   onClick={onOpenConfirmSync(onClickSyncVersion)}
                 >
-                  <Box>{appT('app.modules.has new version')}</Box>
+                  <Box>{t('app:app.modules.has new version')}</Box>
                   <QuestionOutlineIcon ml={1} />
                 </Button>
+              </MyTooltip>
+            )}
+            {!!nodeTemplate?.diagram && !hasNewVersion && (
+              <MyTooltip
+                label={
+                  <Image src={nodeTemplate?.diagram} w={'100%'} minH={['auto', '200px']} alt={''} />
+                }
+              >
+                <Box
+                  fontSize={'sm'}
+                  color={'primary.700'}
+                  p={1}
+                  rounded={'sm'}
+                  cursor={'default'}
+                  _hover={{ bg: 'rgba(17, 24, 36, 0.05)' }}
+                >
+                  {t('common:core.module.Diagram')}
+                </Box>
               </MyTooltip>
             )}
           </Flex>
@@ -217,9 +239,9 @@ const NodeCard = (props: Props) => {
     name,
     menuForbid,
     hasNewVersion,
-    appT,
     onOpenConfirmSync,
     onClickSyncVersion,
+    nodeTemplate?.diagram,
     intro,
     ConfirmSyncModal,
     onOpenCustomTitleModal,
@@ -280,11 +302,6 @@ const MenuRender = React.memo(function MenuRender({
 }) {
   const { t } = useTranslation();
   const { openDebugNode, DebugInputModal } = useDebug();
-
-  const { openConfirm: onOpenConfirmDeleteNode, ConfirmModal: ConfirmDeleteModal } = useConfirm({
-    content: t('common:core.module.Confirm Delete Node'),
-    type: 'delete'
-  });
 
   const setNodes = useContextSelector(WorkflowContext, (v) => v.setNodes);
   const setEdges = useContextSelector(WorkflowContext, (v) => v.setEdges);
@@ -369,7 +386,7 @@ const MenuRender = React.memo(function MenuRender({
               icon: 'delete',
               label: t('common:common.Delete'),
               variant: 'whiteDanger',
-              onClick: onOpenConfirmDeleteNode(() => onDelNode(nodeId))
+              onClick: () => onDelNode(nodeId)
             }
           ])
     ];
@@ -398,12 +415,11 @@ const MenuRender = React.memo(function MenuRender({
                 leftIcon={<MyIcon name={item.icon as any} w={'13px'} />}
                 onClick={item.onClick}
               >
-                {item.label}
+                {t(item.label as any)}
               </Button>
             </Box>
           ))}
         </Box>
-        <ConfirmDeleteModal />
         <DebugInputModal />
       </>
     );
@@ -412,8 +428,6 @@ const MenuRender = React.memo(function MenuRender({
     menuForbid?.copy,
     menuForbid?.delete,
     t,
-    onOpenConfirmDeleteNode,
-    ConfirmDeleteModal,
     DebugInputModal,
     openDebugNode,
     nodeId,
@@ -564,7 +578,7 @@ const NodeDebugResponse = React.memo(function NodeDebugResponse({
             </Box>
           )}
         </Flex>
-        {/* result */}
+        {/* Result card */}
         {debugResult.showResult && (
           <Card
             className="nowheel"
@@ -573,12 +587,11 @@ const NodeDebugResponse = React.memo(function NodeDebugResponse({
             top={0}
             zIndex={10}
             w={'420px'}
-            minH={'300px'}
-            maxH={'100%'}
+            maxH={'max(100%,500px)'}
             border={'base'}
           >
             {/* Status header */}
-            <Flex h={'54x'} px={4} mb={1} py={3} alignItems={'center'} borderBottom={'base'}>
+            <Flex h={'54x'} px={4} py={3} alignItems={'center'}>
               <MyIcon mr={1} name={'core/workflow/debugResult'} w={'20px'} color={'primary.600'} />
               <Box fontWeight={'bold'} flex={'1'}>
                 {t('common:core.workflow.debug.Run result')}
@@ -613,18 +626,20 @@ const NodeDebugResponse = React.memo(function NodeDebugResponse({
                 </Button>
               )}
             </Flex>
-            {/* Show result */}
-            <Box overflowY={'auto'}>
-              {!debugResult.message && !response && (
-                <EmptyTip text={t('common:core.workflow.debug.Not result')} pt={2} pb={5} />
-              )}
-              {debugResult.message && (
-                <Box color={'red.600'} px={3} py={4}>
-                  {debugResult.message}
-                </Box>
-              )}
-              {response && <WholeResponseContent activeModule={response} showDetail />}
-            </Box>
+            {/* Response list */}
+            {debugResult.status !== 'skipped' && (
+              <Box borderTop={'base'} mt={1} overflowY={'auto'} minH={'250px'}>
+                {!debugResult.message && !response && (
+                  <EmptyTip text={t('common:core.workflow.debug.Not result')} pt={2} pb={5} />
+                )}
+                {debugResult.message && (
+                  <Box color={'red.600'} px={3} py={4}>
+                    {debugResult.message}
+                  </Box>
+                )}
+                {response && <WholeResponseContent activeModule={response} showDetail />}
+              </Box>
+            )}
           </Card>
         )}
         <ConfirmModal />

@@ -7,6 +7,8 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export const formatTime2YMDHMW = (time?: Date) => dayjs(time).format('YYYY-MM-DD HH:mm:ss dddd');
+export const formatTime2YMDHMS = (time?: Date) =>
+  time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '';
 export const formatTime2YMDHM = (time?: Date) =>
   time ? dayjs(time).format('YYYY-MM-DD HH:mm') : '';
 export const formatTime2YMD = (time?: Date) => (time ? dayjs(time).format('YYYY-MM-DD') : '');
@@ -26,7 +28,7 @@ export const formatTimeToChatTime = (time: Date) => {
 
   // 如果时间是今天，展示几时:几分
   if (now.isSame(target, 'day')) {
-    return target.format('HH:mm');
+    return target.format('HH : mm');
   }
 
   // 如果是昨天，展示昨天
