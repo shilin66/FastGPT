@@ -50,7 +50,7 @@ const StandDetailModal = dynamic(() => import('./standardDetailModal'));
 const TeamMenu = dynamic(() => import('@/components/support/user/team/TeamMenu'));
 const ConversionModal = dynamic(() => import('./ConversionModal'));
 const UpdatePswModal = dynamic(() => import('./UpdatePswModal'));
-const UpdateNotification = dynamic(() => import('./UpdateNotificationModal'));
+// const UpdateNotification = dynamic(() => import('./UpdateNotificationModal'));
 const OpenAIAccountModal = dynamic(() => import('./OpenAIAccountModal'));
 const LafAccountModal = dynamic(() => import('@/components/support/laf/LafAccountModal'));
 const CommunityModal = dynamic(() => import('@/components/CommunityModal'));
@@ -119,11 +119,11 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
     onClose: onCloseUpdatePsw,
     onOpen: onOpenUpdatePsw
   } = useDisclosure();
-  const {
-    isOpen: isOpenUpdateNotification,
-    onClose: onCloseUpdateNotification,
-    onOpen: onOpenUpdateNotification
-  } = useDisclosure();
+  // const {
+  //   isOpen: isOpenUpdateNotification,
+  //   onClose: onCloseUpdateNotification,
+  //   onOpen: onOpenUpdateNotification
+  // } = useDisclosure();
   const { File, onOpen: onOpenSelectFile } = useSelectFile({
     fileType: '.jpg,.png',
     multiple: false
@@ -269,29 +269,29 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
             </Button>
           </Flex>
         )}
-        {feConfigs?.isPlus && (
-          <Flex mt={6} alignItems={'center'}>
-            <Box {...labelStyles}>{t('common:user.Notification Receive')}:&nbsp;</Box>
-            <Box
-              flex={1}
-              {...(!userInfo?.team.notificationAccount && userInfo?.permission.isOwner
-                ? { color: 'red.600' }
-                : {})}
-            >
-              {userInfo?.team.notificationAccount
-                ? userInfo?.team.notificationAccount
-                : userInfo?.permission.isOwner
-                  ? t('common:user.Notification Receive Bind')
-                  : t('user:notification.remind_owner_bind')}
-            </Box>
+        {/*{feConfigs?.isPlus && (*/}
+        {/*  <Flex mt={6} alignItems={'center'}>*/}
+        {/*    <Box {...labelStyles}>{t('common:user.Notification Receive')}:&nbsp;</Box>*/}
+        {/*    <Box*/}
+        {/*      flex={1}*/}
+        {/*      {...(!userInfo?.team.notificationAccount && userInfo?.permission.isOwner*/}
+        {/*        ? { color: 'red.600' }*/}
+        {/*        : {})}*/}
+        {/*    >*/}
+        {/*      {userInfo?.team.notificationAccount*/}
+        {/*        ? userInfo?.team.notificationAccount*/}
+        {/*        : userInfo?.permission.isOwner*/}
+        {/*          ? t('common:user.Notification Receive Bind')*/}
+        {/*          : t('user:notification.remind_owner_bind')}*/}
+        {/*    </Box>*/}
 
-            {userInfo?.permission.isOwner && (
-              <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdateNotification}>
-                {t('common:user.Change')}
-              </Button>
-            )}
-          </Flex>
-        )}
+        {/*    {userInfo?.permission.isOwner && (*/}
+        {/*      <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdateNotification}>*/}
+        {/*        {t('common:user.Change')}*/}
+        {/*      </Button>*/}
+        {/*    )}*/}
+        {/*  </Flex>*/}
+        {/*)}*/}
         <Flex mt={6} alignItems={'center'}>
           <Box {...labelStyles}>{t('common:user.Team')}:&nbsp;</Box>
           <Box flex={1}>
@@ -320,7 +320,7 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
         <ConversionModal onClose={onCloseConversionModal} onOpenContact={onOpenContact} />
       )}
       {isOpenUpdatePsw && <UpdatePswModal onClose={onCloseUpdatePsw} />}
-      {isOpenUpdateNotification && <UpdateNotification onClose={onCloseUpdateNotification} />}
+      {/*{isOpenUpdateNotification && <UpdateNotification onClose={onCloseUpdateNotification} />}*/}
       <File onSelect={onSelectFile} />
     </Box>
   );

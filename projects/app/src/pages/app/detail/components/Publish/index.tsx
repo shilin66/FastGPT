@@ -13,7 +13,6 @@ import { cardStyles } from '../constants';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 
-import Link from './Link';
 import ChromeExtension from '@/pages/app/detail/components/Publish/ChromeExtension';
 const Link = dynamic(() => import('./Link'));
 const API = dynamic(() => import('./API'));

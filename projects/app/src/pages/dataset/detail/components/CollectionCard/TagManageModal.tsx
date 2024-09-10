@@ -30,6 +30,7 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
     onCreateCollectionTag,
     isCreateCollectionTagLoading,
     loadAllDatasetTags,
+    allDatasetTags,
     setSearchTagKey
   } = useContextSelector(DatasetPageContext, (v) => v);
   const { getData, pageNum, collections } = useContextSelector(CollectionPageContext, (v) => v);
@@ -59,6 +60,10 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
     }
   }, [currentEditTag]);
 
+  useEffect(() => {
+    fetchData(1);
+  }, [allDatasetTags]);
+
   const { runAsync: onDeleteCollectionTag, loading: isDeleteCollectionTagLoading } = useRequest2(
     (tag: string) =>
       delDatasetCollectionTag({
@@ -67,7 +72,6 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
       }),
     {
       onSuccess() {
-        fetchData(1);
         setSearchTagKey('');
         loadAllDatasetTags();
       },
@@ -86,7 +90,6 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
     },
     {
       onSuccess() {
-        fetchData(1);
         setSearchTagKey('');
         loadAllDatasetTags();
       }
@@ -301,6 +304,9 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
                             }
                             setCurrentEditTag(undefined);
                             setCurrentEditTagContent(undefined);
+                          }}
+                          onClick={(event) => {
+                            event.stopPropagation();
                           }}
                         />
                       )}

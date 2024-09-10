@@ -127,23 +127,23 @@ export const postLinkCollectionSync = (collectionId: string) =>
 /* =============================== tag ==================================== */
 
 export const postCreateDatasetCollectionTag = (data: CreateDatasetCollectionTagParams) =>
-  POST(`/proApi/core/dataset/tag/create`, data);
+  POST(`/core/dataset/tag/create`, data);
 export const postAddTagsToCollections = (data: AddTagsToCollectionsParams) =>
-  POST(`/proApi/core/dataset/tag/addToCollections`, data);
+  POST(`/core/dataset/tag/addToCollections`, data);
 export const delDatasetCollectionTag = (data: { id: string; datasetId: string }) =>
-  DELETE(`/proApi/core/dataset/tag/delete`, data);
+  DELETE(`/core/dataset/tag/delete`, data);
 export const updateDatasetCollectionTag = (data: UpdateDatasetCollectionTagParams) =>
-  POST(`/proApi/core/dataset/tag/update`, data);
+  POST(`/core/dataset/tag/update`, data);
 export const getDatasetCollectionTags = (
   data: PaginationProps<{
     datasetId: string;
     searchText?: string;
   }>
-) => GET<PaginationResponse<DatasetTagType>>(`/proApi/core/dataset/tag/list`, data);
+) => GET<PaginationResponse<DatasetTagType>>(`/core/dataset/tag/list`, data);
 export const getTagUsage = (datasetId: string) =>
-  GET<TagUsageType[]>(`/proApi/core/dataset/tag/tagUsage?datasetId=${datasetId}`);
+  GET<TagUsageType[]>(`/core/dataset/tag/tagUsage?datasetId=${datasetId}`);
 export const getAllTags = (datasetId: string) =>
-  GET<{ list: DatasetTagType[] }>(`/proApi/core/dataset/tag/getAllTags?datasetId=${datasetId}`);
+  GET<{ list: DatasetTagType[] }>(`/core/dataset/tag/getAllTags?datasetId=${datasetId}`);
 export const getScrollCollectionList = (data: GetScrollCollectionsProps) =>
   GET<PaginationResponse<DatasetCollectionsListItemType>>(
     `/core/dataset/collection/scrollList`,

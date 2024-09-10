@@ -6,6 +6,7 @@ import { ClientSession } from '../../common/mongo';
 import { MongoDatasetTraining } from './training/schema';
 import { MongoDatasetData } from './data/schema';
 import { deleteDatasetDataVector } from '../../common/vectorStore/controller';
+import { MongoDatasetCollectionTags } from './tag/schema';
 
 /* ============= dataset ========== */
 /* find all datasetId by top datasetId */
@@ -106,6 +107,14 @@ export async function delDatasetRelevantData({
     { session }
   );
 
+  // delete tags
+  await MongoDatasetCollectionTags.deleteMany(
+    {
+      teamId,
+      datasetId: { $in: datasetIds }
+    },
+    { session }
+  );
   // no session delete: delete files, vector data
   await deleteDatasetDataVector({ teamId, datasetIds });
 }

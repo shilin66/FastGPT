@@ -367,7 +367,7 @@ async function streamResponse({
   });
 
   let textAnswer = '';
-  let callingTool: { name: string; arguments: string } | null = null;
+  let callingTool: { name: string; arguments: string; type: string } | null = null;
   let toolCalls: ChatCompletionMessageToolCall[] = [];
 
   for await (const part of stream) {
@@ -396,13 +396,15 @@ async function streamResponse({
         // Start call tool
         if (toolCall.id) {
           callingTool = {
-            name: toolCall.function.name || '',
-            arguments: toolCall.function.arguments || ''
+            name: toolCall.function?.name || '',
+            arguments: toolCall.function?.arguments || '',
+            type: toolCall.type || ''
           };
         } else if (callingTool) {
           // Continue call
           callingTool.name += toolCall.function.name || '';
           callingTool.arguments += toolCall.function.arguments || '';
+          callingTool.type += toolCall.type || '';
         }
 
         const toolFunction = callingTool!;
