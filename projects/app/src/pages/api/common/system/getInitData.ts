@@ -8,7 +8,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   jsonRes<InitDateResponse>(res, {
     data: {
-      feConfigs: global.feConfigs,
+      feConfigs: {
+        ...global.feConfigs,
+        oauth: {
+          ...global.feConfigs.oauth,
+          github: global.feConfigs.oauth?.github
+            ? {
+                ...global.feConfigs?.oauth?.github,
+                clientSecret: '******'
+              }
+            : undefined,
+          microsoft: global.feConfigs.oauth?.microsoft
+            ? {
+                ...global.feConfigs?.oauth?.microsoft,
+                clientSecret: '******'
+              }
+            : undefined
+        }
+      },
       subPlans: global.subPlans,
       llmModels: global.llmModels.map((model) => ({
         ...model,
