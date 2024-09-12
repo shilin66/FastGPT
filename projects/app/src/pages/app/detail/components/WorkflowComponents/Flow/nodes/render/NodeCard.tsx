@@ -33,7 +33,6 @@ type Props = FlowNodeItemType & {
   selected?: boolean;
   menuForbid?: {
     debug?: boolean;
-    rename?: boolean;
     copy?: boolean;
     delete?: boolean;
   };
@@ -154,37 +153,35 @@ const NodeCard = (props: Props) => {
             <Box ml={3} fontSize={'md'} fontWeight={'medium'}>
               {t(name as any)}
             </Box>
-            {!menuForbid?.rename && (
-              <MyIcon
-                className="controller-rename"
-                display={'none'}
-                name={'edit'}
-                w={'14px'}
-                cursor={'pointer'}
-                ml={1}
-                color={'myGray.500'}
-                _hover={{ color: 'primary.600' }}
-                onClick={() => {
-                  onOpenCustomTitleModal({
-                    defaultVal: name,
-                    onSuccess: (e) => {
-                      if (!e) {
-                        return toast({
-                          title: t('app:modules.Title is required'),
-                          status: 'warning'
-                        });
-                      }
-                      onChangeNode({
-                        nodeId,
-                        type: 'attr',
-                        key: 'name',
-                        value: e
+            <MyIcon
+              className="controller-rename"
+              display={'none'}
+              name={'edit'}
+              w={'14px'}
+              cursor={'pointer'}
+              ml={1}
+              color={'myGray.500'}
+              _hover={{ color: 'primary.600' }}
+              onClick={() => {
+                onOpenCustomTitleModal({
+                  defaultVal: name,
+                  onSuccess: (e) => {
+                    if (!e) {
+                      return toast({
+                        title: t('app:modules.Title is required'),
+                        status: 'warning'
                       });
                     }
-                  });
-                }}
-              />
-            )}
+                    onChangeNode({
+                      nodeId,
+                      type: 'attr',
+                      key: 'name',
+                      value: e
+                    });
+                  }
+                });
+              }}
+            />
             <Box flex={1} />
             {hasNewVersion && (
               <MyTooltip label={t('app:app.modules.click to update')}>
@@ -248,6 +245,14 @@ const NodeCard = (props: Props) => {
     onChangeNode,
     toast
   ]);
+  const RenderHandle = useMemo(() => {
+    return (
+      <>
+        <ConnectionSourceHandle nodeId={nodeId} />
+        <ConnectionTargetHandle nodeId={nodeId} />
+      </>
+    );
+  }, [nodeId]);
 
   return (
     <Box
@@ -283,8 +288,7 @@ const NodeCard = (props: Props) => {
       <NodeDebugResponse nodeId={nodeId} debugResult={debugResult} />
       {Header}
       {children}
-      <ConnectionSourceHandle nodeId={nodeId} />
-      <ConnectionTargetHandle nodeId={nodeId} />
+      {RenderHandle}
 
       <EditTitleModal maxLength={20} />
     </Box>
