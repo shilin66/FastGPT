@@ -3,13 +3,13 @@ import { getAIApi } from '../../../../ai/config';
 import { filterGPTMessageByMaxTokens, loadRequestMessages } from '../../../../chat/utils';
 import {
   ChatCompletion,
-  ChatCompletionMessageToolCall,
-  StreamChatType,
-  ChatCompletionToolMessageParam,
+  ChatCompletionAssistantMessageParam,
   ChatCompletionAssistantToolParam,
   ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
   ChatCompletionTool,
-  ChatCompletionAssistantMessageParam
+  ChatCompletionToolMessageParam,
+  StreamChatType
 } from '@fastgpt/global/core/ai/type';
 import { NextApiResponse } from 'next';
 import { responseWriteController } from '../../../../../common/response';
@@ -387,7 +387,7 @@ async function streamResponse({
   });
 
   let textAnswer = '';
-  let callingTool: { name: string; arguments: string; type: string } | null = null;
+  let callingTool: { name: string; arguments: string } | null = null;
   let toolCalls: ChatCompletionMessageToolCall[] = [];
 
   for await (const part of stream) {
@@ -417,14 +417,12 @@ async function streamResponse({
         if (toolCall.id) {
           callingTool = {
             name: toolCall.function?.name || '',
-            arguments: toolCall.function?.arguments || '',
-            type: toolCall.type || ''
+            arguments: toolCall.function?.arguments || ''
           };
         } else if (callingTool) {
           // Continue call
           callingTool.name += toolCall.function.name || '';
           callingTool.arguments += toolCall.function.arguments || '';
-          callingTool.type += toolCall.type || '';
         }
 
         const toolFunction = callingTool!;
@@ -437,6 +435,7 @@ async function streamResponse({
           toolCalls.push({
             ...toolCall,
             id: toolId,
+            type: 'function',
             function: toolFunction,
             toolName: toolNode.name,
             toolAvatar: toolNode.avatar
