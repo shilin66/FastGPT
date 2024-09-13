@@ -42,34 +42,34 @@ const OutLink = () => {
       value: PublishChannelEnum.apikey,
       isProFn: false
     },
-    {
-      icon: 'core/app/publish/lark',
-      title: t('publish:feishu_bot'),
-      desc: t('publish:feishu_bot_desc'),
-      value: PublishChannelEnum.feishu,
-      isProFn: true
-    },
+    // {
+    //   icon: 'core/app/publish/lark',
+    //   title: t('publish:feishu_bot'),
+    //   desc: t('publish:feishu_bot_desc'),
+    //   value: PublishChannelEnum.feishu,
+    //   isProFn: true
+    // },
     {
       icon: 'support/outlink/chromeExtension',
       title: 'Chrome 插件',
       desc: '集成到浏览器中,在任意页面使用Chatbot',
       value: PublishChannelEnum.chromeExtension,
       isProFn: false
-    },
+    }
     // {
     //   icon: 'core/app/publish/wecom',
     //   title: t('publish:wecom.bot'),
     //   desc: t('publish:wecom.bot_desc'),
     //   value: PublishChannelEnum.wecom,
     //   isProFn: true
-    // },
-    {
-      icon: 'core/app/publish/offiaccount',
-      title: t('publish:official_account.name'),
-      desc: t('publish:official_account.desc'),
-      value: PublishChannelEnum.officialAccount,
-      isProFn: true
-    }
+    // // },
+    // {
+    //   icon: 'core/app/publish/offiaccount',
+    //   title: t('publish:official_account.name'),
+    //   desc: t('publish:official_account.desc'),
+    //   value: PublishChannelEnum.officialAccount,
+    //   isProFn: true
+    // }
   ]);
 
   const [linkType, setLinkType] = useState<PublishChannelEnum>(PublishChannelEnum.share);

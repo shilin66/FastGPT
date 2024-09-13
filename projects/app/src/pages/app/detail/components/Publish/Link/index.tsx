@@ -101,19 +101,19 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
           <Thead>
             <Tr>
               <Th>{t('common:common.Name')}</Th>
-              {feConfigs?.isPlus && (
-                <>
-                  <Th>{t('common:common.Expired Time')}</Th>
-                </>
-              )}
+              {/*{feConfigs?.isPlus && (*/}
+              {/*  <>*/}
+              {/*    <Th>{t('common:common.Expired Time')}</Th>*/}
+              {/*  </>*/}
+              {/*)}*/}
               <Th>{t('common:support.outlink.Usage points')}</Th>
               <Th>{t('common:core.app.share.Is response quote')}</Th>
-              {feConfigs?.isPlus && (
-                <>
-                  <Th>{t('common:core.app.share.Ip limit title')}</Th>
-                  <Th>{t('common:core.app.share.Role check')}</Th>
-                </>
-              )}
+              {/*{feConfigs?.isPlus && (*/}
+              {/*  <>*/}
+              {/*    <Th>{t('common:core.app.share.Ip limit title')}</Th>*/}
+              {/*    <Th>{t('common:core.app.share.Role check')}</Th>*/}
+              {/*  </>*/}
+              {/*)}*/}
               <Th>{t('common:common.Last use time')}</Th>
               <Th></Th>
             </Tr>
@@ -122,33 +122,33 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
             {shareChatList.map((item) => (
               <Tr key={item._id}>
                 <Td>{item.name}</Td>
-                {feConfigs?.isPlus && (
-                  <>
-                    <Td>
-                      {item.limit?.expiredTime
-                        ? dayjs(item.limit.expiredTime).format('YYYY-MM-DD HH:mm')
-                        : '-'}
-                    </Td>
-                  </>
-                )}
+                {/*{feConfigs?.isPlus && (*/}
+                {/*  <>*/}
+                {/*    <Td>*/}
+                {/*      {item.limit?.expiredTime*/}
+                {/*        ? dayjs(item.limit.expiredTime).format('YYYY-MM-DD HH:mm')*/}
+                {/*        : '-'}*/}
+                {/*    </Td>*/}
+                {/*  </>*/}
+                {/*)}*/}
                 <Td>
                   {Math.round(item.usagePoints)}
-                  {feConfigs?.isPlus
-                    ? `${
-                        item.limit?.maxUsagePoints && item.limit.maxUsagePoints > -1
-                          ? ` / ${item.limit.maxUsagePoints}`
-                          : ` / ${t('common:common.Unlimited')}`
-                      }`
-                    : ''}
+                  {/*{feConfigs?.isPlus*/}
+                  {/*  ? `${*/}
+                  {/*      item.limit?.maxUsagePoints && item.limit.maxUsagePoints > -1*/}
+                  {/*        ? ` / ${item.limit.maxUsagePoints}`*/}
+                  {/*        : ` / ${t('common:common.Unlimited')}`*/}
+                  {/*    }`*/}
+                  {/*  : ''}*/}
                 </Td>
                 <Td>{item.responseDetail ? '✔' : '✖'}</Td>
-                {feConfigs?.isPlus && (
-                  <>
-                    <Td>{item?.limit?.QPM || '-'}</Td>
+                {/*{feConfigs?.isPlus && (*/}
+                {/*  <>*/}
+                {/*    <Td>{item?.limit?.QPM || '-'}</Td>*/}
 
-                    <Th>{item?.limit?.hookUrl ? '✔' : '✖'}</Th>
-                  </>
-                )}
+                {/*    <Th>{item?.limit?.hookUrl ? '✔' : '✖'}</Th>*/}
+                {/*  </>*/}
+                {/*)}*/}
                 <Td>
                   {item.lastTime ? formatTimeToChatTime(item.lastTime) : t('common:common.Un used')}
                 </Td>
@@ -312,78 +312,78 @@ function EditLinkModal({
             })}
           />
         </Flex>
-        {feConfigs?.isPlus && (
-          <>
-            <Flex alignItems={'center'} mt={4}>
-              <FormLabel flex={'0 0 90px'} alignItems={'center'}>
-                {t('common:common.Expired Time')}
-              </FormLabel>
-              <Input
-                type="datetime-local"
-                defaultValue={
-                  defaultData.limit?.expiredTime
-                    ? dayjs(defaultData.limit?.expiredTime).format('YYYY-MM-DDTHH:mm')
-                    : ''
-                }
-                onChange={(e) => {
-                  setValue('limit.expiredTime', new Date(e.target.value));
-                }}
-              />
-            </Flex>
-            <Flex alignItems={'center'} mt={4}>
-              <Flex flex={'0 0 90px'} alignItems={'center'}>
-                <FormLabel>QPM</FormLabel>
-                <QuestionTip ml={1} label={publishT('qpm_tips' || '')}></QuestionTip>
-              </Flex>
-              <Input
-                max={1000}
-                {...register('limit.QPM', {
-                  min: 0,
-                  max: 1000,
-                  valueAsNumber: true,
-                  required: publishT('qpm_is_empty') || ''
-                })}
-              />
-            </Flex>
-            <Flex alignItems={'center'} mt={4}>
-              <Flex flex={'0 0 90px'} alignItems={'center'}>
-                <FormLabel>{t('common:support.outlink.Max usage points')}</FormLabel>
-                <QuestionTip
-                  ml={1}
-                  label={t('common:support.outlink.Max usage points tip')}
-                ></QuestionTip>
-              </Flex>
-              <Input
-                {...register('limit.maxUsagePoints', {
-                  min: -1,
-                  max: 10000000,
-                  valueAsNumber: true,
-                  required: true
-                })}
-              />
-            </Flex>
+        {/*{feConfigs?.isPlus && (*/}
+        {/*  <>*/}
+        {/*    <Flex alignItems={'center'} mt={4}>*/}
+        {/*      <FormLabel flex={'0 0 90px'} alignItems={'center'}>*/}
+        {/*        {t('common:common.Expired Time')}*/}
+        {/*      </FormLabel>*/}
+        {/*      <Input*/}
+        {/*        type="datetime-local"*/}
+        {/*        defaultValue={*/}
+        {/*          defaultData.limit?.expiredTime*/}
+        {/*            ? dayjs(defaultData.limit?.expiredTime).format('YYYY-MM-DDTHH:mm')*/}
+        {/*            : ''*/}
+        {/*        }*/}
+        {/*        onChange={(e) => {*/}
+        {/*          setValue('limit.expiredTime', new Date(e.target.value));*/}
+        {/*        }}*/}
+        {/*      />*/}
+        {/*    </Flex>*/}
+        {/*    <Flex alignItems={'center'} mt={4}>*/}
+        {/*      <Flex flex={'0 0 90px'} alignItems={'center'}>*/}
+        {/*        <FormLabel>QPM</FormLabel>*/}
+        {/*        <QuestionTip ml={1} label={publishT('qpm_tips' || '')}></QuestionTip>*/}
+        {/*      </Flex>*/}
+        {/*      <Input*/}
+        {/*        max={1000}*/}
+        {/*        {...register('limit.QPM', {*/}
+        {/*          min: 0,*/}
+        {/*          max: 1000,*/}
+        {/*          valueAsNumber: true,*/}
+        {/*          required: publishT('qpm_is_empty') || ''*/}
+        {/*        })}*/}
+        {/*      />*/}
+        {/*    </Flex>*/}
+        {/*    <Flex alignItems={'center'} mt={4}>*/}
+        {/*      <Flex flex={'0 0 90px'} alignItems={'center'}>*/}
+        {/*        <FormLabel>{t('common:support.outlink.Max usage points')}</FormLabel>*/}
+        {/*        <QuestionTip*/}
+        {/*          ml={1}*/}
+        {/*          label={t('common:support.outlink.Max usage points tip')}*/}
+        {/*        ></QuestionTip>*/}
+        {/*      </Flex>*/}
+        {/*      <Input*/}
+        {/*        {...register('limit.maxUsagePoints', {*/}
+        {/*          min: -1,*/}
+        {/*          max: 10000000,*/}
+        {/*          valueAsNumber: true,*/}
+        {/*          required: true*/}
+        {/*        })}*/}
+        {/*      />*/}
+        {/*    </Flex>*/}
 
-            <Flex alignItems={'center'} mt={4}>
-              <Flex flex={'0 0 90px'} alignItems={'center'}>
-                <FormLabel>{publishT('token_auth')}</FormLabel>
-                <QuestionTip ml={1} label={publishT('token_auth_tips') || ''}></QuestionTip>
-              </Flex>
-              <Input
-                placeholder={publishT('token_auth_tips') || ''}
-                fontSize={'sm'}
-                {...register('limit.hookUrl')}
-              />
-            </Flex>
-            <Link
-              href={getDocPath('/docs/development/openapi/share')}
-              target={'_blank'}
-              fontSize={'xs'}
-              color={'myGray.500'}
-            >
-              {publishT('token_auth_use_cases')}
-            </Link>
-          </>
-        )}
+        {/*    <Flex alignItems={'center'} mt={4}>*/}
+        {/*      <Flex flex={'0 0 90px'} alignItems={'center'}>*/}
+        {/*        <FormLabel>{publishT('token_auth')}</FormLabel>*/}
+        {/*        <QuestionTip ml={1} label={publishT('token_auth_tips') || ''}></QuestionTip>*/}
+        {/*      </Flex>*/}
+        {/*      <Input*/}
+        {/*        placeholder={publishT('token_auth_tips') || ''}*/}
+        {/*        fontSize={'sm'}*/}
+        {/*        {...register('limit.hookUrl')}*/}
+        {/*      />*/}
+        {/*    </Flex>*/}
+        {/*    <Link*/}
+        {/*      href={getDocPath('/docs/development/openapi/share')}*/}
+        {/*      target={'_blank'}*/}
+        {/*      fontSize={'xs'}*/}
+        {/*      color={'myGray.500'}*/}
+        {/*    >*/}
+        {/*      {publishT('token_auth_use_cases')}*/}
+        {/*    </Link>*/}
+        {/*  </>*/}
+        {/*)}*/}
 
         <Flex alignItems={'center'} mt={4}>
           <Flex flex={'0 0 90px'} alignItems={'center'}>
