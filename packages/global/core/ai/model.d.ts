@@ -11,6 +11,7 @@ export type LLMModelItemType = {
 
   censor?: boolean;
   vision?: boolean;
+  aiSearch?: boolean;
 
   // diff function model
   datasetProcess?: boolean; // dataset
@@ -37,6 +38,7 @@ export type VectorModelItemType = {
   charsPointsPrice: number; // 1k tokens=n points
   maxToken: number; // model max token
   weight: number; // training weight
+  aiSearch?: boolean;
   hidden?: boolean; // Disallow creation
   defaultConfig?: Record<string, any>; // post request config
   dbConfig?: Record<string, any>; // Custom parameters for storage
