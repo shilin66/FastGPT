@@ -175,7 +175,9 @@ export const runToolWithToolChoice = async (
             toolAvatar: toolNode?.avatar || ''
           };
         });
-
+        toolCalls.forEach((tool) => {
+          if (tool.function.arguments === '') tool.function.arguments = '{}';
+        });
         return {
           answer: result.choices?.[0]?.message?.content || '',
           toolCalls: toolCalls
@@ -492,5 +494,8 @@ async function streamResponse({
     return Promise.reject('LLM api response empty');
   }
 
+  toolCalls.forEach((tool) => {
+    if (tool.function.arguments === '') tool.function.arguments = '{}';
+  });
   return { answer: textAnswer, toolCalls };
 }
