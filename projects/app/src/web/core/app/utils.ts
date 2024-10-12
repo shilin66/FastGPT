@@ -7,6 +7,7 @@ import {
 import { StoreNodeItemType } from '@fastgpt/global/core/workflow/type/node.d';
 import {
   chatHistoryValueDesc,
+  defaultNodeVersion,
   FlowNodeInputTypeEnum,
   FlowNodeTypeEnum
 } from '@fastgpt/global/core/workflow/node/constant';
@@ -22,9 +23,14 @@ import {
   userFilesInput
 } from '@fastgpt/global/core/workflow/template/system/workflowStart';
 import { SystemConfigNode } from '@fastgpt/global/core/workflow/template/system/systemConfig';
-import { AiChatModule } from '@fastgpt/global/core/workflow/template/system/aiChat';
+import {
+  AiChatModule,
+  AiChatQuotePrompt,
+  AiChatQuoteRole,
+  AiChatQuoteTemplate
+} from '@fastgpt/global/core/workflow/template/system/aiChat/index';
 import { DatasetSearchModule } from '@fastgpt/global/core/workflow/template/system/datasetSearch';
-import { ReadFilesNodes } from '@fastgpt/global/core/workflow/template/system/readFiles';
+import { ReadFilesNode } from '@fastgpt/global/core/workflow/template/system/readFiles';
 import { i18nT } from '@fastgpt/web/i18n/utils';
 import { Input_Template_UserChatInput } from '@fastgpt/global/core/workflow/template/input';
 
@@ -126,25 +132,16 @@ export function form2AppWorkflow(
           value: true,
           valueType: WorkflowIOValueTypeEnum.boolean
         },
-        {
-          key: 'quoteTemplate',
-          renderTypeList: [FlowNodeInputTypeEnum.hidden],
-          label: '',
-          valueType: WorkflowIOValueTypeEnum.string
-        },
-        {
-          key: 'quotePrompt',
-          renderTypeList: [FlowNodeInputTypeEnum.hidden],
-          label: '',
-          valueType: WorkflowIOValueTypeEnum.string
-        },
+        AiChatQuoteRole,
+        AiChatQuoteTemplate,
+        AiChatQuotePrompt,
         {
           key: 'systemPrompt',
           renderTypeList: [FlowNodeInputTypeEnum.textarea, FlowNodeInputTypeEnum.reference],
           max: 3000,
           valueType: WorkflowIOValueTypeEnum.string,
           label: 'core.ai.Prompt',
-          description: 'core.app.tip.chatNodeSystemPromptTip',
+          description: 'core.app.tip.systemPromptTip',
           placeholder: 'core.app.tip.chatNodeSystemPromptTip',
           value: formData.aiSettings.systemPrompt
         },
@@ -174,7 +171,7 @@ export function form2AppWorkflow(
           debugLabel: i18nT('common:core.module.Dataset quote.label'),
           description: '',
           valueType: WorkflowIOValueTypeEnum.datasetQuote,
-          value: selectedDatasets ? [datasetNodeId, 'quoteQA'] : undefined
+          value: selectedDatasets?.length > 0 ? [datasetNodeId, 'quoteQA'] : undefined
         },
         {
           key: NodeInputKeyEnum.aiChatVision,
@@ -199,7 +196,7 @@ export function form2AppWorkflow(
         x: 918.5901682164496,
         y: -227.11542247619582
       },
-      version: '481',
+      version: DatasetSearchModule.version,
       inputs: [
         {
           key: 'datasets',
@@ -329,17 +326,17 @@ export function form2AppWorkflow(
       ? {
           nodes: [
             {
-              nodeId: ReadFilesNodes.id,
-              name: t(ReadFilesNodes.name),
-              intro: t(ReadFilesNodes.intro),
-              avatar: ReadFilesNodes.avatar,
-              flowNodeType: ReadFilesNodes.flowNodeType,
+              nodeId: ReadFilesNode.id,
+              name: t(ReadFilesNode.name),
+              intro: t(ReadFilesNode.intro),
+              avatar: ReadFilesNode.avatar,
+              flowNodeType: ReadFilesNode.flowNodeType,
               showStatus: true,
               position: {
                 x: 974.6209854328943,
                 y: 587.6378828744465
               },
-              version: '489',
+              version: ReadFilesNode.version,
               inputs: [
                 {
                   key: NodeInputKeyEnum.fileUrlList,
@@ -349,13 +346,13 @@ export function form2AppWorkflow(
                   value: [workflowStartNodeId, 'userFiles']
                 }
               ],
-              outputs: ReadFilesNodes.outputs
+              outputs: ReadFilesNode.outputs
             }
           ],
           edges: [
             {
               source: toolNodeId,
-              target: ReadFilesNodes.id,
+              target: ReadFilesNode.id,
               sourceHandle: 'selectedTools',
               targetHandle: 'selectedTools'
             }
@@ -381,8 +378,25 @@ export function form2AppWorkflow(
               x: 500 + 500 * (i + 1),
               y: 545
             },
-            version: tool.version,
-            inputs: tool.inputs,
+            // 这里不需要固定版本，给一个不存在的版本，每次都会用最新版
+            version: defaultNodeVersion,
+            inputs: tool.inputs.map((input) => {
+              // Special key value
+              if (input.key === NodeInputKeyEnum.forbidStream) {
+                input.value = true;
+              }
+              // Special tool
+              if (
+                tool.flowNodeType === FlowNodeTypeEnum.appModule &&
+                input.key === NodeInputKeyEnum.history
+              ) {
+                return {
+                  ...input,
+                  value: formData.aiSettings.maxHistories
+                };
+              }
+              return input;
+            }),
             outputs: tool.outputs
           }
         ],
@@ -449,7 +463,7 @@ export function form2AppWorkflow(
               max: 3000,
               valueType: WorkflowIOValueTypeEnum.string,
               label: 'core.ai.Prompt',
-              description: 'core.app.tip.chatNodeSystemPromptTip',
+              description: 'core.app.tip.systemPromptTip',
               placeholder: 'core.app.tip.chatNodeSystemPromptTip',
               value: formData.aiSettings.systemPrompt
             },

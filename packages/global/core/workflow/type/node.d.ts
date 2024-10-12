@@ -25,6 +25,7 @@ import { ParentIdType } from 'common/parentFolder/type';
 import { AppTypeEnum } from 'core/app/constants';
 
 export type FlowNodeCommonType = {
+  parentNodeId?: string;
   flowNodeType: FlowNodeTypeEnum; // render node card
   abandon?: boolean; // abandon node
 
@@ -95,6 +96,7 @@ export type NodeTemplateListType = {
 // react flow node type
 export type FlowNodeItemType = FlowNodeTemplateType & {
   nodeId: string;
+  parentNodeId?: string;
   isError?: boolean;
   debugResult?: {
     status: 'running' | 'success' | 'skipped' | 'failed';
@@ -103,6 +105,7 @@ export type FlowNodeItemType = FlowNodeTemplateType & {
     response?: ChatHistoryItemResType;
     isExpired?: boolean;
   };
+  isFolded?: boolean;
 };
 
 // store node type

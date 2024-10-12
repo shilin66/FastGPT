@@ -15,7 +15,6 @@ import {
   putDatasetCollectionById
 } from '@/web/core/dataset/api';
 import { useQuery } from '@tanstack/react-query';
-import { debounce } from 'lodash';
 import { useTranslation } from 'next-i18next';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import MyInput from '@/components/MyInput';
@@ -59,15 +58,6 @@ const Header = ({}: {}) => {
   const lastSearch = useRef('');
   const { searchText, setSearchText, total, getData, pageNum, onOpenWebsiteModal } =
     useContextSelector(CollectionPageContext, (v) => v);
-
-  // change search
-  const debounceRefetch = useCallback(
-    debounce(() => {
-      getData(1);
-      lastSearch.current = searchText;
-    }, 300),
-    []
-  );
 
   const { data: paths = [] } = useQuery(['getDatasetCollectionPathById', parentId], () =>
     getDatasetCollectionPathById(parentId)
@@ -189,17 +179,6 @@ const Header = ({}: {}) => {
             }
             onChange={(e) => {
               setSearchText(e.target.value);
-              debounceRefetch();
-            }}
-            onBlur={() => {
-              if (searchText === lastSearch.current) return;
-              getData(1);
-            }}
-            onKeyDown={(e) => {
-              if (searchText === lastSearch.current) return;
-              if (e.key === 'Enter') {
-                getData(1);
-              }
             }}
           />
         )}

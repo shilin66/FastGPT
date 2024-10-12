@@ -6,7 +6,6 @@ import Divider from '../components/Divider';
 import Container from '../components/Container';
 import RenderInput from './render/RenderInput';
 import { useTranslation } from 'next-i18next';
-import { ToolSourceHandle } from './render/Handle/ToolHandle';
 import { Box } from '@chakra-ui/react';
 import IOTitle from '../components/IOTitle';
 import MyIcon from '@fastgpt/web/components/common/Icon';
@@ -34,8 +33,6 @@ const NodeTools = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
             text={t('common:core.workflow.tool.Select Tool')}
           />
         </Box>
-
-        <ToolSourceHandle nodeId={nodeId} />
       </Box>
     </NodeCard>
   );

@@ -22,6 +22,7 @@ import { WorkflowContext } from '../../../context';
 import IOTitle from '../../components/IOTitle';
 import dynamic from 'next/dynamic';
 import { defaultInput } from './InputEditModal';
+import RenderOutput from '../render/RenderOutput';
 
 const FieldEditModal = dynamic(() => import('./InputEditModal'));
 
@@ -39,7 +40,7 @@ const NodePluginInput = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
 
   const [editField, setEditField] = useState<FlowNodeInputItemType>();
 
-  const onSubmit = ({ data }: { data: FlowNodeInputItemType; isChangeKey: boolean }) => {
+  const onSubmit = (data: FlowNodeInputItemType) => {
     if (!editField) return;
 
     if (editField?.key) {
@@ -140,9 +141,15 @@ const NodePluginInput = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
             }}
           />
         </Container>
+        {!!outputs.length && (
+          <Container>
+            <IOTitle text={t('common:common.Output')} />
+            <RenderOutput nodeId={nodeId} flowOutputList={outputs} />
+          </Container>
+        )}
       </NodeCard>
     );
-  }, [data, inputs, nodeId, onChangeNode, selected, t]);
+  }, [data, inputs, nodeId, onChangeNode, outputs, selected, t]);
 
   return (
     <>

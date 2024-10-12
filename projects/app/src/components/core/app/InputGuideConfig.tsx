@@ -28,7 +28,7 @@ import {
   putChatInputGuide
 } from '@/web/core/chat/inputGuide/api';
 import { useQuery } from '@tanstack/react-query';
-import { useScrollPagination } from '@fastgpt/web/hooks/useScrollPagination';
+import { useVirtualScrollPagination } from '@fastgpt/web/hooks/useScrollPagination';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useSelectFile } from '@/web/common/file/hooks/useSelectFile';
@@ -198,15 +198,15 @@ const LexiconConfigModal = ({ appId, onClose }: { appId: string; onClose: () => 
   });
 
   const {
-    list,
+    scrollDataList,
     setData,
     ScrollList,
     isLoading: isRequesting,
     fetchData,
     scroll2Top
-  } = useScrollPagination(getChatInputGuideList, {
+  } = useVirtualScrollPagination(getChatInputGuideList, {
     refreshDeps: [searchKey],
-    debounceWait: 300,
+    // debounceWait: 300,
 
     itemHeight: 48,
     overscan: 20,
@@ -389,7 +389,7 @@ const LexiconConfigModal = ({ appId, onClose }: { appId: string; onClose: () => 
         </Flex>
         {/* new data input */}
         {newData !== undefined && (
-          <Box mt={5} ml={list.length > 0 ? 7 : 0}>
+          <Box mt={5} ml={scrollDataList.length > 0 ? 7 : 0}>
             <MyInput
               autoFocus
               rightIcon={<MyIcon name={'save'} w={'14px'} cursor={'pointer'} />}
@@ -412,7 +412,7 @@ const LexiconConfigModal = ({ appId, onClose }: { appId: string; onClose: () => 
         fontSize={'sm'}
         EmptyChildren={<EmptyTip text={chatT('chat_input_guide_lexicon_is_empty')} />}
       >
-        {list.map((data, index) => {
+        {scrollDataList.map((data, index) => {
           const item = data.data;
 
           const selected = selectedRows.includes(item._id);

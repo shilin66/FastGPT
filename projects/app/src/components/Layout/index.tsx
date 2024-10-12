@@ -12,6 +12,7 @@ import { useI18nLng } from '@fastgpt/web/hooks/useI18n';
 import Auth from './auth';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import { useMount } from 'ahooks';
+
 const Navbar = dynamic(() => import('./navbar'));
 const NavbarPhone = dynamic(() => import('./navbarPhone'));
 const UpdateInviteModal = dynamic(() => import('@/components/support/user/team/UpdateInviteModal'));
@@ -55,6 +56,7 @@ const Layout = ({ children }: { children: JSX.Element }) => {
     [router.pathname, router.query]
   );
 
+  // System hook
   const { data, refetch: refetchUnRead } = useQuery(['getUnreadCount'], getUnreadCount, {
     enabled: false,
     refetchInterval: 10000

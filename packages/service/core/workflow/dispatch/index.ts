@@ -64,8 +64,13 @@ import { dispatchUserSelect } from './interactive/userSelect';
 import {
   InteractiveNodeResponseItemType,
   UserSelectInteractive
-} from '@fastgpt/global/core/workflow/template/system/userSelect/type';
+} from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import { dispatchRunAppNode } from './plugin/runApp';
+import { dispatchLoop } from './loop/runLoop';
+import { dispatchLoopEnd } from './loop/runLoopEnd';
+import { dispatchLoopStart } from './loop/runLoopStart';
+import { dispatchFormInput } from './interactive/formInput';
+import { dispatchToolParams } from './agent/runTool/toolParams';
 
 const callbackMap: Record<FlowNodeTypeEnum, Function> = {
   [FlowNodeTypeEnum.workflowStart]: dispatchWorkflowStart,
@@ -83,6 +88,7 @@ const callbackMap: Record<FlowNodeTypeEnum, Function> = {
   [FlowNodeTypeEnum.queryExtension]: dispatchQueryExtension,
   [FlowNodeTypeEnum.tools]: dispatchRunTools,
   [FlowNodeTypeEnum.stopTool]: dispatchStopToolCall,
+  [FlowNodeTypeEnum.toolParams]: dispatchToolParams,
   [FlowNodeTypeEnum.lafModule]: dispatchLafRequest,
   [FlowNodeTypeEnum.ifElseNode]: dispatchIfElse,
   [FlowNodeTypeEnum.variableUpdate]: dispatchUpdateVariable,
@@ -91,12 +97,17 @@ const callbackMap: Record<FlowNodeTypeEnum, Function> = {
   [FlowNodeTypeEnum.customFeedback]: dispatchCustomFeedback,
   [FlowNodeTypeEnum.readFiles]: dispatchReadFiles,
   [FlowNodeTypeEnum.userSelect]: dispatchUserSelect,
+  [FlowNodeTypeEnum.loop]: dispatchLoop,
+  [FlowNodeTypeEnum.loopStart]: dispatchLoopStart,
+  [FlowNodeTypeEnum.loopEnd]: dispatchLoopEnd,
+  [FlowNodeTypeEnum.formInput]: dispatchFormInput,
 
   // none
   [FlowNodeTypeEnum.systemConfig]: dispatchSystemConfig,
   [FlowNodeTypeEnum.pluginConfig]: () => Promise.resolve(),
   [FlowNodeTypeEnum.emptyNode]: () => Promise.resolve(),
   [FlowNodeTypeEnum.globalVariable]: () => Promise.resolve(),
+  [FlowNodeTypeEnum.comment]: () => Promise.resolve(),
 
   [FlowNodeTypeEnum.runApp]: dispatchAppRequest // abandoned
 };
@@ -160,7 +171,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
   let chatResponses: ChatHistoryItemResType[] = []; // response request and save to database
   let chatAssistantResponse: AIChatItemValueItemType[] = []; // The value will be returned to the user
   let chatNodeUsages: ChatNodeUsageType[] = [];
-  let toolRunResponse: ToolRunResponseItemType;
+  let toolRunResponse: ToolRunResponseItemType; // Run with tool mode. Result will response to tool node.
   let debugNextStepRunNodes: RuntimeNodeItemType[] = [];
   // 记录交互节点，交互节点需要在工作流完全结束后再进行计算
   let workflowInteractiveResponse:
@@ -196,9 +207,11 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     if (responseData) {
       chatResponses.push(responseData);
     }
+
     if (nodeDispatchUsages) {
       chatNodeUsages = chatNodeUsages.concat(nodeDispatchUsages);
     }
+
     if (toolResponses !== undefined) {
       if (Array.isArray(toolResponses) && toolResponses.length === 0) return;
       if (typeof toolResponses === 'object' && Object.keys(toolResponses).length === 0) {
@@ -206,6 +219,8 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       }
       toolRunResponse = toolResponses;
     }
+
+    // Histories store
     if (assistantResponses) {
       chatAssistantResponse = chatAssistantResponse.concat(assistantResponses);
     } else if (answerText) {
@@ -374,6 +389,18 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
 
     if (!nodeRunResult) return [];
 
+    /* 
+      特殊情况：
+      通过 skipEdges 可以判断是运行了分支节点。
+      由于分支节点，可能会实现递归调用（skip 连线往前递归）
+      需要把分支节点也加入到已跳过的记录里，可以保证递归 skip 运行时，至多只会传递到当前分支节点，不会影响分支后的内容。
+    */
+    const skipEdges = (nodeRunResult.result[DispatchNodeResponseKeyEnum.skipHandleId] ||
+      []) as string[];
+    if (skipEdges && skipEdges?.length > 0) {
+      skippedNodeIdList.add(node.nodeId);
+    }
+
     // In the current version, only one interactive node is allowed at the same time
     const interactiveResponse = nodeRunResult.result?.[DispatchNodeResponseKeyEnum.interactive];
     if (interactiveResponse) {
@@ -475,7 +502,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     result: Record<string, any>;
   }> {
     // push run status messages
-    if (node.showStatus) {
+    if (node.showStatus && !props.isToolCall) {
       props.workflowStreamResponse?.({
         event: SseResponseEventEnum.flowNodeStatus,
         data: {
@@ -531,6 +558,14 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       dispatchRes[item.key] = valueTypeFormat(item.defaultValue, item.valueType);
     });
 
+    // Update new variables
+    if (dispatchRes[DispatchNodeResponseKeyEnum.newVariables]) {
+      variables = {
+        ...variables,
+        ...dispatchRes[DispatchNodeResponseKeyEnum.newVariables]
+      };
+    }
+
     return {
       node,
       runStatus: 'run',
@@ -559,11 +594,13 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
 
   // start process width initInput
   const entryNodes = runtimeNodes.filter((item) => item.isEntry);
-
   // reset entry
   runtimeNodes.forEach((item) => {
     // Interactive node is not the entry node, return interactive result
-    if (item.flowNodeType !== FlowNodeTypeEnum.userSelect) {
+    if (
+      item.flowNodeType !== FlowNodeTypeEnum.userSelect &&
+      item.flowNodeType !== FlowNodeTypeEnum.formInput
+    ) {
       item.isEntry = false;
     }
   });

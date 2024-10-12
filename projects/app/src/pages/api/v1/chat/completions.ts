@@ -3,11 +3,7 @@ import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { authCert } from '@fastgpt/service/support/permission/auth/common';
 import { sseErrRes, jsonRes } from '@fastgpt/service/common/response';
 import { addLog } from '@fastgpt/service/common/system/log';
-import {
-  ChatItemValueTypeEnum,
-  ChatRoleEnum,
-  ChatSourceEnum
-} from '@fastgpt/global/core/chat/constants';
+import { ChatRoleEnum, ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { dispatchWorkFlow } from '@fastgpt/service/core/workflow/dispatch';
 import type { ChatCompletionCreateParams } from '@fastgpt/global/core/ai/type.d';
@@ -50,16 +46,19 @@ import { AIChatItemType, UserChatItemType } from '@fastgpt/global/core/chat/type
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 
 import { NextAPI } from '@/service/middleware/entry';
-import { getAppLatestVersion } from '@fastgpt/service/core/app/controller';
+import { getAppLatestVersion } from '@fastgpt/service/core/app/version/controller';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
-import { updatePluginInputByVariables } from '@fastgpt/global/core/workflow/utils';
+import {
+  getPluginRunUserQuery,
+  updatePluginInputByVariables
+} from '@fastgpt/global/core/workflow/utils';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { getSystemTime } from '@fastgpt/global/common/time/timezone';
 import { rewriteNodeOutputByHistories } from '@fastgpt/global/core/workflow/runtime/utils';
 import { getWorkflowResponseWrite } from '@fastgpt/service/core/workflow/dispatch/utils';
-import { getPluginRunUserQuery } from '@fastgpt/service/core/workflow/utils';
 import { WORKFLOW_MAX_RUN_TIMES } from '@fastgpt/service/core/workflow/constants';
+import { getPluginInputsFromStoreNodes } from '@fastgpt/global/core/app/plugin/utils';
 
 type FastGptWebChatProps = {
   chatId?: string; // undefined: get histories from messages, '': new chat, 'xxxxx': get histories from db
@@ -189,7 +188,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Get obj=Human history
     const userQuestion: UserChatItemType = (() => {
       if (isPlugin) {
-        return getPluginRunUserQuery(app.modules, variables);
+        return getPluginRunUserQuery({
+          pluginInputs: getPluginInputsFromStoreNodes(app.modules),
+          variables,
+          files: variables.files
+        });
       }
 
       const latestHumanChat = chatMessages.pop() as UserChatItemType | undefined;
@@ -205,6 +208,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       getChatItems({
         appId: app._id,
         chatId,
+        offset: 0,
         limit,
         field: `dataId obj value nodeOutputs`
       }),
@@ -237,7 +241,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       res,
       detail,
       streamResponse: stream,
-      id: chatId || getNanoid(24)
+      id: chatId
     });
 
     /* start flow controller */
@@ -269,7 +273,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           workflowStreamResponse: workflowResponseWrite
         });
       }
-      return Promise.reject('请升级工作流');
+      return Promise.reject('您的工作流版本过低，请重新发布一次');
     })();
 
     // save chat
@@ -289,7 +293,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       })();
 
       const isInteractiveRequest = !!getLastInteractiveValue(histories);
-      const { text: userSelectedVal } = chatValue2RuntimePrompt(userQuestion.value);
+      const { text: userInteractiveVal } = chatValue2RuntimePrompt(userQuestion.value);
 
       const newTitle = isPlugin
         ? variables.cTime ?? getSystemTime(user.timezone)
@@ -308,7 +312,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           appId: app._id,
           teamId,
           tmbId: tmbId,
-          userSelectedVal,
+          userInteractiveVal,
           aiResponse,
           newVariables,
           newTitle
@@ -552,6 +556,7 @@ const authHeaderRequest = async ({
       };
     } else {
       // token_auth
+
       if (!appId) {
         return Promise.reject('appId is empty');
       }

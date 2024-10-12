@@ -22,6 +22,16 @@ export type StreamResponseType = {
   responseText: string;
   [DispatchNodeResponseKeyEnum.nodeResponse]: ChatHistoryItemResType[];
 };
+type ResponseQueueItemType =
+  | { event: SseResponseEventEnum.fastAnswer | SseResponseEventEnum.answer; text: string }
+  | { event: SseResponseEventEnum.interactive; [key: string]: any }
+  | {
+      event:
+        | SseResponseEventEnum.toolCall
+        | SseResponseEventEnum.toolParams
+        | SseResponseEventEnum.toolResponse;
+      [key: string]: any;
+    };
 class FatalError extends Error {}
 
 export const streamFetch = ({
@@ -31,22 +41,14 @@ export const streamFetch = ({
   abortCtrl
 }: StreamFetchProps) =>
   new Promise<StreamResponseType>(async (resolve, reject) => {
+    // First res
     const timeoutId = setTimeout(() => {
       abortCtrl.abort('Time out');
     }, 60000);
 
     // response data
     let responseText = '';
-    let responseQueue: (
-      | { event: SseResponseEventEnum.fastAnswer | SseResponseEventEnum.answer; text: string }
-      | {
-          event:
-            | SseResponseEventEnum.toolCall
-            | SseResponseEventEnum.toolParams
-            | SseResponseEventEnum.toolResponse;
-          [key: string]: any;
-        }
-    )[] = [];
+    let responseQueue: ResponseQueueItemType[] = [];
     let errMsg: string | undefined;
     let responseData: ChatHistoryItemResType[] = [];
     let finished = false;
@@ -104,6 +106,15 @@ export const streamFetch = ({
     }
     // start animation
     animateResponseText();
+
+    const pushDataToQueue = (data: ResponseQueueItemType) => {
+      // If the document is hidden, the data is directly sent to the front end
+      responseQueue.push(data);
+
+      if (document.hidden) {
+        animateResponseText();
+      }
+    };
 
     try {
       // auto complete variables
@@ -169,14 +180,14 @@ export const streamFetch = ({
           if (event === SseResponseEventEnum.answer) {
             const text = parseJson.choices?.[0]?.delta?.content || '';
             for (const item of text) {
-              responseQueue.push({
+              pushDataToQueue({
                 event,
                 text: item
               });
             }
           } else if (event === SseResponseEventEnum.fastAnswer) {
             const text = parseJson.choices?.[0]?.delta?.content || '';
-            responseQueue.push({
+            pushDataToQueue({
               event,
               text
             });
@@ -185,7 +196,7 @@ export const streamFetch = ({
             event === SseResponseEventEnum.toolParams ||
             event === SseResponseEventEnum.toolResponse
           ) {
-            responseQueue.push({
+            pushDataToQueue({
               event,
               ...parseJson
             });
@@ -202,7 +213,7 @@ export const streamFetch = ({
               variables: parseJson
             });
           } else if (event === SseResponseEventEnum.interactive) {
-            responseQueue.push({
+            pushDataToQueue({
               event,
               ...parseJson
             });

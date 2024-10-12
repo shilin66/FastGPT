@@ -78,7 +78,7 @@ export const authDatasetByTmbId = async ({
           resourceType: PerResourceTypeEnum.dataset
         });
         const Per = new DatasetPermission({
-          per: rp?.permission ?? dataset.defaultPermission,
+          per: rp ?? dataset.defaultPermission,
           isOwner
         });
         return {
@@ -259,6 +259,7 @@ export async function authDatasetData({
   const data: DatasetDataItemType = {
     id: String(datasetData._id),
     teamId: datasetData.teamId,
+    updateTime: datasetData.updateTime,
     q: datasetData.q,
     a: datasetData.a,
     chunkIndex: datasetData.chunkIndex,

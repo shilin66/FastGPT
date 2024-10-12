@@ -40,16 +40,24 @@ import { workflowSystemVariables } from '../app/utils';
 export const nodeTemplate2FlowNode = ({
   template,
   position,
-  selected
+  selected,
+  parentNodeId,
+  zIndex,
+  t
 }: {
   template: FlowNodeTemplateType;
   position: XYPosition;
   selected?: boolean;
+  parentNodeId?: string;
+  zIndex?: number;
+  t: TFunction;
 }): Node<FlowNodeItemType> => {
   // replace item data
   const moduleItem: FlowNodeItemType = {
     ...template,
-    nodeId: getNanoid()
+    name: t(template.name as any),
+    nodeId: getNanoid(),
+    parentNodeId
   };
 
   return {
@@ -57,16 +65,21 @@ export const nodeTemplate2FlowNode = ({
     type: moduleItem.flowNodeType,
     data: moduleItem,
     position: position,
-    selected
+    selected,
+    zIndex
   };
 };
 export const storeNode2FlowNode = ({
   item: storeNode,
   selected = false,
+  zIndex,
+  parentNodeId,
   t
 }: {
   item: StoreNodeItemType;
   selected?: boolean;
+  zIndex?: number;
+  parentNodeId?: string;
   t: TFunction;
 }): Node<FlowNodeItemType> => {
   // init some static data
@@ -84,11 +97,11 @@ export const storeNode2FlowNode = ({
 
   // replace item data
   const nodeItem: FlowNodeItemType = {
+    parentNodeId,
     ...template,
     ...storeNode,
     avatar: template.avatar ?? storeNode.avatar,
     version: storeNode.version ?? template.version ?? defaultNodeVersion,
-
     /* 
       Inputs and outputs, New fields are added, not reduced
     */
@@ -150,7 +163,8 @@ export const storeNode2FlowNode = ({
     type: storeNode.flowNodeType,
     data: nodeItem,
     selected,
-    position: storeNode.position || { x: 0, y: 0 }
+    position: storeNode.position || { x: 0, y: 0 },
+    zIndex
   };
 };
 export const storeEdgesRenderEdge = ({ edge }: { edge: StoreEdgeItemType }) => {
@@ -267,7 +281,8 @@ export const checkWorkflowNodeAndConnection = ({
       data.flowNodeType === FlowNodeTypeEnum.systemConfig ||
       data.flowNodeType === FlowNodeTypeEnum.pluginConfig ||
       data.flowNodeType === FlowNodeTypeEnum.pluginInput ||
-      data.flowNodeType === FlowNodeTypeEnum.workflowStart
+      data.flowNodeType === FlowNodeTypeEnum.workflowStart ||
+      data.flowNodeType === FlowNodeTypeEnum.comment
     ) {
       continue;
     }
@@ -424,104 +439,16 @@ export const getLatestNodeTemplate = (
   return updatedNode;
 };
 
-type WorkflowType = {
-  nodes: StoreNodeItemType[];
-  edges: StoreEdgeItemType[];
-  chatConfig: AppChatConfigType;
-};
-export const compareWorkflow = (workflow1: WorkflowType, workflow2: WorkflowType) => {
-  const clone1 = cloneDeep(workflow1);
-  const clone2 = cloneDeep(workflow2);
-
-  if (!isEqual(clone1.edges, clone2.edges)) {
-    console.log('Edge not equal');
-    return false;
-  }
-
-  if (
-    clone1.chatConfig &&
-    clone2.chatConfig &&
-    !isEqual(
-      {
-        welcomeText: clone1.chatConfig?.welcomeText || '',
-        variables: clone1.chatConfig?.variables || [],
-        questionGuide: clone1.chatConfig?.questionGuide || false,
-        ttsConfig: clone1.chatConfig?.ttsConfig || undefined,
-        whisperConfig: clone1.chatConfig?.whisperConfig || undefined,
-        scheduledTriggerConfig: clone1.chatConfig?.scheduledTriggerConfig || undefined,
-        chatInputGuide: clone1.chatConfig?.chatInputGuide || undefined,
-        fileSelectConfig: clone1.chatConfig?.fileSelectConfig || undefined
-      },
-      {
-        welcomeText: clone2.chatConfig?.welcomeText || '',
-        variables: clone2.chatConfig?.variables || [],
-        questionGuide: clone2.chatConfig?.questionGuide || false,
-        ttsConfig: clone2.chatConfig?.ttsConfig || undefined,
-        whisperConfig: clone2.chatConfig?.whisperConfig || undefined,
-        scheduledTriggerConfig: clone2.chatConfig?.scheduledTriggerConfig || undefined,
-        chatInputGuide: clone2.chatConfig?.chatInputGuide || undefined,
-        fileSelectConfig: clone2.chatConfig?.fileSelectConfig || undefined
-      }
-    )
-  ) {
-    console.log('chatConfig not equal');
-    return false;
-  }
-
-  const formatNodes = (nodes: StoreNodeItemType[]) => {
-    return nodes
-      .filter((node) => {
-        if (!node) return;
-        if ([FlowNodeTypeEnum.systemConfig].includes(node.flowNodeType)) return;
-
-        return true;
-      })
-      .map((node) => ({
-        flowNodeType: node.flowNodeType,
-        inputs: node.inputs.map((input) => ({
-          key: input.key,
-          selectedTypeIndex: input.selectedTypeIndex ?? 0,
-          renderTypeLis: input.renderTypeList,
-          valueType: input.valueType,
-          value: input.value ?? undefined
-        })),
-        outputs: node.outputs.map((item) => ({
-          key: item.key,
-          type: item.type,
-          value: item.value ?? undefined
-        })),
-        name: node.name,
-        intro: node.intro,
-        avatar: node.avatar,
-        version: node.version,
-        position: node.position
-      }));
-  };
-  const node1 = formatNodes(clone1.nodes);
-  const node2 = formatNodes(clone2.nodes);
-
-  // console.log(node1);
-  // console.log(node2);
-
-  node1.forEach((node, i) => {
-    if (!isEqual(node, node2[i])) {
-      console.log('node not equal');
-    }
-  });
-
-  return isEqual(node1, node2);
-};
-
 export const compareSnapshot = (
   snapshot1: {
-    nodes: Node<FlowNodeItemType, string | undefined>[] | undefined;
+    nodes?: Node[];
     edges: Edge<any>[] | undefined;
-    chatConfig: AppChatConfigType | undefined;
+    chatConfig?: AppChatConfigType;
   },
   snapshot2: {
-    nodes: Node<FlowNodeItemType, string | undefined>[];
+    nodes?: Node[];
     edges: Edge<any>[];
-    chatConfig: AppChatConfigType;
+    chatConfig?: AppChatConfigType;
   }
 ) => {
   const clone1 = cloneDeep(snapshot1);
@@ -606,7 +533,8 @@ export const compareSnapshot = (
           name: node.data.name,
           intro: node.data.intro,
           avatar: node.data.avatar,
-          version: node.data.version
+          version: node.data.version,
+          isFolded: node.data.isFolded
         }
       }));
   };

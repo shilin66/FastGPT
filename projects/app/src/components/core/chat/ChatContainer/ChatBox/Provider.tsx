@@ -17,9 +17,10 @@ import {
   defaultWhisperConfig
 } from '@fastgpt/global/core/app/constants';
 import { createContext } from 'use-context-selector';
-import { FieldValues, UseFormReturn } from 'react-hook-form';
+import { UseFormReturn } from 'react-hook-form';
 import { VariableInputEnum } from '@fastgpt/global/core/workflow/constants';
 import { getChatResData } from '@/web/core/chat/api';
+import { ChatBoxInputFormType } from './type';
 
 export type ChatProviderProps = OutLinkChatAuthProps & {
   appAvatar?: string;
@@ -29,7 +30,7 @@ export type ChatProviderProps = OutLinkChatAuthProps & {
   chatHistories: ChatSiteItemType[];
   setChatHistories: React.Dispatch<React.SetStateAction<ChatSiteItemType[]>>;
 
-  variablesForm: UseFormReturn<FieldValues, any>;
+  variablesForm: UseFormReturn<ChatBoxInputFormType, any>;
 
   // not chat test params
   chatId?: string;

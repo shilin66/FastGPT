@@ -23,6 +23,10 @@ import {
 import { createJWT, getResourcePermission } from '../../permission/controller';
 import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
+import { TeamDefaultPermissionVal } from '@fastgpt/global/support/permission/user/constant';
+import { MongoMemberGroupModel } from '../../permission/memberGroup/memberGroupSchema';
+import { mongoSessionRun } from '../../../common/mongo/sessionRun';
+import { DefaultGroupName } from '@fastgpt/global/support/user/team/group/constant';
 import { MongoResourcePermission } from '../../permission/schema';
 import { getUserDetail } from '../controller';
 import { MongoUser } from '../schema';
@@ -34,7 +38,7 @@ async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemTyp
     return Promise.reject('member not exist');
   }
 
-  const tmbPer = await getResourcePermission({
+  const Per = await getResourcePermission({
     resourceType: PerResourceTypeEnum.team,
     teamId: tmb.teamId._id,
     tmbId: tmb._id
@@ -54,7 +58,7 @@ async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemTyp
     defaultTeam: tmb.defaultTeam,
     lafAccount: tmb.teamId.lafAccount,
     permission: new TeamPermission({
-      per: tmbPer?.permission ?? tmb.teamId.defaultPermission,
+      per: Per ?? TeamDefaultPermissionVal,
       isOwner: tmb.role === TeamMemberRoleEnum.owner
     }),
     notificationAccount: tmb.teamId.notificationAccount
@@ -80,6 +84,7 @@ export async function getUserDefaultTeam({ userId }: { userId: string }) {
     defaultTeam: true
   });
 }
+
 export async function createDefaultTeam({
   userId,
   teamName = 'My Team',
@@ -100,7 +105,7 @@ export async function createDefaultTeam({
   });
 
   if (!tmb) {
-    // create
+    // create team
     const [{ _id: insertedId }] = await MongoTeam.create(
       [
         {
@@ -113,7 +118,8 @@ export async function createDefaultTeam({
       ],
       { session }
     );
-    await MongoTeamMember.create(
+    // create team member
+    const [tmb] = await MongoTeamMember.create(
       [
         {
           teamId: insertedId,
@@ -127,7 +133,19 @@ export async function createDefaultTeam({
       ],
       { session }
     );
-    console.log('create default team', userId);
+    // create default group
+    await MongoMemberGroupModel.create(
+      [
+        {
+          teamId: tmb.teamId,
+          name: DefaultGroupName,
+          avatar
+        }
+      ],
+      { session }
+    );
+    console.log('create default team and group', userId);
+    return tmb;
   } else {
     console.log('default team exist', userId);
     await MongoTeam.findByIdAndUpdate(tmb.teamId, {
@@ -145,11 +163,31 @@ export async function updateTeam({
   teamDomain,
   lafAccount
 }: UpdateTeamProps & { teamId: string }) {
-  await MongoTeam.findByIdAndUpdate(teamId, {
-    name,
-    avatar,
-    teamDomain,
-    lafAccount
+  return mongoSessionRun(async (session) => {
+    await MongoTeam.findByIdAndUpdate(
+      teamId,
+      {
+        name,
+        avatar,
+        teamDomain,
+        lafAccount
+      },
+      { session }
+    );
+
+    // update default group
+    if (avatar) {
+      await MongoMemberGroupModel.updateOne(
+        {
+          teamId: teamId,
+          name: DefaultGroupName
+        },
+        {
+          avatar
+        },
+        { session }
+      );
+    }
   });
 }
 

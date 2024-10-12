@@ -287,9 +287,9 @@ function List() {
                     <HStack>
                       {isPc && (
                         <HStack spacing={1} className="time">
-                          <MyIcon name={'history'} w={'0.85rem'} color={'myGray.400'} />
+                          <Avatar src={dataset.vectorModel.avatar} w={'0.85rem'} />
                           <Box color={'myGray.500'} fontSize={'mini'}>
-                            {formatTimeToChatTime(dataset.updateTime)}
+                            {dataset.vectorModel.name}
                           </Box>
                         </HStack>
                       )}
@@ -441,14 +441,14 @@ function List() {
             onGetCollaboratorList: () => getCollaboratorList(editPerDataset._id),
             permissionList: DatasetPermissionList,
             onUpdateCollaborators: ({
-              tmbIds,
+              members = [], // TODO: remove default value after group is ready
               permission
             }: {
-              tmbIds: string[];
+              members?: string[];
               permission: number;
             }) => {
               return postUpdateDatasetCollaborators({
-                tmbIds,
+                members,
                 permission,
                 datasetId: editPerDataset._id
               });

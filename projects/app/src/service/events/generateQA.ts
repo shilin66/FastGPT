@@ -15,6 +15,7 @@ import { addMinutes } from 'date-fns';
 import { countGptMessagesTokens } from '@fastgpt/service/common/string/tiktoken/index';
 import { pushDataListToTrainingQueueByCollectionId } from '@fastgpt/service/core/dataset/training/controller';
 import { loadRequestMessages } from '@fastgpt/service/core/chat/utils';
+import { llmCompletionsBodyFormat } from '@fastgpt/service/core/ai/utils';
 
 const reduceQueue = () => {
   global.qaQueueLen = global.qaQueueLen > 0 ? global.qaQueueLen - 1 : 0;
@@ -96,7 +97,7 @@ export async function generateQA(): Promise<any> {
   addLog.info(`[QA Queue] Start`);
 
   try {
-    const model = getLLMModel(data.model)?.model;
+    const modelData = getLLMModel(data.model);
     const prompt = `${data.prompt || Prompt_AgentQA.description}
 ${replaceVariable(Prompt_AgentQA.fixedText, { text })}`;
 
@@ -111,12 +112,17 @@ ${replaceVariable(Prompt_AgentQA.fixedText, { text })}`;
     const ai = getAIApi({
       timeout: 600000
     });
-    const chatResponse = await ai.chat.completions.create({
-      model,
-      temperature: 0.3,
-      messages: await loadRequestMessages({ messages, useVision: false }),
-      stream: false
-    });
+    const chatResponse = await ai.chat.completions.create(
+      llmCompletionsBodyFormat(
+        {
+          model: modelData.model,
+          temperature: 0.3,
+          messages: await loadRequestMessages({ messages, useVision: false }),
+          stream: false
+        },
+        modelData
+      )
+    );
     const answer = chatResponse.choices?.[0].message?.content || '';
 
     const qaArr = formatSplitText(answer, text); // 格式化后的QA对
@@ -150,7 +156,7 @@ ${replaceVariable(Prompt_AgentQA.fixedText, { text })}`;
         tmbId: data.tmbId,
         tokens: await countGptMessagesTokens(messages),
         billId: data.billId,
-        model
+        model: modelData.model
       });
     } else {
       addLog.info(`QA result 0:`, { answer });

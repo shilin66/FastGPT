@@ -16,12 +16,13 @@ import { chatValue2RuntimePrompt, runtimePrompt2ChatsValue } from '@fastgpt/glob
 import { DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
 import { authAppByTmbId } from '../../../../support/permission/app/auth';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
-import { getAppLatestVersion } from '../../../app/controller';
+import { getAppVersionById } from '../../../app/version/controller';
 
 type Props = ModuleDispatchProps<{
   [NodeInputKeyEnum.userChatInput]: string;
   [NodeInputKeyEnum.history]?: ChatItemType[] | number;
   [NodeInputKeyEnum.fileUrlList]?: string[];
+  [NodeInputKeyEnum.forbidStream]?: boolean;
 }>;
 type Response = DispatchNodeResultType<{
   [NodeOutputKeyEnum.answerText]: string;
@@ -33,35 +34,42 @@ export const dispatchRunAppNode = async (props: Props): Promise<Response> => {
     runningAppInfo,
     histories,
     query,
-    node: { pluginId },
+    node: { pluginId: appId, version },
     workflowStreamResponse,
     params,
     variables
   } = props;
 
-  const { userChatInput, history, ...childrenAppVariables } = params;
+  const { system_forbid_stream = false, userChatInput, history, ...childrenAppVariables } = params;
   if (!userChatInput) {
     return Promise.reject('Input is empty');
   }
-  if (!pluginId) {
+  if (!appId) {
     return Promise.reject('pluginId is empty');
   }
 
   // Auth the app by tmbId(Not the user, but the workflow user)
   const { app: appData } = await authAppByTmbId({
-    appId: pluginId,
+    appId: appId,
     tmbId: runningAppInfo.tmbId,
     per: ReadPermissionVal
   });
-  const { nodes, edges, chatConfig } = await getAppLatestVersion(pluginId);
-
-  // Auto line
-  workflowStreamResponse?.({
-    event: SseResponseEventEnum.answer,
-    data: textAdaptGptResponse({
-      text: '\n'
-    })
+  const { nodes, edges, chatConfig } = await getAppVersionById({
+    appId,
+    versionId: version,
+    app: appData
   });
+
+  const childStreamResponse = system_forbid_stream ? false : props.stream;
+  // Auto line
+  if (childStreamResponse) {
+    workflowStreamResponse?.({
+      event: SseResponseEventEnum.answer,
+      data: textAdaptGptResponse({
+        text: '\n'
+      })
+    });
+  }
 
   const chatHistories = getHistories(history, histories);
   const { files } = chatValue2RuntimePrompt(query);
@@ -77,6 +85,13 @@ export const dispatchRunAppNode = async (props: Props): Promise<Response> => {
 
   const { flowResponses, flowUsages, assistantResponses, runTimes } = await dispatchWorkFlow({
     ...props,
+    // Rewrite stream mode
+    ...(system_forbid_stream
+      ? {
+          stream: false,
+          workflowStreamResponse: undefined
+        }
+      : {}),
     runningAppInfo: {
       id: String(appData._id),
       teamId: String(appData.teamId),
@@ -106,20 +121,26 @@ export const dispatchRunAppNode = async (props: Props): Promise<Response> => {
 
   const { text } = chatValue2RuntimePrompt(assistantResponses);
 
+  const usagePoints = flowUsages.reduce((sum, item) => sum + (item.totalPoints || 0), 0);
+
   return {
+    assistantResponses: childStreamResponse ? assistantResponses : [],
     [DispatchNodeResponseKeyEnum.runTimes]: runTimes,
     [DispatchNodeResponseKeyEnum.nodeResponse]: {
       moduleLogo: appData.avatar,
+      totalPoints: usagePoints,
       query: userChatInput,
       textOutput: text,
-      totalPoints: flowResponses.reduce((sum, item) => sum + (item.totalPoints || 0), 0)
+      pluginDetail: appData.permission.hasWritePer ? flowResponses : undefined
     },
     [DispatchNodeResponseKeyEnum.nodeDispatchUsages]: [
       {
         moduleName: appData.name,
-        totalPoints: flowUsages.reduce((sum, item) => sum + (item.totalPoints || 0), 0)
+        totalPoints: usagePoints,
+        tokens: 0
       }
     ],
+    [DispatchNodeResponseKeyEnum.toolResponses]: text,
     answerText: text,
     history: completeMessages
   };
