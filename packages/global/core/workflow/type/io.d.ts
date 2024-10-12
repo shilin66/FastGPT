@@ -50,10 +50,12 @@ export type FlowNodeInputItemType = InputComponentPropsType & {
   description?: string; // field desc
   required?: boolean;
   toolDescription?: string; // If this field is not empty, it is entered as a tool
+  enum?: string;
 
   // render components params
   canEdit?: boolean; // dynamic inputs
   isPro?: boolean; // Pro version field
+  isToolOutput?: boolean;
 };
 
 export type FlowNodeOutputItemType = {

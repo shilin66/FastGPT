@@ -18,7 +18,7 @@ import {
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import MyInput from '@/components/MyInput';
 import { DatasetTagType } from '@fastgpt/global/core/dataset/type';
-import { ScrollListType, useScrollPagination } from '@fastgpt/web/hooks/useScrollPagination';
+import { ScrollListType, useVirtualScrollPagination } from '@fastgpt/web/hooks/useScrollPagination';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import PopoverConfirm from '@fastgpt/web/components/common/MyPopover/PopoverConfirm';
 import { DatasetCollectionsListItemType } from '@/global/core/dataset/type';
@@ -124,14 +124,15 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
 
   // Tags list
   const {
-    list,
+    scrollDataList: renderTags,
+    totalData: collectionTags,
     ScrollList,
     isLoading: isRequesting,
     fetchData,
     total: tagsTotal
-  } = useScrollPagination(getDatasetCollectionTags, {
+  } = useVirtualScrollPagination(getDatasetCollectionTags, {
     refreshDeps: [''],
-    debounceWait: 300,
+    // debounceWait: 300,
 
     itemHeight: 56,
     overscan: 10,
@@ -145,12 +146,12 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
 
   // Collections list
   const {
-    list: collectionsList,
+    scrollDataList: collectionsList,
     ScrollList: ScrollListCollections,
     isLoading: collectionsListLoading
-  } = useScrollPagination(getScrollCollectionList, {
+  } = useVirtualScrollPagination(getScrollCollectionList, {
     refreshDeps: [searchText],
-    debounceWait: 300,
+    // debounceWait: 300,
 
     itemHeight: 37,
     overscan: 10,
@@ -180,6 +181,7 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
       isOpen
       onClose={onClose}
       iconSrc="core/dataset/tag"
+      iconColor={'primary.600'}
       title={t('dataset:tag.manage')}
       w={'580px'}
       h={'600px'}
@@ -224,7 +226,7 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
                   ref={tagInputRef}
                   w={'200px'}
                   onBlur={() => {
-                    if (newTag && !list.map((item) => item.data.tag).includes(newTag)) {
+                    if (newTag && !collectionTags.map((item) => item.tag).includes(newTag)) {
                       onCreateCollectionTag(newTag);
                     }
                     setNewTag(undefined);
@@ -239,7 +241,7 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
             fontSize={'sm'}
             EmptyChildren={<EmptyTip text={t('dataset:dataset.no_tags')} />}
           >
-            {list.map((listItem) => {
+            {renderTags.map((listItem) => {
               const item = listItem.data;
               const tagUsage = tagUsages?.find((tagUsage) => tagUsage.tagId === item._id);
               const collections = tagUsage?.collections || [];
@@ -295,7 +297,9 @@ const TagManageModal = ({ onClose }: { onClose: () => void }) => {
                           onBlur={() => {
                             if (
                               currentEditTagContent &&
-                              !list.map((item) => item.data.tag).includes(currentEditTagContent)
+                              !collectionTags
+                                .map((item) => item.tag)
+                                .includes(currentEditTagContent)
                             ) {
                               onUpdateCollectionTag({
                                 tag: currentEditTagContent,

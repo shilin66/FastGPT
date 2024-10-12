@@ -118,6 +118,7 @@ export enum FlowNodeTypeEnum {
   queryExtension = 'cfr',
   tools = 'tools',
   stopTool = 'stopTool',
+  toolParams = 'toolParams',
   lafModule = 'lafModule',
   ifElseNode = 'ifElseNode',
   variableUpdate = 'variableUpdate',
@@ -125,7 +126,12 @@ export enum FlowNodeTypeEnum {
   textEditor = 'textEditor',
   customFeedback = 'customFeedback',
   readFiles = 'readFiles',
-  userSelect = 'userSelect'
+  userSelect = 'userSelect',
+  loop = 'loop',
+  loopStart = 'loopStart',
+  loopEnd = 'loopEnd',
+  formInput = 'formInput',
+  comment = 'comment'
 }
 
 // node IO value type
@@ -161,6 +167,10 @@ export const FlowValueTypeMap = {
   [WorkflowIOValueTypeEnum.arrayObject]: {
     label: 'array<object>',
     value: WorkflowIOValueTypeEnum.arrayObject
+  },
+  [WorkflowIOValueTypeEnum.arrayAny]: {
+    label: 'array',
+    value: WorkflowIOValueTypeEnum.arrayAny
   },
   [WorkflowIOValueTypeEnum.any]: {
     label: 'any',

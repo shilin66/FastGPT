@@ -2,7 +2,7 @@ import type { ModuleDispatchProps } from '@fastgpt/global/core/workflow/runtime/
 import { dispatchWorkFlow } from '../index';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
-import { getPluginRuntimeById } from '../../../app/plugin/controller';
+import { getChildAppRuntimeById } from '../../../app/plugin/controller';
 import {
   getWorkflowEntryNodeIds,
   initWorkflowEdgeStatus,
@@ -13,24 +13,30 @@ import { authPluginByTmbId } from '../../../../support/permission/app/auth';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { computedPluginUsage } from '../../../app/plugin/utils';
 import { filterSystemVariables } from '../utils';
-import { getPluginRunUserQuery } from '../../utils';
+import { chatValue2RuntimePrompt } from '@fastgpt/global/core/chat/adapt';
+import { getPluginRunUserQuery } from '@fastgpt/global/core/workflow/utils';
+import { getPluginInputsFromStoreNodes } from '@fastgpt/global/core/app/plugin/utils';
+import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 
 type RunPluginProps = ModuleDispatchProps<{
+  [NodeInputKeyEnum.forbidStream]?: boolean;
   [key: string]: any;
 }>;
 type RunPluginResponse = DispatchNodeResultType<{}>;
 
 export const dispatchRunPlugin = async (props: RunPluginProps): Promise<RunPluginResponse> => {
   const {
-    node: { pluginId },
+    node: { pluginId, version },
     runningAppInfo,
-    mode,
-    params: data // Plugin input
+    query,
+    params: { system_forbid_stream = false, ...data } // Plugin input
   } = props;
 
   if (!pluginId) {
     return Promise.reject('pluginId can not find');
   }
+
+  const { files } = chatValue2RuntimePrompt(query);
 
   // auth plugin
   const pluginData = await authPluginByTmbId({
@@ -39,7 +45,15 @@ export const dispatchRunPlugin = async (props: RunPluginProps): Promise<RunPlugi
     per: ReadPermissionVal
   });
 
-  const plugin = await getPluginRuntimeById(pluginId);
+  const plugin = await getChildAppRuntimeById(pluginId, version);
+
+  const outputFilterMap =
+    plugin.nodes
+      .find((node) => node.flowNodeType === FlowNodeTypeEnum.pluginOutput)
+      ?.inputs.reduce<Record<string, boolean>>((acc, cur) => {
+        acc[cur.key] = cur.isToolOutput === false ? false : true;
+        return acc;
+      }, {}) ?? {};
 
   const runtimeNodes = storeNodes2RuntimeNodes(
     plugin.nodes,
@@ -68,13 +82,25 @@ export const dispatchRunPlugin = async (props: RunPluginProps): Promise<RunPlugi
 
   const { flowResponses, flowUsages, assistantResponses, runTimes } = await dispatchWorkFlow({
     ...props,
+    // Rewrite stream mode
+    ...(system_forbid_stream
+      ? {
+          stream: false,
+          workflowStreamResponse: undefined
+        }
+      : {}),
     runningAppInfo: {
       id: String(plugin.id),
-      teamId: plugin.teamId || '',
-      tmbId: pluginData?.tmbId || ''
+      // 如果是系统插件，则使用当前团队的 teamId 和 tmbId
+      teamId: plugin.teamId || runningAppInfo.teamId,
+      tmbId: pluginData?.tmbId || runningAppInfo.tmbId
     },
     variables: runtimeVariables,
-    query: getPluginRunUserQuery(plugin.nodes, runtimeVariables).value,
+    query: getPluginRunUserQuery({
+      pluginInputs: getPluginInputsFromStoreNodes(plugin.nodes),
+      variables: runtimeVariables,
+      files
+    }).value,
     chatConfig: {},
     runtimeNodes,
     runtimeEdges: initWorkflowEdgeStatus(plugin.edges)
@@ -86,24 +112,24 @@ export const dispatchRunPlugin = async (props: RunPluginProps): Promise<RunPlugi
     output.moduleLogo = plugin.avatar;
   }
 
-  const isError = !!output?.pluginOutput?.error;
-  const usagePoints = isError ? 0 : await computedPluginUsage(plugin, flowUsages);
+  const usagePoints = await computedPluginUsage(plugin, flowUsages);
+  const childStreamResponse = system_forbid_stream ? false : props.stream;
 
   return {
-    assistantResponses,
+    // 嵌套运行时，如果 childApp stream=false，实际上不会有任何内容输出给用户，所以不需要存储
+    assistantResponses: childStreamResponse ? assistantResponses : [],
     // responseData, // debug
     [DispatchNodeResponseKeyEnum.runTimes]: runTimes,
     [DispatchNodeResponseKeyEnum.nodeResponse]: {
       moduleLogo: plugin.avatar,
       totalPoints: usagePoints,
       pluginOutput: output?.pluginOutput,
-      pluginDetail:
-        mode === 'test' && plugin.teamId === runningAppInfo.teamId
-          ? flowResponses.filter((item) => {
-              const filterArr = [FlowNodeTypeEnum.pluginOutput];
-              return !filterArr.includes(item.moduleType as any);
-            })
-          : undefined
+      pluginDetail: pluginData?.permission?.hasWritePer // Not system plugin
+        ? flowResponses.filter((item) => {
+            const filterArr = [FlowNodeTypeEnum.pluginOutput];
+            return !filterArr.includes(item.moduleType as any);
+          })
+        : undefined
     },
     [DispatchNodeResponseKeyEnum.nodeDispatchUsages]: [
       {
@@ -112,7 +138,14 @@ export const dispatchRunPlugin = async (props: RunPluginProps): Promise<RunPlugi
         tokens: 0
       }
     ],
-    [DispatchNodeResponseKeyEnum.toolResponses]: output?.pluginOutput ? output.pluginOutput : {},
+    [DispatchNodeResponseKeyEnum.toolResponses]: output?.pluginOutput
+      ? Object.keys(output.pluginOutput)
+          .filter((key) => outputFilterMap[key])
+          .reduce<Record<string, any>>((acc, key) => {
+            acc[key] = output.pluginOutput![key];
+            return acc;
+          }, {})
+      : null,
     ...(output ? output.pluginOutput : {})
   };
 };

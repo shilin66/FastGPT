@@ -13,6 +13,7 @@ const MultipleRowSelect = ({
   emptyTip,
   maxH = 300,
   onSelect,
+  popDirection = 'bottom',
   styles
 }: MultipleSelectProps) => {
   const { t } = useTranslation();
@@ -35,6 +36,7 @@ const MultipleRowSelect = ({
       return (
         <>
           <Box
+            className="nowheel"
             flex={'1 0 auto'}
             // width={0}
             px={2}
@@ -123,7 +125,13 @@ const MultipleRowSelect = ({
       {isOpen && (
         <Box
           position={'absolute'}
-          top={'45px'}
+          {...(popDirection === 'top'
+            ? {
+                bottom: '45px'
+              }
+            : {
+                top: '45px'
+              })}
           py={2}
           bg={'white'}
           border={'1px solid #fff'}

@@ -27,26 +27,33 @@ import { VariableUpdateNode } from './system/variableUpdate';
 import { CodeNode } from './system/sandbox';
 import { TextEditorNode } from './system/textEditor';
 import { CustomFeedbackNode } from './system/customFeedback';
-import { ReadFilesNodes } from './system/readFiles';
-import { UserSelectNode } from './system/userSelect/index';
+import { ReadFilesNode } from './system/readFiles';
+import { UserSelectNode } from './system/interactive/userSelect';
+import { LoopNode } from './system/loop/loop';
+import { LoopStartNode } from './system/loop/loopStart';
+import { LoopEndNode } from './system/loop/loopEnd';
+import { FormInputNode } from './system/interactive/formInput';
+import { ToolParamsNode } from './system/toolParams';
 
 const systemNodes: FlowNodeTemplateType[] = [
   AiChatModule,
   TextEditorNode,
   AssignedAnswerModule,
   DatasetSearchModule,
-  DatasetConcatModule,
-  ToolModule,
-  StopToolNode,
   ClassifyQuestionModule,
   ContextExtractModule,
-  ReadFilesNodes,
+  DatasetConcatModule,
+  ToolModule,
+  ToolParamsNode,
+  StopToolNode,
+  ReadFilesNode,
   HttpNode468,
   AiQueryExtension,
   LafModule,
   IfElseNode,
   VariableUpdateNode,
-  CodeNode
+  CodeNode,
+  LoopNode
 ];
 /* app flow module templates */
 export const appSystemModuleTemplates: FlowNodeTemplateType[] = [
@@ -54,7 +61,8 @@ export const appSystemModuleTemplates: FlowNodeTemplateType[] = [
   WorkflowStart,
   ...systemNodes,
   CustomFeedbackNode,
-  UserSelectNode
+  UserSelectNode,
+  FormInputNode
 ];
 /* plugin flow module templates */
 export const pluginSystemModuleTemplates: FlowNodeTemplateType[] = [
@@ -74,5 +82,7 @@ export const moduleTemplatesFlat: FlowNodeTemplateType[] = [
   EmptyNode,
   RunPluginModule,
   RunAppNode,
-  RunAppModule
+  RunAppModule,
+  LoopStartNode,
+  LoopEndNode
 ];

@@ -1,5 +1,10 @@
 import { GET, POST, DELETE, PUT } from '@/web/common/api/request';
-import type { ChatHistoryItemType, ChatHistoryItemResType } from '@fastgpt/global/core/chat/type.d';
+import type {
+  ChatHistoryItemType,
+  ChatHistoryItemResType,
+  ChatSiteItemType,
+  ChatItemType
+} from '@fastgpt/global/core/chat/type.d';
 import { getResDataQuery } from '@/pages/api/core/chat/getResData';
 import type {
   CloseCustomFeedbackParams,
@@ -20,6 +25,11 @@ import type {
 import { UpdateChatFeedbackProps } from '@fastgpt/global/core/chat/api';
 import { AuthTeamTagTokenProps } from '@fastgpt/global/support/user/team/tag';
 import { AppListItemType } from '@fastgpt/global/core/app/type';
+import { PaginationProps, PaginationResponse } from '@fastgpt/web/common/fetch/type';
+import type {
+  getPaginationRecordsBody,
+  getPaginationRecordsResponse
+} from '@/pages/api/core/chat/getPaginationRecords';
 
 /**
  * 获取初始化聊天内容
@@ -30,16 +40,21 @@ export const getInitOutLinkChatInfo = (data: InitOutLinkChatProps) =>
   GET<InitChatResponse>(`/core/chat/outLink/init`, data);
 export const getTeamChatInfo = (data: InitTeamChatProps) =>
   GET<InitChatResponse>(`/core/chat/team/init`, data);
+
 /**
  * get current window history(appid or shareId)
  */
-export const getChatHistories = (data: GetHistoriesProps) =>
-  POST<ChatHistoryItemType[]>('/core/chat/getHistories', data);
+export const getChatHistories = (data: PaginationProps<GetHistoriesProps>) =>
+  POST<PaginationResponse<ChatHistoryItemType>>('/core/chat/getHistories', data);
 /**
  * get detail responseData by dataId appId chatId
  */
 export const getChatResData = (data: getResDataQuery) =>
   GET<ChatHistoryItemResType[]>(`/core/chat/getResData`, data);
+
+export const getChatRecords = (data: getPaginationRecordsBody) =>
+  POST<getPaginationRecordsResponse>('core/chat/getPaginationRecords', data);
+
 /**
  * delete one history
  */

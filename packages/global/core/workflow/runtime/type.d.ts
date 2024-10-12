@@ -20,6 +20,7 @@ import { RuntimeEdgeItemType } from './edge';
 import { ReadFileNodeResponse } from '../template/system/readFiles/type';
 import { UserSelectOptionType } from '../template/system/userSelect/type';
 import { WorkflowResponseType } from '../../../../service/core/workflow/dispatch/type';
+import { AiChatQuoteRoleType } from '../template/system/aiChat/type';
 
 /* workflow props */
 export type ChatDispatchProps = {
@@ -78,6 +79,7 @@ export type RuntimeNodeItemType = {
   outputs: FlowNodeOutputItemType[];
 
   pluginId?: string; // workflow id / plugin id
+  version: string;
 };
 
 export type PluginRuntimeType = {
@@ -172,6 +174,21 @@ export type DispatchNodeResponseType = {
 
   // update var
   updateVarResult?: any[];
+
+  // loop
+  loopResult?: any[];
+  loopInput?: any[];
+  loopDetail?: ChatHistoryItemResType[];
+  // loop start
+  loopInputValue?: any;
+  // loop end
+  loopOutputValue?: any;
+
+  // form input
+  formInputResult?: string;
+
+  // tool params
+  toolParamsResult?: Record<string, any>;
 };
 
 export type DispatchNodeResultType<T = {}> = {
@@ -183,6 +200,7 @@ export type DispatchNodeResultType<T = {}> = {
   [DispatchNodeResponseKeyEnum.assistantResponses]?: AIChatItemValueItemType[]; // Assistant response(Store to db)
   [DispatchNodeResponseKeyEnum.rewriteHistories]?: ChatItemType[];
   [DispatchNodeResponseKeyEnum.runTimes]?: number;
+  [DispatchNodeResponseKeyEnum.newVariables]?: Record<string, any>;
 } & T;
 
 /* Single node props */
@@ -192,6 +210,7 @@ export type AIChatNodeProps = {
   [NodeInputKeyEnum.aiChatTemperature]: number;
   [NodeInputKeyEnum.aiChatMaxToken]: number;
   [NodeInputKeyEnum.aiChatIsResponseText]: boolean;
+  [NodeInputKeyEnum.aiChatQuoteRole]?: AiChatQuoteRoleType;
   [NodeInputKeyEnum.aiChatQuoteTemplate]?: string;
   [NodeInputKeyEnum.aiChatQuotePrompt]?: string;
   [NodeInputKeyEnum.aiChatVision]?: boolean;

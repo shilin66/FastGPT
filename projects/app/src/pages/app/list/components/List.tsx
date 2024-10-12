@@ -365,7 +365,7 @@ const ListItem = () => {
                                             undefined,
                                             app.type === AppTypeEnum.folder
                                               ? t('app:confirm_delete_folder_tip')
-                                              : t('app:confirm_del_app_tip')
+                                              : t('app:confirm_del_app_tip', { name: app.name })
                                           )()
                                       }
                                     ]
@@ -424,14 +424,14 @@ const ListItem = () => {
             onGetCollaboratorList: () => getCollaboratorList(editPerApp._id),
             permissionList: AppPermissionList,
             onUpdateCollaborators: ({
-              tmbIds,
+              members = [], // TODO: remove the default value after group is ready
               permission
             }: {
-              tmbIds: string[];
+              members?: string[];
               permission: number;
             }) => {
               return postUpdateAppCollaborators({
-                tmbIds,
+                members,
                 permission,
                 appId: editPerApp._id
               });

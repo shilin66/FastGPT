@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import NextHead from '@/components/common/NextHead';
-import { delChatRecordById, getChatHistories, getTeamChatInfo } from '@/web/core/chat/api';
+import { delChatRecordById, getTeamChatInfo } from '@/web/core/chat/api';
 import { useRouter } from 'next/router';
 import { Box, Flex, Drawer, DrawerOverlay, DrawerContent, useTheme } from '@chakra-ui/react';
 import { useToast } from '@fastgpt/web/hooks/useToast';
@@ -11,15 +11,10 @@ import ChatHistorySlider from './components/ChatHistorySlider';
 import ChatHeader from './components/ChatHeader';
 import { serviceSideProps } from '@/web/common/utils/i18n';
 import { useTranslation } from 'next-i18next';
-import { checkChatSupportSelectFileByChatModels } from '@/web/core/chat/utils';
-import { customAlphabet } from 'nanoid';
-const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz1234567890', 12);
 import ChatBox from '@/components/core/chat/ChatContainer/ChatBox';
 import type { StartChatFnProps } from '@/components/core/chat/ChatContainer/type';
 import { streamFetch } from '@/web/common/api/fetch';
 import { getChatTitleFromChatMessage } from '@fastgpt/global/core/chat/utils';
-import { ChatStatusEnum } from '@fastgpt/global/core/chat/constants';
-import { getErrText } from '@fastgpt/global/common/error/utils';
 import SliderApps from './components/SliderApps';
 import { GPTMessages2Chats } from '@fastgpt/global/core/chat/adapt';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
@@ -27,7 +22,7 @@ import ChatContextProvider, { ChatContext } from '@/web/core/chat/context/chatCo
 import { AppListItemType } from '@fastgpt/global/core/app/type';
 import { useContextSelector } from 'use-context-selector';
 import { InitChatResponse } from '@/global/core/chat/api';
-import { defaultChatData } from '@/global/core/chat/constants';
+import { defaultChatData, GetChatTypeEnum } from '@/global/core/chat/constants';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { useChat } from '@/components/core/chat/ChatContainer/useChat';
@@ -58,7 +53,7 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
   const [chatData, setChatData] = useState<InitChatResponse>(defaultChatData);
 
   const {
-    loadHistories,
+    onUpdateHistoryTitle,
     onUpdateHistory,
     onClearHistories,
     onDelHistory,
@@ -68,15 +63,26 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
     onChangeChatId
   } = useContextSelector(ChatContext, (v) => v);
 
+  const params = useMemo(() => {
+    return {
+      appId,
+      chatId,
+      teamId,
+      teamToken,
+      type: GetChatTypeEnum.team
+    };
+  }, [appId, chatId, teamId, teamToken]);
   const {
     ChatBoxRef,
-    chatRecords,
-    setChatRecords,
     variablesForm,
     pluginRunTab,
     setPluginRunTab,
-    resetChatRecords
-  } = useChat();
+    resetVariables,
+    chatRecords,
+    ScrollData,
+    setChatRecords,
+    totalRecordsCount
+  } = useChat(params);
 
   const startChat = useCallback(
     async ({
@@ -114,7 +120,7 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
       if (completionChatId !== chatId) {
         onChangeChatId(completionChatId, true);
       }
-      loadHistories();
+      onUpdateHistoryTitle({ chatId: completionChatId, newTitle });
 
       // update chat window
       setChatData((state) => ({
@@ -125,35 +131,28 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
       return { responseText, responseData, isNewChat: forbidLoadChat.current };
     },
     [
-      chatData.app.type,
       chatId,
       customVariables,
       appId,
       teamId,
       teamToken,
+      chatData.app.type,
+      onUpdateHistoryTitle,
       forbidLoadChat,
-      onChangeChatId,
-      loadHistories
+      onChangeChatId
     ]
   );
 
   // get chat app info
-  const { loading } = useRequest2(
+  const { loading: isLoading } = useRequest2(
     async () => {
       if (!appId || forbidLoadChat.current) return;
 
       const res = await getTeamChatInfo({ teamId, appId, chatId, teamToken });
       setChatData(res);
 
-      const history = res.history.map((item) => ({
-        ...item,
-        dataId: item.dataId || nanoid(),
-        status: ChatStatusEnum.finish
-      }));
-
       // reset chat records
-      resetChatRecords({
-        records: history,
+      resetVariables({
         variables: res.variables
       });
     },
@@ -161,10 +160,7 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
       manual: false,
       refreshDeps: [teamId, teamToken, appId, chatId],
       onError(e: any) {
-        toast({
-          title: getErrText(e, t('common:core.chat.Failed to initialize chat')),
-          status: 'error'
-        });
+        console.log(e);
         if (chatId) {
           onChangeChatId('');
         }
@@ -174,6 +170,63 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
       }
     }
   );
+
+  const RenderHistoryList = useMemo(() => {
+    const Children = (
+      <ChatHistorySlider
+        appId={appId}
+        appName={chatData.app.name}
+        appAvatar={chatData.app.avatar}
+        confirmClearText={t('common:core.chat.Confirm to clear history')}
+        onDelHistory={(e) => onDelHistory({ ...e, appId, teamId, teamToken })}
+        onClearHistory={() => {
+          onClearHistories({ appId, teamId, teamToken });
+        }}
+        onSetHistoryTop={(e) => {
+          onUpdateHistory({ ...e, teamId, teamToken, appId });
+        }}
+        onSetCustomTitle={async (e) => {
+          onUpdateHistory({
+            appId,
+            chatId: e.chatId,
+            customTitle: e.title,
+            teamId,
+            teamToken
+          });
+        }}
+      />
+    );
+
+    return isPc || !appId ? (
+      <SideBar>{Children}</SideBar>
+    ) : (
+      <Drawer
+        isOpen={isOpenSlider}
+        placement="left"
+        autoFocus={false}
+        size={'xs'}
+        onClose={onCloseSlider}
+      >
+        <DrawerOverlay backgroundColor={'rgba(255,255,255,0.5)'} />
+        <DrawerContent maxWidth={'75vw'}>{Children}</DrawerContent>
+      </Drawer>
+    );
+  }, [
+    appId,
+    chatData.app.avatar,
+    chatData.app.name,
+    isOpenSlider,
+    isPc,
+    onClearHistories,
+    onCloseSlider,
+    onDelHistory,
+    onUpdateHistory,
+    t,
+    teamId,
+    teamToken
+  ]);
+
+  const loading = isLoading;
 
   return (
     <Flex h={'100%'}>
@@ -187,45 +240,7 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
 
       <PageContainer isLoading={loading} flex={'1 0 0'} w={0} p={[0, '16px']} position={'relative'}>
         <Flex h={'100%'} flexDirection={['column', 'row']} bg={'white'}>
-          {((children: React.ReactNode) => {
-            return isPc || !appId ? (
-              <SideBar>{children}</SideBar>
-            ) : (
-              <Drawer
-                isOpen={isOpenSlider}
-                placement="left"
-                autoFocus={false}
-                size={'xs'}
-                onClose={onCloseSlider}
-              >
-                <DrawerOverlay backgroundColor={'rgba(255,255,255,0.5)'} />
-                <DrawerContent maxWidth={'75vw'}>{children}</DrawerContent>
-              </Drawer>
-            );
-          })(
-            <ChatHistorySlider
-              appId={appId}
-              appName={chatData.app.name}
-              appAvatar={chatData.app.avatar}
-              confirmClearText={t('common:core.chat.Confirm to clear history')}
-              onDelHistory={(e) => onDelHistory({ ...e, appId, teamId, teamToken })}
-              onClearHistory={() => {
-                onClearHistories({ appId, teamId, teamToken });
-              }}
-              onSetHistoryTop={(e) => {
-                onUpdateHistory({ ...e, teamId, teamToken, appId });
-              }}
-              onSetCustomTitle={async (e) => {
-                onUpdateHistory({
-                  appId,
-                  chatId: e.chatId,
-                  customTitle: e.title,
-                  teamId,
-                  teamToken
-                });
-              }}
-            />
-          )}
+          {RenderHistoryList}
           {/* chat container */}
           <Flex
             position={'relative'}
@@ -235,7 +250,13 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
             flexDirection={'column'}
           >
             {/* header */}
-            <ChatHeader apps={myApps} chatData={chatData} history={chatRecords} showHistory />
+            <ChatHeader
+              totalRecordsCount={totalRecordsCount}
+              apps={myApps}
+              chatData={chatData}
+              history={chatRecords}
+              showHistory
+            />
             {/* chat box */}
             <Box flex={1}>
               {chatData.app.type === AppTypeEnum.plugin ? (
@@ -253,6 +274,7 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
               ) : (
                 <ChatBox
                   ref={ChatBoxRef}
+                  ScrollData={ScrollData}
                   chatHistories={chatRecords}
                   setChatHistories={setChatRecords}
                   variablesForm={variablesForm}
@@ -302,19 +324,6 @@ const Render = (props: Props) => {
     }
   );
 
-  const { data: histories = [], runAsync: loadHistories } = useRequest2(
-    async () => {
-      if (teamId && appId && teamToken) {
-        return getChatHistories({ teamId, appId, teamToken: teamToken });
-      }
-      return [];
-    },
-    {
-      manual: false,
-      refreshDeps: [appId, teamId, teamToken]
-    }
-  );
-
   // 初始化聊天框
   useEffect(() => {
     (async () => {
@@ -330,8 +339,12 @@ const Render = (props: Props) => {
     })();
   }, [appId, loadMyApps, myApps, router, t, toast]);
 
+  const contextParams = useMemo(() => {
+    return { teamId, appId, teamToken };
+  }, [teamId, appId, teamToken]);
+
   return (
-    <ChatContextProvider histories={histories} loadHistories={loadHistories}>
+    <ChatContextProvider params={contextParams}>
       <Chat {...props} myApps={myApps} />
     </ChatContextProvider>
   );

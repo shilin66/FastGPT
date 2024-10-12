@@ -8,7 +8,6 @@ import Markdown from '@/components/Markdown';
 import { QuoteList } from '../ChatContainer/ChatBox/components/QuoteModal';
 import { DatasetSearchModeMap } from '@fastgpt/global/core/dataset/constants';
 import { formatNumber } from '@fastgpt/global/common/math/tools';
-import { useI18n } from '@/web/context/I18n';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
@@ -337,6 +336,31 @@ export const WholeResponseContent = ({
         label={t('common:core.chat.response.update_var_result')}
         value={activeModule?.updateVarResult}
       />
+
+      {/* loop */}
+      <Row label={t('common:core.chat.response.loop_input')} value={activeModule?.loopInput} />
+      <Row label={t('common:core.chat.response.loop_output')} value={activeModule?.loopResult} />
+
+      {/* loopStart */}
+      <Row
+        label={t('common:core.chat.response.loop_input_element')}
+        value={activeModule?.loopInputValue}
+      />
+
+      {/* loopEnd */}
+      <Row
+        label={t('common:core.chat.response.loop_output_element')}
+        value={activeModule?.loopOutputValue}
+      />
+
+      {/* form input */}
+      <Row label={t('workflow:form_input_result')} value={activeModule?.formInputResult} />
+
+      {/* tool params */}
+      <Row
+        label={t('workflow:tool_params.tool_params_result')}
+        value={activeModule?.toolParamsResult}
+      />
     </Box>
   ) : null;
 };
@@ -525,6 +549,9 @@ export const ResponseBox = React.memo(function ResponseBox({
             if (Array.isArray(item.pluginDetail)) {
               helper(item.pluginDetail);
             }
+            if (Array.isArray(item.loopDetail)) {
+              helper(item.loopDetail);
+            }
           }
         });
       }
@@ -552,9 +579,10 @@ export const ResponseBox = React.memo(function ResponseBox({
     function pretreatmentResponse(res: ChatHistoryItemResType[]): sideTabItemType[] {
       return res.map((item) => {
         let children: sideTabItemType[] = [];
-        if (!!(item?.toolDetail || item?.pluginDetail)) {
+        if (!!(item?.toolDetail || item?.pluginDetail || item?.loopDetail)) {
           if (item?.toolDetail) children.push(...pretreatmentResponse(item?.toolDetail));
           if (item?.pluginDetail) children.push(...pretreatmentResponse(item?.pluginDetail));
+          if (item?.loopDetail) children.push(...pretreatmentResponse(item?.loopDetail));
         }
 
         return {
@@ -611,7 +639,7 @@ export const ResponseBox = React.memo(function ResponseBox({
     <>
       {isPc && !useMobile ? (
         <Flex overflow={'hidden'} height={'100%'}>
-          <Box flex={'2 0 0'} borderRight={'sm'} p={3}>
+          <Box flex={'2 0 0'} w={0} borderRight={'sm'} p={3}>
             <Box overflow={'auto'} height={'100%'}>
               <WholeResponseSideTab
                 response={sliderResponseList}
@@ -620,7 +648,7 @@ export const ResponseBox = React.memo(function ResponseBox({
               />
             </Box>
           </Box>
-          <Box flex={'5 0 0'} height={'100%'}>
+          <Box flex={'5 0 0'} w={0} height={'100%'}>
             <WholeResponseContent
               activeModule={activeModule}
               hideTabs={hideTabs}

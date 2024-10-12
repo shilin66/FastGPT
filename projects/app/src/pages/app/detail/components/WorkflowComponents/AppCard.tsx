@@ -6,7 +6,6 @@ import { useTranslation } from 'next-i18next';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import MyMenu from '@fastgpt/web/components/common/MyMenu';
 import MyIcon from '@fastgpt/web/components/common/Icon';
-import { useI18n } from '@/web/context/I18n';
 import { WorkflowContext } from './context';
 import { filterSensitiveNodesData } from '@/web/core/workflow/utils';
 import dynamic from 'next/dynamic';
@@ -28,15 +27,11 @@ const AppCard = ({
   isPublished: boolean;
 }) => {
   const { t } = useTranslation();
-  const { appT } = useI18n();
   const { feConfigs } = useSystemStore();
 
   const { appDetail, onOpenInfoEdit, onOpenTeamTagModal, onDelApp, currentTab } =
     useContextSelector(AppContext, (v) => v);
-  const { historiesDefaultData, onSaveWorkflow, isSaving } = useContextSelector(
-    WorkflowContext,
-    (v) => v
-  );
+  const { showHistoryModal } = useContextSelector(WorkflowContext, (v) => v);
 
   const { isOpen: isOpenImport, onOpen: onOpenImport, onClose: onCloseImport } = useDisclosure();
 
@@ -51,7 +46,7 @@ const AppCard = ({
               children: [
                 {
                   icon: 'edit',
-                  label: appT('edit_info'),
+                  label: t('app:edit_info'),
                   onClick: onOpenInfoEdit
                 },
                 {
@@ -61,12 +56,12 @@ const AppCard = ({
                 }
               ]
             },
-            ...(!historiesDefaultData && currentTab === TabEnum.appEdit
+            ...(!showHistoryModal && currentTab === TabEnum.appEdit
               ? [
                   {
                     children: [
                       {
-                        label: appT('import_configs'),
+                        label: t('app:import_configs'),
                         icon: 'common/importLight',
                         onClick: onOpenImport
                       },
@@ -120,10 +115,9 @@ const AppCard = ({
       appDetail.name,
       appDetail.permission.hasWritePer,
       appDetail.permission.isOwner,
-      appT,
       currentTab,
       feConfigs?.show_team_chat,
-      historiesDefaultData,
+      showHistoryModal,
       onDelApp,
       onOpenImport,
       onOpenInfoEdit,

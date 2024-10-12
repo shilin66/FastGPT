@@ -1,13 +1,14 @@
 import { SearchDataResponseItemType } from '@fastgpt/global/core/dataset/type';
 import { countPromptTokens } from '../../common/string/tiktoken/index';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
-import { ChatItemValueTypeEnum, ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
+import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 import {
   getPluginInputsFromStoreNodes,
   getPluginRunContent
 } from '@fastgpt/global/core/app/plugin/utils';
 import { StoreNodeItemType } from '@fastgpt/global/core/workflow/type/node';
-import { UserChatItemType } from '@fastgpt/global/core/chat/type';
+import { RuntimeUserPromptType, UserChatItemType } from '@fastgpt/global/core/chat/type';
+import { runtimePrompt2ChatsValue } from '@fastgpt/global/core/chat/adapt';
 
 /* filter search result */
 export const filterSearchResultsByMaxChars = async (
@@ -30,26 +31,4 @@ export const filterSearchResultsByMaxChars = async (
   }
 
   return results.length === 0 ? list.slice(0, 1) : results;
-};
-
-/* Get plugin runtime input user query */
-export const getPluginRunUserQuery = (
-  nodes: StoreNodeItemType[],
-  variables: Record<string, any>
-): UserChatItemType & { dataId: string } => {
-  return {
-    dataId: getNanoid(24),
-    obj: ChatRoleEnum.Human,
-    value: [
-      {
-        type: ChatItemValueTypeEnum.text,
-        text: {
-          content: getPluginRunContent({
-            pluginInputs: getPluginInputsFromStoreNodes(nodes),
-            variables
-          })
-        }
-      }
-    ]
-  };
 };

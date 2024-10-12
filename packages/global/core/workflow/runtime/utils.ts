@@ -54,6 +54,11 @@ export const getLastInteractiveValue = (histories: ChatItemType[]) => {
     ) {
       return lastValue.interactive;
     }
+
+    // Check is user input
+    if (lastValue.interactive.type === 'userInput' && !lastValue.interactive.params.submitted) {
+      return lastValue.interactive;
+    }
   }
 
   return null;
@@ -119,7 +124,8 @@ export const storeNodes2RuntimeNodes = (
         isEntry: entryNodeIds.includes(node.nodeId),
         inputs: node.inputs,
         outputs: node.outputs,
-        pluginId: node.pluginId
+        pluginId: node.pluginId,
+        version: node.version
       };
     }) || []
   );
@@ -228,7 +234,8 @@ export const getReferenceVariableValue = ({
   nodes: RuntimeNodeItemType[];
   variables: Record<string, any>;
 }) => {
-  if (!isReferenceValue(value)) {
+  const nodeIds = nodes.map((node) => node.nodeId);
+  if (!isReferenceValue(value, nodeIds)) {
     return value;
   }
   const sourceNodeId = value[0];

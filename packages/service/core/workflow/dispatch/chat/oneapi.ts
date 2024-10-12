@@ -19,14 +19,15 @@ import { countMessagesTokens } from '../../../../common/string/tiktoken/index';
 import {
   chats2GPTMessages,
   chatValue2RuntimePrompt,
-  getSystemPrompt,
+  getSystemPrompt_ChatItemType,
   GPTMessages2Chats,
   runtimePrompt2ChatsValue
 } from '@fastgpt/global/core/chat/adapt';
 import {
   Prompt_DocumentQuote,
-  Prompt_QuotePromptList,
-  Prompt_QuoteTemplateList
+  Prompt_userQuotePromptList,
+  Prompt_QuoteTemplateList,
+  Prompt_systemQuotePromptList
 } from '@fastgpt/global/core/ai/prompt/AIChat';
 import type { AIChatNodeProps } from '@fastgpt/global/core/workflow/runtime/type.d';
 import { replaceVariable } from '@fastgpt/global/common/string/tools';
@@ -40,8 +41,10 @@ import { getHistories } from '../utils';
 import { filterSearchResultsByMaxChars } from '../../utils';
 import { getHistoryPreview } from '@fastgpt/global/core/chat/utils';
 import { addLog } from '../../../../common/system/log';
-import { computedMaxToken, computedTemperature } from '../../../ai/utils';
+import { computedMaxToken, llmCompletionsBodyFormat } from '../../../ai/utils';
 import { WorkflowResponseType } from '../type';
+import { formatTime2YMDHM } from '@fastgpt/global/common/string/time';
+import { AiChatQuoteRoleType } from '@fastgpt/global/core/workflow/template/system/aiChat/type';
 
 export type ChatProps = ModuleDispatchProps<
   AIChatNodeProps & {
@@ -75,6 +78,7 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       userChatInput,
       isResponseAnswerText = true,
       systemPrompt = '',
+      aiChatQuoteRole = 'system',
       quoteTemplate,
       quotePrompt,
       aiChatVision,
@@ -107,6 +111,7 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       histories: chatHistories,
       useDatasetQuote: quoteQA !== undefined,
       datasetQuoteText,
+      aiChatQuoteRole,
       datasetQuotePrompt: quotePrompt,
       userChatInput,
       inputFiles,
@@ -152,17 +157,16 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
     })
   ]);
 
-  const requestBody = {
-    ...modelConstantsData?.defaultConfig,
-    model: modelConstantsData.model,
-    temperature: computedTemperature({
-      model: modelConstantsData,
-      temperature
-    }),
-    max_tokens,
-    stream,
-    messages: requestMessages
-  };
+  const requestBody = llmCompletionsBodyFormat(
+    {
+      model: modelConstantsData.model,
+      temperature,
+      max_tokens,
+      stream,
+      messages: requestMessages
+    },
+    modelConstantsData
+  );
   // console.log(JSON.stringify(requestBody, null, 2), '===');
   try {
     const ai = getAIApi({
@@ -175,8 +179,13 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       }
     });
 
+    const isStreamResponse =
+      typeof response === 'object' &&
+      response !== null &&
+      ('iterator' in response || 'controller' in response);
+
     const { answerText } = await (async () => {
-      if (res && stream) {
+      if (res && isStreamResponse) {
         // sse response
         const { answer } = await streamResponse({
           res,
@@ -194,6 +203,16 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       } else {
         const unStreamResponse = response as ChatCompletion;
         const answer = unStreamResponse.choices?.[0]?.message?.content || '';
+
+        if (stream) {
+          // Some models do not support streaming
+          workflowStreamResponse?.({
+            event: SseResponseEventEnum.fastAnswer,
+            data: textAdaptGptResponse({
+              text: answer
+            })
+          });
+        }
 
         return {
           answerText: answer
@@ -263,6 +282,7 @@ async function filterDatasetQuote({
     return replaceVariable(quoteTemplate || Prompt_QuoteTemplateList[0].value, {
       q: item.q,
       a: item.a,
+      updateTime: formatTime2YMDHM(item.updateTime),
       source: item.sourceName,
       sourceId: String(item.sourceId || 'UnKnow'),
       index: index + 1
@@ -282,7 +302,8 @@ async function filterDatasetQuote({
   };
 }
 async function getChatMessages({
-  datasetQuotePrompt,
+  aiChatQuoteRole,
+  datasetQuotePrompt = '',
   datasetQuoteText,
   useDatasetQuote,
   histories = [],
@@ -292,27 +313,51 @@ async function getChatMessages({
   model,
   stringQuoteText
 }: {
+  // dataset quote
+  aiChatQuoteRole: AiChatQuoteRoleType; // user: replace user prompt; system: replace system prompt
   datasetQuotePrompt?: string;
   datasetQuoteText: string;
+
   useDatasetQuote: boolean;
   histories: ChatItemType[];
   systemPrompt: string;
   userChatInput: string;
   inputFiles: UserChatItemValueItemType['file'][];
   model: LLMModelItemType;
-  stringQuoteText?: string;
+  stringQuoteText?: string; // file quote
 }) {
-  const replaceInputValue = useDatasetQuote
-    ? replaceVariable(datasetQuotePrompt || Prompt_QuotePromptList[0].value, {
-        quote: datasetQuoteText,
-        question: userChatInput
-      })
-    : userChatInput;
+  // User role or prompt include question
+  const quoteRole =
+    aiChatQuoteRole === 'user' || datasetQuotePrompt.includes('{{question}}') ? 'user' : 'system';
+
+  const datasetQuotePromptTemplate = datasetQuotePrompt
+    ? datasetQuotePrompt
+    : quoteRole === 'user'
+      ? Prompt_userQuotePromptList[0].value
+      : Prompt_systemQuotePromptList[0].value;
+
+  const replaceInputValue =
+    useDatasetQuote && quoteRole === 'user'
+      ? replaceVariable(datasetQuotePromptTemplate, {
+          quote: datasetQuoteText,
+          question: userChatInput
+        })
+      : userChatInput;
+
+  const replaceSystemPrompt =
+    useDatasetQuote && quoteRole === 'system'
+      ? `${systemPrompt ? systemPrompt + '\n\n------\n\n' : ''}${replaceVariable(
+          datasetQuotePromptTemplate,
+          {
+            quote: datasetQuoteText
+          }
+        )}`
+      : systemPrompt;
 
   const messages: ChatItemType[] = [
-    ...getSystemPrompt(systemPrompt),
-    ...(stringQuoteText
-      ? getSystemPrompt(
+    ...getSystemPrompt_ChatItemType(replaceSystemPrompt),
+    ...(stringQuoteText // file quote
+      ? getSystemPrompt_ChatItemType(
           replaceVariable(Prompt_DocumentQuote, {
             quote: stringQuoteText
           })
@@ -327,6 +372,7 @@ async function getChatMessages({
       })
     }
   ];
+
   const adaptMessages = chats2GPTMessages({ messages, reserveId: false });
 
   const filterMessages = await filterGPTMessageByMaxTokens({

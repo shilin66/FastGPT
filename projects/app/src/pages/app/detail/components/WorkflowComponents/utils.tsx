@@ -16,6 +16,7 @@ export const uiWorkflow2StoreWorkflow = ({
 }) => {
   const formatNodes: StoreNodeItemType[] = nodes.map((item) => ({
     nodeId: item.data.nodeId,
+    parentNodeId: item.data.parentNodeId,
     name: item.data.name,
     intro: item.data.intro,
     avatar: item.data.avatar,
@@ -25,7 +26,8 @@ export const uiWorkflow2StoreWorkflow = ({
     version: item.data.version,
     inputs: item.data.inputs,
     outputs: item.data.outputs,
-    pluginId: item.data.pluginId
+    pluginId: item.data.pluginId,
+    isFolded: item.data.isFolded
   }));
 
   // get all handle
@@ -46,7 +48,15 @@ export const uiWorkflow2StoreWorkflow = ({
     .filter((item) => item.sourceHandle && item.targetHandle)
     .filter(
       // Filter out edges that do not have both sourceHandle and targetHandle
-      (item) => handleIdList.includes(item.sourceHandle) && handleIdList.includes(item.targetHandle)
+      (item) => {
+        if (!reactFlowViewport) return true;
+        const currentSourceNode = nodes.find((node) => node.data.nodeId === item.source);
+
+        if (currentSourceNode?.data.isFolded) return true;
+
+        // Not in react flow page
+        return handleIdList.includes(item.sourceHandle) && handleIdList.includes(item.targetHandle);
+      }
     );
 
   return {

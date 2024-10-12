@@ -23,8 +23,6 @@ declare global {
   var qaQueueLen: number;
   var vectorQueueLen: number;
 
-  var systemVersion: string;
-
   interface Window {
     grecaptcha: any;
     QRCode: any;

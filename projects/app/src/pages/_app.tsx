@@ -11,10 +11,34 @@ import { useInitApp } from '@/web/context/useInitApp';
 import { useTranslation } from 'next-i18next';
 import '@/web/styles/reset.scss';
 import NextHead from '@/components/common/NextHead';
+import { ReactElement, useEffect } from 'react';
+import { NextPage } from 'next';
 
-function App({ Component, pageProps }: AppProps) {
+type NextPageWithLayout = NextPage & {
+  setLayout?: (page: ReactElement) => JSX.Element;
+};
+type AppPropsWithLayout = AppProps & {
+  Component: NextPageWithLayout;
+};
+
+function App({ Component, pageProps }: AppPropsWithLayout) {
   const { feConfigs, scripts, title } = useInitApp();
   const { t } = useTranslation();
+
+  // Forbid touch scale
+  useEffect(() => {
+    document.addEventListener(
+      'wheel',
+      function (e) {
+        if (e.ctrlKey && Math.abs(e.deltaY) !== 0) {
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+  }, []);
+
+  const setLayout = Component.setLayout || ((page) => <>{page}</>);
 
   return (
     <>
@@ -32,9 +56,7 @@ function App({ Component, pageProps }: AppProps) {
       <QueryClientContext>
         <I18nContextProvider>
           <ChakraUIContext>
-            <Layout>
-              <Component {...pageProps} />
-            </Layout>
+            <Layout>{setLayout(<Component {...pageProps} />)}</Layout>
           </ChakraUIContext>
         </I18nContextProvider>
       </QueryClientContext>

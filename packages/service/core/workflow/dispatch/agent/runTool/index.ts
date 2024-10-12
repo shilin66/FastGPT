@@ -14,7 +14,7 @@ import {
   GPTMessages2Chats,
   chatValue2RuntimePrompt,
   chats2GPTMessages,
-  getSystemPrompt,
+  getSystemPrompt_ChatItemType,
   runtimePrompt2ChatsValue
 } from '@fastgpt/global/core/chat/adapt';
 import { formatModelChars2Points } from '../../../../../support/wallet/usage/utils';
@@ -95,7 +95,8 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
     });
 
   const messages: ChatItemType[] = [
-    ...getSystemPrompt(systemPrompt),
+    ...getSystemPrompt_ChatItemType(toolModel.defaultSystemChatPrompt),
+    ...getSystemPrompt_ChatItemType(systemPrompt),
     // Add file input prompt to histories
     ...chatHistories.map((item) => {
       if (item.obj === ChatRoleEnum.Human) {
@@ -182,7 +183,18 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
   });
 
   // flat child tool response
-  const childToolResponse = dispatchFlowResponse.map((item) => item.flowResponses).flat();
+  let newVariables: Record<string, any> = props.variables;
+  const childToolResponse = dispatchFlowResponse
+    .map((item) => {
+      // Computed new variables
+      newVariables = {
+        ...newVariables,
+        ...item.newVariables
+      };
+
+      return item.flowResponses;
+    })
+    .flat();
 
   // concat tool usage
   const totalPointsUsage =
@@ -218,6 +230,7 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
         tokens: totalTokens
       },
       ...flatUsages
-    ]
+    ],
+    [DispatchNodeResponseKeyEnum.newVariables]: newVariables
   };
 };
