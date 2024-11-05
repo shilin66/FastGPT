@@ -5,13 +5,13 @@ import {
   putUpdateGroupData
 } from '@fastgpt/global/support/user/team/group/api';
 
-export const getGroupList = () => GET<MemberGroupListType>('/proApi/support/user/team/group/list');
+export const getGroupList = () => GET<MemberGroupListType>('/support/user/team/group/list');
 
 export const postCreateGroup = (data: postCreateGroupData) =>
-  POST('/proApi/support/user/team/group/create', data);
+  POST('/support/user/team/group/create', data);
 
 export const deleteGroup = (groupId: string) =>
-  DELETE('/proApi/support/user/team/group/delete', { groupId });
+  DELETE('/support/user/team/group/delete', { groupId });
 
 export const putUpdateGroup = (data: putUpdateGroupData) =>
-  PUT('/proApi/support/user/team/group/update', data);
+  PUT('/support/user/team/group/update', data);

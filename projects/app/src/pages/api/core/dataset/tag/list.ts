@@ -14,7 +14,10 @@ async function handler(
     }>
   >
 ) {
-  const { datasetId, pageSize, current, searchText } = req.query;
+  const { datasetId, offset, pageSize, searchText } = req.body as PaginationProps<{
+    datasetId: string;
+    searchText?: string;
+  }>;
   await authDataset({ req, datasetId, authToken: true, per: ReadPermissionVal });
   const params = {
     datasetId,
@@ -23,7 +26,7 @@ async function handler(
   const [result, total] = await Promise.all([
     MongoDatasetCollectionTags.find(params, { _id: 1, tag: 1 })
       .sort({ _id: -1 })
-      .skip(pageSize * (current - 1))
+      .skip(offset)
       .limit(pageSize),
     MongoDatasetCollectionTags.countDocuments(params)
   ]);

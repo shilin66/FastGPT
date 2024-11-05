@@ -6,14 +6,19 @@ import { CollaboratorItemType } from '@fastgpt/global/support/permission/collabo
 import { deleteCollaborators, listCollaborator, updateCollaborators } from '../controller';
 
 export async function updateAppCollaborators(updateAppCollaboratorBody: UpdateAppCollaboratorBody) {
-  const { appId, tmbIds, permission } = updateAppCollaboratorBody;
+  const { appId, members, groups, permission } = updateAppCollaboratorBody;
 
   const app = await MongoApp.findById(appId).lean();
   if (!app) {
     return Promise.reject(AppErrEnum.unExist);
   }
 
-  await updateCollaborators({ tmbIds, permission }, PerResourceTypeEnum.app, appId, app.teamId);
+  await updateCollaborators(
+    { members, groups, permission },
+    PerResourceTypeEnum.app,
+    appId,
+    app.teamId
+  );
 }
 
 export async function listAppCollaborator(appId: string): Promise<CollaboratorItemType[]> {

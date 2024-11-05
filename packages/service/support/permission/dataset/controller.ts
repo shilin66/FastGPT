@@ -8,7 +8,7 @@ import { UpdateDatasetCollaboratorBody } from '@fastgpt/global/core/dataset/coll
 export async function updateDatasetCollaborators(
   updateDatasetCollaboratorBody: UpdateDatasetCollaboratorBody
 ) {
-  const { datasetId, tmbIds, permission } = updateDatasetCollaboratorBody;
+  const { datasetId, members, groups, permission } = updateDatasetCollaboratorBody;
 
   const dataset = await MongoDataset.findById(datasetId).lean();
   if (!dataset) {
@@ -16,7 +16,7 @@ export async function updateDatasetCollaborators(
   }
 
   await updateCollaborators(
-    { tmbIds, permission },
+    { members, groups, permission },
     PerResourceTypeEnum.dataset,
     datasetId,
     dataset.teamId

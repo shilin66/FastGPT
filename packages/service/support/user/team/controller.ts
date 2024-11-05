@@ -23,14 +23,18 @@ import {
 import { createJWT, getResourcePermission } from '../../permission/controller';
 import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
-import { TeamDefaultPermissionVal } from '@fastgpt/global/support/permission/user/constant';
+import {
+  TeamDefaultPermissionVal,
+  TeamReadPermissionVal
+} from '@fastgpt/global/support/permission/user/constant';
 import { MongoMemberGroupModel } from '../../permission/memberGroup/memberGroupSchema';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { DefaultGroupName } from '@fastgpt/global/support/user/team/group/constant';
 import { MongoResourcePermission } from '../../permission/schema';
 import { getUserDetail } from '../controller';
 import { MongoUser } from '../schema';
-import { UpdateClbPermissionProps } from '@fastgpt/global/support/permission/collaborator';
+import { UpdatePermissionBody } from '@fastgpt/global/support/permission/collaborator';
+import { ResourcePermissionType } from '@fastgpt/global/support/permission/type';
 
 async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemType> {
   const tmb = (await MongoTeamMember.findOne(match).populate('teamId')) as TeamMemberWithTeamSchema;
@@ -163,6 +167,9 @@ export async function updateTeam({
   teamDomain,
   lafAccount
 }: UpdateTeamProps & { teamId: string }) {
+  if (global.feConfigs?.userDefaultTeam === name) {
+    return Promise.reject('The team name is not allowed');
+  }
   return mongoSessionRun(async (session) => {
     await MongoTeam.findByIdAndUpdate(
       teamId,
@@ -192,6 +199,15 @@ export async function updateTeam({
 }
 
 export async function createTeam({ name, avatar }: CreateTeamProps, userId: string) {
+  if (global.feConfigs?.userDefaultTeam === name) {
+    return Promise.reject('The team name is not allowed');
+  }
+
+  const user = await MongoUser.findById(userId).lean();
+  if (!user) {
+    return Promise.reject('用户不存在');
+  }
+
   const [{ _id: teamId }] = await MongoTeam.create([
     {
       ownerId: userId,
@@ -201,11 +217,23 @@ export async function createTeam({ name, avatar }: CreateTeamProps, userId: stri
     }
   ]);
 
+  const group = await MongoMemberGroupModel.create({
+    teamId,
+    name: DefaultGroupName
+  });
+
+  await MongoResourcePermission.create({
+    teamId,
+    groupId: group._id,
+    resourceType: PerResourceTypeEnum.team,
+    permission: TeamDefaultPermissionVal
+  });
+
   return MongoTeamMember.create([
     {
       teamId,
       userId,
-      name: 'Owner',
+      name: user.username,
       role: TeamMemberRoleEnum.owner,
       status: TeamMemberStatusEnum.active,
       createTime: new Date(),
@@ -269,7 +297,7 @@ export async function getTeamMembers(teamId: string): Promise<TeamMemberItemType
         role: tmb.role,
         status: tmb.status,
         permission: new TeamPermission({
-          per: permData.permission ?? tmb.teamId.defaultPermission,
+          per: permData.permission ?? TeamDefaultPermissionVal,
           isOwner: tmb.role === TeamMemberRoleEnum.owner
         })
       };
@@ -288,8 +316,7 @@ export async function leaveTeam(teamId: string, userId: string) {
 
 export async function inviteTeamMember({
   teamId,
-  usernames,
-  permission
+  usernames
 }: InviteMemberProps): Promise<InviteMemberResponse> {
   // check usernames exist
   const userList = await MongoUser.find({ username: { $in: usernames } });
@@ -338,16 +365,16 @@ export async function inviteTeamMember({
       }))
     );
     // get tmbIds
-    const tmbIds = createdTeamMembers.map((member) => member._id);
+    // const tmbIds = createdTeamMembers.map((member) => member._id);
     // create permission
-    await MongoResourcePermission.create(
-      tmbIds.map((tmbId) => ({
-        tmbId,
-        teamId,
-        resourceType: PerResourceTypeEnum.team,
-        permission
-      }))
-    );
+    // await MongoResourcePermission.create(
+    //   tmbIds.map((tmbId) => ({
+    //     tmbId,
+    //     teamId,
+    //     resourceType: PerResourceTypeEnum.team,
+    //     permission: TeamReadPermissionVal
+    //   }))
+    // );
   }
 
   return {
@@ -367,46 +394,81 @@ export async function inviteTeamMember({
 }
 
 export async function switchTeam(newTeamId: string, userId: string, currentTeamId: string) {
+  const teamMember = await MongoTeamMember.findOne({
+    teamId: newTeamId,
+    userId
+  }).lean();
+  if (!teamMember) {
+    return Promise.reject('You are not a member of the team!');
+  }
   // MongoTeamMember 根据currentTeamId和userId，修改defautlTeam为false
-  await MongoTeamMember.updateMany(
+  await MongoUser.updateOne(
     {
-      teamId: currentTeamId,
-      userId: userId
+      _id: userId
     },
     {
-      defaultTeam: false
-    }
-  );
-
-  // MongoTeamMember 根据newTeamId和userId，修改defautlTeam为true
-  await MongoTeamMember.updateMany(
-    {
-      teamId: newTeamId,
-      userId: userId
-    },
-    {
-      defaultTeam: true
+      lastLoginTmbId: teamMember._id
     }
   );
 
   const userDetail = await getUserDetail({
-    tmbId: undefined,
+    tmbId: teamMember._id,
     userId
   });
 
   return createJWT(userDetail);
 }
 
-export async function updateMemberPermission({ tmbIds, permission }: UpdateClbPermissionProps) {
-  await MongoResourcePermission.updateMany(
+export async function updatePermission(updatePermissionBody: UpdatePermissionBody, teamId: String) {
+  await MongoResourcePermission.updateOne(
     {
-      tmbId: { $in: tmbIds },
+      teamId,
+      tmbId: updatePermissionBody.memberId,
+      groupId: updatePermissionBody.groupId,
       resourceType: PerResourceTypeEnum.team
     },
     {
-      permission
+      permission: updatePermissionBody.permission
     }
   );
+}
+
+export async function listMemberClbs(teamId: string) {
+  const resourcePermissions = await MongoResourcePermission.find({
+    teamId,
+    resourceType: PerResourceTypeEnum.team
+  }).lean();
+
+  return resourcePermissions.map((resourcePer) => {
+    if (!resourcePer.tmbId && !resourcePer.groupId) {
+      console.error('Both tmbId and groupId are missing for resource:', resourcePer);
+      return Promise.reject('Both tmbId and groupId are missing for resource');
+    }
+
+    if (resourcePer.tmbId && resourcePer.groupId) {
+      console.error('Both tmbId and groupId are set for resource:', resourcePer);
+      return Promise.reject('Both tmbId and groupId are set for resource');
+    }
+
+    if (resourcePer.tmbId) {
+      return {
+        teamId,
+        tmbId: resourcePer.tmbId,
+        resourceType: resourcePer.resourceType,
+        permission: resourcePer.permission,
+        resourceId: resourcePer.resourceId
+      } as ResourcePermissionType;
+    }
+    if (resourcePer.groupId) {
+      return {
+        teamId,
+        groupId: resourcePer.groupId,
+        resourceType: resourcePer.resourceType,
+        permission: resourcePer.permission,
+        resourceId: resourcePer.resourceId
+      } as ResourcePermissionType;
+    }
+  });
 }
 
 export async function deleteMemberPermission(tmbId: string) {

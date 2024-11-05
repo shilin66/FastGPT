@@ -40,7 +40,7 @@ export const delLeaveTeam = (teamId: string) =>
   DELETE('/support/user/team/member/leave', { teamId });
 
 export const getTeamClbs = () =>
-  GET<ResourcePermissionType[]>(`/proApi/support/user/team/collaborator/list`);
+  GET<ResourcePermissionType[]>(`/support/user/team/collaborator/list`);
 
 /* -------------- team collaborator -------------------- */
 export const updateMemberPermission = (data: UpdatePermissionBody) =>

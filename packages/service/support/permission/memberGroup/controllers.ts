@@ -1,4 +1,7 @@
-import { MemberGroupSchemaType } from '@fastgpt/global/support/permission/memberGroup/type';
+import {
+  MemberGroupListType,
+  MemberGroupSchemaType
+} from '@fastgpt/global/support/permission/memberGroup/type';
 import { MongoGroupMemberModel } from './groupMemberSchema';
 import { TeamMemberSchema } from '@fastgpt/global/support/user/team/type';
 import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
@@ -12,6 +15,7 @@ import { AuthModeType, AuthResponseType } from '../type';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
 import { getTmbInfoByTmbId } from '../../user/team/controller';
+import { TeamDefaultPermissionVal } from '@fastgpt/global/support/permission/user/constant';
 
 /**
  * Get the default group of a team
@@ -41,7 +45,12 @@ export const getTeamDefaultGroup = async ({
       ],
       { session }
     );
-
+    await MongoResourcePermission.create({
+      teamId,
+      groupId: group._id,
+      resourceType: PerResourceTypeEnum.team,
+      permission: TeamDefaultPermissionVal
+    });
     return group;
   }
   return group;
@@ -180,4 +189,111 @@ export const authGroupMemberRole = async ({
     };
   }
   return Promise.reject(TeamErrEnum.unAuthTeam);
+};
+
+export const createMemberGroup = async (data: {
+  teamId: string;
+  name: string;
+  avatar?: string;
+  memberIdList?: string[];
+}) => {
+  const { teamId, name, memberIdList, avatar } = data;
+
+  const group = await MongoMemberGroupModel.create({
+    teamId,
+    name,
+    avatar
+  });
+
+  await MongoGroupMemberModel.create(
+    memberIdList?.map((item) => ({
+      groupId: group._id,
+      tmbId: item,
+      role: GroupMemberRole.owner
+    }))
+  );
+
+  await MongoResourcePermission.create({
+    teamId,
+    groupId: group._id,
+    resourceType: 'team',
+    permission: TeamDefaultPermissionVal
+  });
+};
+
+export const listMemberGroup = async (teamId: string, tmbId: string) => {
+  let memberGroupList: MemberGroupListType = [];
+  const groupList = await MongoMemberGroupModel.find({ teamId }).lean();
+  // 获取groupIds
+  const groupIdList = groupList.map((group) => group._id);
+  // 根据groupId获取成员列表
+  const memberList = await MongoGroupMemberModel.find({ groupId: { $in: groupIdList } }).lean();
+  const groupMemberMap: { [key: string]: any } = {};
+  // 将memberList 添加到groupMemberMap中
+  memberList.map((member) => {
+    groupMemberMap[member.groupId] = groupMemberMap[member.groupId] || [];
+    groupMemberMap[member.groupId].push(member);
+  });
+
+  // 获取group的权限列表
+  const permissionList = await MongoResourcePermission.find({
+    groupId: { $in: groupIdList },
+    resourceType: 'team'
+  }).lean();
+  const groupPermissionMap: { [key: string]: any } = {};
+  permissionList.map((permission) => {
+    if (permission.groupId) {
+      groupPermissionMap[permission.groupId] = permission.permission;
+    }
+  });
+
+  groupList.map((group) =>
+    memberGroupList.push({
+      ...group,
+      members: groupMemberMap[group._id] || [],
+      permission: new TeamPermission({ per: groupPermissionMap[group._id] })
+    })
+  );
+  return memberGroupList;
+};
+
+export const updateMemberGroup = async (data: {
+  groupId: string;
+  name?: string;
+  avatar?: string;
+  memberList?: {
+    tmbId: string;
+    role: `${GroupMemberRole}`;
+  }[];
+}) => {
+  const { groupId, name, avatar, memberList } = data;
+  const group = await MongoMemberGroupModel.findById(groupId);
+  if (!group) {
+    return Promise.reject(TeamErrEnum.groupNotExist);
+  }
+  if (name || avatar) {
+    await MongoMemberGroupModel.updateOne(
+      { _id: groupId },
+      {
+        name,
+        avatar
+      }
+    );
+  }
+  if (memberList && memberList.length > 0) {
+    await MongoGroupMemberModel.deleteMany({ groupId });
+    await MongoGroupMemberModel.create(
+      memberList.map((item) => ({
+        groupId,
+        tmbId: item.tmbId,
+        role: item.role
+      }))
+    );
+  }
+};
+
+export const deleteMemberGroup = async (groupId: string) => {
+  await MongoGroupMemberModel.deleteMany({ groupId });
+  await MongoResourcePermission.deleteMany({ groupId });
+  await MongoMemberGroupModel.deleteOne({ _id: groupId });
 };

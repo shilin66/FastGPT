@@ -10,7 +10,7 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
 
   await authUserPer({ req, authToken: true, per: ManagePermissionVal });
 
-  await deleteMemberPermission(tmbId);
+  // await deleteMemberPermission(tmbId);
 }
 
 export default NextAPI(handler);

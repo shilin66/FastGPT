@@ -150,6 +150,7 @@ export async function getResourceAllClbsWithUser({
 
   return res;
 }
+
 export const delResourcePermissionById = (id: string) => {
   return MongoResourcePermission.findByIdAndRemove(id);
 };
@@ -167,6 +168,7 @@ export const delResourcePermission = ({
 };
 
 /* 下面代码等迁移 */
+
 /* create token */
 export function createJWT(user: {
   _id?: string;
@@ -231,6 +233,7 @@ export async function parseHeaderCert({
 
     return await authJWT(cookieToken);
   }
+
   // from authorization get apikey
   async function parseAuthorization(authorization?: string) {
     if (!authorization) {
@@ -271,6 +274,7 @@ export async function parseHeaderCert({
       appId: apiKeyAppId || authorizationAppid
     };
   }
+
   // root user
   async function parseRootKey(rootKey?: string) {
     if (!rootKey || !process.env.ROOT_KEY || rootKey !== process.env.ROOT_KEY) {
@@ -406,40 +410,51 @@ export async function updateCollaborators(
   resourceId: string,
   teamId: string
 ) {
-  const { tmbIds, permission } = updateClbPermissionProps;
+  const { members, groups, permission } = updateClbPermissionProps;
 
   const existPermissions = await MongoResourcePermission.find({
     resourceType,
     resourceId,
     teamId
   });
-  const existPermissionMap = new Map(existPermissions.map((item) => [item.tmbId.toString(), item]));
+  const existPermissionMemberMap: { [key: string]: any } = {};
+  const existPermissionGroupMap: { [key: string]: any } = {};
+  existPermissions.map((item) => {
+    if (item.tmbId) {
+      existPermissionMemberMap[item.tmbId.toString()] = item;
+    }
+    if (item.groupId) {
+      existPermissionGroupMap[item.groupId.toString()] = item;
+    }
+  });
 
-  await Promise.all(
-    tmbIds.map(async (tmbId) => {
-      if (existPermissionMap.get(tmbId)) {
-        await MongoResourcePermission.updateOne(
-          {
+  if (members && members.length > 0) {
+    await Promise.all(
+      members.map(async (tmbId) => {
+        if (existPermissionMemberMap[tmbId]) {
+          await MongoResourcePermission.updateOne(
+            {
+              resourceType,
+              resourceId,
+              tmbId,
+              teamId
+            },
+            {
+              permission
+            }
+          );
+        } else {
+          await MongoResourcePermission.create({
             resourceType,
             resourceId,
             tmbId,
-            teamId
-          },
-          {
+            teamId,
             permission
-          }
-        );
-      } else {
-        await MongoResourcePermission.create({
-          resourceType,
-          resourceId,
-          tmbId,
-          teamId,
-          permission
-        });
-      }
-    })
-  );
+          });
+        }
+      })
+    );
+  }
 }
 
 export async function listCollaborator(
