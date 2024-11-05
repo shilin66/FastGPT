@@ -81,16 +81,11 @@ const ChatInput = ({
   const canSendMessage = havInput && !hasFileUploading;
 
   // Upload files
-  useRequest2(
-    async () => {
-      uploadFiles();
-    },
-    {
-      manual: false,
-      errorToast: t('common:upload_file_error'),
-      refreshDeps: [fileList, outLinkAuthData, chatId]
-    }
-  );
+  useRequest2(uploadFiles, {
+    manual: false,
+    errorToast: t('common:upload_file_error'),
+    refreshDeps: [fileList, outLinkAuthData, chatId]
+  });
 
   /* on send */
   const handleSend = useCallback(
@@ -119,6 +114,35 @@ const ChatInput = ({
     renderAudioGraph,
     stream
   } = useSpeech({ appId, ...outLinkAuthData });
+  const onWhisperRecord = useCallback(() => {
+    const finishWhisperTranscription = (text: string) => {
+      if (!text) return;
+      if (whisperConfig?.autoSend) {
+        onSendMessage({
+          text,
+          files: fileList,
+          autoTTSResponse
+        });
+        replaceFiles([]);
+      } else {
+        resetInputVal({ text });
+      }
+    };
+    if (isSpeaking) {
+      return stopSpeak();
+    }
+    startSpeak(finishWhisperTranscription);
+  }, [
+    autoTTSResponse,
+    fileList,
+    isSpeaking,
+    onSendMessage,
+    replaceFiles,
+    resetInputVal,
+    startSpeak,
+    stopSpeak,
+    whisperConfig?.autoSend
+  ]);
   useEffect(() => {
     if (!stream) {
       return;
@@ -136,28 +160,6 @@ const ChatInput = ({
     };
     renderCurve();
   }, [renderAudioGraph, stream]);
-  const finishWhisperTranscription = useCallback(
-    (text: string) => {
-      if (!text) return;
-      if (whisperConfig?.autoSend) {
-        onSendMessage({
-          text,
-          files: fileList,
-          autoTTSResponse
-        });
-        replaceFiles([]);
-      } else {
-        resetInputVal({ text });
-      }
-    },
-    [autoTTSResponse, fileList, onSendMessage, replaceFiles, resetInputVal, whisperConfig?.autoSend]
-  );
-  const onWhisperRecord = useCallback(() => {
-    if (isSpeaking) {
-      return stopSpeak();
-    }
-    startSpeak(finishWhisperTranscription);
-  }, [finishWhisperTranscription, isSpeaking, startSpeak, stopSpeak]);
 
   const RenderTranslateLoading = useMemo(
     () => (

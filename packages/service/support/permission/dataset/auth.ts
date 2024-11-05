@@ -20,6 +20,7 @@ import { MongoDatasetData } from '../../../core/dataset/data/schema';
 import { AuthModeType, AuthResponseType } from '../type';
 import { DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
 import { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
+import { DatasetDefaultPermissionVal } from '@fastgpt/global/support/permission/dataset/constant';
 
 export const authDatasetByTmbId = async ({
   tmbId,
@@ -62,7 +63,12 @@ export const authDatasetByTmbId = async ({
     const isOwner = tmbPer.isOwner || String(dataset.tmbId) === String(tmbId);
 
     // get dataset permission or inherit permission from parent folder.
-    const { Per, defaultPermission } = await (async () => {
+    const { Per } = await (async () => {
+      if (isOwner) {
+        return {
+          Per: new DatasetPermission({ isOwner: true })
+        };
+      }
       if (
         dataset.type === DatasetTypeEnum.folder ||
         dataset.inheritPermission === false ||
@@ -78,12 +84,11 @@ export const authDatasetByTmbId = async ({
           resourceType: PerResourceTypeEnum.dataset
         });
         const Per = new DatasetPermission({
-          per: rp ?? dataset.defaultPermission,
+          per: rp ?? DatasetDefaultPermissionVal,
           isOwner
         });
         return {
-          Per,
-          defaultPermission: dataset.defaultPermission
+          Per
         };
       } else {
         // is not folder and inheritPermission is true and is not root folder.
@@ -100,8 +105,7 @@ export const authDatasetByTmbId = async ({
         });
 
         return {
-          Per,
-          defaultPermission: parent.defaultPermission
+          Per
         };
       }
     })();
@@ -112,7 +116,6 @@ export const authDatasetByTmbId = async ({
 
     return {
       ...dataset,
-      defaultPermission,
       permission: Per
     };
   })();
@@ -154,6 +157,7 @@ export const authDataset = async ({
     dataset
   };
 };
+
 // the temporary solution for authDatasetCollection is getting the
 export async function authDatasetCollection({
   collectionId,
@@ -179,65 +183,70 @@ export async function authDatasetCollection({
     tmbId,
     datasetId: collection.datasetId._id,
     per,
-    isRoot: isRootFromHeader || isRoot
+    isRoot: isRootFromHeader
   });
 
   return {
     teamId,
     tmbId,
     collection,
-    permission: dataset.permission
+    permission: dataset.permission,
+    isRoot: isRootFromHeader
   };
 }
 
-export async function authDatasetFile({
-  fileId,
-  per,
-  ...props
-}: AuthModeType & {
-  fileId: string;
-}): Promise<
-  AuthResponseType<DatasetPermission> & {
-    file: DatasetFileSchema;
-  }
-> {
-  const { teamId, tmbId, isRoot } = await parseHeaderCert(props);
+// export async function authDatasetFile({
+//   fileId,
+//   per,
+//   ...props
+// }: AuthModeType & {
+//   fileId: string;
+// }): Promise<
+//   AuthResponseType<DatasetPermission> & {
+//     file: DatasetFileSchema;
+//   }
+// > {
+//   const { teamId, tmbId, isRoot } = await parseHeaderCert(props);
 
-  const [file, collection] = await Promise.all([
-    getFileById({ bucketName: BucketNameEnum.dataset, fileId }),
-    MongoDatasetCollection.findOne({
-      teamId,
-      fileId
-    })
-  ]);
+//   const [file, collection] = await Promise.all([
+//     getFileById({ bucketName: BucketNameEnum.dataset, fileId }),
+//     MongoDatasetCollection.findOne({
+//       teamId,
+//       fileId
+//     })
+//   ]);
 
-  if (!file) {
-    return Promise.reject(CommonErrEnum.fileNotFound);
-  }
+//   if (!file) {
+//     return Promise.reject(CommonErrEnum.fileNotFound);
+//   }
 
-  if (!collection) {
-    return Promise.reject(DatasetErrEnum.unAuthDatasetFile);
-  }
+//   if (!collection) {
+//     return Promise.reject(DatasetErrEnum.unAuthDatasetFile);
+//   }
 
-  try {
-    const { permission } = await authDatasetCollection({
-      ...props,
-      collectionId: collection._id,
-      per,
-      isRoot
-    });
+//   try {
+//     const { permission } = await authDatasetCollection({
+//       ...props,
+//       collectionId: collection._id,
+//       per,
+//       isRoot
+//     });
 
-    return {
-      teamId,
-      tmbId,
-      file,
-      permission
-    };
-  } catch (error) {
-    return Promise.reject(DatasetErrEnum.unAuthDatasetFile);
-  }
-}
+//     return {
+//       teamId,
+//       tmbId,
+//       file,
+//       permission,
+//       isRoot
+//     };
+//   } catch (error) {
+//     return Promise.reject(DatasetErrEnum.unAuthDatasetFile);
+//   }
+// }
 
+/* 
+  DatasetData permission is inherited from collection.
+*/
 export async function authDatasetData({
   dataId,
   ...props
@@ -268,8 +277,8 @@ export async function authDatasetData({
     collectionId: String(datasetData.collectionId),
     sourceName: result.collection.name || '',
     sourceId: result.collection?.fileId || result.collection?.rawLink,
-    isOwner: String(datasetData.tmbId) === String(result.tmbId),
-    canWrite: result.permission.hasWritePer
+    isOwner: String(datasetData.tmbId) === String(result.tmbId)
+    // permission: result.permission
   };
 
   return {

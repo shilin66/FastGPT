@@ -20,7 +20,12 @@ const SaveAndPublishModal = ({
   onClickSave: (data: { isPublish: boolean; versionName: string }) => Promise<void>;
 }) => {
   const { t } = useTranslation();
-  const { toast } = useToast();
+  const { toast } = useToast({
+    containerStyle: {
+      mt: '60px',
+      fontSize: 'sm'
+    }
+  });
   const { register, handleSubmit } = useForm<FormType>({
     defaultValues: {
       versionName: formatTime2YMDHMS(new Date()),
@@ -68,7 +73,8 @@ const SaveAndPublishModal = ({
             toast({
               status: 'success',
               title: t('app:publish_success'),
-              position: 'top-right'
+              position: 'top-right',
+              isClosable: true
             });
             onClose();
           })}

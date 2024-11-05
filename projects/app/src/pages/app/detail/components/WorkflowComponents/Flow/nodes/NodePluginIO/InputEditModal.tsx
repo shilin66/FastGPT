@@ -22,7 +22,8 @@ export const defaultInput: FlowNodeInputItemType = {
   key: '',
   label: '',
   description: '',
-  defaultValue: ''
+  defaultValue: '',
+  list: [{ label: '', value: '' }]
 };
 
 const FieldEditModal = ({
@@ -48,43 +49,37 @@ const FieldEditModal = ({
           {
             icon: 'core/workflow/inputType/reference',
             label: t('common:core.workflow.inputType.Reference'),
-            value: FlowNodeInputTypeEnum.reference,
+            value: [FlowNodeInputTypeEnum.reference],
             defaultValueType: WorkflowIOValueTypeEnum.string
           },
           {
             icon: 'core/workflow/inputType/input',
-            label: t('common:core.workflow.inputType.input'),
-            value: FlowNodeInputTypeEnum.input,
-            defaultValueType: WorkflowIOValueTypeEnum.string
-          },
-          {
-            icon: 'core/workflow/inputType/textarea',
-            label: t('common:core.workflow.inputType.textarea'),
-            value: FlowNodeInputTypeEnum.textarea,
+            label: t('common:core.workflow.inputType.textInput'),
+            value: [FlowNodeInputTypeEnum.input, FlowNodeInputTypeEnum.reference],
             defaultValueType: WorkflowIOValueTypeEnum.string
           },
           {
             icon: 'core/workflow/inputType/jsonEditor',
             label: t('common:core.workflow.inputType.JSON Editor'),
-            value: FlowNodeInputTypeEnum.JSONEditor,
+            value: [FlowNodeInputTypeEnum.JSONEditor, FlowNodeInputTypeEnum.reference],
             defaultValueType: WorkflowIOValueTypeEnum.string
           },
           {
             icon: 'core/workflow/inputType/numberInput',
             label: t('common:core.workflow.inputType.number input'),
-            value: FlowNodeInputTypeEnum.numberInput,
+            value: [FlowNodeInputTypeEnum.numberInput, FlowNodeInputTypeEnum.reference],
             defaultValueType: WorkflowIOValueTypeEnum.number
           },
           {
             icon: 'core/workflow/inputType/option',
             label: t('common:core.workflow.inputType.select'),
-            value: FlowNodeInputTypeEnum.select,
+            value: [FlowNodeInputTypeEnum.select, FlowNodeInputTypeEnum.reference],
             defaultValueType: WorkflowIOValueTypeEnum.string
           },
           {
             icon: 'core/workflow/inputType/switch',
             label: t('common:core.workflow.inputType.switch'),
-            value: FlowNodeInputTypeEnum.switch,
+            value: [FlowNodeInputTypeEnum.switch, FlowNodeInputTypeEnum.reference],
             defaultValueType: WorkflowIOValueTypeEnum.boolean
           }
         ],
@@ -92,13 +87,13 @@ const FieldEditModal = ({
           {
             icon: 'core/workflow/inputType/selectLLM',
             label: t('common:core.workflow.inputType.selectLLMModel'),
-            value: FlowNodeInputTypeEnum.selectLLMModel,
+            value: [FlowNodeInputTypeEnum.selectLLMModel],
             defaultValueType: WorkflowIOValueTypeEnum.string
           },
           {
             icon: 'core/workflow/inputType/selectDataset',
             label: t('common:core.workflow.inputType.selectDataset'),
-            value: FlowNodeInputTypeEnum.selectDataset,
+            value: [FlowNodeInputTypeEnum.selectDataset],
             defaultValueType: WorkflowIOValueTypeEnum.selectDataset
           },
           ...(hasDynamicInput
@@ -107,7 +102,7 @@ const FieldEditModal = ({
                 {
                   icon: 'core/workflow/inputType/dynamic',
                   label: t('common:core.workflow.inputType.dynamicTargetInput'),
-                  value: FlowNodeInputTypeEnum.addInputParam,
+                  value: [FlowNodeInputTypeEnum.addInputParam],
                   defaultValueType: WorkflowIOValueTypeEnum.dynamic
                 }
               ])
@@ -116,7 +111,7 @@ const FieldEditModal = ({
           {
             icon: 'core/workflow/inputType/customVariable',
             label: t('common:core.workflow.inputType.custom'),
-            value: FlowNodeInputTypeEnum.customVariable,
+            value: [FlowNodeInputTypeEnum.customVariable],
             defaultValueType: WorkflowIOValueTypeEnum.string,
             description: t('app:variable.select type_desc')
           }
@@ -124,7 +119,7 @@ const FieldEditModal = ({
       ] as {
         icon: string;
         label: string;
-        value: FlowNodeInputTypeEnum;
+        value: FlowNodeInputTypeEnum[];
         defaultValueType: WorkflowIOValueTypeEnum;
         description?: string;
       }[][],
@@ -133,14 +128,12 @@ const FieldEditModal = ({
 
   const isEdit = !!defaultValue.key;
   const form = useForm({
-    defaultValues: {
-      ...defaultValue,
-      list: defaultValue.list?.length ? defaultValue.list : [{ label: '', value: '' }]
-    }
+    defaultValues: defaultValue
   });
   const { getValues, setValue, watch, reset } = form;
 
-  const inputType = watch('renderTypeList.0') || FlowNodeInputTypeEnum.reference;
+  const renderTypeList = watch('renderTypeList');
+  const inputType = renderTypeList[0] || FlowNodeInputTypeEnum.reference;
   const valueType = watch('valueType');
 
   const [isToolInput, { toggle: setIsToolInput }] = useBoolean(!!getValues('toolDescription'));
@@ -149,23 +142,27 @@ const FieldEditModal = ({
   const max = watch('max');
   const min = watch('min');
   const selectValueTypeList = watch('customInputConfig.selectValueTypeList');
-  const defaultJsonValue = watch('defaultValue');
+  const defaultInputValue = watch('defaultValue');
 
-  const defaultValueType =
-    inputTypeList.flat().find((item) => item.value === inputType)?.defaultValueType ||
-    WorkflowIOValueTypeEnum.string;
+  const defaultValueType = useMemo(
+    () =>
+      inputTypeList.flat().find((item) => item.value[0] === inputType)?.defaultValueType ||
+      WorkflowIOValueTypeEnum.string,
+    [inputType, inputTypeList]
+  );
 
   const onSubmitSuccess = useCallback(
     (data: FlowNodeInputItemType, action: 'confirm' | 'continue') => {
-      data.key = data?.key?.trim();
+      data.label = data?.label?.trim();
 
-      if (!data.key) {
+      if (!data.label) {
         return toast({
           status: 'warning',
           title: t('common:core.module.edit.Field Name Cannot Be Empty')
         });
       }
 
+      // Auto set valueType
       if (
         data.renderTypeList[0] !== FlowNodeInputTypeEnum.reference &&
         data.renderTypeList[0] !== FlowNodeInputTypeEnum.customVariable
@@ -173,6 +170,7 @@ const FieldEditModal = ({
         data.valueType = defaultValueType;
       }
 
+      // Remove required
       if (
         data.renderTypeList[0] === FlowNodeInputTypeEnum.addInputParam ||
         data.renderTypeList[0] === FlowNodeInputTypeEnum.customVariable
@@ -199,7 +197,7 @@ const FieldEditModal = ({
         data.toolDescription = undefined;
       }
 
-      data.label = data.key;
+      data.key = data.label;
 
       if (action === 'confirm') {
         onSubmit(data);
@@ -268,7 +266,7 @@ const FieldEditModal = ({
                     mt={5}
                   >
                     {list.map((item) => {
-                      const isSelected = inputType === item.value;
+                      const isSelected = inputType === item.value[0];
                       return (
                         <Box
                           display={'flex'}
@@ -294,7 +292,7 @@ const FieldEditModal = ({
                             boxShadow: '0px 0px 0px 2.4px rgba(51, 112, 255, 0.15)'
                           }}
                           onClick={() => {
-                            setValue('renderTypeList.0', item.value);
+                            setValue('renderTypeList', item.value);
                           }}
                         >
                           <MyIcon
@@ -327,7 +325,7 @@ const FieldEditModal = ({
           max={max}
           min={min}
           selectValueTypeList={selectValueTypeList}
-          defaultJsonValue={defaultJsonValue}
+          defaultValue={defaultInputValue}
           isToolInput={isToolInput}
           setIsToolInput={setIsToolInput}
           valueType={valueType}

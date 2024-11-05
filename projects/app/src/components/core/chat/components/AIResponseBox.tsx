@@ -38,6 +38,7 @@ import { FlowNodeInputTypeEnum } from '@fastgpt/global/core/workflow/node/consta
 import { useTranslation } from 'react-i18next';
 import { Controller, useForm } from 'react-hook-form';
 import MySelect from '@fastgpt/web/components/common/MySelect';
+import MyTextarea from '@/components/common/Textarea/MyTextarea';
 
 type props = {
   value: UserChatItemValueItemType | AIChatItemValueItemType;
@@ -85,7 +86,7 @@ const RenderTool = React.memo(
           })();
 
           return (
-            <Accordion key={tool.id} allowToggle>
+            <Accordion key={tool.id} allowToggle _notLast={{ mb: 2 }}>
               <AccordionItem borderTop={'none'} borderBottom={'none'}>
                 <AccordionButton
                   w={'auto'}
@@ -220,13 +221,15 @@ const RenderUserFormInteractive = React.memo(function RenderFormInput({
             {input.description && <QuestionTip ml={1} label={input.description} />}
           </Flex>
           {input.type === FlowNodeInputTypeEnum.input && (
-            <Input
-              bg={'white'}
-              maxLength={input.maxLength}
+            <MyTextarea
               isDisabled={interactive.params.submitted}
               {...register(input.label, {
                 required: input.required
               })}
+              bg={'white'}
+              autoHeight
+              minH={40}
+              maxH={100}
             />
           )}
           {input.type === FlowNodeInputTypeEnum.textarea && (

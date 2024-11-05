@@ -1,5 +1,4 @@
 import { Box, Button, Flex, HStack } from '@chakra-ui/react';
-import { useToast } from '@fastgpt/web/hooks/useToast';
 import React from 'react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { FolderIcon } from '@fastgpt/global/common/file/image/constants';
@@ -40,7 +39,7 @@ const FolderSlideCard = ({
   deleteTip: string;
   onDelete: () => void;
 
-  defaultPer: {
+  defaultPer?: {
     value: PermissionValueType;
     defaultValue: PermissionValueType;
     onChange: (v: PermissionValueType) => Promise<any>;
@@ -54,7 +53,6 @@ const FolderSlideCard = ({
 }) => {
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
-  const { toast } = useToast();
 
   const { ConfirmModal, openConfirm } = useConfirm({
     type: 'delete',
@@ -128,27 +126,9 @@ const FolderSlideCard = ({
           <MyDivider my={6} />
 
           <Box>
-            <FormLabel>{t('common:support.permission.Permission')}</FormLabel>
-
             {!isInheritPermission && (
               <Box mt={2}>
                 <ResumeInherit onResume={() => resumeInheritPermission?.().then(refetchResource)} />
-              </Box>
-            )}
-
-            {managePer.permission.hasManagePer && (
-              <Box mt={5}>
-                <Box fontSize={'sm'} color={'myGray.500'}>
-                  {t('common:permission.Default permission')}
-                </Box>
-                <DefaultPermissionList
-                  mt="1"
-                  per={defaultPer.value}
-                  defaultPer={defaultPer.defaultValue}
-                  isInheritPermission={isInheritPermission}
-                  onChange={(v) => defaultPer.onChange(v)}
-                  hasParent={hasParent}
-                />
               </Box>
             )}
             <Box mt={6}>
@@ -192,8 +172,8 @@ const FolderSlideCard = ({
                       <MemberListCard
                         mt={2}
                         tagStyle={{
-                          type: 'borderSolid',
-                          colorSchema: 'gray'
+                          type: 'fill',
+                          colorSchema: 'white'
                         }}
                       />
                     </>

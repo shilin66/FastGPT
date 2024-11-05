@@ -1,4 +1,3 @@
-import { PermissionSchemaType } from '../../support/permission/type';
 import type { LLMModelItemType, VectorModelItemType } from '../../core/ai/model.d';
 import { PermissionTypeEnum } from '../../support/permission/constant';
 import { PushDatasetDataChunkProps } from './api';
@@ -32,8 +31,11 @@ export type DatasetSchemaType = {
     selector: string;
   };
   externalReadUrl?: string;
-} & PermissionSchemaType;
-// } & PermissionSchemaType;
+  inheritPermission: boolean;
+
+  // abandon
+  defaultPermission?: number;
+};
 
 export type DatasetCollectionSchemaType = {
   _id: string;
@@ -146,7 +148,9 @@ export type DatasetListItemType = {
   type: `${DatasetTypeEnum}`;
   permission: DatasetPermission;
   vectorModel: VectorModelItemType;
-} & PermissionSchemaType;
+  inheritPermission: boolean;
+  private?: boolean;
+};
 
 export type DatasetItemType = Omit<DatasetSchemaType, 'vectorModel' | 'agentModel'> & {
   vectorModel: VectorModelItemType;
@@ -187,7 +191,7 @@ export type DatasetDataItemType = {
   chunkIndex: number;
   indexes: DatasetDataIndexItemType[];
   isOwner: boolean;
-  canWrite: boolean;
+  // permission: DatasetPermission;
 };
 
 /* --------------- file ---------------------- */
@@ -208,7 +212,7 @@ export type DatasetFileSchema = {
 /* ============= search =============== */
 export type SearchDataResponseItemType = Omit<
   DatasetDataItemType,
-  'teamId' | 'indexes' | 'isOwner' | 'canWrite'
+  'teamId' | 'indexes' | 'isOwner'
 > & {
   score: { type: `${SearchScoreTypeEnum}`; value: number; index: number }[];
   // score: number;

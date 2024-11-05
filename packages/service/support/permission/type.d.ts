@@ -28,6 +28,7 @@ export type AuthResponseType<T extends Permission = Permission> = {
   authType?: `${AuthUserTypeEnum}`;
   appId?: string;
   apikey?: string;
+  isRoot: boolean;
   permission: T;
   userId?: string;
 };

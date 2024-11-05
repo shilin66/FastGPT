@@ -31,8 +31,6 @@ import {
   Input_Template_Node_Width
 } from '@fastgpt/global/core/workflow/template/input';
 import { FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node';
-import { getHandleId } from '@fastgpt/global/core/workflow/utils';
-import { IfElseResultEnum } from '@fastgpt/global/core/workflow/template/system/ifElse/constant';
 
 /* 
   Compute helper lines for snapping nodes to each other
@@ -414,32 +412,37 @@ export const useWorkflow = () => {
   });
 
   /* node */
+  // Remove change node and its child nodes and edges
   const handleRemoveNode = useMemoizedFn((change: NodeRemoveChange, nodeId: string) => {
     // If the node has child nodes, remove the child nodes
+    const deletedNodeIdList = [nodeId];
+    const deletedEdgeIdList = edges
+      .filter((edge) => edge.source === nodeId || edge.target === nodeId)
+      .map((edge) => edge.id);
+
     const childNodes = nodes.filter((n) => n.data.parentNodeId === nodeId);
     if (childNodes.length > 0) {
       const childNodeIds = childNodes.map((node) => node.id);
+      deletedNodeIdList.push(...childNodeIds);
+
       const childEdges = edges.filter(
         (edge) => childNodeIds.includes(edge.source) || childNodeIds.includes(edge.target)
       );
-
-      onNodesChange(
-        childNodes.map<NodeRemoveChange>((node) => ({
-          type: 'remove',
-          id: node.id
-        }))
-      );
-      onEdgesChange(
-        childEdges.map<EdgeRemoveChange>((edge) => ({
-          type: 'remove',
-          id: edge.id
-        }))
-      );
+      deletedEdgeIdList.push(...childEdges.map((edge) => edge.id));
     }
 
-    onNodesChange([change]);
-
-    return;
+    onNodesChange(
+      deletedNodeIdList.map<NodeRemoveChange>((id) => ({
+        type: 'remove',
+        id
+      }))
+    );
+    onEdgesChange(
+      deletedEdgeIdList.map<EdgeRemoveChange>((id) => ({
+        type: 'remove',
+        id
+      }))
+    );
   });
   const handleSelectNode = useMemoizedFn((change: NodeSelectionChange) => {
     // If the node is not selected and the Ctrl key is pressed, select the node
@@ -538,9 +541,14 @@ export const useWorkflow = () => {
 
   const handleEdgeChange = useCallback(
     (changes: EdgeChange[]) => {
-      onEdgesChange(changes);
+      // If any node is selected, don't remove edges
+      const changesFiltered = changes.filter(
+        (change) => !(change.type === 'remove' && nodes.some((node) => node.selected))
+      );
+
+      onEdgesChange(changesFiltered);
     },
-    [onEdgesChange]
+    [nodes, onEdgesChange]
   );
 
   const onNodeDragStop = useCallback(

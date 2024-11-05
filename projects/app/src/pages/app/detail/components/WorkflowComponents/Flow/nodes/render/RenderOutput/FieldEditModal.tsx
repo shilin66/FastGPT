@@ -116,7 +116,7 @@ const FieldModal = ({
     <MyModal
       isOpen={true}
       iconSrc="/imgs/workflow/extract.png"
-      title={isEdit ? t('workflow:edit_input') : t('workflow:add_new_input')}
+      title={isEdit ? t('workflow:edit_output') : t('workflow:add_new_output')}
       overflow={'unset'}
     >
       <ModalBody w={'100%'} overflow={'auto'} display={'flex'} flexDirection={['column', 'row']}>
@@ -142,7 +142,7 @@ const FieldModal = ({
           {/* key */}
           <Flex mt={3} alignItems={'center'}>
             <FormLabel flex={'0 0 70px'} required>
-              {t('common:core.module.Field Name')}
+              {t('workflow:Variable_name')}
             </FormLabel>
             <Input
               bg={'myGray.50'}

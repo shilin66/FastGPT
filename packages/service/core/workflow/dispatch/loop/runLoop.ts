@@ -7,6 +7,7 @@ import {
 import { dispatchWorkFlow } from '..';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { AIChatItemValueItemType, ChatHistoryItemResType } from '@fastgpt/global/core/chat/type';
+import { cloneDeep } from 'lodash';
 
 type Props = ModuleDispatchProps<{
   [NodeInputKeyEnum.loopInputArray]: Array<any>;
@@ -19,6 +20,7 @@ type Response = DispatchNodeResultType<{
 export const dispatchLoop = async (props: Props): Promise<Response> => {
   const {
     params,
+    runtimeEdges,
     runtimeNodes,
     user,
     node: { name }
@@ -28,11 +30,12 @@ export const dispatchLoop = async (props: Props): Promise<Response> => {
   if (!Array.isArray(loopInputArray)) {
     return Promise.reject('Input value is not an array');
   }
-  if (loopInputArray.length > 50) {
+  const maxLength = process.env.WORKFLOW_MAX_LOOP_TIMES
+    ? Number(process.env.WORKFLOW_MAX_LOOP_TIMES)
+    : 50;
+  if (loopInputArray.length > maxLength) {
     return Promise.reject('Input array length cannot be greater than 50');
   }
-
-  const runNodes = runtimeNodes.filter((node) => childrenNodeIdList.includes(node.nodeId));
 
   const outputValueArr = [];
   const loopDetail: ChatHistoryItemResType[] = [];
@@ -41,27 +44,25 @@ export const dispatchLoop = async (props: Props): Promise<Response> => {
   let newVariables: Record<string, any> = props.variables;
 
   for await (const item of loopInputArray) {
+    runtimeNodes.forEach((node) => {
+      if (
+        childrenNodeIdList.includes(node.nodeId) &&
+        node.flowNodeType === FlowNodeTypeEnum.loopStart
+      ) {
+        node.isEntry = true;
+        node.inputs = node.inputs.map((input) =>
+          input.key === NodeInputKeyEnum.loopStartInput
+            ? {
+                ...input,
+                value: item
+              }
+            : input
+        );
+      }
+    });
     const response = await dispatchWorkFlow({
       ...props,
-      runtimeNodes: runNodes.map((node) =>
-        node.flowNodeType === FlowNodeTypeEnum.loopStart
-          ? {
-              ...node,
-              isEntry: true,
-              inputs: node.inputs.map((input) =>
-                input.key === NodeInputKeyEnum.loopStartInput
-                  ? {
-                      ...input,
-                      value: item
-                    }
-                  : input
-              )
-            }
-          : {
-              ...node,
-              isEntry: false
-            }
-      )
+      runtimeEdges: cloneDeep(runtimeEdges)
     });
 
     const loopOutputValue = response.flowResponses.find(

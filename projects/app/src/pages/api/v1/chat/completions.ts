@@ -527,22 +527,22 @@ const authHeaderRequest = async ({
     teamId,
     tmbId,
     authType,
-    apikey,
-    canWrite: apiKeyCanWrite
+    apikey
   } = await authCert({
     req,
     authToken: true,
     authApiKey: true
   });
 
-  const { app, canWrite } = await (async () => {
+  const { app } = await (async () => {
     if (authType === AuthUserTypeEnum.apikey) {
-      if (!apiKeyAppId) {
+      const currentAppId = apiKeyAppId || appId;
+      if (!currentAppId) {
         return Promise.reject(
           'Key is error. You need to use the app key rather than the account key.'
         );
       }
-      const app = await MongoApp.findById(apiKeyAppId);
+      const app = await MongoApp.findById(currentAppId);
 
       if (!app) {
         return Promise.reject('app is empty');
@@ -551,16 +551,14 @@ const authHeaderRequest = async ({
       appId = String(app._id);
 
       return {
-        app,
-        canWrite: apiKeyCanWrite
+        app
       };
     } else {
       // token_auth
-
       if (!appId) {
         return Promise.reject('appId is empty');
       }
-      const { app, permission } = await authApp({
+      const { app } = await authApp({
         req,
         authToken: true,
         appId,
@@ -568,8 +566,7 @@ const authHeaderRequest = async ({
       });
 
       return {
-        app,
-        canWrite: permission.hasReadPer
+        app
       };
     }
   })();
@@ -579,7 +576,12 @@ const authHeaderRequest = async ({
     MongoChat.findOne({ appId, chatId }).lean()
   ]);
 
-  if (chat && (String(chat.teamId) !== teamId || String(chat.tmbId) !== tmbId)) {
+  if (
+    chat &&
+    (String(chat.teamId) !== teamId ||
+      // There's no need to distinguish who created it if it's apiKey auth
+      (authType === AuthUserTypeEnum.token && String(chat.tmbId) !== tmbId))
+  ) {
     return Promise.reject(ChatErrEnum.unAuthChat);
   }
 
@@ -591,7 +593,7 @@ const authHeaderRequest = async ({
     responseDetail: true,
     apikey,
     authType,
-    canWrite
+    canWrite: true
   };
 };
 

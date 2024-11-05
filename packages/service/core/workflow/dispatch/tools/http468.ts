@@ -18,6 +18,11 @@ import { textAdaptGptResponse } from '@fastgpt/global/core/workflow/runtime/util
 import { getSystemPluginCb } from '../../../../../plugins/register';
 import { ContentTypes } from '@fastgpt/global/core/workflow/constants';
 import { replaceEditorVariable } from '@fastgpt/global/core/workflow/utils';
+import { uploadFile } from '../../../../common/file/gridfs/controller';
+import { ReadFileBaseUrl } from '@fastgpt/global/common/file/constants';
+import { createFileToken } from '../../../../support/permission/controller';
+import { removeFilesByPaths } from '../../../../common/file/utils';
+import { JSONPath } from 'jsonpath-plus';
 
 type PropsArrType = {
   key: string;
@@ -55,7 +60,7 @@ const contentTypeMap = {
 
 export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<HttpResponse> => {
   let {
-    runningAppInfo: { id: appId },
+    runningAppInfo: { id: appId, teamId, tmbId },
     chatId,
     responseChatItemId,
     variables,
@@ -204,7 +209,12 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
     const { formatResponse, rawResponse } = await (async () => {
       const systemPluginCb = await getSystemPluginCb();
       if (systemPluginCb[httpReqUrl]) {
-        const pluginResult = await systemPluginCb[httpReqUrl](requestBody);
+        const pluginResult = await replaceSystemPluginResponse({
+          response: await systemPluginCb[httpReqUrl](requestBody),
+          teamId,
+          tmbId
+        });
+
         return {
           formatResponse: pluginResult,
           rawResponse: pluginResult
@@ -222,11 +232,32 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
 
     // format output value type
     const results: Record<string, any> = {};
-    for (const key in formatResponse) {
-      const output = node.outputs.find((item) => item.key === key);
-      if (!output) continue;
-      results[key] = valueTypeFormat(formatResponse[key], output.valueType);
-    }
+    node.outputs
+      .filter(
+        (item) =>
+          item.key !== NodeOutputKeyEnum.error && item.key !== NodeOutputKeyEnum.httpRawResponse
+      )
+      .forEach((item) => {
+        const key = item.key.startsWith('$') ? item.key : `$.${item.key}`;
+        results[item.key] = (() => {
+          const result = JSONPath({ path: key, json: formatResponse });
+
+          // 如果结果为空,返回 undefined
+          if (!result || result.length === 0) {
+            return undefined;
+          }
+
+          // 以下情况返回数组:
+          // 1. 使用通配符 *
+          // 2. 使用数组切片 [start:end]
+          // 3. 使用过滤表达式 [?(...)]
+          // 4. 使用递归下降 ..
+          // 5. 使用多个结果运算符 ,
+          const needArrayResult = /[*]|[\[][:?]|\.\.|\,/.test(key);
+
+          return needArrayResult ? result : result[0];
+        })();
+      });
 
     if (typeof formatResponse[NodeOutputKeyEnum.answerText] === 'string') {
       workflowStreamResponse?.({
@@ -238,6 +269,7 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
     }
 
     return {
+      ...results,
       [DispatchNodeResponseKeyEnum.nodeResponse]: {
         totalPoints: 0,
         params: Object.keys(params).length > 0 ? params : undefined,
@@ -247,8 +279,7 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
       },
       [DispatchNodeResponseKeyEnum.toolResponses]:
         Object.keys(results).length > 0 ? results : rawResponse,
-      [NodeOutputKeyEnum.httpRawResponse]: rawResponse,
-      ...results
+      [NodeOutputKeyEnum.httpRawResponse]: rawResponse
     };
   } catch (error) {
     addLog.error('Http request error', error);
@@ -293,80 +324,8 @@ async function fetchData({
     data: ['POST', 'PUT', 'PATCH'].includes(method) ? body : undefined
   });
 
-  /*
-    parse the json:
-    {
-      user: {
-        name: 'xxx',
-        age: 12
-      },
-      list: [
-        {
-          name: 'xxx',
-          age: 50
-        },
-        [{ test: 22 }]
-      ],
-      psw: 'xxx'
-    }
-
-    result: {
-      'user': { name: 'xxx', age: 12 },
-      'user.name': 'xxx',
-      'user.age': 12,
-      'list': [ { name: 'xxx', age: 50 }, [ [Object] ] ],
-      'list[0]': { name: 'xxx', age: 50 },
-      'list[0].name': 'xxx',
-      'list[0].age': 50,
-      'list[1]': [ { test: 22 } ],
-      'list[1][0]': { test: 22 },
-      'list[1][0].test': 22,
-      'psw': 'xxx'
-    }
-  */
-  const parseJson = (obj: Record<string, any>, prefix = '') => {
-    let result: Record<string, any> = {};
-
-    if (Array.isArray(obj)) {
-      for (let i = 0; i < obj.length; i++) {
-        result[`${prefix}[${i}]`] = obj[i];
-
-        if (Array.isArray(obj[i])) {
-          result = {
-            ...result,
-            ...parseJson(obj[i], `${prefix}[${i}]`)
-          };
-        } else if (typeof obj[i] === 'object') {
-          result = {
-            ...result,
-            ...parseJson(obj[i], `${prefix}[${i}].`)
-          };
-        }
-      }
-    } else if (typeof obj == 'object') {
-      for (const key in obj) {
-        result[`${prefix}${key}`] = obj[key];
-
-        if (Array.isArray(obj[key])) {
-          result = {
-            ...result,
-            ...parseJson(obj[key], `${prefix}${key}`)
-          };
-        } else if (typeof obj[key] === 'object') {
-          result = {
-            ...result,
-            ...parseJson(obj[key], `${prefix}${key}.`)
-          };
-        }
-      }
-    }
-
-    return result;
-  };
-
   return {
-    formatResponse:
-      typeof response === 'object' && !Array.isArray(response) ? parseJson(response) : {},
+    formatResponse: typeof response === 'object' ? response : {},
     rawResponse: response
   };
 }
@@ -404,4 +363,41 @@ function removeUndefinedSign(obj: Record<string, any>) {
     }
   }
   return obj;
+}
+
+// Replace some special response from system plugin
+async function replaceSystemPluginResponse({
+  response,
+  teamId,
+  tmbId
+}: {
+  response: Record<string, any>;
+  teamId: string;
+  tmbId: string;
+}) {
+  for await (const key of Object.keys(response)) {
+    if (typeof response[key] === 'object' && response[key].type === 'SYSTEM_PLUGIN_FILE') {
+      const fileObj = response[key];
+      const filename = fileObj.path.split('/').pop() || `${tmbId}-${Date.now()}`;
+      try {
+        const fileId = await uploadFile({
+          teamId,
+          tmbId,
+          bucketName: 'chat',
+          path: fileObj.path,
+          filename,
+          contentType: fileObj.contentType,
+          metadata: {}
+        });
+        response[key] = `${ReadFileBaseUrl}?filename=${filename}&token=${await createFileToken({
+          bucketName: 'chat',
+          teamId,
+          tmbId,
+          fileId
+        })}`;
+      } catch (error) {}
+      removeFilesByPaths([fileObj.path]);
+    }
+  }
+  return response;
 }

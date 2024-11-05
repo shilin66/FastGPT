@@ -41,7 +41,8 @@ import { dispatchPluginOutput } from './plugin/runOutput';
 import { removeSystemVariable, valueTypeFormat } from './utils';
 import {
   filterWorkflowEdges,
-  checkNodeRunStatus
+  checkNodeRunStatus,
+  textAdaptGptResponse
 } from '@fastgpt/global/core/workflow/runtime/utils';
 import { ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type';
 import { dispatchRunTools } from './agent/runTool/index';
@@ -62,8 +63,8 @@ import { dispatchCustomFeedback } from './tools/customFeedback';
 import { dispatchReadFiles } from './tools/readFiles';
 import { dispatchUserSelect } from './interactive/userSelect';
 import {
-  InteractiveNodeResponseItemType,
-  UserSelectInteractive
+  WorkflowInteractiveResponseType,
+  InteractiveNodeResponseType
 } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import { dispatchRunAppNode } from './plugin/runApp';
 import { dispatchLoop } from './loop/runLoop';
@@ -161,6 +162,20 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('X-Accel-Buffering', 'no');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
+
+    // 10s sends a message to prevent the browser from thinking that the connection is disconnected
+    const sendStreamTimerSign = () => {
+      setTimeout(() => {
+        props?.workflowStreamResponse?.({
+          event: SseResponseEventEnum.answer,
+          data: textAdaptGptResponse({
+            text: ''
+          })
+        });
+        sendStreamTimerSign();
+      }, 10000);
+    };
+    sendStreamTimerSign();
   }
 
   variables = {
@@ -174,10 +189,10 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
   let toolRunResponse: ToolRunResponseItemType; // Run with tool mode. Result will response to tool node.
   let debugNextStepRunNodes: RuntimeNodeItemType[] = [];
   // 记录交互节点，交互节点需要在工作流完全结束后再进行计算
-  let workflowInteractiveResponse:
+  let nodeInteractiveResponse:
     | {
         entryNodeIds: string[];
-        interactiveResponse: UserSelectInteractive;
+        interactiveResponse: InteractiveNodeResponseType;
       }
     | undefined;
 
@@ -307,7 +322,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     interactiveResponse
   }: {
     entryNodeIds: string[];
-    interactiveResponse: UserSelectInteractive;
+    interactiveResponse: InteractiveNodeResponseType;
   }): AIChatItemValueItemType {
     // Get node outputs
     const nodeOutputs: NodeOutputItemType[] = [];
@@ -323,24 +338,23 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       });
     });
 
-    const interactiveResult: InteractiveNodeResponseItemType = {
+    const interactiveResult: WorkflowInteractiveResponseType = {
       ...interactiveResponse,
       entryNodeIds,
       memoryEdges: runtimeEdges.map((edge) => ({
         ...edge,
-        status: entryNodeIds.includes(edge.target)
-          ? 'active'
-          : entryNodeIds.includes(edge.source)
-            ? 'waiting'
-            : edge.status
+        status: entryNodeIds.includes(edge.target) ? 'active' : edge.status
       })),
       nodeOutputs
     };
 
-    props.workflowStreamResponse?.({
-      event: SseResponseEventEnum.interactive,
-      data: { interactive: interactiveResult }
-    });
+    // Tool call, not need interactive response
+    if (!props.isToolCall) {
+      props.workflowStreamResponse?.({
+        event: SseResponseEventEnum.interactive,
+        data: { interactive: interactiveResult }
+      });
+    }
 
     return {
       type: ChatItemValueTypeEnum.interactive,
@@ -404,7 +418,8 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     // In the current version, only one interactive node is allowed at the same time
     const interactiveResponse = nodeRunResult.result?.[DispatchNodeResponseKeyEnum.interactive];
     if (interactiveResponse) {
-      workflowInteractiveResponse = {
+      pushStore(nodeRunResult.node, nodeRunResult.result);
+      nodeInteractiveResponse = {
         entryNodeIds: [nodeRunResult.node.nodeId],
         interactiveResponse
       };
@@ -592,51 +607,60 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     };
   }
 
-  // start process width initInput
-  const entryNodes = runtimeNodes.filter((item) => item.isEntry);
-  // reset entry
-  runtimeNodes.forEach((item) => {
-    // Interactive node is not the entry node, return interactive result
-    if (
-      item.flowNodeType !== FlowNodeTypeEnum.userSelect &&
-      item.flowNodeType !== FlowNodeTypeEnum.formInput
-    ) {
-      item.isEntry = false;
-    }
-  });
-  await Promise.all(entryNodes.map((node) => checkNodeCanRun(node)));
-
-  // focus try to run pluginOutput
-  const pluginOutputModule = runtimeNodes.find(
-    (item) => item.flowNodeType === FlowNodeTypeEnum.pluginOutput
-  );
-  if (pluginOutputModule && props.mode !== 'debug') {
-    await nodeRunWithActive(pluginOutputModule);
-  }
-
-  // Interactive node
-  if (workflowInteractiveResponse) {
-    const interactiveResult = handleInteractiveResult({
-      entryNodeIds: workflowInteractiveResponse.entryNodeIds,
-      interactiveResponse: workflowInteractiveResponse.interactiveResponse
+  try {
+    // start process width initInput
+    const entryNodes = runtimeNodes.filter((item) => item.isEntry);
+    // reset entry
+    runtimeNodes.forEach((item) => {
+      // Interactive node is not the entry node, return interactive result
+      if (
+        item.flowNodeType !== FlowNodeTypeEnum.userSelect &&
+        item.flowNodeType !== FlowNodeTypeEnum.formInput &&
+        item.flowNodeType !== FlowNodeTypeEnum.tools
+      ) {
+        item.isEntry = false;
+      }
     });
-    chatAssistantResponse.push(interactiveResult);
-  }
+    await Promise.all(entryNodes.map((node) => checkNodeCanRun(node)));
 
-  return {
-    flowResponses: chatResponses,
-    flowUsages: chatNodeUsages,
-    debugResponse: {
-      finishedNodes: runtimeNodes,
-      finishedEdges: runtimeEdges,
-      nextStepRunNodes: debugNextStepRunNodes
-    },
-    [DispatchNodeResponseKeyEnum.runTimes]: workflowRunTimes,
-    [DispatchNodeResponseKeyEnum.assistantResponses]:
-      mergeAssistantResponseAnswerText(chatAssistantResponse),
-    [DispatchNodeResponseKeyEnum.toolResponses]: toolRunResponse,
-    newVariables: removeSystemVariable(variables)
-  };
+    // focus try to run pluginOutput
+    const pluginOutputModule = runtimeNodes.find(
+      (item) => item.flowNodeType === FlowNodeTypeEnum.pluginOutput
+    );
+    if (pluginOutputModule && props.mode !== 'debug') {
+      await nodeRunWithActive(pluginOutputModule);
+    }
+
+    // Interactive node
+    const interactiveResult = (() => {
+      if (nodeInteractiveResponse) {
+        const interactiveAssistant = handleInteractiveResult({
+          entryNodeIds: nodeInteractiveResponse.entryNodeIds,
+          interactiveResponse: nodeInteractiveResponse.interactiveResponse
+        });
+        chatAssistantResponse.push(interactiveAssistant);
+        return interactiveAssistant.interactive;
+      }
+    })();
+
+    return {
+      flowResponses: chatResponses,
+      flowUsages: chatNodeUsages,
+      debugResponse: {
+        finishedNodes: runtimeNodes,
+        finishedEdges: runtimeEdges,
+        nextStepRunNodes: debugNextStepRunNodes
+      },
+      workflowInteractiveResponse: interactiveResult,
+      [DispatchNodeResponseKeyEnum.runTimes]: workflowRunTimes,
+      [DispatchNodeResponseKeyEnum.assistantResponses]:
+        mergeAssistantResponseAnswerText(chatAssistantResponse),
+      [DispatchNodeResponseKeyEnum.toolResponses]: toolRunResponse,
+      newVariables: removeSystemVariable(variables)
+    };
+  } catch (error) {
+    return Promise.reject(error);
+  }
 }
 
 /* get system variable */
