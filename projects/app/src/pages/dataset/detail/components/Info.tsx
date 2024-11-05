@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import { Box, Flex, Input } from '@chakra-ui/react';
-import { delDatasetById } from '@/web/core/dataset/api';
 import { useSelectFile } from '@/web/common/file/hooks/useSelectFile';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
 import { useForm } from 'react-hook-form';
@@ -10,7 +8,7 @@ import type { DatasetItemType } from '@fastgpt/global/core/dataset/type.d';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import { useTranslation } from 'next-i18next';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
-import { useRequest, useRequest2 } from '@fastgpt/web/hooks/useRequest';
+import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import { MongoImageTypeEnum } from '@fastgpt/global/common/file/image/constants';
 import AIModelSelector from '@/components/Select/AIModelSelector';
 import { postRebuildEmbedding } from '@/web/core/dataset/api';
@@ -21,12 +19,8 @@ import MyDivider from '@fastgpt/web/components/common/MyDivider/index';
 import { DatasetTypeEnum, DatasetTypeMap } from '@fastgpt/global/core/dataset/constants';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
-import DefaultPermissionList from '@/components/support/permission/DefaultPerList';
 import MyIcon from '@fastgpt/web/components/common/Icon';
-import {
-  DatasetDefaultPermissionVal,
-  DatasetPermissionList
-} from '@fastgpt/global/support/permission/dataset/constant';
+import { DatasetPermissionList } from '@fastgpt/global/support/permission/dataset/constant';
 import MemberManager from '../../component/MemberManager';
 import {
   getCollaboratorList,
@@ -39,9 +33,6 @@ import { EditResourceInfoFormType } from '@/components/common/Modal/EditResource
 const EditResourceModal = dynamic(() => import('@/components/common/Modal/EditResourceModal'));
 
 const Info = ({ datasetId }: { datasetId: string }) => {
-  const router = useRouter();
-  const [openBaseConfig, setOpenBaseConfig] = useState(true);
-  const [openPermissionConfig, setOpenPermissionConfig] = useState(true);
   const { t } = useTranslation();
   const { datasetDetail, loadDatasetDetail, updateDataset, rebuildingCount, trainingCount } =
     useContextSelector(DatasetPageContext, (v) => v);
@@ -56,10 +47,9 @@ const Info = ({ datasetId }: { datasetId: string }) => {
 
   const vectorModel = watch('vectorModel');
   const agentModel = watch('agentModel');
-  const defaultPermission = watch('defaultPermission');
 
   const { datasetModelList, vectorModelList } = useSystemStore();
-  const { openConfirm: onOpenConfirmDel, ConfirmModal: ConfirmDelModal } = useConfirm({
+  const { ConfirmModal: ConfirmDelModal } = useConfirm({
     content: t('common:core.dataset.Delete Confirm'),
     type: 'delete'
   });
@@ -69,30 +59,17 @@ const Info = ({ datasetId }: { datasetId: string }) => {
     type: 'delete'
   });
 
-  const { File, onOpen: onOpenSelectFile } = useSelectFile({
+  const { File } = useSelectFile({
     fileType: '.jpg,.png',
     multiple: false
   });
 
-  /* 点击删除 */
-  const { mutate: onclickDelete, isLoading: isDeleting } = useRequest({
-    mutationFn: () => {
-      return delDatasetById(datasetId);
-    },
-    onSuccess() {
-      router.replace(`/dataset/list`);
-    },
-    successToast: t('common:common.Delete Success'),
-    errorToast: t('common:common.Delete Failed')
-  });
-
-  const { runAsync: onSave, loading: isSaving } = useRequest2(
+  const { runAsync: onSave } = useRequest2(
     (data: DatasetItemType) => {
       return updateDataset({
         id: datasetId,
         agentModel: data.agentModel,
-        externalReadUrl: data.externalReadUrl,
-        defaultPermission: data.defaultPermission
+        externalReadUrl: data.externalReadUrl
       });
     },
     {
@@ -101,7 +78,7 @@ const Info = ({ datasetId }: { datasetId: string }) => {
     }
   );
 
-  const { runAsync: onSelectFile, loading: isSelecting } = useRequest2(
+  const { runAsync: onSelectFile } = useRequest2(
     (e: File[]) => {
       const file = e[0];
       if (!file) return Promise.resolve(null);
@@ -122,7 +99,7 @@ const Info = ({ datasetId }: { datasetId: string }) => {
     }
   );
 
-  const { runAsync: onRebuilding, loading: isRebuilding } = useRequest2(
+  const { runAsync: onRebuilding } = useRequest2(
     (vectorModel: VectorModelItemType) => {
       return postRebuildEmbedding({
         datasetId,
@@ -196,23 +173,13 @@ const Info = ({ datasetId }: { datasetId: string }) => {
 
       <MyDivider my={4} h={'2px'} maxW={'500px'} />
 
-      <Box overflow={'hidden'} h={openBaseConfig ? 'auto' : '24px'}>
+      <Box overflow={'hidden'}>
         <Flex justify={'space-between'} alignItems={'center'} fontSize={'mini'} h={'24px'}>
           <Box fontWeight={'500'} color={'myGray.900'} userSelect={'none'}>
             {t('common:common.base_config')}
           </Box>
-          <MyIcon
-            w={'16px'}
-            _hover={{ color: 'primary.500', cursor: 'pointer' }}
-            color={'myGray.500'}
-            name={openBaseConfig ? 'core/chat/chevronUp' : 'core/chat/chevronDown'}
-            onClick={(e) => {
-              e.preventDefault();
-              setOpenBaseConfig(!openBaseConfig);
-            }}
-          />
         </Flex>
-        <Flex mt={3} w={'100%'} flexDir={'column'} userSelect={'none'}>
+        <Flex mt={3} w={'100%'} flexDir={'column'}>
           <FormLabel fontSize={'mini'} fontWeight={'500'}>
             {t('common:core.dataset.Dataset ID')}
           </FormLabel>
@@ -223,7 +190,7 @@ const Info = ({ datasetId }: { datasetId: string }) => {
           <FormLabel fontSize={'mini'} fontWeight={'500'}>
             {t('common:core.ai.model.Vector Model')}
           </FormLabel>
-          <Box pt={2} flex={[1, '0 0 320px']}>
+          <Box pt={2}>
             <AIModelSelector
               w={'100%'}
               value={vectorModel.model}
@@ -242,10 +209,9 @@ const Info = ({ datasetId }: { datasetId: string }) => {
               onchange={(e) => {
                 const vectorModel = vectorModelList.find((item) => item.model === e);
                 if (!vectorModel) return;
-                return onOpenConfirmRebuild(() => {
-                  return onRebuilding(vectorModel).then(() => {
-                    setValue('vectorModel', vectorModel);
-                  });
+                return onOpenConfirmRebuild(async () => {
+                  await onRebuilding(vectorModel);
+                  setValue('vectorModel', vectorModel);
                 })();
               }}
             />
@@ -253,12 +219,10 @@ const Info = ({ datasetId }: { datasetId: string }) => {
         </Box>
 
         <Flex mt={2} w={'100%'} alignItems={'center'}>
-          <FormLabel flex={['0 0 90px', '0 0 160px']} fontSize={'mini'} w={0} fontWeight={'500'}>
+          <FormLabel flex={1} fontSize={'mini'} w={0} fontWeight={'500'}>
             {t('common:core.Max Token')}
           </FormLabel>
-          <Box flex={[1, '0 0 320px']} fontSize={'mini'}>
-            {vectorModel.maxToken}
-          </Box>
+          <Box fontSize={'mini'}>{vectorModel.maxToken}</Box>
         </Flex>
 
         <Box pt={5}>
@@ -308,54 +272,33 @@ const Info = ({ datasetId }: { datasetId: string }) => {
       {datasetDetail.permission.hasManagePer && (
         <>
           <MyDivider my={4} h={'2px'} maxW={'500px'} />
-          <Box overflow={'hidden'} h={openPermissionConfig ? 'auto' : '24px'}>
-            <Flex justify={'space-between'} alignItems={'center'} fontSize={'mini'} h={'24px'}>
-              <Box fontWeight={'500'} color={'myGray.900'} userSelect={'none'}>
-                {t('common:permission.Permission config')}
-              </Box>
-              <MyIcon
-                w={'16px'}
-                _hover={{ color: 'primary.500', cursor: 'pointer' }}
-                color={'myGray.500'}
-                name={openPermissionConfig ? 'core/chat/chevronUp' : 'core/chat/chevronDown'}
-                onClick={() => setOpenPermissionConfig(!openPermissionConfig)}
-              />
-            </Flex>
-
-            <Box mt={3}>
-              <FormLabel fontWeight={'500'} fontSize={'mini'} pb={3} userSelect={'none'}>
-                {t('common:permission.Default permission')}
-              </FormLabel>
-              <DefaultPermissionList
-                fontSize={'mini'}
-                per={defaultPermission}
-                defaultPer={DatasetDefaultPermissionVal}
-                onChange={(v) => {
-                  setValue('defaultPermission', v);
-                  return handleSubmit((data) => onSave({ ...data, defaultPermission: v }))();
-                }}
-              />
-            </Box>
-
-            <Box py={4}>
-              <MemberManager
-                managePer={{
-                  permission: datasetDetail.permission,
-                  onGetCollaboratorList: () => getCollaboratorList(datasetId),
-                  permissionList: DatasetPermissionList,
-                  onUpdateCollaborators: (body) =>
-                    postUpdateDatasetCollaborators({
-                      ...body,
-                      datasetId
-                    }),
-                  onDelOneCollaborator: (tmbId) =>
-                    deleteDatasetCollaborators({
+          <Box>
+            <MemberManager
+              managePer={{
+                mode: 'all',
+                permission: datasetDetail.permission,
+                onGetCollaboratorList: () => getCollaboratorList(datasetId),
+                permissionList: DatasetPermissionList,
+                onUpdateCollaborators: (body) =>
+                  postUpdateDatasetCollaborators({
+                    ...body,
+                    datasetId
+                  }),
+                onDelOneCollaborator: async ({ groupId, tmbId }) => {
+                  if (tmbId) {
+                    return deleteDatasetCollaborators({
                       datasetId,
                       tmbId
-                    })
-                }}
-              />
-            </Box>
+                    });
+                  } else if (groupId) {
+                    return deleteDatasetCollaborators({
+                      datasetId,
+                      groupId
+                    });
+                  }
+                }
+              }}
+            />
           </Box>
         </>
       )}

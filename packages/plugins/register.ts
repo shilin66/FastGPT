@@ -13,7 +13,9 @@ const staticPluginList = [
   'Doc2X/URLImg2text',
   `Doc2X/FilePDF2text`,
   `Doc2X/FileImg2text`,
-  'feishu'
+  'feishu',
+  'google',
+  'bing'
 ];
 // Run in worker thread (Have npm packages)
 const packagePluginList = [
@@ -24,7 +26,9 @@ const packagePluginList = [
   'duckduckgo/searchNews',
   'duckduckgo/searchVideo',
   'drawing',
-  'drawing/baseChart'
+  'drawing/baseChart',
+  'wiki',
+  'databaseConnection'
 ];
 
 export const list = [...staticPluginList, ...packagePluginList];

@@ -17,10 +17,6 @@ const RenderList: {
     Component: dynamic(() => import('./templates/Reference'))
   },
   {
-    types: [FlowNodeInputTypeEnum.input],
-    Component: dynamic(() => import('./templates/TextInput'))
-  },
-  {
     types: [FlowNodeInputTypeEnum.select],
     Component: dynamic(() => import('./templates/Select'))
   },
@@ -31,10 +27,6 @@ const RenderList: {
   {
     types: [FlowNodeInputTypeEnum.switch],
     Component: dynamic(() => import('./templates/Switch'))
-  },
-  {
-    types: [FlowNodeInputTypeEnum.textarea],
-    Component: dynamic(() => import('./templates/Textarea'))
   },
   {
     types: [FlowNodeInputTypeEnum.selectApp],
@@ -67,6 +59,14 @@ const RenderList: {
   {
     types: [FlowNodeInputTypeEnum.settingDatasetQuotePrompt],
     Component: dynamic(() => import('./templates/SettingQuotePrompt'))
+  },
+  {
+    types: [FlowNodeInputTypeEnum.input],
+    Component: dynamic(() => import('./templates/TextInput'))
+  },
+  {
+    types: [FlowNodeInputTypeEnum.textarea],
+    Component: dynamic(() => import('./templates/Textarea'))
   }
 ];
 

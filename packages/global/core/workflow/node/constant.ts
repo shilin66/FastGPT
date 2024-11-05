@@ -3,12 +3,12 @@ import { i18nT } from '../../../../web/i18n/utils';
 export enum FlowNodeInputTypeEnum { // render ui
   reference = 'reference', // reference to other node output
   input = 'input', // one line input
+  textarea = 'textarea',
   numberInput = 'numberInput',
   switch = 'switch', // true/false
   select = 'select',
 
   // editor
-  textarea = 'textarea',
   JSONEditor = 'JSONEditor',
 
   addInputParam = 'addInputParam', // params input
@@ -38,9 +38,6 @@ export const FlowNodeInputMap: Record<
   [FlowNodeInputTypeEnum.reference]: {
     icon: 'core/workflow/inputType/reference'
   },
-  [FlowNodeInputTypeEnum.input]: {
-    icon: 'core/workflow/inputType/input'
-  },
   [FlowNodeInputTypeEnum.numberInput]: {
     icon: 'core/workflow/inputType/numberInput'
   },
@@ -49,9 +46,6 @@ export const FlowNodeInputMap: Record<
   },
   [FlowNodeInputTypeEnum.switch]: {
     icon: 'core/workflow/inputType/switch'
-  },
-  [FlowNodeInputTypeEnum.textarea]: {
-    icon: 'core/workflow/inputType/textarea'
   },
   [FlowNodeInputTypeEnum.JSONEditor]: {
     icon: 'core/workflow/inputType/jsonEditor'
@@ -85,6 +79,12 @@ export const FlowNodeInputMap: Record<
   },
   [FlowNodeInputTypeEnum.custom]: {
     icon: 'core/workflow/inputType/custom'
+  },
+  [FlowNodeInputTypeEnum.input]: {
+    icon: 'core/workflow/inputType/input'
+  },
+  [FlowNodeInputTypeEnum.textarea]: {
+    icon: 'core/workflow/inputType/textarea'
   }
 };
 

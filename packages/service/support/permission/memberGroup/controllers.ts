@@ -73,7 +73,7 @@ export const getGroupsByTmbId = async ({
           groupId: {
             $exists: true
           },
-          role: role ? { $in: role } : undefined
+          ...(role ? { role: { $in: role } } : {})
         })
           .populate('groupId')
           .lean()

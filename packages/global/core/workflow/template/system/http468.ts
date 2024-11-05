@@ -27,6 +27,7 @@ export const HttpNode468: FlowNodeTemplateType = {
   intro: i18nT('workflow:intro_http_request'),
   showStatus: true,
   isTool: true,
+  courseUrl: '/docs/workflow/modules/http/',
   version: '481',
   inputs: [
     {
@@ -113,7 +114,9 @@ export const HttpNode468: FlowNodeTemplateType = {
   ],
   outputs: [
     {
-      ...Output_Template_AddOutput
+      ...Output_Template_AddOutput,
+      label: i18nT('workflow:http_extract_output'),
+      description: i18nT('workflow:http_extract_output_description')
     },
     {
       id: NodeOutputKeyEnum.error,

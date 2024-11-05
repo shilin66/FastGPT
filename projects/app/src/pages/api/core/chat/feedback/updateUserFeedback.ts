@@ -5,13 +5,14 @@ import { MongoChatItem } from '@fastgpt/service/core/chat/chatItemSchema';
 import { UpdateChatFeedbackProps } from '@fastgpt/global/core/chat/api';
 import { authChatCrud } from '@/service/support/permission/auth/chat';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
+import { NextAPI } from '@/service/middleware/entry';
 
 /* 初始化我的聊天框，需要身份验证 */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const {
     appId,
     chatId,
-    chatItemId,
+    dataId,
     shareId,
     teamId,
     teamToken,
@@ -36,15 +37,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       per: ReadPermissionVal
     });
 
-    if (!chatItemId) {
-      throw new Error('chatItemId is required');
+    if (!dataId) {
+      throw new Error('dataId is required');
     }
 
     await MongoChatItem.findOneAndUpdate(
       {
         appId,
         chatId,
-        dataId: chatItemId
+        dataId
       },
       {
         $unset: {
@@ -66,3 +67,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 }
+
+export default NextAPI(handler);

@@ -1,4 +1,4 @@
-import { Dispatch, ReactNode, SetStateAction, useCallback, useEffect, useState } from 'react';
+import { Dispatch, ReactNode, SetStateAction, useCallback, useState } from 'react';
 import { createContext } from 'use-context-selector';
 import { defaultApp } from '@/web/core/app/constants';
 import { delAppById, getAppDetailById, putAppById } from '@/web/core/app/api';
@@ -176,7 +176,15 @@ const AppContextProvider = ({ children }: { children: ReactNode }) => {
       errorToast: t('common:common.Delete Failed')
     }
   );
-  const onDelApp = useCallback(() => openConfirmDel(deleteApp)(), [deleteApp, openConfirmDel]);
+  const onDelApp = useCallback(
+    () =>
+      openConfirmDel(
+        deleteApp,
+        undefined,
+        t('app:confirm_del_app_tip', { name: appDetail.name })
+      )(),
+    [appDetail.name, deleteApp, openConfirmDel, t]
+  );
 
   const contextValue: AppContextType = {
     appId,
