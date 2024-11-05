@@ -36,7 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     const userId = user ? user._id : await createUserWithDefaultTeamAndPermission(username, type);
     const userDetail = await getUserDetail({
-      userId: userId
+      userId: userId,
+      tmbId: user?.lastLoginTmbId
     });
     const token = createJWT(userDetail);
     setCookie(res, token);

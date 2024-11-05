@@ -83,7 +83,8 @@ export async function pushDataListToTrainingQueue({
       };
     }
 
-    if (trainingMode === TrainingModeEnum.qa || trainingMode === TrainingModeEnum.auto) {
+    // if (trainingMode === TrainingModeEnum.qa || trainingMode === TrainingModeEnum.auto) {
+    if (trainingMode === TrainingModeEnum.qa) {
       return {
         maxToken: agentModelData.maxContext * 0.8,
         model: agentModelData.model,

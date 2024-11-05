@@ -7,7 +7,7 @@ async function handler(req: ApiRequestProps, res: ApiResponseType<any>) {
   const { name } = req.body as { name: string };
 
   const { tmbId } = await parseHeaderCert({ req, authToken: true });
-  await updateMemberName(tmbId, name);
+  // await updateMemberName(tmbId, name);
 }
 
 export default NextAPI(handler);
