@@ -4,12 +4,7 @@ import { getTmbInfoByTmbId, getUserDefaultTeam } from './team/controller';
 import { ERROR_ENUM } from '@fastgpt/global/common/error/errorCode';
 import { MongoTeam } from './team/teamSchema';
 import { MongoTeamMember } from './team/teamMemberSchema';
-import {
-  TeamMemberRoleEnum,
-  TeamMemberStatusEnum
-} from '@fastgpt/global/support/user/team/constant';
-import { MongoResourcePermission } from '../permission/schema';
-import { PermissionList, PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
+import { TeamMemberStatusEnum } from '@fastgpt/global/support/user/team/constant';
 
 export async function authUserExist({ userId, username }: { userId?: string; username?: string }) {
   if (userId) {
@@ -77,21 +72,20 @@ export async function createUserWithDefaultTeamAndPermission(
     {
       teamId: defaultTeam._id,
       userId,
-      name: username,
-      // role: TeamMemberRoleEnum.visitor,
+      name: username.replaceAll('@zenlayer.com', ''),
       status: TeamMemberStatusEnum.active,
       createTime: new Date(),
       defaultTeam: true
     }
   ]);
 
-  await MongoResourcePermission.create([
-    {
-      resourceType: PerResourceTypeEnum.team,
-      tmbId,
-      teamId: defaultTeam._id,
-      permission: PermissionList['read'].value
-    }
-  ]);
+  // await MongoResourcePermission.create([
+  //   {
+  //     resourceType: PerResourceTypeEnum.team,
+  //     tmbId,
+  //     teamId: defaultTeam._id,
+  //     permission: PermissionList['read'].value
+  //   }
+  // ]);
   return userId;
 }

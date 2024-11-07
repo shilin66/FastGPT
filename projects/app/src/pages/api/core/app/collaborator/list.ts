@@ -3,12 +3,12 @@ import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { listAppCollaborator } from '@fastgpt/service/support/permission/app/controller';
 import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
-import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
+import { authApp } from '@fastgpt/service/support/permission/app/auth';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
   const appId = req.query.appId as string;
 
-  await authUserPer({ req, authToken: true, per: ManagePermissionVal });
+  await authApp({ req, authToken: true, appId, per: ManagePermissionVal });
 
   return listAppCollaborator(appId);
 }

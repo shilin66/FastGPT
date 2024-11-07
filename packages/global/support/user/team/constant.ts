@@ -23,7 +23,7 @@ export enum TeamMemberStatusEnum {
 export const TeamMemberStatusMap = {
   [TeamMemberStatusEnum.waiting]: {
     label: 'user.team.member.waiting',
-    color: 'orange.600'
+    color: 'yellow.600'
   },
   [TeamMemberStatusEnum.active]: {
     label: 'user.team.member.active',
