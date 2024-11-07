@@ -1,8 +1,10 @@
 import {
   TeamMemberItemType,
+  TeamMemberSchema,
   TeamMemberWithTeamAndUserSchema,
   TeamMemberWithTeamSchema,
   TeamMemberWithUserSchema,
+  TeamSchema,
   TeamTmbItemType
 } from '@fastgpt/global/support/user/team/type';
 import { ClientSession, Types } from '../../../common/mongo';
@@ -35,6 +37,11 @@ import { getUserDetail } from '../controller';
 import { MongoUser } from '../schema';
 import { UpdatePermissionBody } from '@fastgpt/global/support/permission/collaborator';
 import { ResourcePermissionType } from '@fastgpt/global/support/permission/type';
+import { MongoGroupMemberModel } from '../../permission/memberGroup/groupMemberSchema';
+import { MongoDataset } from '../../../core/dataset/schema';
+import { MongoApp } from '../../../core/app/schema';
+import { updateMemberGroup } from '../../permission/memberGroup/controllers';
+import { GroupMemberRole } from '@fastgpt/global/support/permission/memberGroup/constant';
 
 async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemType> {
   const tmb = (await MongoTeamMember.findOne(match).populate('teamId')) as TeamMemberWithTeamSchema;
@@ -128,7 +135,7 @@ export async function createDefaultTeam({
         {
           teamId: insertedId,
           userId,
-          name: 'Owner',
+          name: 'root',
           role: TeamMemberRoleEnum.owner,
           status: TeamMemberStatusEnum.active,
           createTime: new Date(),
@@ -233,7 +240,7 @@ export async function createTeam({ name, avatar }: CreateTeamProps, userId: stri
     {
       teamId,
       userId,
-      name: user.username,
+      name: user.username.replaceAll('@zenlayer.com', ''),
       role: TeamMemberRoleEnum.owner,
       status: TeamMemberStatusEnum.active,
       createTime: new Date(),
@@ -289,8 +296,8 @@ export async function getTeamMembers(teamId: string): Promise<TeamMemberItemType
       return {
         userId: tmb.userId._id,
         teamId: tmb.teamId._id,
-        memberName: tmb.userId.username,
-        avatar: tmb.teamId.avatar,
+        memberName: tmb.name,
+        avatar: tmb.userId.avatar,
         balance: tmb.teamId.balance,
         tmbId: tmb._id,
         teamDomain: tmb.teamId.teamDomain,
@@ -306,14 +313,78 @@ export async function getTeamMembers(teamId: string): Promise<TeamMemberItemType
 }
 
 export async function deleteTeamMember(tmbId: string) {
+  const tmb = await MongoTeamMember.findById(tmbId).lean();
+  if (!tmb) {
+    return Promise.reject('成员不存在');
+  }
+  if (tmb.status === TeamMemberStatusEnum.active) {
+    await changeResourceOwner(tmb.teamId, tmb.userId);
+  }
+
   await MongoTeamMember.deleteOne({ _id: tmbId });
   await MongoResourcePermission.deleteMany({ tmbId });
+  await MongoGroupMemberModel.deleteMany({ tmbId });
 }
 
 export async function leaveTeam(teamId: string, userId: string) {
+  await changeResourceOwner(teamId, userId);
+  // 修改成员状态为 leave
   await MongoTeamMember.updateOne({ teamId, userId }, { status: TeamMemberStatusEnum.leave });
 }
 
+async function changeResourceOwner(teamId: string, userId: string) {
+  // 查询mongo team 的ownerId
+  const { ownerId } = (await MongoTeam.findById(teamId).lean()) as TeamSchema;
+  // 查询ownerId 对应的tmbId
+  const { _id: ownerTmbId } = (await MongoTeamMember.findOne({
+    teamId,
+    userId: ownerId,
+    role: TeamMemberRoleEnum.owner
+  }).lean()) as TeamMemberSchema;
+
+  const { _id: leaveTmbId } = (await MongoTeamMember.findOne({
+    teamId,
+    userId
+  }).lean()) as TeamMemberSchema;
+
+  // 修改dataset的tmbId 为 ownerTmbId
+  await MongoDataset.updateMany(
+    { tmbId: leaveTmbId },
+    {
+      $set: { tmbId: ownerTmbId }
+    }
+  );
+
+  const groups = await MongoMemberGroupModel.find({
+    tmbId: leaveTmbId,
+    role: GroupMemberRole.owner
+  }).lean();
+  // 转移mongo group 的所有者
+  await Promise.all(
+    groups.map(async (group) => {
+      await updateMemberGroup({
+        groupId: group._id,
+        memberList: [
+          {
+            role: GroupMemberRole.member,
+            tmbId: leaveTmbId
+          },
+          {
+            role: GroupMemberRole.owner,
+            tmbId: ownerTmbId
+          }
+        ]
+      });
+    })
+  );
+  // 修改app的tmbId 为 ownerTmbId
+  await MongoApp.updateMany(
+    { tmbId: leaveTmbId },
+    {
+      $set: { tmbId: ownerTmbId }
+    }
+  );
+}
 export async function inviteTeamMember({
   teamId,
   usernames
@@ -353,12 +424,11 @@ export async function inviteTeamMember({
       }
     });
     // create all team member, return all tmbIds
-    const createdTeamMembers = await MongoTeamMember.create(
+    await MongoTeamMember.create(
       notInTeamUsernames.map((username) => ({
         teamId,
         userId: userMap.get(username),
-        name: username,
-        // role: TeamMemberRoleEnum.visitor,
+        name: username.replaceAll('@zenlayer.com', ''),
         status: TeamMemberStatusEnum.waiting,
         createTime: new Date(),
         defaultTeam: false
@@ -401,13 +471,15 @@ export async function switchTeam(newTeamId: string, userId: string, currentTeamI
   if (!teamMember) {
     return Promise.reject('You are not a member of the team!');
   }
-  // MongoTeamMember 根据currentTeamId和userId，修改defautlTeam为false
+  // 修改用户 lastLoginTmbId
   await MongoUser.updateOne(
     {
       _id: userId
     },
     {
-      lastLoginTmbId: teamMember._id
+      $set: {
+        lastLoginTmbId: teamMember._id
+      }
     }
   );
 
@@ -420,6 +492,78 @@ export async function switchTeam(newTeamId: string, userId: string, currentTeamI
 }
 
 export async function updatePermission(updatePermissionBody: UpdatePermissionBody, teamId: String) {
+  if (updatePermissionBody.groupId) {
+    if (updatePermissionBody.permission === TeamReadPermissionVal) {
+      await MongoResourcePermission.deleteOne({
+        teamId,
+        groupId: updatePermissionBody.groupId,
+        resourceType: PerResourceTypeEnum.team
+      });
+    } else {
+      // 根据groupId 判断是否已经存在，如果存在则更新，如果不存在则创建
+      if (
+        await MongoResourcePermission.findOne({
+          teamId,
+          groupId: updatePermissionBody.groupId,
+          resourceType: PerResourceTypeEnum.team
+        })
+      ) {
+        await MongoResourcePermission.updateOne(
+          {
+            teamId,
+            groupId: updatePermissionBody.groupId,
+            resourceType: PerResourceTypeEnum.team
+          },
+          {
+            permission: updatePermissionBody.permission
+          }
+        );
+      } else {
+        await MongoResourcePermission.create({
+          teamId,
+          groupId: updatePermissionBody.groupId,
+          resourceType: PerResourceTypeEnum.team,
+          permission: updatePermissionBody.permission
+        });
+      }
+    }
+  }
+  if (updatePermissionBody.memberId) {
+    if (updatePermissionBody.permission === TeamReadPermissionVal) {
+      await MongoResourcePermission.deleteOne({
+        teamId,
+        tmbId: updatePermissionBody.memberId,
+        resourceType: PerResourceTypeEnum.team
+      });
+    } else {
+      // 根据tmbId 判断是否已经存在，如果存在则更新，如果不存在则创建
+      if (
+        await MongoResourcePermission.findOne({
+          teamId,
+          tmbId: updatePermissionBody.memberId,
+          resourceType: PerResourceTypeEnum.team
+        })
+      ) {
+        await MongoResourcePermission.updateOne(
+          {
+            teamId,
+            tmbId: updatePermissionBody.memberId,
+            resourceType: PerResourceTypeEnum.team
+          },
+          {
+            permission: updatePermissionBody.permission
+          }
+        );
+      } else {
+        await MongoResourcePermission.create({
+          teamId,
+          tmbId: updatePermissionBody.memberId,
+          resourceType: PerResourceTypeEnum.team,
+          permission: updatePermissionBody.permission
+        });
+      }
+    }
+  }
   await MongoResourcePermission.updateOne(
     {
       teamId,

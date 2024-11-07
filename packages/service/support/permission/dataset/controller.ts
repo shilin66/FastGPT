@@ -31,10 +31,14 @@ export async function listDatasetCollaborator(datasetId: string): Promise<Collab
   return await listCollaborator(PerResourceTypeEnum.dataset, datasetId, dataset.teamId);
 }
 
-export async function deleteDatasetCollaborators(datasetId: string, tmbId: string) {
+export async function deleteDatasetCollaborators(
+  datasetId: string,
+  tmbId: string,
+  groupId: string
+) {
   const dataset = await MongoDataset.findById(datasetId).lean();
   if (!dataset) {
     return Promise.reject(AppErrEnum.unExist);
   }
-  await deleteCollaborators(PerResourceTypeEnum.dataset, datasetId, dataset.teamId, tmbId);
+  await deleteCollaborators(PerResourceTypeEnum.dataset, datasetId, dataset.teamId, tmbId, groupId);
 }

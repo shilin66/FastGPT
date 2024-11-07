@@ -45,12 +45,6 @@ export const getTeamDefaultGroup = async ({
       ],
       { session }
     );
-    await MongoResourcePermission.create({
-      teamId,
-      groupId: group._id,
-      resourceType: PerResourceTypeEnum.team,
-      permission: TeamDefaultPermissionVal
-    });
     return group;
   }
   return group;
@@ -199,6 +193,10 @@ export const createMemberGroup = async (data: {
 }) => {
   const { teamId, name, memberIdList, avatar } = data;
 
+  if (await MongoMemberGroupModel.findOne({ name, teamId })) {
+    return Promise.reject(TeamErrEnum.groupNameDuplicate);
+  }
+
   const group = await MongoMemberGroupModel.create({
     teamId,
     name,
@@ -212,13 +210,6 @@ export const createMemberGroup = async (data: {
       role: GroupMemberRole.owner
     }))
   );
-
-  await MongoResourcePermission.create({
-    teamId,
-    groupId: group._id,
-    resourceType: 'team',
-    permission: TeamDefaultPermissionVal
-  });
 };
 
 export const listMemberGroup = async (teamId: string, tmbId: string) => {

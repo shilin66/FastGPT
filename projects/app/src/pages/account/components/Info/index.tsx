@@ -239,21 +239,22 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
         {feConfigs?.isPlus && (
           <Flex mt={[0, 4]} alignItems={'center'}>
             <Box {...labelStyles}>{t('common:user.Member Name')}:&nbsp;</Box>
-            <Input
-              flex={'1 0 0'}
-              defaultValue={userInfo?.team?.memberName || 'Member'}
-              title={t('common:user.Edit name')}
-              borderColor={'transparent'}
-              transform={'translateX(-11px)'}
-              maxLength={20}
-              onBlur={(e) => {
-                const val = e.target.value;
-                if (val === userInfo?.team?.memberName) return;
-                try {
-                  putUpdateMemberName(val);
-                } catch (error) {}
-              }}
-            />
+            <Box flex={1}>{userInfo?.team?.memberName || 'Member'}</Box>
+            {/*<Input*/}
+            {/*  flex={'1 0 0'}*/}
+            {/*  defaultValue={userInfo?.team?.memberName || 'Member'}*/}
+            {/*  title={t('common:user.Edit name')}*/}
+            {/*  borderColor={'transparent'}*/}
+            {/*  transform={'translateX(-11px)'}*/}
+            {/*  maxLength={20}*/}
+            {/*  onBlur={(e) => {*/}
+            {/*    const val = e.target.value;*/}
+            {/*    if (val === userInfo?.team?.memberName) return;*/}
+            {/*    try {*/}
+            {/*      putUpdateMemberName(val);*/}
+            {/*    } catch (error) {}*/}
+            {/*  }}*/}
+            {/*/>*/}
           </Flex>
         )}
         <Flex alignItems={'center'} mt={6}>

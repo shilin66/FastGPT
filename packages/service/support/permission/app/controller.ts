@@ -29,10 +29,14 @@ export async function listAppCollaborator(appId: string): Promise<CollaboratorIt
   return await listCollaborator(PerResourceTypeEnum.app, appId, app.teamId);
 }
 
-export async function deleteAppCollaborators(appId: string, tmbId: string) {
+export async function deleteAppCollaborators(appId: string, tmbId: string, groupId: string) {
   const app = await MongoApp.findById(appId).lean();
   if (!app) {
     return Promise.reject(AppErrEnum.unExist);
   }
-  await deleteCollaborators(PerResourceTypeEnum.app, appId, app.teamId, tmbId);
+  await deleteCollaborators(PerResourceTypeEnum.app, appId, app.teamId, tmbId, groupId);
+}
+
+export async function changeAppOwner(appId: string, ownerId: string) {
+  await MongoApp.updateOne({ _id: appId }, { tmbId: ownerId });
 }

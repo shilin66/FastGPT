@@ -1,6 +1,10 @@
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import { Box, HStack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
-import { TeamMemberRoleEnum } from '@fastgpt/global/support/user/team/constant';
+import {
+  TeamMemberRoleEnum,
+  TeamMemberStatusEnum,
+  TeamMemberStatusMap
+} from '@fastgpt/global/support/user/team/constant';
 import { useTranslation } from 'next-i18next';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
@@ -48,9 +52,9 @@ function MemberTable() {
                     <Avatar src={item.avatar} w={['18px', '22px']} borderRadius={'50%'} />
                     <Box className={'textEllipsis'}>
                       {item.memberName}
-                      {item.status === 'waiting' && (
-                        <Tag ml="2" colorSchema="yellow">
-                          {t('common:user.team.member.waiting')}
+                      {item.status !== TeamMemberStatusEnum.active && (
+                        <Tag ml="2" color={TeamMemberStatusMap[item.status].color}>
+                          {t(`common:user.team.member.${item.status}`)}
                         </Tag>
                       )}
                     </Box>
