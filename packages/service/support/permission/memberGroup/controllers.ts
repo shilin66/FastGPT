@@ -263,6 +263,9 @@ export const updateMemberGroup = async (data: {
     return Promise.reject(TeamErrEnum.groupNotExist);
   }
   if (name || avatar) {
+    if (await MongoMemberGroupModel.findOne({ name, teamId: group.teamId })) {
+      return Promise.reject(TeamErrEnum.groupNameDuplicate);
+    }
     await MongoMemberGroupModel.updateOne(
       { _id: groupId },
       {
@@ -272,6 +275,9 @@ export const updateMemberGroup = async (data: {
     );
   }
   if (memberList && memberList.length > 0) {
+    if (group.name === DefaultGroupName) {
+      return;
+    }
     await MongoGroupMemberModel.deleteMany({ groupId });
     await MongoGroupMemberModel.create(
       memberList.map((item) => ({

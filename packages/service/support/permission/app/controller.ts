@@ -1,9 +1,13 @@
 import { UpdateAppCollaboratorBody } from '@fastgpt/global/core/app/collaborator';
 import { MongoApp } from '../../../core/app/schema';
 import { AppErrEnum } from '@fastgpt/global/common/error/code/app';
-import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
+import {
+  OwnerPermissionVal,
+  PerResourceTypeEnum
+} from '@fastgpt/global/support/permission/constant';
 import { CollaboratorItemType } from '@fastgpt/global/support/permission/collaborator';
 import { deleteCollaborators, listCollaborator, updateCollaborators } from '../controller';
+import { MongoResourcePermission } from '../schema';
 
 export async function updateAppCollaborators(updateAppCollaboratorBody: UpdateAppCollaboratorBody) {
   const { appId, members, groups, permission } = updateAppCollaboratorBody;
@@ -38,5 +42,17 @@ export async function deleteAppCollaborators(appId: string, tmbId: string, group
 }
 
 export async function changeAppOwner(appId: string, ownerId: string) {
+  await MongoResourcePermission.updateOne(
+    {
+      resourceType: PerResourceTypeEnum.app,
+      resourceId: appId,
+      permission: OwnerPermissionVal
+    },
+    {
+      $set: {
+        tmbId: ownerId
+      }
+    }
+  );
   await MongoApp.updateOne({ _id: appId }, { tmbId: ownerId });
 }

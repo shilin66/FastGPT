@@ -23,7 +23,10 @@ import {
   UpdateTeamProps
 } from '@fastgpt/global/support/user/team/controller';
 import { createJWT, getResourcePermission } from '../../permission/controller';
-import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
+import {
+  OwnerPermissionVal,
+  PerResourceTypeEnum
+} from '@fastgpt/global/support/permission/constant';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
 import {
   TeamDefaultPermissionVal,
@@ -382,6 +385,20 @@ async function changeResourceOwner(teamId: string, userId: string) {
     { tmbId: leaveTmbId },
     {
       $set: { tmbId: ownerTmbId }
+    }
+  );
+
+  // 修改resource permission的owner 权限
+  await MongoResourcePermission.updateMany(
+    {
+      teamId,
+      tmbId: leaveTmbId,
+      permission: OwnerPermissionVal
+    },
+    {
+      $set: {
+        tmbId: ownerTmbId
+      }
     }
   );
 }
