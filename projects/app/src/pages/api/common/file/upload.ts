@@ -51,20 +51,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
       path: file.path,
       filename: file.originalname,
       contentType: file.mimetype,
+      encoding: file.encoding,
       metadata: metadata
     });
 
     jsonRes(res, {
       data: {
         fileId,
-        previewUrl: `${ReadFileBaseUrl}?filename=${file.originalname}&token=${await createFileToken(
-          {
-            bucketName,
-            teamId,
-            tmbId,
-            fileId
-          }
-        )}`
+        previewUrl: `${ReadFileBaseUrl}/${file.originalname}?token=${await createFileToken({
+          bucketName,
+          teamId,
+          tmbId,
+          fileId
+        })}`
       }
     });
   } catch (error) {
