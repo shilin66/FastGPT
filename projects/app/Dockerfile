@@ -6,8 +6,6 @@ ARG proxy
 
 RUN [ -z "$proxy" ] || sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 RUN apk add --no-cache libc6-compat && npm install -g pnpm@9.4.0
-# if proxy exists, set proxy
-RUN [ -z "$proxy" ] || pnpm config set registry https://registry.npmmirror.com
 
 # copy packages and one project
 COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
@@ -16,13 +14,19 @@ COPY ./projects/app/package.json ./projects/app/package.json
 
 RUN [ -f pnpm-lock.yaml ] || (echo "Lockfile not found." && exit 1)
 
-RUN pnpm i
+# if proxy exists, set proxy
+RUN if [ -z "$proxy" ]; then \
+        pnpm i; \
+    else \
+        pnpm i --registry=https://registry.npmmirror.com; \
+    fi
 
 # --------- builder -----------
 FROM node:20.14.0-alpine AS builder
 WORKDIR /app
 
 ARG proxy
+ARG base_url
 
 # copy common node_modules and one project node_modules
 COPY package.json pnpm-workspace.yaml .npmrc tsconfig.json ./
@@ -39,13 +43,15 @@ RUN cd /app/projects/app/public/chrome_extension && zip -r fastgpt_agent.zip fas
 RUN apk add --no-cache libc6-compat && npm install -g pnpm@9.4.0
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN PNPM_LOG_LEVEL=verbose pnpm --filter=app build
+ENV NEXT_PUBLIC_BASE_URL=$base_url
+RUN pnpm --filter=app build
 
 # --------- runner -----------
 FROM node:20.14.0-alpine AS runner
 WORKDIR /app
 
 ARG proxy
+ARG base_url
 
 # create user and use it
 RUN addgroup --system --gid 1001 nodejs
@@ -73,14 +79,15 @@ COPY --from=maindeps /app/node_modules/@zilliz/milvus2-sdk-node ./node_modules/@
 
 # copy package.json to version file
 COPY --from=builder /app/projects/app/package.json ./package.json 
+
 # copy config
 COPY ./projects/app/data /app/data
-
 RUN chown -R nextjs:nodejs /app/data
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+ENV NEXT_PUBLIC_BASE_URL=$base_url
 
 EXPOSE 3000
 

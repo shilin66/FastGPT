@@ -2,9 +2,10 @@ import React, { useCallback, useRef, useState } from 'react';
 import Editor, { Monaco, loader } from '@monaco-editor/react';
 import { Box, BoxProps } from '@chakra-ui/react';
 import MyIcon from '../../Icon';
+import { getWebReqUrl } from '../../../../common/system/utils';
 
 loader.config({
-  paths: { vs: '/js/monaco-editor.0.45.0/vs' }
+  paths: { vs: getWebReqUrl('/js/monaco-editor.0.45.0/vs') }
 });
 
 type EditorVariablePickerType = {
@@ -13,7 +14,6 @@ type EditorVariablePickerType = {
 };
 
 export type Props = Omit<BoxProps, 'resize' | 'onChange'> & {
-  height?: number;
   resize?: boolean;
   defaultValue?: string;
   value?: string;
@@ -110,7 +110,7 @@ const MyEditor = ({
       borderWidth={'1px'}
       borderRadius={'md'}
       borderColor={'myGray.200'}
-      py={2}
+      py={1}
       height={height}
       position={'relative'}
       pl={2}
@@ -131,8 +131,8 @@ const MyEditor = ({
       {resize && (
         <Box
           position={'absolute'}
-          right={'-1'}
-          bottom={'-1'}
+          right={'-2.5'}
+          bottom={'-3.5'}
           zIndex={10}
           cursor={'ns-resize'}
           px={'4px'}

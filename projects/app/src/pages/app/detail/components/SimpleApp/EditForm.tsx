@@ -43,9 +43,6 @@ const TTSSelect = dynamic(() => import('@/components/core/app/TTSSelect'));
 const QGSwitch = dynamic(() => import('@/components/core/app/QGSwitch'));
 const WhisperConfig = dynamic(() => import('@/components/core/app/WhisperConfig'));
 const InputGuideConfig = dynamic(() => import('@/components/core/app/InputGuideConfig'));
-const ScheduledTriggerConfig = dynamic(
-  () => import('@/components/core/app/ScheduledTriggerConfig')
-);
 const WelcomeTextConfig = dynamic(() => import('@/components/core/app/WelcomeTextConfig'));
 const FileSelectConfig = dynamic(() => import('@/components/core/app/FileSelect'));
 
@@ -107,7 +104,10 @@ const EditForm = ({
   const formatVariables = useMemo(
     () =>
       formatEditorVariablePickerIcon([
-        ...workflowSystemVariables,
+        ...workflowSystemVariables.filter(
+          (variable) =>
+            !['appId', 'chatId', 'responseChatItemId', 'histories'].includes(variable.key)
+        ),
         ...(appForm.chatConfig.variables || [])
       ]).map((item) => ({
         ...item,
@@ -450,22 +450,6 @@ const EditForm = ({
                 chatConfig: {
                   ...state.chatConfig,
                   chatInputGuide: e
-                }
-              }));
-            }}
-          />
-        </Box>
-
-        {/* timer trigger */}
-        <Box {...BoxStyles} borderBottom={'none'}>
-          <ScheduledTriggerConfig
-            value={appForm.chatConfig.scheduledTriggerConfig}
-            onChange={(e) => {
-              setAppForm((state) => ({
-                ...state,
-                chatConfig: {
-                  ...state.chatConfig,
-                  scheduledTriggerConfig: e
                 }
               }));
             }}

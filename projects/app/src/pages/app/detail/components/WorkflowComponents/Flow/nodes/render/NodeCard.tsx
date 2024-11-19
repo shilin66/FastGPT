@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { Box, Button, Card, Flex, FlexProps, Image } from '@chakra-ui/react';
+import { Box, Button, Card, Flex, FlexProps } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import type { FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node.d';
@@ -15,7 +15,7 @@ import { ConnectionSourceHandle, ConnectionTargetHandle } from './Handle/Connect
 import { useDebug } from '../../hooks/useDebug';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import { getPreviewPluginNode } from '@/web/core/app/api/plugin';
-import { storeNode2FlowNode, getLatestNodeTemplate } from '@/web/core/workflow/utils';
+import { storeNode2FlowNode } from '@/web/core/workflow/utils';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { useContextSelector } from 'use-context-selector';
 import { WorkflowContext } from '../../../context';
@@ -25,8 +25,10 @@ import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import { useWorkflowUtils } from '../../hooks/useUtils';
 import { WholeResponseContent } from '@/components/core/chat/components/WholeResponseModal';
-import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { getDocPath } from '@/web/common/system/doc';
+import { WorkflowNodeEdgeContext } from '../../../context/workflowInitContext';
+import { WorkflowEventContext } from '../../../context/workflowEventContext';
+import MyImage from '@fastgpt/web/components/common/Image/MyImage';
 
 type Props = FlowNodeItemType & {
   children?: React.ReactNode | React.ReactNode[] | string;
@@ -69,10 +71,10 @@ const NodeCard = (props: Props) => {
     customStyle
   } = props;
   const nodeList = useContextSelector(WorkflowContext, (v) => v.nodeList);
-  const setHoverNodeId = useContextSelector(WorkflowContext, (v) => v.setHoverNodeId);
   const onUpdateNodeError = useContextSelector(WorkflowContext, (v) => v.onUpdateNodeError);
   const onChangeNode = useContextSelector(WorkflowContext, (v) => v.onChangeNode);
   const onResetNode = useContextSelector(WorkflowContext, (v) => v.onResetNode);
+  const setHoverNodeId = useContextSelector(WorkflowEventContext, (v) => v.setHoverNodeId);
 
   // custom title edit
   const { onOpenModal: onOpenCustomTitleModal, EditModal: EditTitleModal } = useEditTitle({
@@ -95,7 +97,7 @@ const NodeCard = (props: Props) => {
     return { node, parentNode };
   }, [nodeList, nodeId]);
 
-  const { data: nodeTemplate, runAsync: getNodeLatestTemplate } = useRequest2(
+  const { data: nodeTemplate } = useRequest2(
     async () => {
       if (
         node?.flowNodeType === FlowNodeTypeEnum.pluginModule ||
@@ -113,39 +115,41 @@ const NodeCard = (props: Props) => {
       }
     },
     {
+      onSuccess(res) {
+        if (!res) return;
+        // Execute forcibly updates the courseUrl field
+        onChangeNode({
+          nodeId,
+          type: 'attr',
+          key: 'courseUrl',
+          value: res?.courseUrl
+        });
+      },
       manual: false
     }
   );
 
-  const { openConfirm: onOpenConfirmSync, ConfirmModal: ConfirmSyncModal } = useConfirm({
+  const {
+    openConfirm: onOpenConfirmSync,
+    onClose: onCloseConfirmSync,
+    ConfirmModal: ConfirmSyncModal
+  } = useConfirm({
     content: t('workflow:Confirm_sync_node')
   });
   const hasNewVersion = nodeTemplate && nodeTemplate.version !== node?.version;
 
   const { runAsync: onClickSyncVersion } = useRequest2(
     async () => {
-      const template = moduleTemplatesFlat.find((item) => item.flowNodeType === node?.flowNodeType);
-      if (!node || !template) return;
-
-      if (
-        node?.flowNodeType === FlowNodeTypeEnum.pluginModule ||
-        node?.flowNodeType === FlowNodeTypeEnum.appModule
-      ) {
-        if (!node.pluginId) return;
+      if (!!nodeTemplate) {
         onResetNode({
           id: nodeId,
-          node: await getPreviewPluginNode({ appId: node.pluginId })
-        });
-      } else {
-        onResetNode({
-          id: nodeId,
-          node: getLatestNodeTemplate(node, template)
+          node: nodeTemplate
         });
       }
-      await getNodeLatestTemplate();
+      onCloseConfirmSync();
     },
     {
-      refreshDeps: [node, nodeId, onResetNode, getNodeLatestTemplate]
+      refreshDeps: [node, nodeId, onResetNode]
     }
   );
 
@@ -157,15 +161,17 @@ const NodeCard = (props: Props) => {
       <Box position={'relative'}>
         {/* debug */}
         {showHeader && (
-          <Box px={4} py={3}>
+          <Box px={3} pt={4}>
             {/* tool target handle */}
             <ToolTargetHandle show={showToolHandle} nodeId={nodeId} />
 
             {/* avatar and name */}
             <Flex alignItems={'center'}>
               {node?.flowNodeType !== FlowNodeTypeEnum.stopTool && (
-                <Box
-                  mr={2}
+                <Flex
+                  alignItems={'center'}
+                  mr={1}
+                  p={1}
                   cursor={'pointer'}
                   rounded={'sm'}
                   _hover={{ bg: 'myGray.200' }}
@@ -180,20 +186,20 @@ const NodeCard = (props: Props) => {
                 >
                   <MyIcon
                     name={!isFolded ? 'core/chat/chevronDown' : 'core/chat/chevronRight'}
-                    w={'24px'}
-                    h={'24px'}
+                    w={'16px'}
+                    h={'16px'}
                     color={'myGray.500'}
                   />
-                </Box>
+                </Flex>
               )}
               <Avatar
                 src={avatar}
                 borderRadius={'sm'}
                 objectFit={'contain'}
-                w={'30px'}
-                h={'30px'}
+                w={'24px'}
+                h={'24px'}
               />
-              <Box ml={3} fontSize={'md'} fontWeight={'medium'}>
+              <Box ml={2} fontSize={'18px'} fontWeight={'medium'} color={'myGray.900'}>
                 {t(name as any)}
               </Box>
               <MyIcon
@@ -249,7 +255,7 @@ const NodeCard = (props: Props) => {
               {!!nodeTemplate?.diagram && !hasNewVersion && (
                 <MyTooltip
                   label={
-                    <Image
+                    <MyImage
                       src={nodeTemplate?.diagram}
                       w={'100%'}
                       minH={['auto', '200px']}
@@ -288,7 +294,7 @@ const NodeCard = (props: Props) => {
                 </MyTooltip>
               )}
             </Flex>
-            <NodeIntro nodeId={nodeId} intro={intro} />
+            {intro && <NodeIntro nodeId={nodeId} intro={intro} />}
           </Box>
         )}
         <MenuRender nodeId={nodeId} menuForbid={menuForbid} nodeList={nodeList} />
@@ -338,13 +344,16 @@ const NodeCard = (props: Props) => {
       maxW={maxW}
       minH={minH}
       bg={'white'}
-      borderWidth={'1px'}
-      borderRadius={'md'}
-      boxShadow={'1'}
+      outline={selected ? '2px solid' : '1px solid'}
+      borderRadius={'lg'}
+      boxShadow={
+        '0px 4px 10px 0px rgba(19, 51, 107, 0.10), 0px 0px 1px 0px rgba(19, 51, 107, 0.10)'
+      }
       w={w}
       h={h}
       _hover={{
-        boxShadow: '4',
+        boxShadow:
+          '0px 12px 16px -4px rgba(19, 51, 107, 0.20), 0px 0px 1px 0px rgba(19, 51, 107, 0.20)',
         '& .controller-menu': {
           display: 'flex'
         },
@@ -359,17 +368,19 @@ const NodeCard = (props: Props) => {
       onMouseLeave={() => setHoverNodeId(undefined)}
       {...(isError
         ? {
-            borderColor: 'red.500',
+            outlineColor: 'red.500',
             onMouseDownCapture: () => onUpdateNodeError(nodeId, false)
           }
         : {
-            borderColor: selected ? 'primary.600' : 'borderColor.base'
+            outlineColor: selected ? 'primary.600' : 'myGray.250'
           })}
       {...customStyle}
     >
       <NodeDebugResponse nodeId={nodeId} debugResult={debugResult} />
       {Header}
-      {!isFolded && children}
+      <Flex flexDirection={'column'} flex={1} my={!isFolded ? 4 : 0} gap={2}>
+        {!isFolded ? children : <Box h={4} />}
+      </Flex>
       {RenderHandle}
       {RenderToolHandle}
 
@@ -393,7 +404,8 @@ const MenuRender = React.memo(function MenuRender({
   const { t } = useTranslation();
   const { openDebugNode, DebugInputModal } = useDebug();
 
-  const { setNodes, setEdges, onNodesChange } = useContextSelector(WorkflowContext, (v) => v);
+  const setNodes = useContextSelector(WorkflowNodeEdgeContext, (v) => v.setNodes);
+  const setEdges = useContextSelector(WorkflowNodeEdgeContext, (v) => v.setEdges);
   const { computedNewNodeName } = useWorkflowUtils();
 
   const onCopyNode = useCallback(
@@ -576,31 +588,35 @@ const NodeIntro = React.memo(function NodeIntro({
   const Render = useMemo(() => {
     return (
       <>
-        <Flex alignItems={'flex-end'} py={1}>
-          <Box fontSize={'xs'} color={'myGray.600'} flex={'1 0 0'}>
+        <Flex alignItems={'center'}>
+          <Box fontSize={'sm'} color={'myGray.500'} flex={'1 0 0'}>
             {t(intro as any)}
           </Box>
-          {NodeIsTool && (
-            <Button
-              size={'xs'}
-              variant={'whiteBase'}
-              onClick={() => {
-                onOpenIntroModal({
-                  defaultVal: intro,
-                  onSuccess(e) {
-                    onChangeNode({
-                      nodeId,
-                      type: 'attr',
-                      key: 'intro',
-                      value: e
-                    });
-                  }
-                });
-              }}
-            >
-              {t('common:core.module.Edit intro')}
-            </Button>
-          )}
+          <Flex
+            p={'7px'}
+            rounded={'sm'}
+            alignItems={'center'}
+            _hover={{
+              bg: NodeIsTool ? 'myGray.100' : 'transparent'
+            }}
+            cursor={NodeIsTool ? 'pointer' : 'default'}
+            onClick={() => {
+              if (!NodeIsTool) return;
+              onOpenIntroModal({
+                defaultVal: intro,
+                onSuccess(e) {
+                  onChangeNode({
+                    nodeId,
+                    type: 'attr',
+                    key: 'intro',
+                    value: e
+                  });
+                }
+              });
+            }}
+          >
+            <MyIcon name={'edit'} w={'18px'} opacity={NodeIsTool ? 1 : 0} />
+          </Flex>
         </Flex>
         <EditIntroModal maxLength={500} />
       </>
@@ -662,7 +678,7 @@ const NodeDebugResponse = React.memo(function NodeDebugResponse({
 
     return !!debugResult && !!statusData ? (
       <>
-        <Flex px={4} bg={statusData.bg} borderTopRadius={'md'} py={3}>
+        <Flex px={3} bg={statusData.bg} borderTopRadius={'md'} py={3}>
           <MyIcon name={statusData.icon as any} w={'16px'} mr={2} />
           <Box color={'myGray.900'} fontWeight={'bold'} flex={'1 0 0'}>
             {statusData.text}
@@ -703,7 +719,7 @@ const NodeDebugResponse = React.memo(function NodeDebugResponse({
             border={'base'}
           >
             {/* Status header */}
-            <Flex h={'54x'} px={4} py={3} alignItems={'center'}>
+            <Flex h={'54x'} px={3} py={3} alignItems={'center'}>
               <MyIcon mr={1} name={'core/workflow/debugResult'} w={'20px'} color={'primary.600'} />
               <Box fontWeight={'bold'} flex={'1'}>
                 {t('common:core.workflow.debug.Run result')}
@@ -749,7 +765,7 @@ const NodeDebugResponse = React.memo(function NodeDebugResponse({
                     {debugResult.message}
                   </Box>
                 )}
-                {response && <WholeResponseContent activeModule={response} showDetail />}
+                {response && <WholeResponseContent activeModule={response} />}
               </Box>
             )}
           </Card>

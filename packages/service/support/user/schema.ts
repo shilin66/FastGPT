@@ -72,6 +72,9 @@ const UserSchema = new Schema({
   },
   lastLoginTmbId: {
     type: Schema.Types.ObjectId
+  },
+  fastgpt_sem: {
+    type: Object
   }
 });
 

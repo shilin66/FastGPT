@@ -32,8 +32,9 @@ export function connectToDatabase() {
       systemStartCb();
 
       //init system config；init vector database；init root user
-      await Promise.all([getInitConfig(), getSystemPluginCb(), initVectorStore(), initRootUser()]);
+      await Promise.all([getInitConfig(), initVectorStore(), initRootUser()]);
 
+      getSystemPluginCb();
       startMongoWatch();
       // cron
       startCron();

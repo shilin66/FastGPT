@@ -5,6 +5,8 @@ import { getHandleId } from '@fastgpt/global/core/workflow/utils';
 import { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { useContextSelector } from 'use-context-selector';
 import { WorkflowContext } from '../../../../context';
+import { WorkflowNodeEdgeContext } from '../../../../context/workflowInitContext';
+import { FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node';
 
 export const ConnectionSourceHandle = ({
   nodeId,
@@ -13,7 +15,8 @@ export const ConnectionSourceHandle = ({
   nodeId: string;
   isFoldNode?: boolean;
 }) => {
-  const { connectingEdge, nodeList, edges } = useContextSelector(WorkflowContext, (ctx) => ctx);
+  const edges = useContextSelector(WorkflowNodeEdgeContext, (v) => v.edges);
+  const { connectingEdge, nodeList } = useContextSelector(WorkflowContext, (ctx) => ctx);
 
   const { showSourceHandle, RightHandle, LeftHandlee, TopHandlee, BottomHandlee } = useMemo(() => {
     const node = nodeList.find((node) => node.nodeId === nodeId);
@@ -50,7 +53,7 @@ export const ConnectionSourceHandle = ({
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Right}
-          translate={[2, 0]}
+          translate={[4, 0]}
         />
       );
     })();
@@ -67,7 +70,7 @@ export const ConnectionSourceHandle = ({
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Left}
-          translate={[-6, 0]}
+          translate={[-8, 0]}
         />
       );
     })();
@@ -90,7 +93,7 @@ export const ConnectionSourceHandle = ({
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Top}
-          translate={[0, -2]}
+          translate={[0, -5]}
         />
       );
     })();
@@ -106,7 +109,7 @@ export const ConnectionSourceHandle = ({
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Bottom}
-          translate={[0, 2]}
+          translate={[0, 5]}
         />
       );
     })();
@@ -135,18 +138,27 @@ export const ConnectionTargetHandle = React.memo(function ConnectionTargetHandle
 }: {
   nodeId: string;
 }) {
-  const { connectingEdge, nodeList, edges } = useContextSelector(WorkflowContext, (ctx) => ctx);
+  const edges = useContextSelector(WorkflowNodeEdgeContext, (v) => v.edges);
+  const { connectingEdge, nodeList } = useContextSelector(WorkflowContext, (ctx) => ctx);
 
   const { LeftHandle, rightHandle, topHandle, bottomHandle } = useMemo(() => {
-    const node = nodeList.find((node) => node.nodeId === nodeId);
-    const connectingNode = nodeList.find((node) => node.nodeId === connectingEdge?.nodeId);
+    let node: FlowNodeItemType | undefined = undefined,
+      connectingNode: FlowNodeItemType | undefined = undefined;
+    for (const item of nodeList) {
+      if (item.nodeId === nodeId) {
+        node = item;
+      }
+      if (item.nodeId === connectingEdge?.nodeId) {
+        connectingNode = item;
+      }
+      if (node && (connectingNode || !connectingEdge?.nodeId)) break;
+    }
 
-    const connectingNodeSourceNodeIdMap = new Map<string, number>();
     let forbidConnect = false;
-    edges.forEach((edge) => {
-      if (edge.target === connectingNode?.nodeId) {
-        connectingNodeSourceNodeIdMap.set(edge.source, 1);
-      } else if (edge.target === nodeId) {
+    for (const edge of edges) {
+      if (forbidConnect) break;
+
+      if (edge.target === nodeId) {
         // Node has be connected tool, it cannot be connect by other handle
         if (edge.targetHandle === NodeOutputKeyEnum.selectedTools) {
           forbidConnect = true;
@@ -160,7 +172,7 @@ export const ConnectionTargetHandle = React.memo(function ConnectionTargetHandle
           forbidConnect = true;
         }
       }
-    });
+    }
 
     const showHandle = (() => {
       if (forbidConnect) return false;
@@ -175,9 +187,6 @@ export const ConnectionTargetHandle = React.memo(function ConnectionTargetHandle
       // Not the same parent node
       if (connectingNode && connectingNode?.parentNodeId !== node?.parentNodeId) return false;
 
-      // Unable to connect to the source node
-      if (connectingNodeSourceNodeIdMap.has(nodeId)) return false;
-
       return true;
     })();
 
@@ -191,7 +200,7 @@ export const ConnectionTargetHandle = React.memo(function ConnectionTargetHandle
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Left}
-          translate={[-2, 0]}
+          translate={[-4, 0]}
           showHandle={showHandle}
         />
       );
@@ -206,7 +215,7 @@ export const ConnectionTargetHandle = React.memo(function ConnectionTargetHandle
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Right}
-          translate={[2, 0]}
+          translate={[4, 0]}
           showHandle={showHandle}
         />
       );
@@ -221,7 +230,7 @@ export const ConnectionTargetHandle = React.memo(function ConnectionTargetHandle
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Top}
-          translate={[0, -2]}
+          translate={[0, -5]}
           showHandle={showHandle}
         />
       );
@@ -236,7 +245,7 @@ export const ConnectionTargetHandle = React.memo(function ConnectionTargetHandle
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Bottom}
-          translate={[0, 2]}
+          translate={[0, 5]}
           showHandle={showHandle}
         />
       );
