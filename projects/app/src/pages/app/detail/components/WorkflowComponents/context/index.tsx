@@ -15,16 +15,8 @@ import { RuntimeEdgeItemType, StoreEdgeItemType } from '@fastgpt/global/core/wor
 import { FlowNodeChangeProps } from '@fastgpt/global/core/workflow/type/fe';
 import { FlowNodeInputItemType } from '@fastgpt/global/core/workflow/type/io';
 import { useToast } from '@fastgpt/web/hooks/useToast';
-import { useLocalStorageState, useMemoizedFn, useUpdateEffect } from 'ahooks';
-import React, {
-  Dispatch,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react';
+import { useMemoizedFn, useUpdateEffect } from 'ahooks';
+import React, { Dispatch, SetStateAction, useCallback, useMemo, useRef, useState } from 'react';
 import { Edge, Node, OnConnectStartParams, ReactFlowProvider, useReactFlow } from 'reactflow';
 import { createContext, useContextSelector } from 'use-context-selector';
 import { defaultRunningStatus } from '../constants';
@@ -41,6 +33,8 @@ import { cloneDeep } from 'lodash';
 import { AppVersionSchemaType } from '@fastgpt/global/core/app/version';
 import WorkflowInitContextProvider, { WorkflowNodeEdgeContext } from './workflowInitContext';
 import WorkflowEventContextProvider from './workflowEventContext';
+import { getAppConfigByDiff } from '@/web/core/app/diff';
+import WorkflowStatusContextProvider from './workflowStatusContext';
 
 /* 
   Context
@@ -60,21 +54,27 @@ export const ReactFlowCustomProvider = ({
     <ReactFlowProvider>
       <WorkflowInitContextProvider>
         <WorkflowContextProvider basicNodeTemplates={templates}>
-          <WorkflowEventContextProvider>{children}</WorkflowEventContextProvider>
+          <WorkflowEventContextProvider>
+            <WorkflowStatusContextProvider>{children}</WorkflowStatusContextProvider>
+          </WorkflowEventContextProvider>
         </WorkflowContextProvider>
       </WorkflowInitContextProvider>
     </ReactFlowProvider>
   );
 };
 
-type OnChange<ChangesType> = (changes: ChangesType[]) => void;
-
-export type WorkflowSnapshotsType = {
+export type WorkflowStateType = {
   nodes: Node[];
   edges: Edge[];
-  title: string;
   chatConfig: AppChatConfigType;
+};
+export type WorkflowSnapshotsType = WorkflowStateType & {
+  title: string;
   isSaved?: boolean;
+
+  // abandon
+  state?: WorkflowStateType;
+  diff?: any;
 };
 
 type WorkflowContextType = {
@@ -744,14 +744,10 @@ const WorkflowContextProvider = ({
 
   /* snapshots */
   const forbiddenSaveSnapshot = useRef(false);
-  const [past, setPast] = useLocalStorageState<WorkflowSnapshotsType[]>(`${appId}-past`, {
-    defaultValue: []
-  }) as [WorkflowSnapshotsType[], (value: SetStateAction<WorkflowSnapshotsType[]>) => void];
-  const [future, setFuture] = useLocalStorageState<WorkflowSnapshotsType[]>(`${appId}-future`, {
-    defaultValue: []
-  }) as [WorkflowSnapshotsType[], (value: SetStateAction<WorkflowSnapshotsType[]>) => void];
+  const [past, setPast] = useState<WorkflowSnapshotsType[]>([]);
+  const [future, setFuture] = useState<WorkflowSnapshotsType[]>([]);
 
-  const resetSnapshot = useMemoizedFn((state: Omit<WorkflowSnapshotsType, 'title' | 'isSaved'>) => {
+  const resetSnapshot = useMemoizedFn((state: WorkflowStateType) => {
     setNodes(state.nodes);
     setEdges(state.edges);
     setAppDetail((detail) => ({
@@ -759,28 +755,15 @@ const WorkflowContextProvider = ({
       chatConfig: state.chatConfig
     }));
   });
-  const pushPastSnapshot = useMemoizedFn(
-    ({
-      pastNodes,
-      pastEdges,
-      customTitle,
-      chatConfig,
-      isSaved
-    }: {
-      pastNodes: Node[];
-      pastEdges: Edge[];
-      customTitle?: string;
-      chatConfig: AppChatConfigType;
-      isSaved?: boolean;
-    }) => {
-      if (!pastNodes || !pastEdges || !chatConfig) return false;
 
+  const pushPastSnapshot = useMemoizedFn(
+    ({ pastNodes, pastEdges, chatConfig, customTitle, isSaved }) => {
+      if (!pastNodes || !pastEdges || !chatConfig) return false;
       if (forbiddenSaveSnapshot.current) {
         forbiddenSaveSnapshot.current = false;
         return false;
       }
 
-      const pastState = past[0];
       const isPastEqual = compareSnapshot(
         {
           nodes: pastNodes,
@@ -788,9 +771,9 @@ const WorkflowContextProvider = ({
           chatConfig: chatConfig
         },
         {
-          nodes: pastState?.nodes,
-          edges: pastState?.edges,
-          chatConfig: pastState?.chatConfig
+          nodes: past[0]?.nodes,
+          edges: past[0]?.edges,
+          chatConfig: past[0]?.chatConfig
         }
       );
 
@@ -805,12 +788,13 @@ const WorkflowContextProvider = ({
           chatConfig,
           isSaved
         },
-        ...past.slice(0, 199)
+        ...past.slice(0, 99)
       ]);
 
       return true;
     }
   );
+
   const onSwitchTmpVersion = useMemoizedFn((params: WorkflowSnapshotsType, customTitle: string) => {
     // Remove multiple "copy-"
     const copyText = t('app:version_copy');
@@ -845,73 +829,130 @@ const WorkflowContextProvider = ({
   });
 
   const undo = useMemoizedFn(() => {
-    if (past[1]) {
+    if (past.length > 1) {
+      forbiddenSaveSnapshot.current = true;
+      // Current version is the first one, so we need to reset the second one
+      const firstPast = past[1];
+      resetSnapshot(firstPast);
+
       setFuture((future) => [past[0], ...future]);
       setPast((past) => past.slice(1));
-      resetSnapshot(past[1]);
     }
   });
   const redo = useMemoizedFn(() => {
+    if (!future[0]) return;
+
     const futureState = future[0];
 
     if (futureState) {
-      setPast((past) => [future[0], ...past]);
+      forbiddenSaveSnapshot.current = true;
+      setPast((past) => [futureState, ...past]);
       setFuture((future) => future.slice(1));
+
       resetSnapshot(futureState);
     }
   });
 
-  // remove other app's snapshot
-  useEffect(() => {
-    const keys = Object.keys(localStorage);
-    const snapshotKeys = keys.filter((key) => key.endsWith('-past') || key.endsWith('-future'));
-    snapshotKeys.forEach((key) => {
-      const keyAppId = key.split('-')[0];
-      if (keyAppId !== appId) {
-        localStorage.removeItem(key);
-      }
-    });
-  }, [appId]);
-
   const initData = useCallback(
-    async (e: Parameters<WorkflowContextType['initData']>[0], isInit?: boolean) => {
-      // Refresh web page, load init
+    async (
+      e: {
+        nodes: StoreNodeItemType[];
+        edges: StoreEdgeItemType[];
+        chatConfig?: AppChatConfigType;
+      },
+      isInit?: boolean
+    ) => {
+      const nodes = e.nodes?.map((item) => storeNode2FlowNode({ item, t })) || [];
+      const edges = e.edges?.map((item) => storeEdgesRenderEdge({ edge: item })) || [];
+
+      // Get storage snapshot，兼容旧版正在编辑的用户，刷新后会把 local 数据存到内存并删除
+      const pastSnapshot = (() => {
+        try {
+          const pastSnapshot = localStorage.getItem(`${appId}-past`);
+          return pastSnapshot ? (JSON.parse(pastSnapshot) as WorkflowSnapshotsType[]) : [];
+        } catch (error) {
+          return [];
+        }
+      })();
+      if (isInit && pastSnapshot.length > 0) {
+        const defaultState = pastSnapshot[pastSnapshot.length - 1].state;
+
+        if (pastSnapshot[0].diff && defaultState) {
+          // 设置旧的历史记录
+          setPast(
+            pastSnapshot
+              .map((item) => {
+                if (item.state) {
+                  return {
+                    title: t(`app:app.version_initial`),
+                    isSaved: item.isSaved,
+                    nodes: item.state.nodes,
+                    edges: item.state.edges,
+                    chatConfig: item.state.chatConfig
+                  };
+                }
+                if (item.diff) {
+                  const currentState = getAppConfigByDiff(defaultState, item.diff);
+                  return {
+                    title: item.title,
+                    isSaved: item.isSaved,
+                    nodes: currentState.nodes,
+                    edges: currentState.edges,
+                    chatConfig: currentState.chatConfig
+                  };
+                }
+                return undefined;
+              })
+              .filter(Boolean) as WorkflowSnapshotsType[]
+          );
+
+          // 设置当前版本
+          const targetState = getAppConfigByDiff(
+            pastSnapshot[pastSnapshot.length - 1].state,
+            pastSnapshot[0].diff
+          ) as WorkflowStateType;
+
+          setNodes(targetState.nodes);
+          setEdges(targetState.edges);
+          setAppDetail((state) => ({
+            ...state,
+            chatConfig: targetState.chatConfig
+          }));
+
+          localStorage.removeItem(`${appId}-past`);
+          return;
+        }
+      }
+
+      // 有历史记录，直接用历史记录覆盖
       if (isInit && past.length > 0) {
-        return resetSnapshot(past[0]);
+        const firstPast = past[0];
+        setNodes(firstPast.nodes);
+        setEdges(firstPast.edges);
+        setAppDetail((state) => ({ ...state, chatConfig: firstPast.chatConfig }));
+        return;
       }
-      // If it is the initial data, save the initial snapshot
+      // 初始化一个历史记录
       if (isInit && past.length === 0) {
-        pushPastSnapshot({
-          pastNodes: e.nodes?.map((item) => storeNode2FlowNode({ item, t })) || [],
-          pastEdges: e.edges?.map((item) => storeEdgesRenderEdge({ edge: item })) || [],
-          customTitle: t(`app:app.version_initial`),
-          chatConfig: appDetail.chatConfig,
-          isSaved: true
-        });
-        forbiddenSaveSnapshot.current = true;
+        setPast([
+          {
+            nodes: nodes,
+            edges: edges,
+            title: t(`app:app.version_initial`),
+            isSaved: true,
+            chatConfig: e.chatConfig || appDetail.chatConfig
+          }
+        ]);
       }
 
-      setNodes(e.nodes?.map((item) => storeNode2FlowNode({ item, t })) || []);
-      setEdges(e.edges?.map((item) => storeEdgesRenderEdge({ edge: item })) || []);
-
-      const chatConfig = e.chatConfig;
-      if (chatConfig) {
-        setAppDetail((state) => ({
-          ...state,
-          chatConfig
-        }));
+      // Init memory data
+      setNodes(nodes);
+      setEdges(edges);
+      if (e.chatConfig) {
+        setAppDetail((state) => ({ ...state, chatConfig: e.chatConfig as AppChatConfigType }));
       }
     },
-    [
-      appDetail.chatConfig,
-      past,
-      resetSnapshot,
-      pushPastSnapshot,
-      setAppDetail,
-      setEdges,
-      setNodes,
-      t
-    ]
+    [appDetail.chatConfig, appId, past, setAppDetail, setEdges, setNodes, t]
   );
 
   const value = useMemo(

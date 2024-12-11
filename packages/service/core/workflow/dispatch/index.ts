@@ -42,7 +42,8 @@ import {
   filterWorkflowEdges,
   checkNodeRunStatus,
   textAdaptGptResponse,
-  replaceEditorVariable
+  replaceEditorVariable,
+  formatVariableValByType
 } from '@fastgpt/global/core/workflow/runtime/utils';
 import { ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type';
 import { dispatchRunTools } from './agent/runTool/index';
@@ -72,7 +73,7 @@ import { dispatchLoopEnd } from './loop/runLoopEnd';
 import { dispatchLoopStart } from './loop/runLoopStart';
 import { dispatchFormInput } from './interactive/formInput';
 import { dispatchToolParams } from './agent/runTool/toolParams';
-import { responseWrite } from '../../../common/response';
+import { AppChatConfigType } from '@fastgpt/global/core/app/type';
 
 const callbackMap: Record<FlowNodeTypeEnum, Function> = {
   [FlowNodeTypeEnum.workflowStart]: dispatchWorkflowStart,
@@ -500,8 +501,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       value = replaceEditorVariable({
         text: value,
         nodes: runtimeNodes,
-        variables,
-        runningNode: node
+        variables
       });
 
       // replace reference variables
@@ -687,15 +687,23 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
 }
 
 /* get system variable */
-export function getSystemVariable({
+const getSystemVariable = ({
   user,
   runningAppInfo,
   chatId,
   responseChatItemId,
   histories = [],
-  uid
-}: Props): SystemVariablesType {
+  uid,
+  chatConfig
+}: Props): SystemVariablesType => {
+  const variables = chatConfig?.variables || [];
+  const variablesMap = variables.reduce<Record<string, any>>((acc, item) => {
+    acc[item.key] = valueTypeFormat(item.defaultValue, item.valueType);
+    return acc;
+  }, {});
+
   return {
+    ...variablesMap,
     userId: uid,
     appId: String(runningAppInfo.id),
     chatId,
@@ -703,10 +711,10 @@ export function getSystemVariable({
     histories,
     cTime: getSystemTime(user.timezone)
   };
-}
+};
 
 /* Merge consecutive text messages into one */
-export const mergeAssistantResponseAnswerText = (response: AIChatItemValueItemType[]) => {
+const mergeAssistantResponseAnswerText = (response: AIChatItemValueItemType[]) => {
   const result: AIChatItemValueItemType[] = [];
   // 合并连续的text
   for (let i = 0; i < response.length; i++) {

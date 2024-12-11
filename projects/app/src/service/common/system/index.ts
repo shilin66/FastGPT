@@ -12,7 +12,8 @@ import { FastGPTProUrl, isProduction } from '@fastgpt/service/common/system/cons
 import { initFastGPTConfig } from '@fastgpt/service/common/system/tools';
 import json5 from 'json5';
 import { SystemPluginTemplateItemType } from '@fastgpt/global/core/workflow/type';
-import { fi } from 'date-fns/locale';
+import { defaultGroup } from '@fastgpt/web/core/workflow/constants';
+import { MongoPluginGroups } from '@fastgpt/service/core/app/plugin/pluginGroupSchema';
 
 export const readConfigData = (name: string) => {
   const splitName = name.split('.');
@@ -37,7 +38,7 @@ export const readConfigData = (name: string) => {
 };
 
 /* Init global variables */
-export function initGlobal() {
+export function initGlobalVariables() {
   if (global.communityPlugins) return;
 
   global.communityPlugins = [];
@@ -191,4 +192,23 @@ function getSystemPluginV1() {
   fileTemplates.sort((a, b) => b.weight - a.weight);
 
   global.communityPluginsV1 = fileTemplates;
+}
+
+export async function initSystemPlugins() {
+  try {
+    const { groupOrder, ...restDefaultGroup } = defaultGroup;
+    await MongoPluginGroups.updateOne(
+      {
+        groupId: defaultGroup.groupId
+      },
+      {
+        $set: restDefaultGroup
+      },
+      {
+        upsert: true
+      }
+    );
+  } catch (error) {
+    console.error('Error initializing system plugins:', error);
+  }
 }

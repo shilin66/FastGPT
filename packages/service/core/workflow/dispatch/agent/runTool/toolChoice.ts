@@ -272,7 +272,11 @@ export const runToolWithToolChoice = async (
   );
   // console.log(JSON.stringify(requestBody, null, 2), '==requestBody');
   /* Run llm */
-  const { response: aiResponse, isStreamResponse } = await createChatCompletion({
+  const {
+    response: aiResponse,
+    isStreamResponse,
+    getEmptyResponseTip
+  } = await createChatCompletion({
     body: requestBody,
     userKey: user.openaiAccount,
     options: {
@@ -338,6 +342,9 @@ export const runToolWithToolChoice = async (
       };
     }
   })();
+  if (!answer && toolCalls.length === 0) {
+    return Promise.reject(getEmptyResponseTip());
+  }
 
   // Run the selected tool by LLM.
   const toolsRunResponse = (
@@ -414,7 +421,7 @@ export const runToolWithToolChoice = async (
       }
     ];
 
-    /*
+    /* 
         ...
         user
         assistant: tool data
@@ -426,7 +433,7 @@ export const runToolWithToolChoice = async (
 
     // Only toolCall tokens are counted here, Tool response tokens count towards the next reply
     const tokens = await countGptMessagesTokens(concatToolMessages, tools);
-    /*
+    /* 
         ...
         user
         assistant: tool data
@@ -437,7 +444,7 @@ export const runToolWithToolChoice = async (
       ...toolsRunResponse.map((item) => item?.toolMsgParams)
     ];
 
-    /*
+    /* 
         Get tool node assistant response
         history assistant
         current tool assistant

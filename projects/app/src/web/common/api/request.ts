@@ -109,11 +109,10 @@ function responseError(err: any) {
   }
   // 有报错响应
   if (err?.code in TOKEN_ERROR_CODE) {
-    clearToken();
-
     if (
       !(window.location.pathname === '/chat/share' || window.location.pathname === '/chat/team')
     ) {
+      clearToken();
       window.location.replace(
         getWebReqUrl(`/login?lastRoute=${encodeURIComponent(location.pathname + location.search)}`)
       );
@@ -164,8 +163,8 @@ function request(
       baseURL: getWebReqUrl('/api'),
       url,
       method,
-      data: ['POST', 'PUT'].includes(method) ? data : null,
-      params: !['POST', 'PUT'].includes(method) ? data : null,
+      data: ['POST', 'PUT'].includes(method) ? data : undefined,
+      params: !['POST', 'PUT'].includes(method) ? data : undefined,
       signal: cancelToken?.signal ?? controller?.signal,
       withCredentials,
       ...config // 用户自定义配置，可以覆盖前面的配置

@@ -9,7 +9,7 @@ import {
 } from '@fastgpt/global/support/permission/constant';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
-import { DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
+import { DatasetTypeEnum, TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
 import { ClientSession } from 'mongoose';
 import { parseParentIdInMongo } from '@fastgpt/global/common/parentFolder/utils';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
@@ -21,6 +21,7 @@ import {
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { TeamWritePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 import { DatasetErrEnum } from '@fastgpt/global/common/error/code/dataset';
+import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
 
 export type DatasetUpdateQuery = {};
 export type DatasetUpdateResponse = any;
@@ -50,6 +51,7 @@ async function handler(
     websiteConfig,
     confluenceConfig,
     externalReadUrl,
+    apiServer,
     status
   } = req.body;
 
@@ -94,6 +96,12 @@ async function handler(
 
   const isFolder = dataset.type === DatasetTypeEnum.folder;
 
+  updateTraining({
+    teamId: dataset.teamId,
+    datasetId: id,
+    agentModel: agentModel?.model
+  });
+
   const onUpdate = async (session?: ClientSession) => {
     await MongoDataset.findByIdAndUpdate(
       id,
@@ -107,6 +115,10 @@ async function handler(
         ...(status && { status }),
         ...(intro !== undefined && { intro }),
         ...(externalReadUrl !== undefined && { externalReadUrl }),
+        ...(!!apiServer?.baseUrl && { 'apiServer.baseUrl': apiServer.baseUrl }),
+        ...(!!apiServer?.authorization && {
+          'apiServer.authorization': apiServer.authorization
+        }),
         ...(isMove && { inheritPermission: true })
       },
       { session }
@@ -148,3 +160,30 @@ async function handler(
   }
 }
 export default NextAPI(handler);
+
+async function updateTraining({
+  teamId,
+  datasetId,
+  agentModel
+}: {
+  teamId: string;
+  datasetId: string;
+  agentModel?: string;
+}) {
+  if (!agentModel) return;
+
+  await MongoDatasetTraining.updateMany(
+    {
+      teamId,
+      datasetId,
+      mode: { $in: [TrainingModeEnum.qa, TrainingModeEnum.auto] }
+    },
+    {
+      $set: {
+        model: agentModel,
+        retryCount: 5,
+        lockTime: new Date()
+      }
+    }
+  );
+}

@@ -15,7 +15,7 @@ import { useSystemStore } from '@/web/common/system/useSystemStore';
 import type { ResLogin } from '@/global/support/api/userRes.d';
 import { useRouter } from 'next/router';
 import { useUserStore } from '@/web/support/user/useUserStore';
-import { useChatStore } from '@/web/core/chat/context/storeChat';
+import { useChatStore } from '@/web/core/chat/context/useChatStore';
 import LoginForm from './components/LoginForm/LoginForm';
 import dynamic from 'next/dynamic';
 import { serviceSideProps } from '@/web/common/utils/i18n';
@@ -44,7 +44,7 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
   const { feConfigs } = useSystemStore();
   const [pageType, setPageType] = useState<`${LoginPageTypeEnum}`>();
   const { setUserInfo } = useUserStore();
-  const { setLastChatId, setLastChatAppId } = useChatStore();
+  const { setLastChatAppId } = useChatStore();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isPc } = useSystem();
 
@@ -59,17 +59,18 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
 
   const loginSuccess = useCallback(
     (res: ResLogin) => {
-      // init store
-      setLastChatId('');
-      setLastChatAppId('');
-
       setUserInfo(res.user);
       setToken(res.token);
+
+      const decodeLastRoute = decodeURIComponent(lastRoute);
+      // 检查是否是当前的 route
+      const navigateTo =
+        decodeLastRoute && !decodeLastRoute.includes('/login') ? decodeLastRoute : '/app/list';
       setTimeout(() => {
-        router.push(lastRoute ? decodeURIComponent(lastRoute) : '/app/list');
+        router.push(navigateTo);
       }, 300);
     },
-    [lastRoute, router, setLastChatId, setLastChatAppId, setUserInfo]
+    [lastRoute, router, setUserInfo]
   );
 
   function DynamicComponent({ type }: { type: `${LoginPageTypeEnum}` }) {
@@ -95,6 +96,9 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
     setPageType(
       feConfigs?.oauth?.wechat ? LoginPageTypeEnum.wechat : LoginPageTypeEnum.passwordLogin
     );
+
+    // init store
+    setLastChatAppId('');
   }, [feConfigs.oauth]);
 
   const {

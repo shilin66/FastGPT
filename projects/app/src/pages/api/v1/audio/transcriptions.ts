@@ -4,20 +4,21 @@ import { getUploadModel } from '@fastgpt/service/common/file/multer';
 import { removeFilesByPaths } from '@fastgpt/service/common/file/utils';
 import fs from 'fs';
 import { pushWhisperUsage } from '@/service/support/wallet/usage/push';
-import { authChatCert } from '@/service/support/permission/auth/chat';
+import { authChatCrud } from '@/service/support/permission/auth/chat';
 import { OutLinkChatAuthProps } from '@fastgpt/global/support/permission/chat';
 import { NextAPI } from '@/service/middleware/entry';
 import { aiTranscriptions } from '@fastgpt/service/core/ai/audio/transcriptions';
+import { useReqFrequencyLimit } from '@fastgpt/service/common/middle/reqFrequencyLimit';
 
 const upload = getUploadModel({
-  maxSize: 20
+  maxSize: 5
 });
 
 async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   let filePaths: string[] = [];
 
   try {
-    const {
+    let {
       file,
       data: { appId, duration, shareId, outLinkUid, teamId: spaceTeamId, teamToken }
     } = await upload.doUpload<
@@ -27,6 +28,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
       }
     >(req, res);
 
+    req.body.appId = appId;
     req.body.shareId = shareId;
     req.body.outLinkUid = outLinkUid;
     req.body.teamId = spaceTeamId;
@@ -41,9 +43,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
     if (!file) {
       throw new Error('file not found');
     }
+    if (duration === undefined) {
+      throw new Error('duration not found');
+    }
+    duration = duration < 1 ? 1 : duration;
 
     // auth role
-    const { teamId, tmbId } = await authChatCert({ req, authToken: true });
+    const { teamId, tmbId } = await authChatCrud({
+      req,
+      authToken: true,
+      ...req.body
+    });
 
     // auth app
     // const app = await MongoApp.findById(appId, 'modules').lean();
@@ -79,7 +89,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   removeFilesByPaths(filePaths);
 }
 
-export default NextAPI(handler);
+export default NextAPI(useReqFrequencyLimit(1, 2), handler);
 
 export const config = {
   api: {

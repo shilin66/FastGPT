@@ -1,4 +1,4 @@
-import { DELETE, GET, POST } from '@/web/common/api/request';
+import { GET, POST } from '@/web/common/api/request';
 import type { createHttpPluginBody } from '@/pages/api/core/app/httpPlugin/create';
 import type { UpdateHttpPluginBody } from '@/pages/api/core/app/httpPlugin/update';
 import type {
@@ -13,6 +13,9 @@ import type { GetPreviewNodeQuery } from '@/pages/api/core/app/plugin/getPreview
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
 import { ParentIdType, ParentTreePathItemType } from '@fastgpt/global/common/parentFolder/type';
 import { GetSystemPluginTemplatesBody } from '@/pages/api/core/app/plugin/getSystemPluginTemplates';
+import { PluginGroupSchemaType } from '@fastgpt/service/core/app/plugin/type';
+import { useSystemStore } from '@/web/common/system/useSystemStore';
+import { defaultGroup } from '@fastgpt/web/core/workflow/constants';
 
 /* ============ team plugin ============== */
 export const getTeamPlugTemplates = (data?: ListAppBody) =>
@@ -39,6 +42,12 @@ export const getTeamPlugTemplates = (data?: ListAppBody) =>
 /* ============ system plugin ============== */
 export const getSystemPlugTemplates = (data: GetSystemPluginTemplatesBody) =>
   POST<NodeTemplateListItemType[]>('/core/app/plugin/getSystemPluginTemplates', data);
+
+export const getPluginGroups = () => {
+  return useSystemStore.getState()?.feConfigs?.isPlus
+    ? GET<PluginGroupSchemaType[]>('/proApi/core/app/plugin/getPluginGroups')
+    : Promise.resolve([defaultGroup]);
+};
 
 export const getSystemPluginPaths = (parentId: ParentIdType) => {
   if (!parentId) return Promise.resolve<ParentTreePathItemType[]>([]);

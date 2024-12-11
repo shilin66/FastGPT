@@ -96,6 +96,7 @@ export type AppSimpleEditFormType = {
 export type AppChatConfigType = {
   welcomeText?: string;
   variables?: VariableItemType[];
+  autoExecute?: AppAutoExecuteConfigType;
   questionGuide?: boolean;
   ttsConfig?: AppTTSConfigType;
   whisperConfig?: AppWhisperConfigType;
@@ -158,9 +159,20 @@ export type AppScheduledTriggerConfigType = {
   timezone: string;
   defaultPrompt: string;
 };
+// auto execute
+export type AppAutoExecuteConfigType = {
+  open: boolean;
+  defaultPrompt: string;
+};
 // File
 export type AppFileSelectConfigType = {
   canSelectFile: boolean;
   canSelectImg: boolean;
   maxFiles: number;
+};
+
+export type SystemPluginListItemType = {
+  _id: string;
+  name: string;
+  avatar: string;
 };

@@ -23,6 +23,7 @@ weight: 708
   "systemEnv": {
     "vectorMaxProcess": 15,
     "qaMaxProcess": 15,
+    "tokenWorkers": 50, // Token 计算线程保持数，会持续占用内存，不能设置太大。
     "pgHNSWEfSearch": 100 // 向量搜索参数。越大，搜索越精确，但是速度越慢。设置为100，有99%+精度。
   },
   "llmModels": [
@@ -42,7 +43,7 @@ weight: 708
       "usedInExtractFields": true, // 是否用于内容提取（务必保证至少有一个为true）
       "usedInToolCall": true, // 是否用于工具调用（务必保证至少有一个为true）
       "usedInQueryExtension": true, // 是否用于问题优化（务必保证至少有一个为true）
-      "toolChoice": true, // 是否支持工具选择（分类，内容提取，工具调用会用到。目前只有gpt支持）
+      "toolChoice": true, // 是否支持工具选择（分类，内容提取，工具调用会用到。）
       "functionCall": false, // 是否支持函数调用（分类，内容提取，工具调用会用到。会优先使用 toolChoice，如果为false，则使用 functionCall，如果仍为 false，则使用提示词模式）
       "customCQPrompt": "", // 自定义文本分类提示词（不支持工具和函数调用的模型
       "customExtractPrompt": "", // 自定义内容提取提示词
@@ -94,9 +95,7 @@ weight: 708
       "customExtractPrompt": "",
       "defaultSystemChatPrompt": "",
       "defaultConfig": {
-        "temperature": 1,
-        "max_tokens": null,
-        "stream": false
+        "temperature": 1
       }
     },
     {
@@ -121,9 +120,7 @@ weight: 708
       "customExtractPrompt": "",
       "defaultSystemChatPrompt": "",
       "defaultConfig": {
-        "temperature": 1,
-        "max_tokens": null,
-        "stream": false
+        "temperature": 1
       }
     }
   ],

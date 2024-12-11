@@ -1,16 +1,20 @@
-import { useLocalStorageState, useMemoizedFn } from 'ahooks';
-import { SetStateAction, useEffect, useRef } from 'react';
+import { useMemoizedFn } from 'ahooks';
+import { useRef, useState } from 'react';
 import { formatTime2YMDHMS } from '@fastgpt/global/common/string/time';
 import { AppSimpleEditFormType } from '@fastgpt/global/core/app/type';
 import { isEqual } from 'lodash';
 
 export type SimpleAppSnapshotType = {
-  appForm: AppSimpleEditFormType;
   title: string;
   isSaved?: boolean;
+  appForm: AppSimpleEditFormType;
+
+  // abandon
+  state?: AppSimpleEditFormType;
+  diff?: Record<string, any>;
 };
 export type onSaveSnapshotFnType = (props: {
-  appForm: AppSimpleEditFormType;
+  appForm: AppSimpleEditFormType; // Current edited app form data
   title?: string;
   isSaved?: boolean;
 }) => Promise<boolean>;
@@ -29,10 +33,8 @@ export const compareSimpleAppSnapshot = (
         questionGuide: appForm1.chatConfig?.questionGuide || false,
         ttsConfig: appForm1.chatConfig?.ttsConfig || undefined,
         whisperConfig: appForm1.chatConfig?.whisperConfig || undefined,
-        scheduledTriggerConfig: appForm1.chatConfig?.scheduledTriggerConfig || undefined,
         chatInputGuide: appForm1.chatConfig?.chatInputGuide || undefined,
-        fileSelectConfig: appForm1.chatConfig?.fileSelectConfig || undefined,
-        instruction: appForm1.chatConfig?.instruction || ''
+        fileSelectConfig: appForm1.chatConfig?.fileSelectConfig || undefined
       },
       {
         welcomeText: appForm2.chatConfig?.welcomeText || '',
@@ -40,10 +42,8 @@ export const compareSimpleAppSnapshot = (
         questionGuide: appForm2.chatConfig?.questionGuide || false,
         ttsConfig: appForm2.chatConfig?.ttsConfig || undefined,
         whisperConfig: appForm2.chatConfig?.whisperConfig || undefined,
-        scheduledTriggerConfig: appForm2.chatConfig?.scheduledTriggerConfig || undefined,
         chatInputGuide: appForm2.chatConfig?.chatInputGuide || undefined,
-        fileSelectConfig: appForm2.chatConfig?.fileSelectConfig || undefined,
-        instruction: appForm2.chatConfig?.instruction || ''
+        fileSelectConfig: appForm2.chatConfig?.fileSelectConfig || undefined
       }
     )
   ) {
@@ -51,14 +51,12 @@ export const compareSimpleAppSnapshot = (
     return false;
   }
 
-  return isEqual(appForm1, appForm2);
+  return isEqual({ ...appForm1, chatConfig: undefined }, { ...appForm2, chatConfig: undefined });
 };
 
 export const useSimpleAppSnapshots = (appId: string) => {
   const forbiddenSaveSnapshot = useRef(false);
-  const [past, setPast] = useLocalStorageState<SimpleAppSnapshotType[]>(`${appId}-past-simple`, {
-    defaultValue: []
-  }) as [SimpleAppSnapshotType[], (value: SetStateAction<SimpleAppSnapshotType[]>) => void];
+  const [past, setPast] = useState<SimpleAppSnapshotType[]>([]);
 
   const saveSnapshot: onSaveSnapshotFnType = useMemoizedFn(async ({ appForm, title, isSaved }) => {
     if (forbiddenSaveSnapshot.current) {
@@ -66,8 +64,18 @@ export const useSimpleAppSnapshots = (appId: string) => {
       return false;
     }
 
-    const pastState = past[0];
+    if (past.length === 0) {
+      setPast([
+        {
+          title: title || formatTime2YMDHMS(new Date()),
+          isSaved,
+          appForm
+        }
+      ]);
+      return true;
+    }
 
+    const pastState = past[0];
     const isPastEqual = compareSimpleAppSnapshot(pastState?.appForm, appForm);
     if (isPastEqual) return false;
 
@@ -77,22 +85,11 @@ export const useSimpleAppSnapshots = (appId: string) => {
         title: title || formatTime2YMDHMS(new Date()),
         isSaved
       },
-      ...past.slice(0, 199)
+      ...past.slice(0, 99)
     ]);
+
     return true;
   });
-
-  // remove other app's snapshot
-  useEffect(() => {
-    const keys = Object.keys(localStorage);
-    const snapshotKeys = keys.filter((key) => key.endsWith('-past-simple'));
-    snapshotKeys.forEach((key) => {
-      const keyAppId = key.split('-')[0];
-      if (keyAppId !== appId) {
-        localStorage.removeItem(key);
-      }
-    });
-  }, [appId]);
 
   return { forbiddenSaveSnapshot, past, setPast, saveSnapshot };
 };

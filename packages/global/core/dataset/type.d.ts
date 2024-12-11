@@ -10,6 +10,7 @@ import {
 } from './constants';
 import { DatasetPermission } from '../../support/permission/dataset/controller';
 import { Permission } from '../../support/permission/controller';
+import { APIFileServer } from './apiDataset';
 
 export type DatasetSchemaType = {
   _id: string;
@@ -38,8 +39,13 @@ export type DatasetSchemaType = {
   };
   externalReadUrl?: string;
   inheritPermission: boolean;
+  apiServer?: APIFileServer;
+
+  syncSchedule?: { cronString: string; timezone: string };
+  syncNextTime?: Date;
 
   // abandon
+  externalReadUrl?: string;
   defaultPermission?: number;
 };
 
@@ -70,6 +76,7 @@ export type DatasetCollectionSchemaType = {
   rawTextLength?: number;
   hashRawText?: string;
   externalFileUrl?: string; // external import url
+  apiFileId?: string; // api file id
   confluence?: {
     pageId: string;
     parentPageId: string;
@@ -216,7 +223,8 @@ export type DatasetFileSchema = {
   contentType: string;
   metadata: {
     teamId: string;
-    tmbId: string;
+    tmbId?: string;
+    uid: string;
     encoding?: string;
   };
 };

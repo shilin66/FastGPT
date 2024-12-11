@@ -10,6 +10,14 @@ import type {
 } from '../../../core/ai/model.d';
 import { SubTypeEnum } from '../../../support/wallet/sub/constants';
 
+export type NavbarItemType = {
+  id: string;
+  name: string;
+  avatar: string;
+  url: string;
+  isActive: boolean;
+};
+
 /* fastgpt main */
 export type FastGPTConfigFileType = {
   feConfigs: FastGPTFeConfigsType;
@@ -39,7 +47,6 @@ export type FastGPTFeConfigsType = {
 
   confluenceUrl?: string;
   docUrl?: string;
-  chatbotUrl?: string;
   openAPIDocUrl?: string;
   systemPluginCourseUrl?: string;
   appTemplateCourse?: string;
@@ -72,6 +79,7 @@ export type FastGPTFeConfigsType = {
   uploadFileMaxAmount?: number;
   uploadFileMaxSize?: number;
   lafEnv?: string;
+  navbarItems?: NavbarItemType[];
 };
 
 export type GithubType = {

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useContextSelector } from 'use-context-selector';
 import { AppContext } from '../context';
 import FolderPath from '@/components/common/folder/Path';
@@ -9,7 +9,6 @@ import { useRouter } from 'next/router';
 import RouteTab from '../RouteTab';
 import { useTranslation } from 'next-i18next';
 import { AppSimpleEditFormType } from '@fastgpt/global/core/app/type';
-import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
 import { form2AppWorkflow } from '@/web/core/app/utils';
 import { TabEnum } from '../context';
 import MyIcon from '@fastgpt/web/components/common/Icon';
@@ -29,6 +28,7 @@ import {
 } from './useSnapshots';
 import PublishHistories from '../PublishHistoriesSlider';
 import { AppVersionSchemaType } from '@fastgpt/global/core/app/version';
+import { useBeforeunload } from '@fastgpt/web/hooks/useBeforeunload';
 
 const Header = ({
   forbiddenSaveSnapshot,
@@ -48,7 +48,10 @@ const Header = ({
   const { t } = useTranslation();
   const { isPc } = useSystem();
   const router = useRouter();
-  const { appId, onSaveApp, currentTab } = useContextSelector(AppContext, (v) => v);
+  const appId = useContextSelector(AppContext, (v) => v.appId);
+  const onSaveApp = useContextSelector(AppContext, (v) => v.onSaveApp);
+  const currentTab = useContextSelector(AppContext, (v) => v.currentTab);
+
   const { lastAppListRouteType } = useSystemStore();
   const { allDatasets } = useDatasetStore();
 
@@ -82,7 +85,6 @@ const Header = ({
         nodes,
         edges,
         chatConfig: appForm.chatConfig,
-        type: AppTypeEnum.simple,
         isPublish,
         versionName
       });
@@ -139,16 +141,30 @@ const Header = ({
   );
 
   // Check if the workflow is published
-  const [isPublished, setIsPublished] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   useDebounceEffect(
     () => {
       const savedSnapshot = past.find((snapshot) => snapshot.isSaved);
       const val = compareSimpleAppSnapshot(savedSnapshot?.appForm, appForm);
-      setIsPublished(val);
+      setIsSaved(val);
     },
     [past, allDatasets],
     { wait: 500 }
   );
+
+  const onLeaveAutoSave = useCallback(() => {
+    if (isSaved) return;
+    try {
+      console.log('Leave auto save');
+      onClickSave({ isPublish: false, versionName: t('app:auto_save') });
+    } catch (error) {
+      console.error(error);
+    }
+  }, [isSaved, onClickSave, t]);
+  useBeforeunload({
+    tip: t('common:core.common.tip.leave page'),
+    callback: onLeaveAutoSave
+  });
 
   return (
     <Box h={14}>
@@ -182,13 +198,13 @@ const Header = ({
                     type={'borderFill'}
                     showDot
                     colorSchema={
-                      isPublished
+                      isSaved
                         ? publishStatusStyle.published.colorSchema
                         : publishStatusStyle.unPublish.colorSchema
                     }
                   >
                     {t(
-                      isPublished
+                      isSaved
                         ? publishStatusStyle.published.text
                         : publishStatusStyle.unPublish.text
                     )}
