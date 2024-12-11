@@ -46,6 +46,7 @@ import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import MyImage from '@fastgpt/web/components/common/Image/MyImage';
 import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
+import ConfluenceAccountModal from '@/pages/account/components/Info/ConfluenceAccountModal';
 
 const StandDetailModal = dynamic(() => import('./standardDetailModal'));
 const TeamMenu = dynamic(() => import('@/components/support/user/team/TeamMenu'));
@@ -135,7 +136,8 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
       await updateUserInfo({
         avatar: data.avatar,
         timezone: data.timezone,
-        openaiAccount: data.openaiAccount
+        openaiAccount: data.openaiAccount,
+        confluenceAccount: data.confluenceAccount
       });
       reset(data);
       toast({
@@ -577,13 +579,19 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
   });
   const { isOpen: isOpenLaf, onClose: onCloseLaf, onOpen: onOpenLaf } = useDisclosure();
   const { isOpen: isOpenOpenai, onClose: onCloseOpenai, onOpen: onOpenOpenai } = useDisclosure();
+  const {
+    isOpen: isOpenConfluence,
+    onClose: onCloseConfluence,
+    onOpen: onOpenConfluence
+  } = useDisclosure();
 
   const onclickSave = useCallback(
     async (data: UserType) => {
       await updateUserInfo({
         avatar: data.avatar,
         timezone: data.timezone,
-        openaiAccount: data.openaiAccount
+        openaiAccount: data.openaiAccount,
+        confluenceAccount: data.confluenceAccount
       });
       reset(data);
       toast({
@@ -694,6 +702,30 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
             />
           </Flex>
         )}
+        <Flex
+          bg={'white'}
+          py={3}
+          px={6}
+          border={theme.borders.sm}
+          borderWidth={'1.5px'}
+          borderRadius={'md'}
+          alignItems={'center'}
+          cursor={'pointer'}
+          userSelect={'none'}
+          onClick={onOpenConfluence}
+          fontSize={'sm'}
+        >
+          <MyIcon name={'core/dataset/confluenceDataset'} w={'18px'} color={'myGray.600'} />
+          <Box ml={2} flex={1}>
+            {'Confluence' + t('common:navbar.Account')}
+          </Box>
+          <Box
+            w={'9px'}
+            h={'9px'}
+            borderRadius={'50%'}
+            bg={userInfo?.confluenceAccount?.apiToken ? '#67c13b' : 'myGray.500'}
+          />
+        </Flex>
         {feConfigs?.concatMd && (
           <Button
             variant={'whiteBase'}
@@ -721,6 +753,18 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
             })
           }
           onClose={onCloseOpenai}
+        />
+      )}
+      {isOpenConfluence && userInfo && (
+        <ConfluenceAccountModal
+          defaultData={userInfo?.confluenceAccount}
+          onSuccess={(data) =>
+            onclickSave({
+              ...userInfo,
+              confluenceAccount: data
+            })
+          }
+          onClose={onCloseConfluence}
         />
       )}
     </Box>

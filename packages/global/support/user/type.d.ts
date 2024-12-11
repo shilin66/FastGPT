@@ -19,6 +19,10 @@ export type UserModelSchema = {
     key: string;
     baseUrl: string;
   };
+  confluenceAccount?: {
+    apiToken: string;
+    account: string;
+  };
   fastgpt_sem?: {
     keyword: string;
   };
@@ -32,6 +36,7 @@ export type UserType = {
   loginType: string;
   promotionRate: UserModelSchema['promotionRate'];
   openaiAccount: UserModelSchema['openaiAccount'];
+  confluenceAccount: UserModelSchema['confluenceAccount'];
   team: TeamTmbItemType;
   standardInfo?: standardInfoType;
   notificationAccount?: string;

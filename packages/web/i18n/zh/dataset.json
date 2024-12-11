@@ -45,5 +45,7 @@
   "the_knowledge_base_has_indexes_that_are_being_trained_or_being_rebuilt": "知识库有训练中或正在重建的索引",
   "training_mode": "处理方式",
   "website_dataset": "Web 站点同步",
-  "website_dataset_desc": "Web 站点同步允许你直接使用一个网页链接构建知识库"
+  "website_dataset_desc": "Web 站点同步允许你直接使用一个网页链接构建知识库",
+  "confluence_dataset": "Confluence知识库",
+  "confluence_dataset_desc": "可通过配置Confluence的空间或者页面构建知识库"
 }

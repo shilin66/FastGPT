@@ -153,6 +153,7 @@ export const iconPaths = {
   'core/dataset/datasetFill': () => import('./icons/core/dataset/datasetFill.svg'),
   'core/dataset/datasetLight': () => import('./icons/core/dataset/datasetLight.svg'),
   'core/dataset/externalDataset': () => import('./icons/core/dataset/externalDataset.svg'),
+  'core/dataset/confluenceDataset': () => import('./icons/core/dataset/confluenceDataset.svg'),
   'core/dataset/externalDatasetColor': () =>
     import('./icons/core/dataset/externalDatasetColor.svg'),
   'core/dataset/externalDatasetOutline': () =>

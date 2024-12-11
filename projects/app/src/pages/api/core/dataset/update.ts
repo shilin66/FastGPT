@@ -40,8 +40,18 @@ async function handler(
   req: ApiRequestProps<DatasetUpdateBody, DatasetUpdateQuery>,
   _res: ApiResponseType<any>
 ): Promise<DatasetUpdateResponse> {
-  const { id, parentId, name, avatar, intro, agentModel, websiteConfig, externalReadUrl, status } =
-    req.body;
+  const {
+    id,
+    parentId,
+    name,
+    avatar,
+    intro,
+    agentModel,
+    websiteConfig,
+    confluenceConfig,
+    externalReadUrl,
+    status
+  } = req.body;
 
   if (!id) {
     return Promise.reject(CommonErrEnum.missingParams);
@@ -93,6 +103,7 @@ async function handler(
         ...(avatar && { avatar }),
         ...(agentModel && { agentModel: agentModel.model }),
         ...(websiteConfig && { websiteConfig }),
+        ...(confluenceConfig && { confluenceConfig }),
         ...(status && { status }),
         ...(intro !== undefined && { intro }),
         ...(externalReadUrl !== undefined && { externalReadUrl }),

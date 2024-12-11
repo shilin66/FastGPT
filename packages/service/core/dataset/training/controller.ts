@@ -4,13 +4,33 @@ import type {
   PushDatasetDataProps,
   PushDatasetDataResponse
 } from '@fastgpt/global/core/dataset/api.d';
-import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
+import {
+  DatasetCollectionTypeEnum,
+  DatasetStatusEnum,
+  TrainingModeEnum
+} from '@fastgpt/global/core/dataset/constants';
 import { simpleText } from '@fastgpt/global/common/string/tools';
 import { ClientSession } from '../../../common/mongo';
 import { getLLMModel, getVectorModel } from '../../ai/model';
 import { addLog } from '../../../common/system/log';
 import { getCollectionWithDataset } from '../controller';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
+import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
+import { MongoTeamMember } from '../../../support/user/team/teamMemberSchema';
+import { TeamMemberWithUserSchema } from '@fastgpt/global/support/user/team/type';
+import ConfluenceClient, { Page } from '../../../common/confluence/client';
+import { getAllPagesByPageId, getSpaceAllPagesRecursive } from '../../../common/confluence/utils';
+import {
+  getConfluenceCollectionsByDatasetId,
+  reloadConfluencePageCollectionChunks
+} from '../collection/utils';
+import { delay } from '@fastgpt/global/common/system/utils';
+import { createOneCollection, delCollectionAndRelatedSources } from '../collection/controller';
+import { MongoDataset } from '../schema';
+import pLimit from 'p-limit';
+import { Converter } from '../../../common/confluence/adf2md';
+import adf2md = Converter.adf2md;
+import parseADF = Converter.parseADF;
 
 export const lockTrainingDataByTeamId = async (teamId: string): Promise<any> => {
   try {
@@ -206,3 +226,182 @@ export async function pushDataListToTrainingQueue({
     ...filterResult
   };
 }
+
+export const trainConfluenceCollection = async ({
+  dataset,
+  teamId
+}: {
+  dataset: DatasetSchemaType;
+  teamId: string;
+}) => {
+  const tmb = (await MongoTeamMember.findById(dataset.tmbId)
+    .populate('userId')
+    .lean()) as TeamMemberWithUserSchema;
+  if (!tmb) {
+    return Promise.reject("The dataset's owner is not found");
+  }
+
+  if (!tmb.userId.confluenceAccount) {
+    return Promise.reject("The dataset's owner has not configured Confluence account");
+  }
+
+  if (!dataset.confluenceConfig) {
+    return Promise.reject('The dataset has not configured Confluence config');
+  }
+
+  const { spaceKey, pageId, syncSubPages } = dataset.confluenceConfig;
+
+  const baseURL = global.feConfigs.confluenceUrl;
+  if (!baseURL) {
+    return Promise.reject('The Confluence base URL is not configured');
+  }
+  const confluenceClient = new ConfluenceClient(
+    baseURL + '/api/v2/',
+    tmb.userId.confluenceAccount.account,
+    tmb.userId.confluenceAccount.apiToken
+  );
+
+  const spaces = await confluenceClient.getSpacesByKeys(spaceKey);
+  if (spaces.results.length === 0) return;
+  const spaceId = spaces.results[0].id;
+
+  let pages: Page[] = [];
+
+  if (!pageId) {
+    pages = await getSpaceAllPagesRecursive(confluenceClient, null, spaceId);
+  } else {
+    pages = await getAllPagesByPageId(confluenceClient, pageId, syncSubPages);
+  }
+  if (pages.length === 0) {
+    return Promise.reject('No pages found in the specified space or page');
+  }
+  const datasetId = dataset._id;
+  const pageConfluence = await getConfluenceCollectionsByDatasetId(datasetId);
+
+  // 限制并发数，最多20个page同时处理
+  const limit = pLimit(20);
+  const tmbId = dataset.tmbId;
+
+  await MongoDataset.findByIdAndUpdate(datasetId, {
+    $set: {
+      status: DatasetStatusEnum.syncing
+    }
+  });
+
+  const taskPromises = pages.map((page) =>
+    limit(() =>
+      mongoSessionRun(async (session) => {
+        try {
+          // Random delay 0 ~ 5s
+          await delay(Math.floor(Math.random() * 5 * 1000));
+          const pageLink = baseURL + page._links.webui;
+          const adf = page.body.atlas_doc_format;
+          const markdown = adf2md(parseADF(adf.value));
+
+          // 创建或更新集合
+          const createOrUpdateCollection = async () => {
+            const col = pageConfluence[page.id];
+            if (!col || page.version.number !== col.confluence?.pageVersion) {
+              return {
+                collection: await createOneCollection({
+                  parentId: dataset.parentId,
+                  datasetId,
+                  name: page.title,
+                  teamId,
+                  tmbId,
+                  type: DatasetCollectionTypeEnum.link,
+                  trainingType: TrainingModeEnum.chunk,
+                  chunkSize: 512,
+                  chunkSplitter: '',
+                  qaPrompt:
+                    '<Context></Context> 标记中是一段文本，学习和分析它，并整理学习成果：\n' +
+                    '- 提出问题并给出每个问题的答案。\n' +
+                    '- 答案需详细完整，尽可能保留原文描述，可以适当扩展答案描述。\n' +
+                    '- 答案可以包含普通文字、链接、代码、表格、公示、媒体链接等 Markdown 元素。\n' +
+                    '- 最多提出 50 个问题。\n' +
+                    '- 生成的问题和答案和源文本语言相同。\n',
+                  rawLink: pageLink,
+                  confluence: {
+                    pageId: page.id,
+                    spaceId,
+                    parentPageId: page.parentId,
+                    pageVersion: page.version.number
+                  },
+                  session // 确保所有操作都在同一个 session 中
+                }),
+                option: !col ? 'create' : 'update'
+              };
+            }
+            return { collection: col };
+          };
+
+          const { collection, option } = await createOrUpdateCollection();
+          if (!collection || !option) {
+            return;
+          }
+          console.log(`${option} confluence page: ${page.title}`);
+
+          // 3. 加载页面数据
+          await reloadConfluencePageCollectionChunks({
+            collection: {
+              ...collection.toObject(),
+              datasetId: dataset
+            },
+            tmbId,
+            rawText: markdown.result,
+            title: page.title,
+            session // 同样使用同一个 session
+          });
+
+          if (option === 'update') {
+            // delete old collection
+            await delCollectionAndRelatedSources({
+              collections: [pageConfluence[page.id]],
+              session
+            });
+          }
+        } catch (e) {
+          console.error(`Error processing page ${page.title}:`, e);
+        }
+      })
+    )
+  );
+
+  // 等待所有任务完成
+  const results = await Promise.allSettled(taskPromises);
+
+  console.log(`sync finished, total pages count: ${pages.length}`);
+
+  // 处理结果
+  results.forEach((result, index) => {
+    const pageTitle = pages[index].title;
+    if (result.status === 'fulfilled') {
+      console.log(`Page "${pageTitle}" processed.`);
+    } else if (result.status === 'rejected') {
+      console.error(`Page "${pageTitle}" failed:`, result.reason);
+    }
+  });
+  // 找出在 Confluence 中删除但在数据库中仍然存在的集合
+  const pageIds = pages.map((page) => page.id);
+  const collectionsToDelete = Object.keys(pageConfluence).filter(
+    (collectionId) => !pageIds.includes(collectionId)
+  );
+
+  if (collectionsToDelete.length > 0) {
+    console.log(
+      `Deleting collections that no longer exist in Confluence: ${collectionsToDelete.join(', ')}`
+    );
+    await mongoSessionRun((session) =>
+      delCollectionAndRelatedSources({
+        collections: collectionsToDelete.map((id) => pageConfluence[id]),
+        session
+      })
+    );
+  }
+  // 更新数据集状态
+  await MongoDataset.findByIdAndUpdate(datasetId, {
+    $set: {
+      status: DatasetStatusEnum.active
+    }
+  });
+};

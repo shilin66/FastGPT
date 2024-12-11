@@ -24,7 +24,8 @@ import ComplianceTip from '@/components/common/ComplianceTip/index';
 export type CreateDatasetType =
   | DatasetTypeEnum.dataset
   | DatasetTypeEnum.externalFile
-  | DatasetTypeEnum.websiteDataset;
+  | DatasetTypeEnum.websiteDataset
+  | DatasetTypeEnum.confluenceDataset;
 
 const CreateModal = ({
   onClose,
@@ -45,7 +46,8 @@ const CreateModal = ({
     return {
       [DatasetTypeEnum.dataset]: t('dataset:common_dataset'),
       [DatasetTypeEnum.externalFile]: t('dataset:external_file'),
-      [DatasetTypeEnum.websiteDataset]: t('dataset:website_dataset')
+      [DatasetTypeEnum.websiteDataset]: t('dataset:website_dataset'),
+      [DatasetTypeEnum.confluenceDataset]: t('dataset:confluence_dataset')
     };
   }, [t]);
 
@@ -53,7 +55,8 @@ const CreateModal = ({
     return {
       [DatasetTypeEnum.dataset]: 'core/dataset/commonDatasetColor',
       [DatasetTypeEnum.externalFile]: 'core/dataset/externalDatasetColor',
-      [DatasetTypeEnum.websiteDataset]: 'core/dataset/websiteDatasetColor'
+      [DatasetTypeEnum.websiteDataset]: 'core/dataset/websiteDatasetColor',
+      [DatasetTypeEnum.confluenceDataset]: 'core/dataset/confluenceDataset'
     };
   }, []);
 

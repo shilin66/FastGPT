@@ -37,6 +37,7 @@ export type FastGPTFeConfigsType = {
   show_compliance_copywriting?: boolean;
   concatMd?: string;
 
+  confluenceUrl?: string;
   docUrl?: string;
   chatbotUrl?: string;
   openAPIDocUrl?: string;

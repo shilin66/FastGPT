@@ -14,6 +14,7 @@ export type DatasetUpdateBody = {
   status?: DatasetSchemaType['status'];
 
   websiteConfig?: DatasetSchemaType['websiteConfig'];
+  confluenceConfig?: DatasetSchemaType['confluenceConfig'];
   externalReadUrl?: DatasetSchemaType['externalReadUrl'];
   defaultPermission?: DatasetSchemaType['defaultPermission'];
 };
@@ -107,6 +108,10 @@ export type PushDatasetDataChunkProps = {
 export type PostWebsiteSyncParams = {
   datasetId: string;
   billId: string;
+};
+
+export type PostConfluenceSyncParams = {
+  datasetId: string;
 };
 
 export type PushDatasetDataProps = {
