@@ -1,5 +1,5 @@
 import { setCron } from '@fastgpt/service/common/system/cron';
-import { startTrainingQueue } from '@/service/core/dataset/training/utils';
+import { scheduleTriggerDataset, startTrainingQueue } from '@/service/core/dataset/training/utils';
 import { clearTmpUploadFiles } from '@fastgpt/service/common/file/utils';
 import {
   checkInvalidDatasetFiles,
@@ -74,9 +74,23 @@ const scheduleTriggerAppCron = () => {
   });
 };
 
+const scheduleSyncConfluenceDatasetCron = () => {
+  setCron('0 */1 * * *', async () => {
+    if (
+      await checkTimerLock({
+        timerId: TimerIdEnum.scheduleSyncConfluenceDataset,
+        lockMinuted: 59
+      })
+    ) {
+      scheduleTriggerDataset();
+    }
+  });
+};
+
 export const startCron = () => {
   setTrainingQueueCron();
   setClearTmpUploadFilesCron();
   clearInvalidDataCron();
   scheduleTriggerAppCron();
+  scheduleSyncConfluenceDatasetCron();
 };

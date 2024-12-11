@@ -14,7 +14,7 @@ async function handler(
   req: ApiRequestProps<UserAccountUpdateBody, UserAccountUpdateQuery>,
   _res: ApiResponseType<any>
 ): Promise<UserAccountUpdateResponse> {
-  const { avatar, timezone, openaiAccount, lafAccount } = req.body;
+  const { avatar, timezone, openaiAccount, confluenceAccount, lafAccount } = req.body;
 
   const { tmbId } = await authCert({ req, authToken: true });
   const tmb = await MongoTeamMember.findById(tmbId);
@@ -51,6 +51,7 @@ async function handler(
       ...(avatar && { avatar }),
       ...(timezone && { timezone }),
       openaiAccount: openaiAccount?.key ? openaiAccount : null,
+      confluenceAccount: confluenceAccount?.apiToken ? confluenceAccount : null,
       lafAccount: lafAccount?.token ? lafAccount : null
     }
   );

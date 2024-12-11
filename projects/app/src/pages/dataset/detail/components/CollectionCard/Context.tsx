@@ -8,7 +8,7 @@ import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { useDisclosure } from '@chakra-ui/react';
 import { checkTeamWebSyncLimit } from '@/web/support/user/team/api';
 import { postCreateTrainingUsage } from '@/web/support/wallet/usage/api';
-import { getDatasetCollections, postWebsiteSync } from '@/web/core/dataset/api';
+import { getDatasetCollections, postConfluenceSync, postWebsiteSync } from '@/web/core/dataset/api';
 import dynamic from 'next/dynamic';
 import { usePagination } from '@fastgpt/web/hooks/usePagination';
 import { DatasetCollectionsListItemType } from '@/global/core/dataset/type';
@@ -16,10 +16,13 @@ import { useRouter } from 'next/router';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 
 const WebSiteConfigModal = dynamic(() => import('./WebsiteConfig'));
+const ConfluenceConfigModal = dynamic(() => import('./ConfluenceConfig'));
 
 type CollectionPageContextType = {
   openWebSyncConfirm: () => void;
   onOpenWebsiteModal: () => void;
+  openConfluenceSyncConfirm: () => void;
+  onOpenConfluenceModal: () => void;
   collections: DatasetCollectionsListItemType[];
   Pagination: () => JSX.Element;
   total: number;
@@ -38,6 +41,12 @@ export const CollectionPageContext = createContext<CollectionPageContextType>({
     throw new Error('Function not implemented.');
   },
   onOpenWebsiteModal: function (): void {
+    throw new Error('Function not implemented.');
+  },
+  openConfluenceSyncConfirm: function (): () => void {
+    throw new Error('Function not implemented.');
+  },
+  onOpenConfluenceModal: function (): void {
     throw new Error('Function not implemented.');
   },
   collections: [],
@@ -100,6 +109,36 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
     errorToast: t('common:common.Update Failed')
   });
 
+  // confluence config
+  const { openConfirm: openConfluenceSyncConfirm, ConfirmModal: ConfirmConfluenceSyncModal } =
+    useConfirm({
+      content: t('common:core.dataset.collection.Start Sync Tip')
+    });
+  const {
+    isOpen: isOpenConfluenceModal,
+    onOpen: onOpenConfluenceModal,
+    onClose: onCloseConfluenceModal
+  } = useDisclosure();
+  const { mutate: onUpdateDatasetConfluenceConfig } = useRequest({
+    mutationFn: async (confluenceConfig: DatasetSchemaType['confluenceConfig']) => {
+      onCloseConfluenceModal();
+      await checkTeamWebSyncLimit();
+      await updateDataset({
+        id: datasetId,
+        confluenceConfig
+        // status: DatasetStatusEnum.syncing
+      });
+      // const billId = await postCreateTrainingUsage({
+      //   name: t('common:core.dataset.training.Confluence Sync'),
+      //   datasetId
+      // })
+      await postConfluenceSync({ datasetId });
+
+      return;
+    },
+    errorToast: t('common:common.Update Failed')
+  });
+
   // collection list
   const [searchText, setSearchText] = useState('');
   const [filterTags, setFilterTags] = useState<string[]>([]);
@@ -127,6 +166,8 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
   const contextValue: CollectionPageContextType = {
     openWebSyncConfirm: openWebSyncConfirm(onUpdateDatasetWebsiteConfig),
     onOpenWebsiteModal,
+    openConfluenceSyncConfirm: openConfluenceSyncConfirm(onUpdateDatasetConfluenceConfig),
+    onOpenConfluenceModal,
 
     searchText,
     setSearchText,
@@ -157,6 +198,24 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
             />
           )}
           <ConfirmWebSyncModal />
+        </>
+      )}
+
+      {datasetDetail.type === DatasetTypeEnum.confluenceDataset && (
+        <>
+          {isOpenConfluenceModal && (
+            <ConfluenceConfigModal
+              onClose={onCloseConfluenceModal}
+              onSuccess={onUpdateDatasetConfluenceConfig}
+              defaultValue={{
+                spaceKey: datasetDetail?.confluenceConfig?.spaceKey,
+                pageId: datasetDetail?.confluenceConfig?.pageId,
+                syncSubPages: datasetDetail?.confluenceConfig?.syncSubPages,
+                syncSchedule: datasetDetail?.confluenceConfig?.syncSchedule
+              }}
+            />
+          )}
+          <ConfirmConfluenceSyncModal />
         </>
       )}
     </CollectionPageContext.Provider>

@@ -26,7 +26,7 @@ importers:
         version: 13.3.0
       next-i18next:
         specifier: 15.3.0
-        version: 15.3.0(i18next@23.11.5)(next@14.2.5(@babel/core@7.24.9)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8))(react-i18next@14.1.2(i18next@23.11.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+        version: 15.3.0(i18next@23.11.5)(next@14.2.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8))(react-i18next@14.1.2(i18next@23.11.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       prettier:
         specifier: 3.2.4
         version: 3.2.4
@@ -215,6 +215,9 @@ importers:
       node-xlsx:
         specifier: ^0.24.0
         version: 0.24.0
+      p-limit:
+        specifier: ^6.1.0
+        version: 6.1.0
       papaparse:
         specifier: 5.4.1
         version: 5.4.1
@@ -281,7 +284,7 @@ importers:
         version: 2.1.1(@chakra-ui/system@2.6.1(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@chakra-ui/next-js':
         specifier: 2.1.5
-        version: 2.1.5(@chakra-ui/react@2.8.1(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(framer-motion@9.1.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(next@14.2.5(@babel/core@7.24.9)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8))(react@18.3.1)
+        version: 2.1.5(@chakra-ui/react@2.8.1(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(framer-motion@9.1.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(next@14.2.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8))(react@18.3.1)
       '@chakra-ui/react':
         specifier: 2.8.1
         version: 2.8.1(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(framer-motion@9.1.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -344,7 +347,7 @@ importers:
         version: 4.17.21
       next-i18next:
         specifier: 15.3.0
-        version: 15.3.0(i18next@23.11.5)(next@14.2.5(@babel/core@7.24.9)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8))(react-i18next@14.1.2(i18next@23.11.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+        version: 15.3.0(i18next@23.11.5)(next@14.2.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8))(react-i18next@14.1.2(i18next@23.11.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       papaparse:
         specifier: ^5.4.1
         version: 5.4.1
@@ -520,6 +523,9 @@ importers:
       nprogress:
         specifier: ^0.2.0
         version: 0.2.0
+      p-limit:
+        specifier: ^6.1.0
+        version: 6.1.0
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -1428,10 +1434,6 @@ packages:
 
   '@babel/template@7.25.0':
     resolution: {integrity: sha512-aOOgh1/5XzKvg1jvVz7AVrx2piJ2XBi227DHmbY6y+bM9H2FlN+IfecYu4Xl0cNiiVejlsCri89LUsbj8vJD9Q==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/traverse@7.24.8':
-    resolution: {integrity: sha512-t0P1xxAPzEDcEPmjprAQq19NWum4K0EQPjMwZQZbHt+GiZqvjCHjj755Weq1YRPVzBI+3zSfvScfpnuIecVFJQ==}
     engines: {node: '>=6.9.0'}
 
   '@babel/traverse@7.25.6':
@@ -3508,9 +3510,6 @@ packages:
 
   '@types/react-syntax-highlighter@15.5.13':
     resolution: {integrity: sha512-uLGJ87j6Sz8UaBAooU0T6lWJ0dBmjZgN1PZTrj05TNql2/XpC6+4HhMT5syIdFUUt+FASfCeLLv4kBygNU+8qA==}
-
-  '@types/react@18.3.0':
-    resolution: {integrity: sha512-DiUcKjzE6soLyln8NNZmyhcQjVv+WsUIFSqetMN0p8927OztKT4VTfFTqsbAi5oAGIcgOmOajlfBqyptDDjZRw==}
 
   '@types/react@18.3.1':
     resolution: {integrity: sha512-V0kuGBX3+prX+DQ/7r2qsv1NsdfnCLnTgnRJ1pYnxykBhGMz+qj+box5lq7XsO5mtZsBqpjwwTu/7wszPfMBcw==}
@@ -6367,8 +6366,8 @@ packages:
     resolution: {integrity: sha512-7jFxRVm+jD+rkq3kY0iZDJfsO2/t4BBPeEb2qKn2lR/9KhuksYk5hxzfRYWMPV8P/x2d0kHD306YyWLzjjH+uA==}
     engines: {node: '>=12.0.0'}
 
-  katex@0.16.11:
-    resolution: {integrity: sha512-RQrI8rlHY92OLf3rho/Ts8i/XvjgguEjOkO1BEXcU3N8BqPpSzBNwV/G0Ukr+P/l3ivvJUE/Fa/CwbS6HesGNQ==}
+  katex@0.16.15:
+    resolution: {integrity: sha512-yE9YJIEAk2aZ+FL/G8r+UGw0CTUzEA8ZFy6E+8tc3spHUKq3qBnzCkI1CQwGoI9atJhVyFPEypQsTY7mJ1Pi9w==}
     hasBin: true
 
   keyv@4.5.4:
@@ -6412,8 +6411,8 @@ packages:
   lexical@0.14.5:
     resolution: {integrity: sha512-ouV7Gyr9+3WT3WTrCgRAD3iZnlJWfs2/kBl2x3J2Q3X9uCWJn/zn21fQ8G1EUHlu0dvXPBmdk9hXb/FjTClt6Q==}
 
-  lib0@0.2.98:
-    resolution: {integrity: sha512-XteTiNO0qEXqqweWx+b21p/fBnNHUA1NwAtJNJek1oPrewEZs2uiT4gWivHKr9GqCjDPAhchz0UQO8NwU3bBNA==}
+  lib0@0.2.99:
+    resolution: {integrity: sha512-vwztYuUf1uf/1zQxfzRfO5yzfNKhTtgOByCruuiQQxWQXnPb8Itaube5ylofcV0oM0aKal9Mv+S1s1Ky0UYP1w==}
     engines: {node: '>=16'}
     hasBin: true
 
@@ -7338,6 +7337,10 @@ packages:
 
   p-limit@5.0.0:
     resolution: {integrity: sha512-/Eaoq+QyLSiXQ4lyYV23f14mZRQcXnxfHrN0vCai+ak9G0pp9iEQukIIZq5NccEvwRB8PUnZT0KsOoDCINS1qQ==}
+    engines: {node: '>=18'}
+
+  p-limit@6.1.0:
+    resolution: {integrity: sha512-H0jc0q1vOzlEk0TqAKXKZxdl7kX3OFUzCnNVUnq5Pc3DGo0kpeaMuPqxQn235HibwBEb0/pm9dgKTjXy66fBkg==}
     engines: {node: '>=18'}
 
   p-locate@4.1.0:
@@ -9368,7 +9371,7 @@ snapshots:
 
   '@babel/generator@7.24.10':
     dependencies:
-      '@babel/types': 7.24.9
+      '@babel/types': 7.25.6
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
       jsesc: 2.5.2
@@ -9386,8 +9389,8 @@ snapshots:
 
   '@babel/helper-builder-binary-assignment-operator-visitor@7.24.7':
     dependencies:
-      '@babel/traverse': 7.24.8
-      '@babel/types': 7.24.9
+      '@babel/traverse': 7.25.6
+      '@babel/types': 7.25.6
     transitivePeerDependencies:
       - supports-color
 
@@ -9439,16 +9442,16 @@ snapshots:
   '@babel/helper-function-name@7.24.7':
     dependencies:
       '@babel/template': 7.24.7
-      '@babel/types': 7.24.9
+      '@babel/types': 7.25.6
 
   '@babel/helper-hoist-variables@7.24.7':
     dependencies:
-      '@babel/types': 7.24.9
+      '@babel/types': 7.25.6
 
   '@babel/helper-member-expression-to-functions@7.24.8':
     dependencies:
-      '@babel/traverse': 7.24.8
-      '@babel/types': 7.24.9
+      '@babel/traverse': 7.25.6
+      '@babel/types': 7.25.6
     transitivePeerDependencies:
       - supports-color
 
@@ -9472,7 +9475,7 @@ snapshots:
 
   '@babel/helper-optimise-call-expression@7.24.7':
     dependencies:
-      '@babel/types': 7.24.9
+      '@babel/types': 7.25.6
 
   '@babel/helper-plugin-utils@7.24.8': {}
 
@@ -9503,8 +9506,8 @@ snapshots:
 
   '@babel/helper-skip-transparent-expression-wrappers@7.24.7':
     dependencies:
-      '@babel/traverse': 7.24.8
-      '@babel/types': 7.24.9
+      '@babel/traverse': 7.25.6
+      '@babel/types': 7.25.6
     transitivePeerDependencies:
       - supports-color
 
@@ -9522,8 +9525,8 @@ snapshots:
     dependencies:
       '@babel/helper-function-name': 7.24.7
       '@babel/template': 7.24.7
-      '@babel/traverse': 7.24.8
-      '@babel/types': 7.24.9
+      '@babel/traverse': 7.25.6
+      '@babel/types': 7.25.6
     transitivePeerDependencies:
       - supports-color
 
@@ -9541,7 +9544,7 @@ snapshots:
 
   '@babel/parser@7.24.8':
     dependencies:
-      '@babel/types': 7.24.9
+      '@babel/types': 7.25.6
 
   '@babel/parser@7.25.6':
     dependencies:
@@ -10189,21 +10192,6 @@ snapshots:
       '@babel/parser': 7.25.6
       '@babel/types': 7.25.6
 
-  '@babel/traverse@7.24.8':
-    dependencies:
-      '@babel/code-frame': 7.24.7
-      '@babel/generator': 7.24.10
-      '@babel/helper-environment-visitor': 7.24.7
-      '@babel/helper-function-name': 7.24.7
-      '@babel/helper-hoist-variables': 7.24.7
-      '@babel/helper-split-export-declaration': 7.24.7
-      '@babel/parser': 7.24.8
-      '@babel/types': 7.24.9
-      debug: 4.3.7
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/traverse@7.25.6':
     dependencies:
       '@babel/code-frame': 7.24.7
@@ -10501,6 +10489,14 @@ snapshots:
       - '@types/react'
 
   '@chakra-ui/next-js@2.1.5(@chakra-ui/react@2.8.1(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(framer-motion@9.1.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(next@14.2.5(@babel/core@7.24.9)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8))(react@18.3.1)':
+    dependencies:
+      '@chakra-ui/react': 2.8.1(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(framer-motion@9.1.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@emotion/cache': 11.11.0
+      '@emotion/react': 11.11.1(@types/react@18.3.1)(react@18.3.1)
+      next: 14.2.5(@babel/core@7.24.9)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8)
+      react: 18.3.1
+
+  '@chakra-ui/next-js@2.1.5(@chakra-ui/react@2.8.1(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(framer-motion@9.1.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(next@14.2.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8))(react@18.3.1)':
     dependencies:
       '@chakra-ui/react': 2.8.1(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.1(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(react@18.3.1))(@types/react@18.3.1)(framer-motion@9.1.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@emotion/cache': 11.11.0
@@ -12283,7 +12279,7 @@ snapshots:
   '@types/babel__core@7.20.5':
     dependencies:
       '@babel/parser': 7.24.8
-      '@babel/types': 7.24.9
+      '@babel/types': 7.25.6
       '@types/babel__generator': 7.6.8
       '@types/babel__template': 7.4.4
       '@types/babel__traverse': 7.20.6
@@ -12295,11 +12291,11 @@ snapshots:
   '@types/babel__template@7.4.4':
     dependencies:
       '@babel/parser': 7.24.8
-      '@babel/types': 7.24.9
+      '@babel/types': 7.25.6
 
   '@types/babel__traverse@7.20.6':
     dependencies:
-      '@babel/types': 7.24.9
+      '@babel/types': 7.25.6
 
   '@types/body-parser@1.19.5':
     dependencies:
@@ -12613,18 +12609,13 @@ snapshots:
   '@types/react-redux@7.1.33':
     dependencies:
       '@types/hoist-non-react-statics': 3.3.5
-      '@types/react': 18.3.0
+      '@types/react': 18.3.1
       hoist-non-react-statics: 3.3.2
       redux: 4.2.1
 
   '@types/react-syntax-highlighter@15.5.13':
     dependencies:
       '@types/react': 18.3.1
-
-  '@types/react@18.3.0':
-    dependencies:
-      '@types/prop-types': 15.7.12
-      csstype: 3.1.3
 
   '@types/react@18.3.1':
     dependencies:
@@ -13212,7 +13203,7 @@ snapshots:
 
   async-mutex@0.4.1:
     dependencies:
-      tslib: 2.6.3
+      tslib: 2.8.0
 
   async-mutex@0.5.0:
     dependencies:
@@ -13287,13 +13278,13 @@ snapshots:
   babel-plugin-jest-hoist@29.6.3:
     dependencies:
       '@babel/template': 7.24.7
-      '@babel/types': 7.24.9
+      '@babel/types': 7.25.6
       '@types/babel__core': 7.20.5
       '@types/babel__traverse': 7.20.6
 
   babel-plugin-macros@3.1.0:
     dependencies:
-      '@babel/runtime': 7.24.8
+      '@babel/runtime': 7.25.7
       cosmiconfig: 7.1.0
       resolve: 1.22.8
 
@@ -14536,7 +14527,7 @@ snapshots:
       eslint: 8.56.0
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.56.0))(eslint@8.56.0)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.56.0))(eslint@8.56.0))(eslint@8.56.0)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.56.0)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.56.0)
       eslint-plugin-react: 7.34.4(eslint@8.56.0)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.56.0)
@@ -14560,7 +14551,7 @@ snapshots:
       enhanced-resolve: 5.17.0
       eslint: 8.56.0
       eslint-module-utils: 2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.56.0))(eslint@8.56.0))(eslint@8.56.0)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.56.0))(eslint@8.56.0))(eslint@8.56.0)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.56.0)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.5
       is-core-module: 2.14.0
@@ -14582,7 +14573,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.56.0))(eslint@8.56.0))(eslint@8.56.0):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.5.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.56.0):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -16267,7 +16258,7 @@ snapshots:
 
   kareem@2.5.1: {}
 
-  katex@0.16.11:
+  katex@0.16.15:
     dependencies:
       commander: 8.3.0
 
@@ -16302,7 +16293,7 @@ snapshots:
 
   lexical@0.14.5: {}
 
-  lib0@0.2.98:
+  lib0@0.2.99:
     dependencies:
       isomorphic.js: 0.2.5
 
@@ -16739,7 +16730,7 @@ snapshots:
       dayjs: 1.11.13
       dompurify: 3.1.6
       elkjs: 0.9.3
-      katex: 0.16.11
+      katex: 0.16.15
       khroma: 2.1.0
       lodash-es: 4.17.21
       mdast-util-from-markdown: 1.3.1
@@ -16853,7 +16844,7 @@ snapshots:
     dependencies:
       '@types/katex': 0.16.7
       devlop: 1.1.0
-      katex: 0.16.11
+      katex: 0.16.15
       micromark-factory-space: 2.0.0
       micromark-util-character: 2.1.0
       micromark-util-symbol: 2.0.0
@@ -17397,6 +17388,18 @@ snapshots:
       react: 18.3.1
       react-i18next: 14.1.2(i18next@23.11.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
+  next-i18next@15.3.0(i18next@23.11.5)(next@14.2.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8))(react-i18next@14.1.2(i18next@23.11.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
+    dependencies:
+      '@babel/runtime': 7.24.8
+      '@types/hoist-non-react-statics': 3.3.5
+      core-js: 3.37.1
+      hoist-non-react-statics: 3.3.2
+      i18next: 23.11.5
+      i18next-fs-backend: 2.3.1
+      next: 14.2.5(@babel/core@7.24.9)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8)
+      react: 18.3.1
+      react-i18next: 14.1.2(i18next@23.11.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
   next@14.2.5(@babel/core@7.24.9)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.77.8):
     dependencies:
       '@next/env': 14.2.5
@@ -17632,6 +17635,10 @@ snapshots:
       yocto-queue: 0.1.0
 
   p-limit@5.0.0:
+    dependencies:
+      yocto-queue: 1.1.1
+
+  p-limit@6.1.0:
     dependencies:
       yocto-queue: 1.1.1
 
@@ -18108,7 +18115,7 @@ snapshots:
 
   react-redux@7.2.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
-      '@babel/runtime': 7.24.8
+      '@babel/runtime': 7.25.7
       '@types/react-redux': 7.1.33
       hoist-non-react-statics: 3.3.2
       loose-envify: 1.4.0
@@ -18122,7 +18129,7 @@ snapshots:
     dependencies:
       react: 18.3.1
       react-style-singleton: 2.2.1(@types/react@18.3.1)(react@18.3.1)
-      tslib: 2.6.3
+      tslib: 2.8.0
     optionalDependencies:
       '@types/react': 18.3.1
 
@@ -18142,7 +18149,7 @@ snapshots:
       get-nonce: 1.0.1
       invariant: 2.2.4
       react: 18.3.1
-      tslib: 2.6.3
+      tslib: 2.8.0
     optionalDependencies:
       '@types/react': 18.3.1
 
@@ -18214,7 +18221,7 @@ snapshots:
 
   redux@4.2.1:
     dependencies:
-      '@babel/runtime': 7.24.8
+      '@babel/runtime': 7.25.7
 
   reflect-metadata@0.2.2: {}
 
@@ -18281,7 +18288,7 @@ snapshots:
       '@types/katex': 0.16.7
       hast-util-from-html-isomorphic: 2.0.0
       hast-util-to-text: 4.0.2
-      katex: 0.16.11
+      katex: 0.16.15
       unist-util-visit-parents: 6.0.1
       vfile: 6.0.2
 
@@ -19720,7 +19727,7 @@ snapshots:
 
   yjs@13.6.18:
     dependencies:
-      lib0: 0.2.98
+      lib0: 0.2.99
 
   yn@3.1.1: {}
 

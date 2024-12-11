@@ -56,8 +56,15 @@ const Header = ({}: {}) => {
   const { isPc } = useSystem();
 
   const lastSearch = useRef('');
-  const { searchText, setSearchText, total, getData, pageNum, onOpenWebsiteModal } =
-    useContextSelector(CollectionPageContext, (v) => v);
+  const {
+    searchText,
+    setSearchText,
+    total,
+    getData,
+    pageNum,
+    onOpenWebsiteModal,
+    onOpenConfluenceModal
+  } = useContextSelector(CollectionPageContext, (v) => v);
 
   const { data: paths = [] } = useQuery(['getDatasetCollectionPathById', parentId], () =>
     getDatasetCollectionPathById(parentId)
@@ -110,7 +117,9 @@ const Header = ({}: {}) => {
     successToast: t('common:common.Create Success'),
     errorToast: t('common:common.Create Failed')
   });
-  const isWebSite = datasetDetail?.type === DatasetTypeEnum.websiteDataset;
+  const isWebSite =
+    datasetDetail?.type === DatasetTypeEnum.websiteDataset ||
+    datasetDetail?.type === DatasetTypeEnum.confluenceDataset;
 
   return (
     <Box display={['block', 'flex']} alignItems={'center'} gap={2}>
@@ -315,6 +324,43 @@ const Header = ({}: {}) => {
               ) : (
                 <Button onClick={onOpenWebsiteModal}>
                   {t('common:core.dataset.Set Website Config')}
+                </Button>
+              )}
+            </>
+          )}
+          {datasetDetail?.type === DatasetTypeEnum.confluenceDataset && (
+            <>
+              {datasetDetail?.confluenceConfig?.spaceKey ? (
+                <Flex alignItems={'center'}>
+                  {datasetDetail.status === DatasetStatusEnum.active && (
+                    <Button onClick={onOpenConfluenceModal}>{t('common:common.Config')}</Button>
+                  )}
+                  {datasetDetail.status === DatasetStatusEnum.syncing && (
+                    <Flex
+                      ml={3}
+                      alignItems={'center'}
+                      px={3}
+                      py={1}
+                      borderRadius="md"
+                      border={theme.borders.base}
+                    >
+                      <Box
+                        animation={'zoomStopIcon 0.5s infinite alternate'}
+                        bg={'myGray.700'}
+                        w="8px"
+                        h="8px"
+                        borderRadius={'50%'}
+                        mt={'1px'}
+                      ></Box>
+                      <Box ml={2} color={'myGray.600'}>
+                        {t('common:core.dataset.status.syncing')}
+                      </Box>
+                    </Flex>
+                  )}
+                </Flex>
+              ) : (
+                <Button onClick={onOpenConfluenceModal}>
+                  {t('common:core.dataset.Set Confluence Config')}
                 </Button>
               )}
             </>

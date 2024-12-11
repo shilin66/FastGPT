@@ -28,7 +28,8 @@ import { useEditTitle } from '@/web/common/hooks/useEditTitle';
 import {
   DatasetCollectionTypeEnum,
   DatasetStatusEnum,
-  DatasetCollectionSyncResultMap
+  DatasetCollectionSyncResultMap,
+  DatasetTypeEnum
 } from '@fastgpt/global/core/dataset/constants';
 import { getCollectionIcon } from '@fastgpt/global/core/dataset/utils';
 import { TabEnum } from '../../index';
@@ -280,117 +281,120 @@ const CollectionCard = () => {
                     />
                   </Td>
                   <Td py={2} onClick={(e) => e.stopPropagation()}>
-                    {collection.permission.hasWritePer && (
-                      <MyMenu
-                        width={100}
-                        offset={[-70, 5]}
-                        Button={
-                          <MenuButton
-                            w={'1.5rem'}
-                            h={'1.5rem'}
-                            borderRadius={'md'}
-                            _hover={{
-                              color: 'primary.500',
-                              '& .icon': {
-                                bg: 'myGray.200'
-                              }
-                            }}
-                          >
-                            <MyIcon
-                              className="icon"
-                              name={'more'}
-                              h={'1rem'}
-                              w={'1rem'}
-                              px={1}
-                              py={1}
+                    {collection.permission.hasWritePer &&
+                      datasetDetail.type !== DatasetTypeEnum.confluenceDataset && (
+                        <MyMenu
+                          width={100}
+                          offset={[-70, 5]}
+                          Button={
+                            <MenuButton
+                              w={'1.5rem'}
+                              h={'1.5rem'}
                               borderRadius={'md'}
-                              cursor={'pointer'}
-                            />
-                          </MenuButton>
-                        }
-                        menuList={[
-                          {
-                            children: [
-                              ...(collection.type === DatasetCollectionTypeEnum.link
-                                ? [
-                                    {
-                                      label: (
-                                        <Flex alignItems={'center'}>
-                                          <MyIcon
-                                            name={'common/refreshLight'}
-                                            w={'0.9rem'}
-                                            mr={2}
-                                          />
-                                          {t('common:core.dataset.collection.Sync')}
-                                        </Flex>
-                                      ),
-                                      onClick: () =>
-                                        openSyncConfirm(() => {
-                                          onclickStartSync(collection._id);
-                                        })()
-                                    }
-                                  ]
-                                : []),
-                              {
-                                label: (
-                                  <Flex alignItems={'center'}>
-                                    <MyIcon name={'common/file/move'} w={'0.9rem'} mr={2} />
-                                    {t('common:Move')}
-                                  </Flex>
-                                ),
-                                onClick: () =>
-                                  setMoveCollectionData({ collectionId: collection._id })
-                              },
-                              {
-                                label: (
-                                  <Flex alignItems={'center'}>
-                                    <MyIcon name={'edit'} w={'0.9rem'} mr={2} />
-                                    {t('common:Rename')}
-                                  </Flex>
-                                ),
-                                onClick: () =>
-                                  onOpenEditTitleModal({
-                                    defaultVal: collection.name,
-                                    onSuccess: (newName) =>
-                                      onUpdateCollection({
-                                        id: collection._id,
-                                        name: newName
-                                      })
-                                  })
-                              }
-                            ]
-                          },
-                          {
-                            children: [
-                              {
-                                label: (
-                                  <Flex alignItems={'center'}>
-                                    <MyIcon
-                                      mr={1}
-                                      name={'delete'}
-                                      w={'0.9rem'}
-                                      _hover={{ color: 'red.600' }}
-                                    />
-                                    <Box>{t('common:common.Delete')}</Box>
-                                  </Flex>
-                                ),
-                                type: 'danger',
-                                onClick: () =>
-                                  openDeleteConfirm(
-                                    () => {
-                                      onDelCollection(collection._id);
-                                    },
-                                    undefined,
-                                    collection.type === DatasetCollectionTypeEnum.folder
-                                      ? t('common:dataset.collections.Confirm to delete the folder')
-                                      : t('common:dataset.Confirm to delete the file')
-                                  )()
-                              }
-                            ]
+                              _hover={{
+                                color: 'primary.500',
+                                '& .icon': {
+                                  bg: 'myGray.200'
+                                }
+                              }}
+                            >
+                              <MyIcon
+                                className="icon"
+                                name={'more'}
+                                h={'1rem'}
+                                w={'1rem'}
+                                px={1}
+                                py={1}
+                                borderRadius={'md'}
+                                cursor={'pointer'}
+                              />
+                            </MenuButton>
                           }
-                        ]}
-                      />
-                    )}
+                          menuList={[
+                            {
+                              children: [
+                                ...(collection.type === DatasetCollectionTypeEnum.link
+                                  ? [
+                                      {
+                                        label: (
+                                          <Flex alignItems={'center'}>
+                                            <MyIcon
+                                              name={'common/refreshLight'}
+                                              w={'0.9rem'}
+                                              mr={2}
+                                            />
+                                            {t('common:core.dataset.collection.Sync')}
+                                          </Flex>
+                                        ),
+                                        onClick: () =>
+                                          openSyncConfirm(() => {
+                                            onclickStartSync(collection._id);
+                                          })()
+                                      }
+                                    ]
+                                  : []),
+                                {
+                                  label: (
+                                    <Flex alignItems={'center'}>
+                                      <MyIcon name={'common/file/move'} w={'0.9rem'} mr={2} />
+                                      {t('common:Move')}
+                                    </Flex>
+                                  ),
+                                  onClick: () =>
+                                    setMoveCollectionData({ collectionId: collection._id })
+                                },
+                                {
+                                  label: (
+                                    <Flex alignItems={'center'}>
+                                      <MyIcon name={'edit'} w={'0.9rem'} mr={2} />
+                                      {t('common:Rename')}
+                                    </Flex>
+                                  ),
+                                  onClick: () =>
+                                    onOpenEditTitleModal({
+                                      defaultVal: collection.name,
+                                      onSuccess: (newName) =>
+                                        onUpdateCollection({
+                                          id: collection._id,
+                                          name: newName
+                                        })
+                                    })
+                                }
+                              ]
+                            },
+                            {
+                              children: [
+                                {
+                                  label: (
+                                    <Flex alignItems={'center'}>
+                                      <MyIcon
+                                        mr={1}
+                                        name={'delete'}
+                                        w={'0.9rem'}
+                                        _hover={{ color: 'red.600' }}
+                                      />
+                                      <Box>{t('common:common.Delete')}</Box>
+                                    </Flex>
+                                  ),
+                                  type: 'danger',
+                                  onClick: () =>
+                                    openDeleteConfirm(
+                                      () => {
+                                        onDelCollection(collection._id);
+                                      },
+                                      undefined,
+                                      collection.type === DatasetCollectionTypeEnum.folder
+                                        ? t(
+                                            'common:dataset.collections.Confirm to delete the folder'
+                                          )
+                                        : t('common:dataset.Confirm to delete the file')
+                                    )()
+                                }
+                              ]
+                            }
+                          ]}
+                        />
+                      )}
                   </Td>
                 </Tr>
               ))}

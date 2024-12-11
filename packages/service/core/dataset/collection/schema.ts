@@ -85,6 +85,28 @@ const DatasetCollectionSchema = new Schema({
   // external collection
   externalFileId: String,
 
+  // confluence collection
+  confluence: {
+    type: {
+      pageId: {
+        type: String,
+        required: true
+      },
+      parentPageId: {
+        type: String,
+        required: false
+      },
+      pageVersion: {
+        type: Number,
+        required: true
+      },
+      spaceId: {
+        type: String,
+        required: true
+      }
+    }
+  },
+
   // metadata
   rawTextLength: Number,
   hashRawText: String,

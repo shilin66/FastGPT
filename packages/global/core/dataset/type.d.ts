@@ -30,6 +30,12 @@ export type DatasetSchemaType = {
     url: string;
     selector: string;
   };
+  confluenceConfig?: {
+    spaceKey: string;
+    pageId: string;
+    syncSubPages?: boolean;
+    syncSchedule?: boolean;
+  };
   externalReadUrl?: string;
   inheritPermission: boolean;
 
@@ -64,6 +70,12 @@ export type DatasetCollectionSchemaType = {
   rawTextLength?: number;
   hashRawText?: string;
   externalFileUrl?: string; // external import url
+  confluence?: {
+    pageId: string;
+    parentPageId: string;
+    pageVersion: number;
+    spaceId: string;
+  };
   metadata?: {
     webPageSelector?: string;
     relatedImgId?: string; // The id of the associated image collections

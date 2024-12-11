@@ -160,13 +160,19 @@ const Dataset = () => {
                           label: t('dataset:common_dataset'),
                           description: t('dataset:common_dataset_desc'),
                           onClick: () => onSelectDatasetType(DatasetTypeEnum.dataset)
+                        },
+                        {
+                          icon: 'core/dataset/confluenceDataset',
+                          label: t('dataset:confluence_dataset'),
+                          description: t('dataset:confluence_dataset_desc'),
+                          onClick: () => onSelectDatasetType(DatasetTypeEnum.confluenceDataset)
                         }
                         // {
                         //   icon: 'core/dataset/websiteDatasetColor',
                         //   label: t('dataset:website_dataset'),
                         //   description: t('dataset:website_dataset_desc'),
                         //   onClick: () => onSelectDatasetType(DatasetTypeEnum.websiteDataset)
-                        // },
+                        // }
                         // {
                         //   icon: 'core/dataset/externalDatasetColor',
                         //   label: t('dataset:external_file'),

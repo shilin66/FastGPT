@@ -7,5 +7,6 @@ export interface UserUpdateParams {
   avatar?: string;
   timezone?: string;
   openaiAccount?: UserModelSchema['openaiAccount'];
+  confluenceAccount?: UserModelSchema['confluenceAccount'];
   lafAccount?: LafAccountType;
 }

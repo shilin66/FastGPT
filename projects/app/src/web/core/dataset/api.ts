@@ -20,6 +20,7 @@ import type {
   ExternalFileCreateDatasetCollectionParams,
   FileIdCreateDatasetCollectionParams,
   LinkCreateDatasetCollectionParams,
+  PostConfluenceSyncParams,
   PostWebsiteSyncParams,
   TextCreateDatasetCollectionParams,
   UpdateDatasetCollectionTagParams
@@ -80,6 +81,11 @@ export const delDatasetById = (id: string) => DELETE(`/core/dataset/delete?id=${
 
 export const postWebsiteSync = (data: PostWebsiteSyncParams) =>
   POST(`/proApi/core/dataset/websiteSync`, data, {
+    timeout: 600000
+  }).catch();
+
+export const postConfluenceSync = (data: PostConfluenceSyncParams) =>
+  POST(`/core/dataset/confluenceSync`, data, {
     timeout: 600000
   }).catch();
 

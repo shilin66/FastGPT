@@ -76,19 +76,19 @@ export async function searchDatasetData(props: SearchDatasetDataProps) {
   const countRecallLimit = () => {
     if (searchMode === DatasetSearchModeEnum.embedding) {
       return {
-        embeddingLimit: 100,
+        embeddingLimit: 500,
         fullTextLimit: 0
       };
     }
     if (searchMode === DatasetSearchModeEnum.fullTextRecall) {
       return {
         embeddingLimit: 0,
-        fullTextLimit: 100
+        fullTextLimit: 500
       };
     }
     return {
-      embeddingLimit: 80,
-      fullTextLimit: 60
+      embeddingLimit: 500,
+      fullTextLimit: 500
     };
   };
   const getForbidData = async () => {

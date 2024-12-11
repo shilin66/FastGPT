@@ -1,4 +1,7 @@
-import type { CollectionWithDatasetType } from '@fastgpt/global/core/dataset/type.d';
+import type {
+  CollectionWithDatasetType,
+  DatasetCollectionSchemaType
+} from '@fastgpt/global/core/dataset/type.d';
 import { MongoDatasetCollection } from './schema';
 import { splitText2Chunks } from '@fastgpt/global/common/string/textSplitter';
 import { MongoDatasetTraining } from '../training/schema';
@@ -203,6 +206,64 @@ export const reloadCollectionChunks = async ({
   };
 };
 
+export const reloadConfluencePageCollectionChunks = async ({
+  collection,
+  tmbId,
+  rawText,
+  title,
+  session
+}: {
+  collection: CollectionWithDatasetType;
+  tmbId: string;
+  rawText: string;
+  title: string;
+  session: ClientSession;
+}): Promise<PushDatasetDataResponse> => {
+  // split data
+  const { chunks } = splitText2Chunks({
+    text: rawText,
+    chunkLen: collection.chunkSize || 512,
+    customReg: collection.chunkSplitter ? [collection.chunkSplitter] : []
+  });
+
+  // insert to training queue
+  const model = await (() => {
+    if (collection.trainingType === TrainingModeEnum.chunk) return collection.datasetId.vectorModel;
+    if (collection.trainingType === TrainingModeEnum.qa) return collection.datasetId.agentModel;
+    return Promise.reject('Training model error');
+  })();
+
+  const result = await MongoDatasetTraining.insertMany(
+    chunks.map((item, i) => ({
+      teamId: collection.teamId,
+      tmbId,
+      datasetId: collection.datasetId._id,
+      collectionId: collection._id,
+      mode: collection.trainingType,
+      prompt: '',
+      model,
+      q: item,
+      a: '',
+      chunkIndex: i
+    })),
+    { session }
+  );
+
+  // update raw text
+  await MongoDatasetCollection.findByIdAndUpdate(
+    collection._id,
+    {
+      ...(title && { name: title }),
+      rawTextLength: rawText.length
+    },
+    { session }
+  );
+
+  return {
+    insertLen: result.length
+  };
+};
+
 export const createOrGetCollectionTags = async ({
   tags,
   datasetId,
@@ -267,4 +328,36 @@ export const collectionTagsToTagLabel = async ({
       return tagsMap.get(tag) || '';
     })
     .filter(Boolean);
+};
+
+export const getConfluenceCollection = async ({
+  collectionId,
+  session
+}: {
+  collectionId: string;
+  session?: ClientSession;
+}) => {
+  const collection = await MongoDatasetCollection.findById(collectionId, undefined, {
+    ...readFromSecondary,
+    session
+  }).lean();
+
+  if (!collection) throw new Error('Collection not found');
+
+  return collection;
+};
+
+export const getConfluenceCollectionsByDatasetId = async (datasetId: string) => {
+  const collections = await MongoDatasetCollection.find({
+    datasetId
+  }).lean();
+  // key collection.confluence.pageId, value collection
+  const pageCollection: { [key: string]: DatasetCollectionSchemaType } = {};
+
+  collections.forEach((collection) => {
+    if (collection.confluence?.pageId) {
+      pageCollection[collection.confluence.pageId] = collection;
+    }
+  });
+  return pageCollection;
 };

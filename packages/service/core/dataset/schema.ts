@@ -83,6 +83,25 @@ const DatasetSchema = new Schema({
       }
     }
   },
+  confluenceConfig: {
+    type: {
+      spaceKey: {
+        type: String,
+        required: true
+      },
+      pageId: {
+        type: String
+      },
+      syncSubPages: {
+        type: Boolean,
+        default: false
+      },
+      syncSchedule: {
+        type: Boolean,
+        default: false
+      }
+    }
+  },
   externalReadUrl: {
     type: String
   },

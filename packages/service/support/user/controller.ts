@@ -49,6 +49,7 @@ export async function getUserDetail({
     loginType: user.loginType,
     promotionRate: user.promotionRate,
     openaiAccount: user.openaiAccount,
+    confluenceAccount: user.confluenceAccount,
     team: tmb,
     notificationAccount: tmb.notificationAccount,
     permission: tmb.permission

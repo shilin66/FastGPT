@@ -36,6 +36,7 @@ export async function createOneCollection({
   hashRawText,
   rawTextLength,
   metadata = {},
+  confluence = {},
   session,
   tags,
   ...props
@@ -69,7 +70,7 @@ export async function createOneCollection({
         rawLink,
         externalFileId,
         externalFileUrl,
-
+        confluence,
         rawTextLength,
         hashRawText,
         metadata,

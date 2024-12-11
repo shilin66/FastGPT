@@ -1,0 +1,79 @@
+import ConfluenceClient, { ChildPage, Page } from './client';
+
+export const getSpaceAllPagesRecursive = async (
+  client: ConfluenceClient,
+  cursor: string | null,
+  spaceId: string
+): Promise<Page[]> => {
+  const allPages: Page[] = [];
+  try {
+    const recursivePage = async (cursor: string | null) => {
+      const response = await client.getPagesInSpace(spaceId, cursor);
+      allPages.push(...response.results);
+      const next = response._links.next;
+      if (next) {
+        const nextCursor = getCursor(next);
+        if (nextCursor) {
+          return recursivePage(nextCursor);
+        }
+      }
+    };
+    await recursivePage(cursor);
+    return allPages;
+  } catch (error) {
+    console.error('Error fetching all pages in space:', error);
+    throw error;
+  }
+};
+
+// 递归获取指定 pageId 下的所有 childPage
+export const getAllChildPagesByPageId = async (
+  client: ConfluenceClient,
+  pageId: string,
+  syncSubPages: boolean
+): Promise<ChildPage[]> => {
+  const allChildren: ChildPage[] = [];
+
+  const fetchChildren = async (pageId: string, cursor: string | null = null) => {
+    const response = await client.getChildren(pageId, cursor);
+    allChildren.push(...response.results);
+
+    if (response._links.next) {
+      const nextCursor = new URL(response._links.next).searchParams.get('cursor');
+      await fetchChildren(pageId, nextCursor);
+    }
+
+    // 递归获取每个子页面的子页面
+    for (const child of response.results) {
+      await fetchChildren(child.id);
+    }
+  };
+
+  await fetchChildren(pageId);
+  return allChildren;
+};
+
+// 获取指定 pageId 下的所有页面详细内容，包括pageId
+export const getAllPagesByPageId = async (
+  client: ConfluenceClient,
+  pageId: string,
+  syncSubPages: boolean = false
+): Promise<Page[]> => {
+  const allPageIds: string[] = [];
+  if (syncSubPages) {
+    const childPages = await getAllChildPagesByPageId(client, pageId, syncSubPages);
+    allPageIds.push(...childPages.map((child) => child.id));
+  } else {
+    allPageIds.push(pageId);
+  }
+
+  const PageResponse = await client.getPagesByIds(allPageIds);
+  return PageResponse.results;
+};
+const getCursor = (url: string) => {
+  // 创建一个 URL 对象
+  const urlObj = new URL(url, 'http://example.com');
+
+  // 获取 `cursor` 参数的值
+  return urlObj.searchParams.get('cursor');
+};
