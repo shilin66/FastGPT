@@ -1,9 +1,12 @@
+import { i18nT } from '../../../web/i18n/utils';
+
 /* ------------ dataset -------------- */
 export enum DatasetTypeEnum {
   folder = 'folder',
   dataset = 'dataset',
   websiteDataset = 'websiteDataset', // depp link
   externalFile = 'externalFile',
+  apiDataset = 'apiDataset',
   confluenceDataset = 'confluenceDataset'
 }
 export const DatasetTypeMap = {
@@ -27,6 +30,11 @@ export const DatasetTypeMap = {
     label: 'external_file',
     collectionLabel: 'common.File'
   },
+  [DatasetTypeEnum.apiDataset]: {
+    icon: 'core/dataset/externalDatasetOutline',
+    label: 'api_file',
+    collectionLabel: 'common.File'
+  },
   [DatasetTypeEnum.confluenceDataset]: {
     icon: 'core/dataset/confluenceDataset',
     label: 'confluence_dataset',
@@ -40,10 +48,10 @@ export enum DatasetStatusEnum {
 }
 export const DatasetStatusMap = {
   [DatasetStatusEnum.active]: {
-    label: 'core.dataset.status.active'
+    label: i18nT('common:core.dataset.status.active')
   },
   [DatasetStatusEnum.syncing]: {
-    label: 'core.dataset.status.syncing'
+    label: i18nT('common:core.dataset.status.syncing')
   }
 };
 
@@ -54,23 +62,27 @@ export enum DatasetCollectionTypeEnum {
 
   file = 'file',
   link = 'link', // one link
-  externalFile = 'externalFile'
+  externalFile = 'externalFile',
+  apiFile = 'apiFile'
 }
 export const DatasetCollectionTypeMap = {
   [DatasetCollectionTypeEnum.folder]: {
-    name: 'core.dataset.folder'
+    name: i18nT('common:core.dataset.folder')
   },
   [DatasetCollectionTypeEnum.file]: {
-    name: 'core.dataset.file'
+    name: i18nT('common:core.dataset.file')
   },
   [DatasetCollectionTypeEnum.externalFile]: {
-    name: 'core.dataset.externalFile'
+    name: i18nT('common:core.dataset.externalFile')
   },
   [DatasetCollectionTypeEnum.link]: {
-    name: 'core.dataset.link'
+    name: i18nT('common:core.dataset.link')
   },
   [DatasetCollectionTypeEnum.virtual]: {
-    name: 'core.dataset.Manual collection'
+    name: i18nT('common:core.dataset.Manual collection')
+  },
+  [DatasetCollectionTypeEnum.apiFile]: {
+    name: i18nT('common:core.dataset.apiFile')
   }
 };
 
@@ -80,10 +92,10 @@ export enum DatasetCollectionSyncResultEnum {
 }
 export const DatasetCollectionSyncResultMap = {
   [DatasetCollectionSyncResultEnum.sameRaw]: {
-    label: 'core.dataset.collection.sync.result.sameRaw'
+    label: i18nT('common:core.dataset.collection.sync.result.sameRaw')
   },
   [DatasetCollectionSyncResultEnum.success]: {
-    label: 'core.dataset.collection.sync.result.success'
+    label: i18nT('common:core.dataset.collection.sync.result.success')
   }
 };
 
@@ -95,7 +107,9 @@ export enum ImportDataSourceEnum {
   fileLink = 'fileLink',
   fileCustom = 'fileCustom',
   csvTable = 'csvTable',
-  externalFile = 'externalFile'
+  externalFile = 'externalFile',
+  apiDataset = 'apiDataset',
+  reTraining = 'reTraining'
 }
 
 export enum TrainingModeEnum {
@@ -106,18 +120,18 @@ export enum TrainingModeEnum {
 
 export const TrainingTypeMap = {
   [TrainingModeEnum.chunk]: {
-    label: 'core.dataset.training.Chunk mode',
-    tooltip: 'core.dataset.import.Chunk Split Tip',
+    label: i18nT('common:core.dataset.training.Chunk mode'),
+    tooltip: i18nT('common:core.dataset.import.Chunk Split Tip'),
     openSource: true
   },
   // [TrainingModeEnum.auto]: {
-  //   label: 'core.dataset.training.Auto mode',
-  //   tooltip: 'core.dataset.training.Auto mode Tip',
+  //   label: i18nT('common:core.dataset.training.Auto mode'),
+  //   tooltip: i18nT('common:core.dataset.training.Auto mode Tip'),
   //   openSource: false
   // },
   [TrainingModeEnum.qa]: {
-    label: 'core.dataset.training.QA mode',
-    tooltip: 'core.dataset.import.QA Import Tip',
+    label: i18nT('common:core.dataset.training.QA mode'),
+    tooltip: i18nT('common:core.dataset.import.QA Import Tip'),
     openSource: true
   }
 };
@@ -132,20 +146,20 @@ export enum DatasetSearchModeEnum {
 export const DatasetSearchModeMap = {
   [DatasetSearchModeEnum.embedding]: {
     icon: 'core/dataset/modeEmbedding',
-    title: 'core.dataset.search.mode.embedding',
-    desc: 'core.dataset.search.mode.embedding desc',
+    title: i18nT('common:core.dataset.search.mode.embedding'),
+    desc: i18nT('common:core.dataset.search.mode.embedding desc'),
     value: DatasetSearchModeEnum.embedding
   },
   [DatasetSearchModeEnum.fullTextRecall]: {
     icon: 'core/dataset/fullTextRecall',
-    title: 'core.dataset.search.mode.fullTextRecall',
-    desc: 'core.dataset.search.mode.fullTextRecall desc',
+    title: i18nT('common:core.dataset.search.mode.fullTextRecall'),
+    desc: i18nT('common:core.dataset.search.mode.fullTextRecall desc'),
     value: DatasetSearchModeEnum.fullTextRecall
   },
   [DatasetSearchModeEnum.mixedRecall]: {
     icon: 'core/dataset/mixedRecall',
-    title: 'core.dataset.search.mode.mixedRecall',
-    desc: 'core.dataset.search.mode.mixedRecall desc',
+    title: i18nT('common:core.dataset.search.mode.mixedRecall'),
+    desc: i18nT('common:core.dataset.search.mode.mixedRecall desc'),
     value: DatasetSearchModeEnum.mixedRecall
   }
 };
@@ -158,23 +172,23 @@ export enum SearchScoreTypeEnum {
 }
 export const SearchScoreTypeMap = {
   [SearchScoreTypeEnum.embedding]: {
-    label: 'core.dataset.search.score.embedding',
-    desc: 'core.dataset.search.score.embedding desc',
+    label: i18nT('common:core.dataset.search.score.embedding'),
+    desc: i18nT('common:core.dataset.search.score.embedding desc'),
     showScore: true
   },
   [SearchScoreTypeEnum.fullText]: {
-    label: 'core.dataset.search.score.fullText',
-    desc: 'core.dataset.search.score.fullText desc',
+    label: i18nT('common:core.dataset.search.score.fullText'),
+    desc: i18nT('common:core.dataset.search.score.fullText desc'),
     showScore: false
   },
   [SearchScoreTypeEnum.reRank]: {
-    label: 'core.dataset.search.score.reRank',
-    desc: 'core.dataset.search.score.reRank desc',
+    label: i18nT('common:core.dataset.search.score.reRank'),
+    desc: i18nT('common:core.dataset.search.score.reRank desc'),
     showScore: true
   },
   [SearchScoreTypeEnum.rrf]: {
-    label: 'core.dataset.search.score.rrf',
-    desc: 'core.dataset.search.score.rrf desc',
+    label: i18nT('common:core.dataset.search.score.rrf'),
+    desc: i18nT('common:core.dataset.search.score.rrf desc'),
     showScore: false
   }
 };
@@ -186,5 +200,7 @@ export const LinkCollectionIcon = 'common/linkBlue';
 export enum DatasetSourceReadTypeEnum {
   fileLocal = 'fileLocal',
   link = 'link',
-  externalFile = 'externalFile'
+  externalFile = 'externalFile',
+  apiFile = 'apiFile',
+  reTraining = 'reTraining'
 }

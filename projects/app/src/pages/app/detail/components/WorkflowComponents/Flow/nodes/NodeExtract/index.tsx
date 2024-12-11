@@ -34,8 +34,9 @@ import { getNanoid } from '@fastgpt/global/common/string/tools';
 import IOTitle from '../../components/IOTitle';
 import { useContextSelector } from 'use-context-selector';
 import { WorkflowContext } from '../../../context';
+import MyIconButton from '@fastgpt/web/components/common/Icon/button';
 
-const NodeExtract = ({ data }: NodeProps<FlowNodeItemType>) => {
+const NodeExtract = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
   const { inputs, outputs, nodeId } = data;
 
   const { t } = useTranslation();
@@ -53,14 +54,15 @@ const NodeExtract = ({ data }: NodeProps<FlowNodeItemType>) => {
       }: Omit<FlowNodeInputItemType, 'value'> & {
         value?: ContextExtractAgentItemType[];
       }) => (
-        <Box>
+        <Box mt={-2}>
           <Flex alignItems={'center'}>
-            <Box flex={'1 0 0'} fontWeight={'medium'} color={'myGray.600'}>
+            <Box flex={'1 0 0'} fontSize={'sm'} fontWeight={'medium'} color={'myGray.600'}>
               {t('common:core.module.extract.Target field')}
             </Box>
             <Button
               size={'sm'}
-              variant={'ghost'}
+              variant={'grayGhost'}
+              px={2}
               color={'myGray.600'}
               leftIcon={<AddIcon fontSize={'10px'} />}
               onClick={() => setEditExtractField(defaultField)}
@@ -68,48 +70,47 @@ const NodeExtract = ({ data }: NodeProps<FlowNodeItemType>) => {
               {t('common:core.module.extract.Add field')}
             </Button>
           </Flex>
-          <Box
-            mt={2}
-            borderRadius={'md'}
-            overflow={'hidden'}
-            borderWidth={'1px'}
-            borderBottom="none"
-          >
-            <TableContainer>
-              <Table bg={'white'}>
-                <Thead>
-                  <Tr>
-                    <Th borderRadius={'none !important'}>{t('common:item_name')}</Th>
-                    <Th>{t('common:item_description')}</Th>
-                    <Th>{t('common:required')}</Th>
-                    <Th borderRadius={'none !important'}></Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {extractKeys.map((item, index) => (
-                    <Tr
-                      key={index}
-                      position={'relative'}
-                      whiteSpace={'pre-wrap'}
-                      wordBreak={'break-all'}
-                    >
-                      <Td>{item.key}</Td>
-                      <Td>{item.desc}</Td>
-                      <Td>{item.required ? '✔' : ''}</Td>
-                      <Td whiteSpace={'nowrap'}>
-                        <MyIcon
-                          mr={3}
-                          name={'common/settingLight'}
-                          w={'16px'}
-                          cursor={'pointer'}
+
+          <TableContainer borderRadius={'md'} overflow={'hidden'} borderWidth={'1px'} mt={2}>
+            <Table variant={'workflow'}>
+              <Thead>
+                <Tr>
+                  <Th>{t('common:item_name')}</Th>
+                  <Th>{t('common:item_description')}</Th>
+                  <Th>{t('common:required')}</Th>
+                  <Th></Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {extractKeys.map((item, index) => (
+                  <Tr key={index}>
+                    <Td>
+                      <Flex alignItems={'center'}>
+                        <MyIcon name={'checkCircle'} w={'14px'} mr={1} color={'myGray.600'} />
+                        {item.key}
+                      </Flex>
+                    </Td>
+                    <Td>{item.desc}</Td>
+                    <Td>
+                      {item.required ? (
+                        <Flex alignItems={'center'}>
+                          <MyIcon name={'check'} w={'16px'} color={'myGray.900'} mr={2} />
+                        </Flex>
+                      ) : (
+                        ''
+                      )}
+                    </Td>
+                    <Td>
+                      <Flex>
+                        <MyIconButton
+                          icon={'common/settingLight'}
                           onClick={() => {
                             setEditExtractField(item);
                           }}
                         />
-                        <MyIcon
-                          name={'delete'}
-                          w={'16px'}
-                          cursor={'pointer'}
+                        <MyIconButton
+                          icon={'delete'}
+                          hoverColor={'red.500'}
                           onClick={() => {
                             onChangeNode({
                               nodeId,
@@ -128,13 +129,13 @@ const NodeExtract = ({ data }: NodeProps<FlowNodeItemType>) => {
                             });
                           }}
                         />
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </TableContainer>
-          </Box>
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </TableContainer>
         </Box>
       )
     }),
@@ -142,7 +143,7 @@ const NodeExtract = ({ data }: NodeProps<FlowNodeItemType>) => {
   );
 
   return (
-    <NodeCard minW={'400px'} {...data}>
+    <NodeCard minW={'400px'} selected={selected} {...data}>
       {isTool && (
         <>
           <Container>

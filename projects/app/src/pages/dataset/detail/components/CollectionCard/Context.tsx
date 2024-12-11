@@ -82,7 +82,7 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
 
   // website config
   const { openConfirm: openWebSyncConfirm, ConfirmModal: ConfirmWebSyncModal } = useConfirm({
-    content: t('common:core.dataset.collection.Start Sync Tip')
+    content: t('dataset:start_sync_website_tip')
   });
   const {
     isOpen: isOpenWebsiteModal,

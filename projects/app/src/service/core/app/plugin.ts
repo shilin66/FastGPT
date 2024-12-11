@@ -10,6 +10,7 @@ import { SystemPluginResponseType } from '@fastgpt/plugins/type';
 const getCommercialPlugins = () => {
   return GET<SystemPluginTemplateItemType[]>('/core/app/plugin/getSystemPlugins');
 };
+
 export const getSystemPlugins = async (refresh = false) => {
   if (isProduction && global.systemPlugins && global.systemPlugins.length > 0 && !refresh)
     return cloneDeep(global.systemPlugins);
@@ -67,7 +68,7 @@ export const getSystemPluginCb = async (refresh = false) => {
 
   try {
     global.systemPluginCb = {};
-    await getSystemPlugins();
+    await getSystemPlugins(refresh);
     global.systemPluginCb = FastGPTProUrl ? await getCommercialCb() : await getCommunityCb();
     return global.systemPluginCb;
   } catch (error) {

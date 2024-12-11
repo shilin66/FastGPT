@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useState } from 'react';
+import { Dispatch, ReactNode, SetStateAction, useMemo, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { createContext } from 'use-context-selector';
 import {
@@ -115,7 +115,13 @@ export const DatasetPageContextProvider = ({
     if (datasetId === data.id) {
       setDatasetDetail((state) => ({
         ...state,
-        ...data
+        ...data,
+        apiServer: data.apiServer
+          ? {
+              baseUrl: data.apiServer.baseUrl,
+              authorization: ''
+            }
+          : undefined
       }));
     }
   };

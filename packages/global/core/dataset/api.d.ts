@@ -17,6 +17,7 @@ export type DatasetUpdateBody = {
   confluenceConfig?: DatasetSchemaType['confluenceConfig'];
   externalReadUrl?: DatasetSchemaType['externalReadUrl'];
   defaultPermission?: DatasetSchemaType['defaultPermission'];
+  apiServer?: DatasetSchemaType['apiServer'];
 };
 
 /* ================= collection ===================== */
@@ -35,15 +36,18 @@ export type CreateDatasetCollectionParams = DatasetCollectionChunkMetadataType &
   name: string;
   type: DatasetCollectionTypeEnum;
 
-  tags?: string[];
-
   fileId?: string;
   rawLink?: string;
   externalFileId?: string;
-
   externalFileUrl?: string;
+  apiFileId?: string;
+
   rawTextLength?: number;
   hashRawText?: string;
+
+  tags?: string[];
+
+  createTime?: Date;
 };
 
 export type ApiCreateDatasetCollectionParams = DatasetCollectionChunkMetadataType & {
@@ -57,8 +61,16 @@ export type TextCreateDatasetCollectionParams = ApiCreateDatasetCollectionParams
 export type LinkCreateDatasetCollectionParams = ApiCreateDatasetCollectionParams & {
   link: string;
 };
+export type ApiDatasetCreateDatasetCollectionParams = ApiCreateDatasetCollectionParams & {
+  name: string;
+  apiFileId: string;
+};
 export type FileIdCreateDatasetCollectionParams = ApiCreateDatasetCollectionParams & {
   fileId: string;
+};
+export type reTrainingDatasetFileCollectionParams = DatasetCollectionChunkMetadataType & {
+  datasetId: string;
+  collectionId: string;
 };
 export type FileCreateDatasetCollectionParams = ApiCreateDatasetCollectionParams & {
   fileMetadata?: Record<string, any>;

@@ -8,21 +8,23 @@ import { beforeUpdateAppFormat } from '@fastgpt/service/core/app/controller';
 import { getNextTimeByCronStringAndTimezone } from '@fastgpt/global/common/string/time';
 import { PostPublishAppProps } from '@/global/core/app/api';
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
+import { ApiRequestProps } from '@fastgpt/service/type/next';
+import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
+import { getScheduleTriggerApp } from '@/service/core/app/utils';
 
-async function handler(req: NextApiRequest, res: NextApiResponse<any>): Promise<{}> {
+async function handler(
+  req: ApiRequestProps<PostPublishAppProps>,
+  res: NextApiResponse<any>
+): Promise<{}> {
   const { appId } = req.query as { appId: string };
-  const {
-    nodes = [],
-    edges = [],
-    chatConfig,
-    type,
-    isPublish,
-    versionName
-  } = req.body as PostPublishAppProps;
+  const { nodes = [], edges = [], chatConfig, isPublish, versionName } = req.body;
 
-  const { tmbId } = await authApp({ appId, req, per: WritePermissionVal, authToken: true });
+  const { app, tmbId } = await authApp({ appId, req, per: WritePermissionVal, authToken: true });
 
-  const { nodes: formatNodes } = beforeUpdateAppFormat({ nodes });
+  const { nodes: formatNodes } = beforeUpdateAppFormat({
+    nodes,
+    isPlugin: app.type === AppTypeEnum.plugin
+  });
 
   await mongoSessionRun(async (session) => {
     // create version histories
@@ -50,11 +52,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>): Promise<
         chatConfig,
         updateTime: new Date(),
         version: 'v2',
-        type,
-        scheduledTriggerConfig: chatConfig?.scheduledTriggerConfig,
-        scheduledTriggerNextTime: chatConfig?.scheduledTriggerConfig?.cronString
-          ? getNextTimeByCronStringAndTimezone(chatConfig.scheduledTriggerConfig)
-          : null,
+        // 只有发布才会更新定时器
+        ...(isPublish &&
+          (chatConfig?.scheduledTriggerConfig?.cronString
+            ? {
+                $set: {
+                  scheduledTriggerConfig: chatConfig.scheduledTriggerConfig,
+                  scheduledTriggerNextTime: getNextTimeByCronStringAndTimezone(
+                    chatConfig.scheduledTriggerConfig
+                  )
+                }
+              }
+            : { $unset: { scheduledTriggerConfig: '', scheduledTriggerNextTime: '' } })),
         'pluginData.nodeVersion': _id
       },
       {

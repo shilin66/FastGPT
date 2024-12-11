@@ -97,7 +97,7 @@ export async function pushDataListToTrainingQueue({
 
     if (trainingMode === TrainingModeEnum.chunk) {
       return {
-        maxToken: vectorModelData.maxToken * 1.3,
+        maxToken: vectorModelData.maxToken * 1.5,
         model: vectorModelData.model,
         weight: vectorModelData.weight
       };
@@ -146,10 +146,7 @@ export async function pushDataListToTrainingQueue({
 
     const text = item.q + item.a;
 
-    // count q token
-    const token = item.q.length;
-
-    if (token > maxToken) {
+    if (text.length > maxToken) {
       filterResult.overToken.push(item);
       return;
     }
