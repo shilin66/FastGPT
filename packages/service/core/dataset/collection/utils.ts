@@ -8,13 +8,17 @@ import {
   DatasetCollectionSyncResultEnum,
   DatasetCollectionTypeEnum,
   DatasetSourceReadTypeEnum,
-  DatasetTypeEnum
+  DatasetTypeEnum,
+  TrainingModeEnum
 } from '@fastgpt/global/core/dataset/constants';
 import { DatasetErrEnum } from '@fastgpt/global/common/error/code/dataset';
 import { readDatasetSourceRawText } from '../read';
 import { hashStr } from '@fastgpt/global/common/string/tools';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { createCollectionAndInsertData, delCollection } from './controller';
+import { PushDatasetDataResponse } from '@fastgpt/global/core/dataset/api';
+import { MongoDatasetTraining } from '../training/schema';
+import { splitText2Chunks } from '@fastgpt/global/common/string/textSplitter';
 
 /**
  * get all collection by top collectionId
@@ -220,6 +224,10 @@ export const syncCollection = async (collection: CollectionWithDatasetType) => {
     ...sourceReadType
   });
 
+  if (!rawText) {
+    return DatasetCollectionSyncResultEnum.failed;
+  }
+
   // Check if the original text is the same: skip if same
   const hashRawText = hashStr(rawText);
   if (collection.hashRawText && hashRawText === collection.hashRawText) {
@@ -235,9 +243,15 @@ export const syncCollection = async (collection: CollectionWithDatasetType) => {
       createCollectionParams: {
         teamId: collection.teamId,
         tmbId: collection.tmbId,
-        datasetId: collection.datasetId._id,
         name: collection.name,
+        datasetId: collection.datasetId._id,
+        parentId: collection.parentId,
         type: collection.type,
+
+        trainingType: collection.trainingType,
+        chunkSize: collection.chunkSize,
+        chunkSplitter: collection.chunkSplitter,
+        qaPrompt: collection.qaPrompt,
 
         fileId: collection.fileId,
         rawLink: collection.rawLink,
@@ -245,18 +259,14 @@ export const syncCollection = async (collection: CollectionWithDatasetType) => {
         externalFileUrl: collection.externalFileUrl,
         apiFileId: collection.apiFileId,
 
-        rawTextLength: rawText.length,
         hashRawText,
+        rawTextLength: rawText.length,
+
+        metadata: collection.metadata,
 
         tags: collection.tags,
         createTime: collection.createTime,
-
-        parentId: collection.parentId,
-        trainingType: collection.trainingType,
-        chunkSize: collection.chunkSize,
-        chunkSplitter: collection.chunkSplitter,
-        qaPrompt: collection.qaPrompt,
-        metadata: collection.metadata
+        updateTime: new Date()
       }
     });
 
