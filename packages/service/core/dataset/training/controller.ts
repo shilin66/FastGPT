@@ -25,7 +25,7 @@ import {
   reloadConfluencePageCollectionChunks
 } from '../collection/utils';
 import { delay } from '@fastgpt/global/common/system/utils';
-import { createOneCollection, delCollectionAndRelatedSources } from '../collection/controller';
+import { createOneCollection, delCollection } from '../collection/controller';
 import { MongoDataset } from '../schema';
 import pLimit from 'p-limit';
 import { Converter } from '../../../common/confluence/adf2md';
@@ -186,7 +186,8 @@ export async function pushDataListToTrainingQueue({
           a: item.a,
           chunkIndex: item.chunkIndex ?? 0,
           weight: weight ?? 0,
-          indexes: item.indexes
+          indexes: item.indexes,
+          retryCount: 5
         })),
         {
           session,
@@ -352,8 +353,9 @@ export const trainConfluenceCollection = async ({
 
           if (option === 'update') {
             // delete old collection
-            await delCollectionAndRelatedSources({
+            await delCollection({
               collections: [pageConfluence[page.id]],
+              delRelatedSource: true,
               session
             });
           }
@@ -389,8 +391,9 @@ export const trainConfluenceCollection = async ({
       `Deleting collections that no longer exist in Confluence: ${collectionsToDelete.join(', ')}`
     );
     await mongoSessionRun((session) =>
-      delCollectionAndRelatedSources({
+      delCollection({
         collections: collectionsToDelete.map((id) => pageConfluence[id]),
+        delRelatedSource: true,
         session
       })
     );

@@ -47,7 +47,7 @@ import AccountContainer from '../components/AccountContainer';
 import { serviceSideProps } from '@/web/common/utils/i18n';
 import { useRouter } from 'next/router';
 import TeamSelector from '../components/TeamSelector';
-import ConfluenceAccountModal from '@/pages/account/components/Info/ConfluenceAccountModal';
+import ConfluenceAccountModal from '@/pages/account/info/components/ConfluenceAccountModal';
 
 const StandDetailModal = dynamic(() => import('./components/standardDetailModal'));
 const ConversionModal = dynamic(() => import('./components/ConversionModal'));

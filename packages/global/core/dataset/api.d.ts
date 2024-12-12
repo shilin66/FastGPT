@@ -18,6 +18,9 @@ export type DatasetUpdateBody = {
   externalReadUrl?: DatasetSchemaType['externalReadUrl'];
   defaultPermission?: DatasetSchemaType['defaultPermission'];
   apiServer?: DatasetSchemaType['apiServer'];
+
+  // sync schedule
+  autoSync?: boolean;
 };
 
 /* ================= collection ===================== */
@@ -46,8 +49,10 @@ export type CreateDatasetCollectionParams = DatasetCollectionChunkMetadataType &
   hashRawText?: string;
 
   tags?: string[];
-
+  confluence?: {};
   createTime?: Date;
+  updateTime?: Date;
+  nextSyncTime?: Date;
 };
 
 export type ApiCreateDatasetCollectionParams = DatasetCollectionChunkMetadataType & {
