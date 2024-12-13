@@ -29,8 +29,7 @@ export const getSpaceAllPagesRecursive = async (
 // 递归获取指定 pageId 下的所有 childPage
 export const getAllChildPagesByPageId = async (
   client: ConfluenceClient,
-  pageId: string,
-  syncSubPages: boolean
+  pageId: string
 ): Promise<ChildPage[]> => {
   const allChildren: ChildPage[] = [];
 
@@ -61,7 +60,7 @@ export const getAllPagesByPageId = async (
 ): Promise<Page[]> => {
   const allPageIds: string[] = [];
   if (syncSubPages) {
-    const childPages = await getAllChildPagesByPageId(client, pageId, syncSubPages);
+    const childPages = await getAllChildPagesByPageId(client, pageId);
     allPageIds.push(...childPages.map((child) => child.id));
   } else {
     allPageIds.push(pageId);

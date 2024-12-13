@@ -122,7 +122,7 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
   const { mutate: onUpdateDatasetConfluenceConfig } = useRequest({
     mutationFn: async (confluenceConfig: DatasetSchemaType['confluenceConfig']) => {
       onCloseConfluenceModal();
-      await checkTeamWebSyncLimit();
+      // await checkTeamWebSyncLimit();
       await updateDataset({
         id: datasetId,
         confluenceConfig
