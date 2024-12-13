@@ -47,6 +47,7 @@ const ConfluenceAccountModal = ({
             {t('common:user.Confluence Account')}:
           </Box>
           <Input
+            autoComplete="off"
             {...register('account', {
               value: userInfo?.username
             })}
@@ -62,7 +63,12 @@ const ConfluenceAccountModal = ({
               ml={1}
             />
           </Flex>
-          <Input type={'password'} placeholder={'Your Api Token'} {...register('apiToken')}></Input>
+          <Input
+            autoComplete="new-password"
+            type={'password'}
+            placeholder={'Your Api Token'}
+            {...register('apiToken')}
+          ></Input>
         </Box>
       </ModalBody>
       <ModalFooter>
