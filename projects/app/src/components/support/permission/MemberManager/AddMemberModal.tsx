@@ -95,7 +95,7 @@ function AddMemberModal({ onClose, mode = 'member' }: AddModalPropsType) {
       iconSrc="modal/AddClb"
       title={t('user:team.add_collaborator')}
       minW="800px"
-      h={'100%'}
+      maxH="100vh"
       isCentered
       isLoading={loadingMembersAndGroups}
     >
@@ -114,7 +114,7 @@ function AddMemberModal({ onClose, mode = 'member' }: AddModalPropsType) {
               onChange={(e) => setSearchText(e.target.value)}
             />
 
-            <Flex flexDirection="column" mt="2" overflow={'auto'} maxH="400px">
+            <Flex flexDirection="column" mt="2" overflow={'auto'} maxH={'60vh'}>
               {filterGroups.map((group) => {
                 const onChange = () => {
                   setSelectedGroupIdList((state) => {
@@ -142,7 +142,10 @@ function AddMemberModal({ onClose, mode = 'member' }: AddModalPropsType) {
                     }}
                     onClick={onChange}
                   >
-                    <Checkbox isChecked={selectedGroupIdList.includes(group._id)} />
+                    <Checkbox
+                      isChecked={selectedGroupIdList.includes(group._id)}
+                      onChange={onChange}
+                    />
                     <MyAvatar src={group.avatar} w="1.5rem" borderRadius={'50%'} />
                     <Box ml="2" w="full">
                       {group.name === DefaultGroupName ? userInfo?.team.teamName : group.name}
@@ -183,6 +186,7 @@ function AddMemberModal({ onClose, mode = 'member' }: AddModalPropsType) {
                     <Checkbox
                       isChecked={selectedMemberIdList.includes(member.tmbId)}
                       icon={<MyIcon name={'common/check'} w={'12px'} />}
+                      onChange={onChange}
                     />
                     <MyAvatar src={member.avatar} w="1.5rem" borderRadius={'50%'} />
                     <Box w="full" ml="2">
@@ -201,7 +205,7 @@ function AddMemberModal({ onClose, mode = 'member' }: AddModalPropsType) {
               {t('user:has_chosen') + ': '}{' '}
               {selectedMemberIdList.length + selectedGroupIdList.length}
             </Box>
-            <Flex flexDirection="column" mt="2" overflow={'auto'} maxH="400px">
+            <Flex flexDirection="column" mt="2" overflow={'auto'} maxH={'60vh'}>
               {selectedGroupIdList.map((groupId) => {
                 const onChange = () => {
                   setSelectedGroupIdList((state) => {
