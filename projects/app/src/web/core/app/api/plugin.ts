@@ -44,9 +44,10 @@ export const getSystemPlugTemplates = (data: GetSystemPluginTemplatesBody) =>
   POST<NodeTemplateListItemType[]>('/core/app/plugin/getSystemPluginTemplates', data);
 
 export const getPluginGroups = () => {
-  return useSystemStore.getState()?.feConfigs?.isPlus
-    ? GET<PluginGroupSchemaType[]>('/proApi/core/app/plugin/getPluginGroups')
-    : Promise.resolve([defaultGroup]);
+  // return useSystemStore.getState()?.feConfigs?.isPlus
+  //   ? GET<PluginGroupSchemaType[]>('/proApi/core/app/plugin/getPluginGroups')
+  //   : Promise.resolve([defaultGroup]);
+  return Promise.resolve([defaultGroup]);
 };
 
 export const getSystemPluginPaths = (parentId: ParentIdType) => {
