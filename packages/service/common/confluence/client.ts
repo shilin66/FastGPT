@@ -260,40 +260,52 @@ class ConfluenceClient {
     });
   }
 
+  async getCurrentUser(): Promise<any> {
+    try {
+      const response: AxiosResponse<any> = await this.client.get('/rest/api/user/current');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching current user data:', error);
+      throw new Error(`Failed to fetch current user data: ${error}`);
+    }
+  }
+
   // 获取指定空间的信息
   async getSpaceById(spaceId: string): Promise<SpaceResponse> {
     try {
-      const response: AxiosResponse<SpaceResponse> = await this.client.get(`/spaces/${spaceId}`);
+      const response: AxiosResponse<SpaceResponse> = await this.client.get(
+        `/api/v2/spaces/${spaceId}`
+      );
       return response.data;
     } catch (error) {
       console.error('Error fetching space data:', error);
-      throw error;
+      throw new Error(`Failed to fetch space data: ${error}`);
     }
   }
 
   // 获取指定页面的信息
   async getPageById(pageId: string, bodyFormat: string = 'storage'): Promise<Page> {
     try {
-      const response: AxiosResponse<Page> = await this.client.get(`/pages/${pageId}`, {
+      const response: AxiosResponse<Page> = await this.client.get(`/api/v2/pages/${pageId}`, {
         params: { 'body-format': bodyFormat }
       });
       return response.data;
     } catch (error) {
       console.error('Error fetching page data:', error);
-      throw error;
+      throw new Error(`Failed to fetch page data: ${error}`);
     }
   }
 
   // 根据空间 key 获取空间信息
   async getSpacesByKeys(spaceKeys: string): Promise<SpacesResponse> {
     try {
-      const response: AxiosResponse<SpacesResponse> = await this.client.get('/spaces', {
+      const response: AxiosResponse<SpacesResponse> = await this.client.get('/api/v2/spaces', {
         params: { keys: spaceKeys }
       });
       return response.data;
     } catch (error) {
       console.error('Error fetching spaces by keys:', error);
-      throw error;
+      throw new Error(`Failed to fetch spaces by keys: ${error}`);
     }
   }
 
@@ -306,7 +318,7 @@ class ConfluenceClient {
         limit: 250
       };
       const response: AxiosResponse<PagesResponse> = await this.client.get(
-        `/spaces/${spaceId}/pages`,
+        `/api/v2/spaces/${spaceId}/pages`,
         {
           params
         }
@@ -314,7 +326,7 @@ class ConfluenceClient {
       return response.data;
     } catch (error) {
       console.error('Error fetching pages in space:', error);
-      throw error;
+      throw new Error(`Failed to fetch pages in space: ${error}`);
     }
   }
 
@@ -327,13 +339,13 @@ class ConfluenceClient {
         'body-format': 'atlas_doc_format',
         limit: 250
       };
-      const response: AxiosResponse<PagesResponse> = await this.client.get(`/pages/`, {
+      const response: AxiosResponse<PagesResponse> = await this.client.get(`/api/v2/pages/`, {
         params
       });
       return response.data;
     } catch (error) {
       console.error('Error fetching pages by ids:', error);
-      throw error;
+      throw new Error(`Failed to fetch pages by ids: ${error}`);
     }
   }
 
@@ -346,7 +358,7 @@ class ConfluenceClient {
         limit: 250
       };
       const response: AxiosResponse<ChildPagesResponse> = await this.client.get(
-        `/pages/${pageId}/children`,
+        `/api/v2/pages/${pageId}/children`,
         {
           params
         }
@@ -354,7 +366,7 @@ class ConfluenceClient {
       return response.data;
     } catch (error) {
       console.error('Error fetching children pages:', error);
-      throw error;
+      throw new Error(`Failed to fetch children pages: ${error}`);
     }
   }
 }

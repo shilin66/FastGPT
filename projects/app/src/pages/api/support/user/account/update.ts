@@ -7,6 +7,7 @@ import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSc
 /* update user info */
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
+import ConfluenceClient from '@fastgpt/service/common/confluence/client';
 export type UserAccountUpdateQuery = {};
 export type UserAccountUpdateBody = UserUpdateParams;
 export type UserAccountUpdateResponse = {};
@@ -42,6 +43,25 @@ async function handler(
     }
   }
 
+  if (confluenceAccount?.apiToken) {
+    console.log('auth user confluence apiToken');
+    const baseURL = global.feConfigs.confluenceUrl;
+    if (!baseURL) {
+      return Promise.reject('The Confluence base URL is not configured');
+    }
+    const confluenceClient = new ConfluenceClient(
+      baseURL,
+      confluenceAccount.account,
+      confluenceAccount.apiToken
+    );
+    try {
+      await confluenceClient.getCurrentUser();
+    } catch (e) {
+      console.log('confluence auth error', e);
+      return Promise.reject('Confluence API Token is invalid');
+    }
+  }
+
   // 更新对应的记录
   await MongoUser.updateOne(
     {
@@ -51,7 +71,8 @@ async function handler(
       ...(avatar && { avatar }),
       ...(timezone && { timezone }),
       openaiAccount: openaiAccount?.key ? openaiAccount : null,
-      confluenceAccount: confluenceAccount?.apiToken ? confluenceAccount : null,
+      confluenceAccount:
+        confluenceAccount?.apiToken && confluenceAccount?.account ? confluenceAccount : null,
       lafAccount: lafAccount?.token ? lafAccount : null
     }
   );

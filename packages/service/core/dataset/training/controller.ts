@@ -239,8 +239,11 @@ export const trainConfluenceCollection = async ({
     return Promise.reject("The dataset's owner is not found");
   }
 
-  if (!tmb.userId.confluenceAccount) {
-    return Promise.reject("The dataset's owner has not configured Confluence account");
+  if (
+    !tmb.userId.confluenceAccount ||
+    !(tmb.userId.confluenceAccount.account && tmb.userId.confluenceAccount.apiToken)
+  ) {
+    return Promise.reject("The dataset's owner has not configured Confluence API token");
   }
 
   if (!dataset.confluenceConfig) {
@@ -254,7 +257,7 @@ export const trainConfluenceCollection = async ({
     return Promise.reject('The Confluence base URL is not configured');
   }
   const confluenceClient = new ConfluenceClient(
-    baseURL + '/api/v2/',
+    baseURL,
     tmb.userId.confluenceAccount.account,
     tmb.userId.confluenceAccount.apiToken
   );
