@@ -125,8 +125,8 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
       // await checkTeamWebSyncLimit();
       await updateDataset({
         id: datasetId,
-        confluenceConfig
-        // status: DatasetStatusEnum.syncing
+        confluenceConfig,
+        status: DatasetStatusEnum.syncing
       });
       // const billId = await postCreateTrainingUsage({
       //   name: t('common:core.dataset.training.Confluence Sync'),
@@ -135,6 +135,12 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
       await postConfluenceSync({ datasetId });
 
       return;
+    },
+    onError: async (e) => {
+      await updateDataset({
+        id: datasetId,
+        status: DatasetStatusEnum.active
+      });
     },
     errorToast: t('common:common.Update Failed')
   });

@@ -106,9 +106,7 @@ const ConfluenceConfigModal = ({
               <FormLabel flex={'0 0 150px'}>
                 {t('common:core.dataset.confluence.Space Key')}
                 <QuestionTip
-                  label={
-                    '查看浏览器地址栏上显示的Confluence地址,eg: https://zenlayer.atlassian.net/wiki/spaces/~63bd11e204b5f5c7b5ed0a0a/pages/12033720325，取space后面的值:~63bd11e204b5f5c7b5ed0a0a'
-                  }
+                  label={`查看浏览器地址栏上显示的Confluence地址,eg: ${feConfigs.confluenceUrl}/spaces/~63bd11e204b5f5c7b5ed0a0a/pages/12033720325，取space后面的值:~63bd11e204b5f5c7b5ed0a0a`}
                   ml={1}
                 />
               </FormLabel>
@@ -123,9 +121,7 @@ const ConfluenceConfigModal = ({
               <FormLabel flex={'0 0 150px'} fontSize={'sm'}>
                 {t('common:core.dataset.confluence.Page Id')}({t('common:common.choosable')})
                 <QuestionTip
-                  label={
-                    '同步指定的页面，如果不配置，将会同步整个空间。\n查看浏览器地址栏上显示的Confluence地址,eg: https://zenlayer.atlassian.net/wiki/spaces/~63bd11e204b5f5c7b5ed0a0a/pages/12033720325，取pages后面的值:12033720325'
-                  }
+                  label={`同步指定的页面，如果不配置，将会同步整个空间。\n查看浏览器地址栏上显示的Confluence地址,eg: ${feConfigs.confluenceUrl}/spaces/~63bd11e204b5f5c7b5ed0a0a/pages/12033720325，取pages后面的值:12033720325`}
                   ml={1}
                 />
               </FormLabel>

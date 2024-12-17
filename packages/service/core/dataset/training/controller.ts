@@ -236,25 +236,25 @@ export const trainConfluenceCollection = async ({
     .populate('userId')
     .lean()) as TeamMemberWithUserSchema;
   if (!tmb) {
-    return Promise.reject("The dataset's owner is not found");
+    throw new Error("The dataset's owner is not found");
   }
 
   if (
     !tmb.userId.confluenceAccount ||
     !(tmb.userId.confluenceAccount.account && tmb.userId.confluenceAccount.apiToken)
   ) {
-    return Promise.reject("The dataset's owner has not configured Confluence API token");
+    throw new Error("The dataset's owner has not configured Confluence API token");
   }
 
   if (!dataset.confluenceConfig) {
-    return Promise.reject('The dataset has not configured Confluence config');
+    throw new Error('The dataset has not configured Confluence config');
   }
 
   const { spaceKey, pageId, syncSubPages } = dataset.confluenceConfig;
 
   const baseURL = global.feConfigs.confluenceUrl;
   if (!baseURL) {
-    return Promise.reject('The Confluence base URL is not configured');
+    throw new Error('The Confluence base URL is not configured');
   }
   const confluenceClient = new ConfluenceClient(
     baseURL,
@@ -263,7 +263,7 @@ export const trainConfluenceCollection = async ({
   );
 
   const spaces = await confluenceClient.getSpacesByKeys(spaceKey);
-  if (spaces.results.length === 0) return;
+  if (spaces.results.length === 0) return Promise.reject(`Space ${spaceKey} not found`);
   const spaceId = spaces.results[0].id;
 
   let pages: Page[] = [];
@@ -274,7 +274,7 @@ export const trainConfluenceCollection = async ({
     pages = await getAllPagesByPageId(confluenceClient, pageId, syncSubPages);
   }
   if (pages.length === 0) {
-    return Promise.reject('No pages found in the specified space or page');
+    throw new Error('No pages found in the specified space or page');
   }
   const datasetId = dataset._id;
   const pageConfluence = await getConfluenceCollectionsByDatasetId(datasetId);

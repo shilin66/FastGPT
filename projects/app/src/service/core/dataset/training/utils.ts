@@ -45,7 +45,7 @@ export const scheduleTriggerDataset = async () => {
       try {
         await trainConfluenceCollection({ dataset, teamId: dataset.teamId });
       } catch (error) {
-        console.log('scheduleTriggerDataset error', error);
+        console.error('scheduleTriggerDataset error', error);
       }
     })
   );

@@ -18,7 +18,12 @@ async function handler(req: ApiRequestProps<ConfluenceSyncBody>) {
     per: WritePermissionVal
   });
 
-  await trainConfluenceCollection({ dataset, teamId });
+  try {
+    return await trainConfluenceCollection({ dataset, teamId });
+  } catch (e) {
+    console.error(e);
+    return Promise.reject(e);
+  }
 }
 
 export default NextAPI(handler);
