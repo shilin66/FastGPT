@@ -51,6 +51,9 @@ const Markdown = ({
   );
 
   const formatSource = useMemo(() => {
+    source = source
+      .replace(/\\\(.*?\\\)/g, (match) => `$${match.slice(2, -2)}$`)
+      .replace(/\\\[.*?\\\]/gs, (match) => `$$${match.slice(2, -2)}$$`);
     if (showAnimation || forbidZhFormat) return source;
 
     // 保护 URL 格式：https://, http://, /api/xxx

@@ -21,6 +21,7 @@ import { TeamContext, TeamModalContextProvider } from './components/context';
 import dynamic from 'next/dynamic';
 import TeamTagModal from '@/components/support/user/team/TeamTagModal';
 import MemberTable from './components/MemberTable';
+import { defaultForm } from '@/pages/account/team/components/EditInfoModal';
 
 const InviteModal = dynamic(() => import('./components/InviteModal'));
 const PermissionManage = dynamic(() => import('./components/PermissionManage/index'));
@@ -126,6 +127,33 @@ const Team = () => {
             <Box fontWeight={'500'} fontSize={'1rem'}>
               {t('account:team')}
             </Box>
+          </Flex>
+          <Flex align={'center'} justify={'center'} ml={2} p={'0.44rem'}>
+            {/*<IconButton*/}
+            {/*  variant={'ghost'}*/}
+            {/*  border={'none'}*/}
+            {/*  icon={*/}
+            {/*    <MyIcon*/}
+            {/*      name={'common/addCircleLight'}*/}
+            {/*      w={['16px', '18px']}*/}
+            {/*      color={'primary.500'}*/}
+            {/*      cursor={'pointer'}*/}
+            {/*    />*/}
+            {/*  }*/}
+            {/*  aria-label={''}*/}
+            {/*  onClick={() => setEditTeamData(defaultForm)}*/}
+            {/*/>*/}
+            <MyIcon
+              name="common/addCircleLight"
+              w="18px"
+              cursor="pointer"
+              _hover={{
+                color: 'primary.500'
+              }}
+              onClick={() => {
+                setEditTeamData(defaultForm);
+              }}
+            />
           </Flex>
           <Flex align={'center'} ml={6}>
             <TeamSelector height={'28px'} />

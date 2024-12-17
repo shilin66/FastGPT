@@ -200,14 +200,23 @@ export const runToolWithFunctionCall = async (
       filterMessages
     })
   ]);
+
+  const { canStream, funcList } = (() => {
+    if (toolModel.toolChoiceStream === undefined || toolModel.toolChoiceStream)
+      return { canStream: true, funcList: functions };
+    if (assistantResponses && assistantResponses.length > 0) {
+      return { canStream: true, funcList: [] };
+    }
+    return { canStream: false, funcList: functions };
+  })();
   const requestBody = llmCompletionsBodyFormat(
     {
       model: toolModel.model,
       temperature,
       max_tokens,
-      stream,
+      stream: canStream,
       messages: requestMessages,
-      functions,
+      functions: funcList,
       function_call: 'auto'
     },
     toolModel
@@ -238,7 +247,7 @@ export const runToolWithFunctionCall = async (
         workflowStreamResponse
       });
     } else {
-      const result = aiResponse as ChatCompletion;
+      const result = aiResponse as unknown as ChatCompletion;
       const function_call = result.choices?.[0]?.message?.function_call;
       const toolNode = toolNodes.find((node) => node.nodeId === function_call?.name);
 

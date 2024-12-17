@@ -17,7 +17,9 @@ export const defaultQAModels: LLMModelItemType[] = [
     customCQPrompt: '',
     customExtractPrompt: '',
     defaultSystemChatPrompt: '',
-    defaultConfig: {}
+    defaultConfig: {},
+    functionCallStream: true,
+    toolChoiceStream: true
   }
 ];
 

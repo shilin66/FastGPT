@@ -258,14 +258,22 @@ export const runToolWithToolChoice = async (
       filterMessages
     })
   ]);
+  const { canStream, toolList } = (() => {
+    if (toolModel.toolChoiceStream === undefined || toolModel.toolChoiceStream)
+      return { canStream: true, toolList: tools };
+    if (assistantResponses && assistantResponses.length > 0) {
+      return { canStream: true, toolList: [] };
+    }
+    return { canStream: false, toolList: tools };
+  })();
   const requestBody = llmCompletionsBodyFormat(
     {
       model: toolModel.model,
       temperature,
       max_tokens,
-      stream,
+      stream: canStream,
       messages: requestMessages,
-      tools,
+      tools: toolList,
       tool_choice: 'auto'
     },
     toolModel
@@ -295,7 +303,7 @@ export const runToolWithToolChoice = async (
         stream: aiResponse
       });
     } else {
-      const result = aiResponse as ChatCompletion;
+      const result = aiResponse as unknown as ChatCompletion;
       const calls = result.choices?.[0]?.message?.tool_calls || [];
       const answer = result.choices?.[0]?.message?.content || '';
 

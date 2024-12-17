@@ -21,7 +21,9 @@ export type LLMModelItemType = {
   usedInQueryExtension?: boolean; // query extension
 
   functionCall: boolean;
+  functionCallStream: boolean;
   toolChoice: boolean;
+  toolChoiceStream: boolean;
 
   customCQPrompt: string;
   customExtractPrompt: string;
