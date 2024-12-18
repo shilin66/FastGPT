@@ -91,20 +91,16 @@ const DatasetCollectionSchema = new Schema({
   confluence: {
     type: {
       pageId: {
-        type: String,
-        required: true
+        type: String
       },
       parentPageId: {
-        type: String,
-        required: false
+        type: String
       },
       pageVersion: {
-        type: Number,
-        required: true
+        type: Number
       },
       spaceId: {
-        type: String,
-        required: true
+        type: String
       }
     }
   },
