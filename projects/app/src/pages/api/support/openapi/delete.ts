@@ -1,6 +1,6 @@
 import { MongoOpenApi } from '@fastgpt/service/support/openapi/schema';
 import { authOpenApiKeyCrud } from '@fastgpt/service/support/permission/auth/openapi';
-import { OwnerPermissionVal } from '@fastgpt/global/support/permission/constant';
+import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
@@ -19,7 +19,7 @@ async function handler(
     return Promise.reject(CommonErrEnum.missingParams);
   }
 
-  await authOpenApiKeyCrud({ req, authToken: true, id, per: OwnerPermissionVal });
+  await authOpenApiKeyCrud({ req, authToken: true, id, per: ManagePermissionVal });
 
   await MongoOpenApi.deleteOne({ _id: id });
   return {};

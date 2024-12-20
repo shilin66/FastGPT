@@ -20,6 +20,9 @@ export module Converter {
     | 'codeBlock'
     | 'rule'
     | 'emoji'
+    | 'media'
+    | 'mediaSingle'
+    | 'mediaGroup'
     | 'table'
     | 'tableRow'
     | 'tableHeader'
@@ -73,7 +76,11 @@ export module Converter {
 
       case 'blockquote':
         return `> ${content.map((child) => _convert(child, warnings)).join('\n> ')}`;
-
+      case 'mediaSingle':
+      case 'mediaGroup':
+        return content.map((child) => _convert(child, warnings)).join('');
+      case 'media':
+        return `\n![${node.attrs?.alt || ''}](${node.attrs?.id})`;
       case 'bulletList':
       case 'orderedList': {
         let order = node.type === 'orderedList' ? node.attrs?.order || 1 : 0;

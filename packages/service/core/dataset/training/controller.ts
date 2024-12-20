@@ -19,7 +19,11 @@ import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoTeamMember } from '../../../support/user/team/teamMemberSchema';
 import { TeamMemberWithUserSchema } from '@fastgpt/global/support/user/team/type';
 import ConfluenceClient, { Page } from '../../../common/confluence/client';
-import { getAllPagesByPageId, getSpaceAllPagesRecursive } from '../../../common/confluence/utils';
+import {
+  getAllAttachmentsByPageId,
+  getAllPagesByPageId,
+  getSpaceAllPagesRecursive
+} from '../../../common/confluence/utils';
 import {
   getConfluenceCollectionsByDatasetId,
   reloadConfluencePageCollectionChunks
@@ -31,6 +35,8 @@ import pLimit from 'p-limit';
 import { Converter } from '../../../common/confluence/adf2md';
 import adf2md = Converter.adf2md;
 import parseADF = Converter.parseADF;
+import { uploadMongoImg } from '../../../common/file/image/controller';
+import { MongoImageTypeEnum } from '@fastgpt/global/common/file/image/constants';
 
 export const lockTrainingDataByTeamId = async (teamId: string): Promise<any> => {
   try {
@@ -269,7 +275,7 @@ export const trainConfluenceCollection = async ({
   let pages: Page[] = [];
 
   if (!pageId) {
-    pages = await getSpaceAllPagesRecursive(confluenceClient, null, spaceId);
+    pages = await getSpaceAllPagesRecursive(confluenceClient, spaceId);
   } else {
     pages = await getAllPagesByPageId(confluenceClient, pageId, syncSubPages);
   }
@@ -328,6 +334,9 @@ export const trainConfluenceCollection = async ({
                     parentPageId: page.parentId,
                     pageVersion: page.version.number
                   },
+                  metadata: {
+                    relatedImgId: `${datasetId}-${page.id}`
+                  },
                   session // 确保所有操作都在同一个 session 中
                 }),
                 option: !col ? 'create' : 'update'
@@ -341,6 +350,36 @@ export const trainConfluenceCollection = async ({
             return;
           }
           console.log(`${option} confluence page: ${page.title}`);
+
+          const attachments = await getAllAttachmentsByPageId(confluenceClient, page.id);
+          for (const attachment of attachments) {
+            // "image/...",
+            if (
+              attachment.mediaType.startsWith('image') &&
+              markdown.result.includes(attachment.fileId)
+            ) {
+              const imgBase64 = await confluenceClient.downloadAttachmentToBase64(
+                attachment.downloadLink,
+                attachment.mediaType
+              );
+              const mime = imgBase64.split(';')[0].split(':')[1];
+              const src = await uploadMongoImg({
+                type: MongoImageTypeEnum.collectionImage,
+                base64Img: imgBase64,
+                teamId,
+                metadata: {
+                  relatedId: `${datasetId}-${page.id}`,
+                  mime: mime
+                }
+              });
+              // markdown.result.replace(
+              //   new RegExp(`!\[.*]\(${attachment.fileId}\)`, 'g'),
+              //   `![${attachment.title}](${src})`
+              // );
+              markdown.result = markdown.result.replace(attachment.fileId, src);
+              console.log(`confluence page ${page.title} attachment: ${attachment.title}`);
+            }
+          }
 
           // 3. 加载页面数据
           await reloadConfluencePageCollectionChunks({

@@ -210,7 +210,7 @@ export async function createOneCollection({
         ...(externalFileId ? { externalFileId } : {}),
         ...(externalFileUrl ? { externalFileUrl } : {}),
         ...(apiFileId ? { apiFileId } : {}),
-        ...(confluence ? { confluence } : {}),
+        ...(confluence ? { confluence } : undefined),
         rawTextLength,
         hashRawText,
         tags: collectionTags,
