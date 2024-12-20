@@ -90,18 +90,10 @@ const DatasetCollectionSchema = new Schema({
   // confluence collection
   confluence: {
     type: {
-      pageId: {
-        type: String
-      },
-      parentPageId: {
-        type: String
-      },
-      pageVersion: {
-        type: Number
-      },
-      spaceId: {
-        type: String
-      }
+      pageId: String,
+      parentPageId: String,
+      pageVersion: Number,
+      spaceId: String
     }
   },
   // next sync time

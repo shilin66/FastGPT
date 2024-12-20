@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosRequestConfig } from 'axios';
+import { getFileContentTypeFromHeader, guessBase64ImageType } from '../file/utils';
 
 // 定义接口
 interface Link {
@@ -11,12 +12,37 @@ interface Version {
   number: number;
   minorEdit: boolean;
   authorId: string;
+  createdBy: string;
 }
 
 interface Body {
   storage: {};
   atlas_doc_format: any;
   view?: {};
+}
+
+export interface Attachment {
+  id: string;
+  status: string;
+  title: string;
+  createdAt: string;
+  pageId?: string;
+  blogPostId?: string;
+  customContentId?: string;
+  mediaType: string;
+  mediaTypeDescription: string;
+  comment: string;
+  fileId: string;
+  fileSize: number;
+  webuiLink: string;
+  downloadLink: string;
+  version: Version;
+  _links: Link;
+}
+
+export interface AttachmentsResponse {
+  results: Attachment[];
+  _links: Link;
 }
 
 export interface Page {
@@ -168,13 +194,6 @@ interface Property {
   createdAt: string;
   createdBy: string;
   version: Version;
-}
-
-interface Version {
-  createdAt: string;
-  createdBy: string;
-  message: string;
-  number: number;
 }
 
 interface Operations {
@@ -367,6 +386,45 @@ class ConfluenceClient {
     } catch (error) {
       console.error('Error fetching children pages:', error);
       throw new Error(`Failed to fetch children pages: ${error}`);
+    }
+  }
+
+  async getAttachments(pageId: string, cursor: string | null = null): Promise<AttachmentsResponse> {
+    try {
+      const params: AxiosRequestConfig['params'] = {
+        cursor: cursor || undefined,
+        limit: 250
+      };
+      const response: AxiosResponse<AttachmentsResponse> = await this.client.get(
+        `/api/v2/pages/${pageId}/attachments`,
+        { params }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching attachments:', error);
+      throw new Error(`Failed to fetch attachments: ${error}`);
+    }
+  }
+
+  // fetch head from link /download/attachments/12033720325/image-20240401-004622.png?version=1&modificationDate=1711932385542&cacheVersion=1&api=v2"
+  async downloadAttachmentToBase64(link: string, mediaType: string | undefined): Promise<string> {
+    try {
+      const response: AxiosResponse<any> = await this.client.get(link, {
+        responseType: 'arraybuffer' // 确保接收的是二进制数据
+      });
+      // 将数据转为 Base64
+      const base64 = Buffer.from(response.data, 'binary').toString('base64');
+
+      const imageType =
+        mediaType ||
+        getFileContentTypeFromHeader(response.headers['content-type']) ||
+        guessBase64ImageType(base64);
+
+      // 构造 Base64 URL
+      return `data:${imageType};base64,${base64}`;
+    } catch (error) {
+      console.error('Error fetching download url:', error);
+      throw new Error(`Failed to fetch download url: ${error}`);
     }
   }
 }

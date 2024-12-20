@@ -31,6 +31,7 @@ import { useScrollPagination } from '@fastgpt/web/hooks/useScrollPagination';
 import { TabEnum } from './NavBar';
 import {
   DatasetCollectionTypeEnum,
+  DatasetTypeEnum,
   ImportDataSourceEnum
 } from '@fastgpt/global/core/dataset/constants';
 
@@ -142,25 +143,27 @@ const DataCard = () => {
               <TagsPopOver currentCollection={collection} />
             )}
           </Box>
-          {datasetDetail.type !== 'websiteDataset' && !!collection?.chunkSize && (
-            <Button
-              ml={2}
-              variant={'whitePrimary'}
-              size={['sm', 'md']}
-              onClick={() => {
-                router.push({
-                  query: {
-                    datasetId,
-                    currentTab: TabEnum.import,
-                    source: ImportDataSourceEnum.reTraining,
-                    collectionId
-                  }
-                });
-              }}
-            >
-              {t('dataset:retain_collection')}
-            </Button>
-          )}
+          {datasetDetail.type !== 'websiteDataset' &&
+            datasetDetail.type !== DatasetTypeEnum.confluenceDataset &&
+            !!collection?.chunkSize && (
+              <Button
+                ml={2}
+                variant={'whitePrimary'}
+                size={['sm', 'md']}
+                onClick={() => {
+                  router.push({
+                    query: {
+                      datasetId,
+                      currentTab: TabEnum.import,
+                      source: ImportDataSourceEnum.reTraining,
+                      collectionId
+                    }
+                  });
+                }}
+              >
+                {t('dataset:retain_collection')}
+              </Button>
+            )}
           {canWrite && (
             <Button
               ml={2}

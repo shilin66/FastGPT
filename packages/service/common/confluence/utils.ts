@@ -1,8 +1,7 @@
-import ConfluenceClient, { ChildPage, Page } from './client';
+import ConfluenceClient, { Attachment, ChildPage, Page } from './client';
 
 export const getSpaceAllPagesRecursive = async (
   client: ConfluenceClient,
-  cursor: string | null,
   spaceId: string
 ): Promise<Page[]> => {
   const allPages: Page[] = [];
@@ -18,7 +17,7 @@ export const getSpaceAllPagesRecursive = async (
         }
       }
     };
-    await recursivePage(cursor);
+    await recursivePage(null);
     return allPages;
   } catch (error) {
     console.error('Error fetching all pages in space:', error);
@@ -59,11 +58,10 @@ export const getAllPagesByPageId = async (
   syncSubPages: boolean = false
 ): Promise<Page[]> => {
   const allPageIds: string[] = [];
+  allPageIds.push(pageId);
   if (syncSubPages) {
     const childPages = await getAllChildPagesByPageId(client, pageId);
     allPageIds.push(...childPages.map((child) => child.id));
-  } else {
-    allPageIds.push(pageId);
   }
 
   const PageResponse = await client.getPagesByIds(allPageIds);
@@ -75,4 +73,25 @@ const getCursor = (url: string) => {
 
   // 获取 `cursor` 参数的值
   return urlObj.searchParams.get('cursor');
+};
+
+// 获取指定pageId下的所有附件
+export const getAllAttachmentsByPageId = async (
+  client: ConfluenceClient,
+  pageId: string
+): Promise<Attachment[]> => {
+  const allAttachments: Attachment[] = [];
+  const recursiveAttachments = async (cursor: string | null) => {
+    const attachmentsResponse = await client.getAttachments(pageId, cursor);
+    allAttachments.push(...attachmentsResponse.results);
+    const next = attachmentsResponse._links.next;
+    if (next) {
+      const nextCursor = getCursor(next);
+      if (nextCursor) {
+        return recursiveAttachments(nextCursor);
+      }
+    }
+  };
+  await recursiveAttachments(null);
+  return allAttachments;
 };

@@ -16,6 +16,7 @@ export const mongoSessionRun = async <T = unknown>(fn: (session: ClientSession) 
 
     return result as T;
   } catch (error) {
+    addLog.error('mongo sessionRun error', { error });
     if (!session.transaction.isCommitted) {
       await session.abortTransaction();
     } else {
