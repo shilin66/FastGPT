@@ -76,19 +76,18 @@ const ConfluenceConfigModal = ({
       <ModalBody>
         <Box fontSize={'sm'} color={'myGray.600'}>
           {t('common:core.dataset.confluence.Config Description')}
-          {feConfigs?.docUrl && (
-            <Link
-              href={getDocPath('/docs/guide/knowledge_base/websync/')}
-              target="_blank"
-              textDecoration={'underline'}
-              fontWeight={'bold'}
-            >
-              {t('common:common.course.Read Course')}
-            </Link>
-          )}
+          <Link
+            href={`${feConfigs.confluenceUrl}/spaces/Monitor/pages/12336791603/Confluence`}
+            target="_blank"
+            textDecoration={'underline'}
+            fontWeight={'bold'}
+          >
+            {t('common:common.course.Read Course')}
+          </Link>
         </Box>
 
-        {!(userInfo?.confluenceAccount?.account && userInfo?.confluenceAccount?.apiToken) ? (
+        {!(userInfo?.confluenceAccount?.account && userInfo?.confluenceAccount?.apiToken) &&
+        !isEdit ? (
           <Link
             as={NextLink}
             // className="hover-data"
