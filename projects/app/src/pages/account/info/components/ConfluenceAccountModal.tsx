@@ -1,5 +1,5 @@
 import React from 'react';
-import { ModalBody, Box, Flex, Input, ModalFooter, Button } from '@chakra-ui/react';
+import { ModalBody, Box, Flex, Input, ModalFooter, Button, Link } from '@chakra-ui/react';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import { useTranslation } from 'next-i18next';
 import { useForm } from 'react-hook-form';
@@ -7,6 +7,7 @@ import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import type { UserType } from '@fastgpt/global/support/user/type.d';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import { useUserStore } from '@/web/support/user/useUserStore';
+import { useSystemStore } from '@/web/common/system/useSystemStore';
 
 const ConfluenceAccountModal = ({
   defaultData,
@@ -22,6 +23,7 @@ const ConfluenceAccountModal = ({
   const { register, handleSubmit } = useForm({
     defaultValues: defaultData
   });
+  const { feConfigs } = useSystemStore();
 
   const { mutate: onSubmit, isLoading } = useRequest({
     mutationFn: async (data: UserType['confluenceAccount']) => onSuccess(data),
@@ -41,6 +43,15 @@ const ConfluenceAccountModal = ({
       <ModalBody>
         <Box fontSize={'sm'} color={'myGray.500'}>
           {t('common:info.confluence_account_notice')}
+          <Link
+            href={`${feConfigs.confluenceUrl}/spaces/Monitor/pages/12336791603/Confluence`}
+            target="_blank"
+            textDecoration={'underline'}
+            fontWeight={'bold'}
+            fontSize={'sm'}
+          >
+            {t('common:common.course.Read Course')}
+          </Link>
         </Box>
         <Box mt={5}>
           <Box mb={2} fontWeight={'medium'} fontSize={'sm'}>
