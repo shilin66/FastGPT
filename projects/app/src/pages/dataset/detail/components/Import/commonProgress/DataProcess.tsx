@@ -27,7 +27,13 @@ import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 import MyNumberInput from '@fastgpt/web/components/common/Input/NumberInput';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 
-function DataProcess({ showPreviewChunks = true }: { showPreviewChunks: boolean }) {
+function DataProcess({
+  showPreviewChunks = true,
+  isModal = false
+}: {
+  showPreviewChunks: boolean;
+  isModal?: boolean;
+}) {
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
 
@@ -249,20 +255,23 @@ function DataProcess({ showPreviewChunks = true }: { showPreviewChunks: boolean 
             </MyTag>
           </Box>
         )}
-
-        <Flex mt={5} gap={3} justifyContent={'flex-end'}>
-          <Button
-            onClick={() => {
-              goToNext();
-            }}
-          >
-            {t('common:common.Next Step')}
-          </Button>
-        </Flex>
+        {!isModal && (
+          <Flex mt={5} gap={3} justifyContent={'flex-end'}>
+            <Button
+              onClick={() => {
+                goToNext();
+              }}
+            >
+              {t('common:common.Next Step')}
+            </Button>
+          </Flex>
+        )}
       </Box>
-      <Box flex={'1 0 0'} w={['auto', '0']} h={['auto', '100%']} pl={[0, 3]}>
-        <Preview showPreviewChunks={showPreviewChunks} />
-      </Box>
+      {!isModal && (
+        <Box flex={'1 0 0'} w={['auto', '0']} h={['auto', '100%']} pl={[0, 3]}>
+          <Preview showPreviewChunks={showPreviewChunks} />
+        </Box>
+      )}
 
       {isOpenCustomPrompt && (
         <PromptTextarea

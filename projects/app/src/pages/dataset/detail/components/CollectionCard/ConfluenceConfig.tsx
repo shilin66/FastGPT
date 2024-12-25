@@ -10,23 +10,24 @@ import {
   Link,
   ModalBody,
   ModalFooter,
-  Switch
+  Switch,
+  useDisclosure
 } from '@chakra-ui/react';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useForm } from 'react-hook-form';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
-import { getDocPath } from '@/web/common/system/doc';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import NextLink from 'next/link';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
-
-type FormType = {
-  spaceKey?: string | undefined;
-  pageId?: string | undefined;
-  syncSubPages?: boolean | false;
-  syncSchedule?: boolean | false;
-};
+import DataProcess from '@/pages/dataset/detail/components/Import/commonProgress/DataProcess';
+import { useContextSelector } from 'use-context-selector';
+import { DatasetImportContext } from '@/pages/dataset/detail/components/Import/Context';
+import { ImportProcessWayEnum } from '@/web/core/dataset/constants';
+import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
+import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
+import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
+import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 
 const ConfluenceConfigModal = ({
   onClose,
@@ -35,17 +36,24 @@ const ConfluenceConfigModal = ({
     spaceKey: '',
     pageId: '',
     syncSubPages: false,
-    syncSchedule: false
+    syncSchedule: false,
+    mode: TrainingModeEnum.chunk,
+    way: ImportProcessWayEnum.auto,
+    chunkSize: 512,
+    chunkSplitter: '',
+    qaPrompt: ''
   }
 }: {
   onClose: () => void;
-  onSuccess: (data: FormType) => void;
-  defaultValue?: FormType;
+  onSuccess: (data: DatasetSchemaType['confluenceConfig']) => void;
+  defaultValue?: DatasetSchemaType['confluenceConfig'];
 }) => {
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
   const { userInfo } = useUserStore();
   const { toast } = useToast();
+  const processParamsForm = useContextSelector(DatasetImportContext, (v) => v.processParamsForm);
+  const datasetDetail = useContextSelector(DatasetPageContext, (v) => v.datasetDetail);
   const { register, handleSubmit, watch, setValue } = useForm({
     defaultValues: defaultValue
   });
@@ -57,6 +65,45 @@ const ConfluenceConfigModal = ({
   const { ConfirmModal, openConfirm } = useConfirm({
     type: 'common'
   });
+  const {
+    isOpen: isOpenDataProcessModal,
+    onOpen: onOpenDataProcessModal,
+    onClose: onCloseDataProcessModal
+  } = useDisclosure();
+
+  useEffect(() => {
+    if (defaultValue) {
+      debugger;
+      const vectorModel = datasetDetail.vectorModel;
+      const agentModel = datasetDetail.agentModel;
+      const model = defaultValue.mode || TrainingModeEnum.chunk;
+      const way = defaultValue.way || ImportProcessWayEnum.auto;
+      processParamsForm.setValue('mode', model);
+      processParamsForm.setValue('way', way);
+      if (model === TrainingModeEnum.chunk) {
+        processParamsForm.setValue(
+          'embeddingChunkSize',
+          defaultValue.chunkSize || vectorModel?.defaultToken || 512
+        );
+        if (way === ImportProcessWayEnum.custom) {
+          processParamsForm.setValue('customSplitChar', defaultValue.chunkSplitter || '');
+        }
+      } else {
+        processParamsForm.setValue(
+          'qaChunkSize',
+          defaultValue.chunkSize ||
+            Math.min(agentModel.maxResponse, Math.floor(agentModel.maxContext * 0.7))
+        );
+        if (way === ImportProcessWayEnum.custom) {
+          processParamsForm.setValue(
+            'qaPrompt',
+            defaultValue.qaPrompt || Prompt_AgentQA.description
+          );
+          processParamsForm.setValue('customSplitChar', defaultValue.chunkSplitter || '');
+        }
+      }
+    }
+  }, [datasetDetail.agentModel, datasetDetail.vectorModel, defaultValue, processParamsForm]);
   const pageId = watch('pageId');
   const syncSubPages = watch('syncSubPages');
   const syncSchedule = watch('syncSchedule');
@@ -160,34 +207,98 @@ const ConfluenceConfigModal = ({
               </FormLabel>
               <Switch size={'md'} isChecked={syncSchedule} {...register('syncSchedule')} />
             </Flex>
+            <Flex mt={5}>
+              <Button
+                // size="xs"
+                variant={'whiteBase'}
+                color={'blue'}
+                alignItems={'center'}
+                fontWeight={'medium'}
+                onClick={onOpenDataProcessModal}
+              >
+                {t('common:common.Advanced Settings')}
+              </Button>
+              {isOpenDataProcessModal && <DataProcessingModal onClose={onCloseDataProcessModal} />}
+            </Flex>
           </>
         )}
       </ModalBody>
-      {userInfo?.confluenceAccount?.account && userInfo?.confluenceAccount?.apiToken && (
-        <ModalFooter>
-          <Button variant={'whiteBase'} onClick={onClose}>
-            {t('common:common.Close')}
-          </Button>
-          <Button
-            ml={2}
-            onClick={handleSubmit((data) => {
-              if (!data.spaceKey) return;
-              openConfirm(
-                () => {
-                  onSuccess(data);
-                },
-                undefined,
-                confirmTip
-              )();
-            })}
-          >
-            {t('common:core.dataset.website.Start Sync')}
-          </Button>
-        </ModalFooter>
-      )}
+      {(userInfo?.confluenceAccount?.account && userInfo?.confluenceAccount?.apiToken) ||
+        (isEdit && (
+          <ModalFooter>
+            <Button variant={'whiteBase'} onClick={onClose}>
+              {t('common:common.Close')}
+            </Button>
+            <Button
+              ml={2}
+              onClick={handleSubmit((data) => {
+                data.mode = processParamsForm.getValues('mode');
+                data.way = processParamsForm.getValues('way');
+
+                if (data.way === ImportProcessWayEnum.custom) {
+                  data.chunkSplitter = processParamsForm.getValues('customSplitChar');
+                } else {
+                  data.chunkSplitter = '';
+                }
+                if (data.mode === TrainingModeEnum.chunk) {
+                  data.chunkSize = processParamsForm.getValues('embeddingChunkSize');
+                } else {
+                  if (data.way === ImportProcessWayEnum.custom) {
+                    data.chunkSize = processParamsForm.getValues('qaChunkSize');
+                    data.qaPrompt = processParamsForm.getValues('qaPrompt');
+                  } else {
+                    data.chunkSize = Math.min(
+                      datasetDetail.agentModel.maxResponse,
+                      Math.floor(datasetDetail.agentModel.maxContext * 0.7)
+                    );
+                    data.qaPrompt = Prompt_AgentQA.description;
+                  }
+                }
+                if (!data.spaceKey) return;
+                openConfirm(
+                  () => {
+                    onSuccess(data);
+                  },
+                  undefined,
+                  confirmTip
+                )();
+              })}
+            >
+              {t('common:core.dataset.website.Start Sync')}
+            </Button>
+          </ModalFooter>
+        ))}
       <ConfirmModal />
     </MyModal>
   );
 };
 
 export default ConfluenceConfigModal;
+
+const DataProcessingModal = ({ onClose }: { onClose: () => void }) => {
+  const { t } = useTranslation();
+  return (
+    <MyModal
+      isOpen
+      iconSrc="core/dataset/confluenceDataset"
+      title={t('common:common.Advanced Settings')}
+      onClose={onClose}
+      maxW={'800px'}
+      maxH={'1200px'}
+    >
+      <ModalBody h={'100%'}>
+        <DataProcess showPreviewChunks={false} isModal={true} />
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          ml={2}
+          onClick={() => {
+            onClose();
+          }}
+        >
+          {t('common:common.Confirm')}
+        </Button>
+      </ModalFooter>
+    </MyModal>
+  );
+};

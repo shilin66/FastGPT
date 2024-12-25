@@ -11,6 +11,7 @@ import {
 import { DatasetPermission } from '../../support/permission/dataset/controller';
 import { Permission } from '../../support/permission/controller';
 import { APIFileServer } from './apiDataset';
+import { ImportProcessWayEnum } from '../../../../projects/app/src/web/core/dataset/constants';
 
 export type DatasetSchemaType = {
   _id: string;
@@ -33,9 +34,14 @@ export type DatasetSchemaType = {
   };
   confluenceConfig?: {
     spaceKey: string;
-    pageId: string;
+    pageId?: string;
     syncSubPages?: boolean;
     syncSchedule?: boolean;
+    mode: TrainingModeEnum;
+    way: ImportProcessWayEnum;
+    chunkSize: number;
+    chunkSplitter: string;
+    qaPrompt: string;
   };
   inheritPermission: boolean;
   apiServer?: APIFileServer;
