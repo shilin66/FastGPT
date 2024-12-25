@@ -1,5 +1,5 @@
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
-import { Dispatch, ReactNode, SetStateAction, useEffect, useState } from 'react';
+import { Dispatch, ReactNode, SetStateAction, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { createContext, useContextSelector } from 'use-context-selector';
 import { DatasetStatusEnum, DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
@@ -14,6 +14,7 @@ import { usePagination } from '@fastgpt/web/hooks/usePagination';
 import { DatasetCollectionsListItemType } from '@/global/core/dataset/type';
 import { useRouter } from 'next/router';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
+import DatasetImportContextProvider from '@/pages/dataset/detail/components/Import/Context';
 
 const WebSiteConfigModal = dynamic(() => import('./WebsiteConfig'));
 const ConfluenceConfigModal = dynamic(() => import('./ConfluenceConfig'));
@@ -210,16 +211,23 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
       {datasetDetail.type === DatasetTypeEnum.confluenceDataset && (
         <>
           {isOpenConfluenceModal && (
-            <ConfluenceConfigModal
-              onClose={onCloseConfluenceModal}
-              onSuccess={onUpdateDatasetConfluenceConfig}
-              defaultValue={{
-                spaceKey: datasetDetail?.confluenceConfig?.spaceKey,
-                pageId: datasetDetail?.confluenceConfig?.pageId,
-                syncSubPages: datasetDetail?.confluenceConfig?.syncSubPages,
-                syncSchedule: datasetDetail?.confluenceConfig?.syncSchedule
-              }}
-            />
+            <DatasetImportContextProvider>
+              <ConfluenceConfigModal
+                onClose={onCloseConfluenceModal}
+                onSuccess={onUpdateDatasetConfluenceConfig}
+                defaultValue={{
+                  spaceKey: datasetDetail!.confluenceConfig!.spaceKey!,
+                  pageId: datasetDetail!.confluenceConfig?.pageId,
+                  syncSubPages: datasetDetail!.confluenceConfig?.syncSubPages,
+                  syncSchedule: datasetDetail!.confluenceConfig?.syncSchedule,
+                  mode: datasetDetail!.confluenceConfig!.mode,
+                  way: datasetDetail!.confluenceConfig!.way,
+                  chunkSize: datasetDetail!.confluenceConfig!.chunkSize,
+                  chunkSplitter: datasetDetail!.confluenceConfig?.chunkSplitter || '',
+                  qaPrompt: datasetDetail!.confluenceConfig!.qaPrompt
+                }}
+              />
+            </DatasetImportContextProvider>
           )}
           <ConfirmConfluenceSyncModal />
         </>

@@ -3,13 +3,15 @@ import {
   DatasetStatusEnum,
   DatasetStatusMap,
   DatasetTypeEnum,
-  DatasetTypeMap
+  DatasetTypeMap,
+  TrainingModeEnum
 } from '@fastgpt/global/core/dataset/constants';
 import {
   TeamCollectionName,
   TeamMemberCollectionName
 } from '@fastgpt/global/support/user/team/constant';
 import type { DatasetSchemaType } from '@fastgpt/global/core/dataset/type.d';
+import { ImportProcessWayEnum } from '../../../../projects/app/src/web/core/dataset/constants';
 
 export const DatasetCollectionName = 'datasets';
 
@@ -86,8 +88,7 @@ const DatasetSchema = new Schema({
   confluenceConfig: {
     type: {
       spaceKey: {
-        type: String,
-        required: true
+        type: String
       },
       pageId: {
         type: String
@@ -99,6 +100,24 @@ const DatasetSchema = new Schema({
       syncSchedule: {
         type: Boolean,
         default: false
+      },
+      mode: {
+        type: String,
+        enum: TrainingModeEnum
+      },
+      way: {
+        type: String,
+        enum: ImportProcessWayEnum
+      },
+      chunkSize: {
+        type: Number,
+        required: true
+      },
+      chunkSplitter: {
+        type: String
+      },
+      qaPrompt: {
+        type: String
       }
     }
   },

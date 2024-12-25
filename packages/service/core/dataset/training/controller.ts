@@ -33,10 +33,11 @@ import { createOneCollection, delCollection } from '../collection/controller';
 import { MongoDataset } from '../schema';
 import pLimit from 'p-limit';
 import { Converter } from '../../../common/confluence/adf2md';
-import adf2md = Converter.adf2md;
-import parseADF = Converter.parseADF;
 import { uploadMongoImg } from '../../../common/file/image/controller';
 import { MongoImageTypeEnum } from '@fastgpt/global/common/file/image/constants';
+import adf2md = Converter.adf2md;
+import parseADF = Converter.parseADF;
+import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
 
 export const lockTrainingDataByTeamId = async (teamId: string): Promise<any> => {
   try {
@@ -308,7 +309,14 @@ export const trainConfluenceCollection = async ({
           // 创建或更新集合
           const createOrUpdateCollection = async () => {
             const col = pageConfluence[page.id];
-            if (!col || page.version.number !== col.confluence?.pageVersion) {
+            if (
+              !col ||
+              page.version.number !== col.confluence?.pageVersion ||
+              dataset.confluenceConfig?.mode !== col.trainingType ||
+              dataset.confluenceConfig?.chunkSize !== col.chunkSize ||
+              dataset.confluenceConfig?.chunkSplitter !== col.chunkSplitter ||
+              dataset.confluenceConfig?.qaPrompt !== col.qaPrompt
+            ) {
               return {
                 collection: await createOneCollection({
                   parentId: dataset.parentId,
@@ -317,16 +325,10 @@ export const trainConfluenceCollection = async ({
                   teamId,
                   tmbId,
                   type: DatasetCollectionTypeEnum.link,
-                  trainingType: TrainingModeEnum.chunk,
-                  chunkSize: 512,
-                  chunkSplitter: '',
-                  qaPrompt:
-                    '<Context></Context> 标记中是一段文本，学习和分析它，并整理学习成果：\n' +
-                    '- 提出问题并给出每个问题的答案。\n' +
-                    '- 答案需详细完整，尽可能保留原文描述，可以适当扩展答案描述。\n' +
-                    '- 答案可以包含普通文字、链接、代码、表格、公示、媒体链接等 Markdown 元素。\n' +
-                    '- 最多提出 50 个问题。\n' +
-                    '- 生成的问题和答案和源文本语言相同。\n',
+                  trainingType: dataset.confluenceConfig?.mode || TrainingModeEnum.chunk,
+                  chunkSize: dataset.confluenceConfig?.chunkSize || 500,
+                  chunkSplitter: dataset.confluenceConfig?.chunkSplitter || '',
+                  qaPrompt: dataset.confluenceConfig?.qaPrompt || Prompt_AgentQA.description,
                   rawLink: pageLink,
                   confluence: {
                     pageId: page.id,
