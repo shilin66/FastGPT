@@ -319,7 +319,6 @@ export const trainConfluenceCollection = async ({
             ) {
               return {
                 collection: await createOneCollection({
-                  parentId: dataset.parentId,
                   datasetId,
                   name: page.title,
                   teamId,
