@@ -37,7 +37,7 @@ export const getAllChildPagesByPageId = async (
     allChildren.push(...response.results);
 
     if (response._links.next) {
-      const nextCursor = new URL(response._links.next).searchParams.get('cursor');
+      const nextCursor = getCursor(response._links.next);
       await fetchChildren(pageId, nextCursor);
     }
 
