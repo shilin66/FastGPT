@@ -140,7 +140,7 @@ const ConfluenceConfigModal = ({
             alignItems={'center'}
             display={'flex'}
             color={'primary.500'}
-            href={`/account`}
+            href={`/account/info`}
             mt={5}
           >
             {t('common:core.dataset.Go Confluence Account Config')}
