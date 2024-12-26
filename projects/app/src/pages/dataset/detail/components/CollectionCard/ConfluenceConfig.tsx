@@ -222,51 +222,51 @@ const ConfluenceConfigModal = ({
           </>
         )}
       </ModalBody>
-      {(userInfo?.confluenceAccount?.account && userInfo?.confluenceAccount?.apiToken) ||
-        (isEdit && (
-          <ModalFooter>
-            <Button variant={'whiteBase'} onClick={onClose}>
-              {t('common:common.Close')}
-            </Button>
-            <Button
-              ml={2}
-              onClick={handleSubmit((data) => {
-                data.mode = processParamsForm.getValues('mode');
-                data.way = processParamsForm.getValues('way');
+      {((userInfo?.confluenceAccount?.account && userInfo?.confluenceAccount?.apiToken) ||
+        isEdit) && (
+        <ModalFooter>
+          <Button variant={'whiteBase'} onClick={onClose}>
+            {t('common:common.Close')}
+          </Button>
+          <Button
+            ml={2}
+            onClick={handleSubmit((data) => {
+              data.mode = processParamsForm.getValues('mode');
+              data.way = processParamsForm.getValues('way');
 
+              if (data.way === ImportProcessWayEnum.custom) {
+                data.chunkSplitter = processParamsForm.getValues('customSplitChar');
+              } else {
+                data.chunkSplitter = '';
+              }
+              if (data.mode === TrainingModeEnum.chunk) {
+                data.chunkSize = processParamsForm.getValues('embeddingChunkSize');
+              } else {
                 if (data.way === ImportProcessWayEnum.custom) {
-                  data.chunkSplitter = processParamsForm.getValues('customSplitChar');
+                  data.chunkSize = processParamsForm.getValues('qaChunkSize');
+                  data.qaPrompt = processParamsForm.getValues('qaPrompt');
                 } else {
-                  data.chunkSplitter = '';
+                  data.chunkSize = Math.min(
+                    datasetDetail.agentModel.maxResponse,
+                    Math.floor(datasetDetail.agentModel.maxContext * 0.7)
+                  );
+                  data.qaPrompt = Prompt_AgentQA.description;
                 }
-                if (data.mode === TrainingModeEnum.chunk) {
-                  data.chunkSize = processParamsForm.getValues('embeddingChunkSize');
-                } else {
-                  if (data.way === ImportProcessWayEnum.custom) {
-                    data.chunkSize = processParamsForm.getValues('qaChunkSize');
-                    data.qaPrompt = processParamsForm.getValues('qaPrompt');
-                  } else {
-                    data.chunkSize = Math.min(
-                      datasetDetail.agentModel.maxResponse,
-                      Math.floor(datasetDetail.agentModel.maxContext * 0.7)
-                    );
-                    data.qaPrompt = Prompt_AgentQA.description;
-                  }
-                }
-                if (!data.spaceKey) return;
-                openConfirm(
-                  () => {
-                    onSuccess(data);
-                  },
-                  undefined,
-                  confirmTip
-                )();
-              })}
-            >
-              {t('common:core.dataset.website.Start Sync')}
-            </Button>
-          </ModalFooter>
-        ))}
+              }
+              if (!data.spaceKey) return;
+              openConfirm(
+                () => {
+                  onSuccess(data);
+                },
+                undefined,
+                confirmTip
+              )();
+            })}
+          >
+            {t('common:core.dataset.website.Start Sync')}
+          </Button>
+        </ModalFooter>
+      )}
       <ConfirmModal />
     </MyModal>
   );
