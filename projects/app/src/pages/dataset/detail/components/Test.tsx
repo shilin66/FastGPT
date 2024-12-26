@@ -40,6 +40,7 @@ type FormType = {
     similarity?: number;
     limit?: number;
     usingReRank?: boolean;
+    reRankModel?: string;
     datasetSearchUsingExtensionQuery?: boolean;
     datasetSearchExtensionModel?: string;
     datasetSearchExtensionBg?: string;
@@ -49,7 +50,7 @@ type FormType = {
 const Test = ({ datasetId }: { datasetId: string }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { llmModelList } = useSystemStore();
+  const { llmModelList, reRankModelList } = useSystemStore();
   const datasetDetail = useContextSelector(DatasetPageContext, (v) => v.datasetDetail);
   const { pushDatasetTestItem } = useSearchTestStore();
   const [inputType, setInputType] = useState<'text' | 'file'>('text');
@@ -68,6 +69,7 @@ const Test = ({ datasetId }: { datasetId: string }) => {
       searchParams: {
         searchMode: DatasetSearchModeEnum.embedding,
         usingReRank: false,
+        reRankModel: reRankModelList[0].model,
         limit: 5000,
         similarity: 0,
         datasetSearchUsingExtensionQuery: true,
@@ -106,6 +108,7 @@ const Test = ({ datasetId }: { datasetId: string }) => {
           duration: res.duration,
           searchMode: res.searchMode,
           usingReRank: res.usingReRank,
+          reRankModel: res.reRankModel,
           limit: res.limit,
           similarity: res.similarity,
           queryExtensionModel: res.queryExtensionModel

@@ -19,13 +19,14 @@ const SelectDatasetParam = ({ inputs = [], nodeId }: RenderInputProps) => {
   const nodeList = useContextSelector(WorkflowContext, (v) => v.nodeList);
 
   const { t } = useTranslation();
-  const { llmModelList } = useSystemStore();
+  const { llmModelList, reRankModelList } = useSystemStore();
 
   const [data, setData] = useState<DatasetParamsProps>({
     searchMode: DatasetSearchModeEnum.embedding,
     limit: 5,
     similarity: 0.5,
     usingReRank: false,
+    reRankModel: reRankModelList[0]?.model,
     datasetSearchUsingExtensionQuery: true,
     datasetSearchExtensionModel: llmModelList[0]?.model,
     datasetSearchExtensionBg: ''

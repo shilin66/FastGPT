@@ -6,7 +6,7 @@ import { formatModelChars2Points } from '../../../../support/wallet/usage/utils'
 import type { SelectedDatasetType } from '@fastgpt/global/core/workflow/api.d';
 import type { SearchDataResponseItemType } from '@fastgpt/global/core/dataset/type';
 import type { ModuleDispatchProps } from '@fastgpt/global/core/workflow/runtime/type';
-import { ModelTypeEnum, getLLMModel, getVectorModel } from '../../../ai/model';
+import { ModelTypeEnum, getLLMModel, getVectorModel, getReRankModel } from '../../../ai/model';
 import { searchDatasetData } from '../../../dataset/search/controller';
 import { NodeInputKeyEnum, NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
@@ -25,6 +25,7 @@ type DatasetSearchProps = ModuleDispatchProps<{
   [NodeInputKeyEnum.datasetSearchMode]: `${DatasetSearchModeEnum}`;
   [NodeInputKeyEnum.userChatInput]: string;
   [NodeInputKeyEnum.datasetSearchUsingReRank]: boolean;
+  [NodeInputKeyEnum.datasetSearchReRankModel]: string;
   [NodeInputKeyEnum.datasetSearchUsingExtensionQuery]: boolean;
   [NodeInputKeyEnum.datasetSearchExtensionModel]: string;
   [NodeInputKeyEnum.datasetSearchExtensionBg]: string;
@@ -46,6 +47,7 @@ export async function dispatchDatasetSearch(
       similarity,
       limit = 1500,
       usingReRank,
+      reRankModel,
       searchMode,
       userChatInput,
 
@@ -97,6 +99,8 @@ export async function dispatchDatasetSearch(
     (await MongoDataset.findById(datasets[0].datasetId, 'vectorModel').lean())?.vectorModel
   );
 
+  const usedReRankModel = getReRankModel(reRankModel);
+
   // start search
   const {
     searchRes,
@@ -113,6 +117,7 @@ export async function dispatchDatasetSearch(
     datasetIds: datasets.map((item) => item.datasetId),
     searchMode,
     usingReRank: usingReRank && (await checkTeamReRankPermission(teamId)),
+    reRankModel: usedReRankModel.model,
     collectionFilterMatch
   });
 

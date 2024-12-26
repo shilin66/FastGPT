@@ -31,7 +31,10 @@ export function getWhisperModel(model?: string) {
 }
 
 export function getReRankModel(model?: string) {
-  return global.reRankModels.find((item) => item.model === model);
+  return (
+    global.reRankModels.find((item) => item.model === model || item.name === model) ||
+    global.reRankModels[0]
+  );
 }
 
 export enum ModelTypeEnum {

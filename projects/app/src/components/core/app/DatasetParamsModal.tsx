@@ -36,6 +36,7 @@ export type DatasetParamsProps = {
   limit?: number;
   similarity?: number;
   usingReRank?: boolean;
+  reRankModel?: string;
   datasetSearchUsingExtensionQuery?: boolean;
   datasetSearchExtensionModel?: string;
   datasetSearchExtensionBg?: string;
@@ -53,6 +54,7 @@ const DatasetParamsModal = ({
   limit,
   similarity,
   usingReRank,
+  reRankModel,
   maxTokens = defaultDatasetMaxTokens,
   datasetSearchUsingExtensionQuery,
   datasetSearchExtensionModel,
@@ -75,6 +77,11 @@ const DatasetParamsModal = ({
         value: item.model,
         label: item.name
       })))();
+  const reRankSelectList = (() =>
+    reRankModelList.map((item) => ({
+      value: item.model,
+      label: item.name
+    })))();
 
   const { register, setValue, getValues, handleSubmit, watch } = useForm<DatasetParamsProps>({
     defaultValues: {
@@ -82,6 +89,7 @@ const DatasetParamsModal = ({
       similarity,
       searchMode,
       usingReRank: !!usingReRank && teamPlanStatus?.standardConstants?.permissionReRank !== false,
+      reRankModel: reRankModel || reRankSelectList[0]?.value,
       datasetSearchUsingExtensionQuery,
       datasetSearchExtensionModel: datasetSearchExtensionModel || chatModelSelectList[0]?.value,
       datasetSearchExtensionBg
@@ -91,6 +99,7 @@ const DatasetParamsModal = ({
   const queryExtensionModel = watch('datasetSearchExtensionModel');
   const cfbBgDesc = watch('datasetSearchExtensionBg');
   const usingReRankWatch = watch('usingReRank');
+  const reRankModelWatch = watch('reRankModel');
   const searchModeWatch = watch('searchMode');
 
   const searchModeList = useMemo(() => {
@@ -117,6 +126,14 @@ const DatasetParamsModal = ({
       setValue('datasetSearchExtensionModel', '');
     }
   }, [chatModelSelectList, datasetSearchUsingCfrForm, queryExtensionModel, setValue]);
+
+  useEffect(() => {
+    if (usingReRankWatch) {
+      !reRankModelWatch && setValue('reRankModel', reRankSelectList[0]?.value);
+    } else {
+      setValue('reRankModel', '');
+    }
+  }, [reRankSelectList, usingReRankWatch, reRankModelWatch, setValue]);
 
   // 保证只有 80 左右个刻度。
   const maxTokenStep = useMemo(() => {
@@ -217,6 +234,23 @@ const DatasetParamsModal = ({
                   <Box position={'absolute'} top={0} right={0} bottom={0} left={0} zIndex={1}></Box>
                 </Box>
               </Flex>
+              {usingReRankWatch && (
+                <Flex mt={2} alignItems={'center'}>
+                  <FormLabel flex={['0 0 80px', '1 0 0']} ml={2}>
+                    {t('common:core.dataset.search.ReRank Model')}
+                  </FormLabel>
+                  <Box flex={['1 0 0', '0 0 300px']}>
+                    <SelectAiModel
+                      width={'100%'}
+                      value={reRankModelWatch}
+                      list={reRankSelectList}
+                      onchange={(val: any) => {
+                        setValue('reRankModel', val);
+                      }}
+                    />
+                  </Box>
+                </Flex>
+              )}
             </>
           </>
         )}

@@ -70,6 +70,12 @@ export const DatasetSearchModule: FlowNodeTemplateType = {
       value: false
     },
     {
+      key: NodeInputKeyEnum.datasetSearchReRankModel,
+      renderTypeList: [FlowNodeInputTypeEnum.hidden],
+      label: '',
+      valueType: WorkflowIOValueTypeEnum.string
+    },
+    {
       key: NodeInputKeyEnum.datasetSearchUsingExtensionQuery,
       renderTypeList: [FlowNodeInputTypeEnum.hidden],
       label: '',

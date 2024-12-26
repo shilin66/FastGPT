@@ -73,7 +73,6 @@ const ConfluenceConfigModal = ({
 
   useEffect(() => {
     if (defaultValue) {
-      debugger;
       const vectorModel = datasetDetail.vectorModel;
       const agentModel = datasetDetail.agentModel;
       const model = defaultValue.mode || TrainingModeEnum.chunk;

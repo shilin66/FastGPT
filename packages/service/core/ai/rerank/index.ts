@@ -1,5 +1,6 @@
 import { addLog } from '../../../common/system/log';
 import { POST } from '../../../common/api/serverRequest';
+import { getReRankModel } from '../model';
 
 type PostReRankResponse = {
   id: string;
@@ -12,12 +13,14 @@ type ReRankCallResult = { id: string; score?: number }[];
 
 export function reRankRecall({
   query,
+  reRankModel,
   documents
 }: {
   query: string;
+  reRankModel: string;
   documents: { id: string; text: string }[];
 }): Promise<ReRankCallResult> {
-  const model = global.reRankModels[0];
+  const model = getReRankModel(reRankModel);
 
   if (!model || !model?.requestUrl) {
     return Promise.reject('no rerank model');
