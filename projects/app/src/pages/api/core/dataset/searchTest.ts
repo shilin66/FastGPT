@@ -24,6 +24,7 @@ async function handler(req: NextApiRequest) {
     similarity,
     searchMode,
     usingReRank,
+    reRankModel,
 
     datasetSearchUsingExtensionQuery = true,
     datasetSearchExtensionModel,
@@ -67,7 +68,8 @@ async function handler(req: NextApiRequest) {
     similarity,
     datasetIds: [datasetId],
     searchMode,
-    usingReRank: usingReRank && (await checkTeamReRankPermission(teamId))
+    usingReRank: usingReRank && (await checkTeamReRankPermission(teamId)),
+    reRankModel
   });
 
   // push bill

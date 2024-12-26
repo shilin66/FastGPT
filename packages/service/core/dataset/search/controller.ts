@@ -32,6 +32,7 @@ type SearchDatasetDataProps = {
   datasetIds: string[];
   searchMode?: `${DatasetSearchModeEnum}`;
   usingReRank?: boolean;
+  reRankModel?: string;
   reRankQuery: string;
   queries: string[];
 
@@ -60,6 +61,7 @@ export async function searchDatasetData(props: SearchDatasetDataProps) {
     limit: maxTokens,
     searchMode = DatasetSearchModeEnum.embedding,
     usingReRank = false,
+    reRankModel = global.reRankModels[0].model,
     datasetIds = [],
     collectionFilterMatch
   } = props;
@@ -436,6 +438,7 @@ export async function searchDatasetData(props: SearchDatasetDataProps) {
     try {
       const results = await reRankRecall({
         query,
+        reRankModel,
         documents: data.map((item) => ({
           id: item.id,
           text: `${item.q}\n${item.a}`
