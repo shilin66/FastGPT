@@ -25,29 +25,37 @@ export const getSpaceAllPagesRecursive = async (
   }
 };
 
-// 递归获取指定 pageId 下的所有 childPage
+const MAX_CONCURRENT_REQUESTS = 10; //最多同时请求10个页面
+
 export const getAllChildPagesByPageId = async (
   client: ConfluenceClient,
   pageId: string
 ): Promise<ChildPage[]> => {
   const allChildren: ChildPage[] = [];
+  const queue: { pageId: string; cursor: string | null }[] = [{ pageId, cursor: null }];
 
-  const fetchChildren = async (pageId: string, cursor: string | null = null) => {
-    const response = await client.getChildren(pageId, cursor);
-    allChildren.push(...response.results);
+  while (queue.length > 0) {
+    const batch = queue.splice(0, MAX_CONCURRENT_REQUESTS);
+    const responses = await Promise.all(
+      batch.map(async ({ pageId: currentId, cursor }) => {
+        return await client.getChildren(currentId, cursor);
+      })
+    );
 
-    if (response._links.next) {
-      const nextCursor = getCursor(response._links.next);
-      await fetchChildren(pageId, nextCursor);
+    for (const [index, response] of responses.entries()) {
+      allChildren.push(...response.results);
+
+      if (response._links.next) {
+        const nextCursor = getCursor(response._links.next);
+        queue.push({ pageId: batch[index].pageId, cursor: nextCursor });
+      }
+
+      for (const child of response.results) {
+        queue.push({ pageId: child.id, cursor: null });
+      }
     }
+  }
 
-    // 递归获取每个子页面的子页面
-    for (const child of response.results) {
-      await fetchChildren(child.id);
-    }
-  };
-
-  await fetchChildren(pageId);
   return allChildren;
 };
 
@@ -58,14 +66,19 @@ export const getAllPagesByPageId = async (
   syncSubPages: boolean = false
 ): Promise<Page[]> => {
   const allPageIds: string[] = [];
+  const pages: Page[] = [];
   allPageIds.push(pageId);
   if (syncSubPages) {
     const childPages = await getAllChildPagesByPageId(client, pageId);
     allPageIds.push(...childPages.map((child) => child.id));
   }
-
-  const PageResponse = await client.getPagesByIds(allPageIds);
-  return PageResponse.results;
+  // 每250个pageId 分批处理
+  for (let i = 0; i < allPageIds.length; i += 250) {
+    const chunk = allPageIds.slice(i, i + 250);
+    const PageResponse = await client.getPagesByIds(chunk);
+    pages.push(...PageResponse.results);
+  }
+  return pages;
 };
 const getCursor = (url: string) => {
   // 创建一个 URL 对象
