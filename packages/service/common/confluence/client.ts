@@ -373,7 +373,6 @@ class ConfluenceClient {
     try {
       const params: AxiosRequestConfig['params'] = {
         cursor: cursor || undefined,
-        'body-format': 'atlas_doc_format',
         limit: 250
       };
       const response: AxiosResponse<ChildPagesResponse> = await this.client.get(

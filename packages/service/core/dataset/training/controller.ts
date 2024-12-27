@@ -377,7 +377,7 @@ export const trainConfluenceCollection = async ({
               //   new RegExp(`!\[.*]\(${attachment.fileId}\)`, 'g'),
               //   `![${attachment.title}](${src})`
               // );
-              markdown.result = markdown.result.replace(attachment.fileId, src);
+              markdown.result = markdown.result.replaceAll(attachment.fileId, src);
               console.log(`confluence page ${page.title} attachment: ${attachment.title}`);
             }
           }
