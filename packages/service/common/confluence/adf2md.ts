@@ -23,6 +23,7 @@ export module Converter {
     | 'media'
     | 'mediaSingle'
     | 'mediaGroup'
+    | 'mediaInline'
     | 'table'
     | 'tableRow'
     | 'tableHeader'
@@ -81,6 +82,8 @@ export module Converter {
         return content.map((child) => _convert(child, warnings)).join('');
       case 'media':
         return `\n![${node.attrs?.alt || ''}](${node.attrs?.id})`;
+      case 'mediaInline':
+        return `![](${node.attrs?.id})`;
       case 'bulletList':
       case 'orderedList': {
         let order = node.type === 'orderedList' ? node.attrs?.order || 1 : 0;
