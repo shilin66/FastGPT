@@ -13,8 +13,9 @@ import { isProduction } from '@fastgpt/global/common/system/constants';
 import { initFastGPTConfig } from '@fastgpt/service/common/system/tools';
 import json5 from 'json5';
 import { SystemPluginTemplateItemType } from '@fastgpt/global/core/workflow/type';
-import { defaultGroup } from '@fastgpt/web/core/workflow/constants';
+import { defaultGroup, defaultTemplateTypes } from '@fastgpt/web/core/workflow/constants';
 import { MongoPluginGroups } from '@fastgpt/service/core/app/plugin/pluginGroupSchema';
+import { MongoTemplateTypes } from '@fastgpt/service/core/app/templates/templateTypeSchema';
 
 export const readConfigData = (name: string) => {
   const splitName = name.split('.');
@@ -55,8 +56,7 @@ export async function getInitConfig() {
     getSystemVersion(),
 
     // abandon
-    getSystemPlugin(),
-    getSystemPluginV1()
+    getSystemPlugin()
   ]);
 }
 
@@ -82,7 +82,7 @@ const defaultFeConfigs: FastGPTFeConfigsType = {
 
 export async function initSystemConfig() {
   // load config
-  const [dbConfig, fileConfig] = await Promise.all([
+  const [{ config: dbConfig, configId }, fileConfig] = await Promise.all([
     getFastGPTConfigFromDB(),
     readConfigData('config.json')
   ]);
@@ -112,7 +112,9 @@ export async function initSystemConfig() {
   };
 
   // set config
+  global.systemInitBufferId = configId;
   initFastGPTConfig(config);
+
   console.log({
     feConfigs: global.feConfigs,
     systemEnv: global.systemEnv,
@@ -168,34 +170,8 @@ function getSystemPlugin() {
 
   global.communityPlugins = fileTemplates;
 }
-function getSystemPluginV1() {
-  if (global.communityPluginsV1 && global.communityPluginsV1.length > 0) return;
 
-  const basePath =
-    process.env.NODE_ENV === 'development'
-      ? 'data/pluginTemplates/v1'
-      : '/app/data/pluginTemplates/v1';
-  // read data/pluginTemplates directory, get all json file
-  const files = readdirSync(basePath);
-  // filter json file
-  const filterFiles = files.filter((item) => item.endsWith('.json'));
-
-  // read json file
-  const fileTemplates: (PluginTemplateType & { weight: number })[] = filterFiles.map((filename) => {
-    const content = readFileSync(`${basePath}/${filename}`, 'utf-8');
-    return {
-      ...JSON.parse(content),
-      id: `${PluginSourceEnum.community}-${filename.replace('.json', '')}`,
-      source: PluginSourceEnum.community
-    };
-  });
-
-  fileTemplates.sort((a, b) => b.weight - a.weight);
-
-  global.communityPluginsV1 = fileTemplates;
-}
-
-export async function initSystemPlugins() {
+export async function initSystemPluginGroups() {
   try {
     const { groupOrder, ...restDefaultGroup } = defaultGroup;
     await MongoPluginGroups.updateOne(
@@ -211,5 +187,29 @@ export async function initSystemPlugins() {
     );
   } catch (error) {
     console.error('Error initializing system plugins:', error);
+  }
+}
+
+export async function initAppTemplateTypes() {
+  try {
+    await Promise.all(
+      defaultTemplateTypes.map((templateType) => {
+        const { typeOrder, ...rest } = templateType;
+
+        return MongoTemplateTypes.updateOne(
+          {
+            typeId: templateType.typeId
+          },
+          {
+            $set: rest
+          },
+          {
+            upsert: true
+          }
+        );
+      })
+    );
+  } catch (error) {
+    console.error('Error initializing system templates:', error);
   }
 }

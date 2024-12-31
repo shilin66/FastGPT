@@ -12,8 +12,8 @@ import { ModelProviderList } from '@fastgpt/global/core/ai/provider';
 import MultipleRowSelect from '@fastgpt/web/components/common/MySelect/MultipleRowSelect';
 import { getModelFromList } from '@fastgpt/global/core/ai/model';
 
-const AiPointsModal = dynamic(() =>
-  import('@/pages/price/components/Points').then((mod) => mod.AiPointsModal)
+const ModelPriceModal = dynamic(() =>
+  import('@/components/core/ai/ModelTable').then((mod) => mod.ModelPriceModal)
 );
 
 type Props = SelectProps & {
@@ -23,12 +23,6 @@ type Props = SelectProps & {
 const OneRowSelector = ({ list, onchange, disableTip, ...props }: Props) => {
   const { t } = useTranslation();
   const { feConfigs, llmModelList, vectorModelList } = useSystemStore();
-
-  const {
-    isOpen: isOpenAiPointsModal,
-    onClose: onCloseAiPointsModal,
-    onOpen: onOpenAiPointsModal
-  } = useDisclosure();
 
   const avatarSize = useMemo(() => {
     const size = {
@@ -74,17 +68,6 @@ const OneRowSelector = ({ list, onchange, disableTip, ...props }: Props) => {
       : avatarList;
   }, [feConfigs.show_pay, avatarList, avatarSize, t]);
 
-  const onSelect = useCallback(
-    (e: string) => {
-      if (e === 'price') {
-        onOpenAiPointsModal();
-        return;
-      }
-      return onchange?.(e);
-    },
-    [onOpenAiPointsModal, onchange]
-  );
-
   return (
     <Box
       css={{
@@ -94,29 +77,31 @@ const OneRowSelector = ({ list, onchange, disableTip, ...props }: Props) => {
       }}
     >
       <MyTooltip label={disableTip}>
-        <MySelect
-          className="nowheel"
-          isDisabled={!!disableTip}
-          list={expandList}
-          {...props}
-          onchange={onSelect}
-        />
+        <ModelPriceModal>
+          {({ onOpen }) => (
+            <MySelect
+              className="nowheel"
+              isDisabled={!!disableTip}
+              list={expandList}
+              {...props}
+              onchange={(e) => {
+                if (e === 'price') {
+                  onOpen();
+                  return;
+                }
+                return onchange?.(e);
+              }}
+            />
+          )}
+        </ModelPriceModal>
       </MyTooltip>
-
-      {isOpenAiPointsModal && <AiPointsModal onClose={onCloseAiPointsModal} />}
     </Box>
   );
 };
 const MultipleRowSelector = ({ list, onchange, disableTip, ...props }: Props) => {
   const { t } = useTranslation();
-  const { feConfigs, llmModelList, vectorModelList } = useSystemStore();
+  const { llmModelList, vectorModelList } = useSystemStore();
   const [value, setValue] = useState<string[]>([]);
-
-  const {
-    isOpen: isOpenAiPointsModal,
-    onClose: onCloseAiPointsModal,
-    onOpen: onOpenAiPointsModal
-  } = useDisclosure();
 
   const avatarSize = useMemo(() => {
     const size = {
@@ -211,8 +196,6 @@ const MultipleRowSelector = ({ list, onchange, disableTip, ...props }: Props) =>
           }}
         />
       </MyTooltip>
-
-      {isOpenAiPointsModal && <AiPointsModal onClose={onCloseAiPointsModal} />}
     </Box>
   );
 };
