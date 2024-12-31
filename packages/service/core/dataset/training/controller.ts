@@ -355,30 +355,30 @@ export const trainConfluenceCollection = async ({
           const attachments = await getAllAttachmentsByPageId(confluenceClient, page.id);
           for (const attachment of attachments) {
             // "image/...",
-            if (
-              attachment.mediaType.startsWith('image') &&
-              markdown.result.includes(attachment.fileId)
-            ) {
-              const imgBase64 = await confluenceClient.downloadAttachmentToBase64(
-                attachment.downloadLink,
-                attachment.mediaType
-              );
-              const mime = imgBase64.split(';')[0].split(':')[1];
-              const src = await uploadMongoImg({
-                type: MongoImageTypeEnum.collectionImage,
-                base64Img: imgBase64,
-                teamId,
-                metadata: {
-                  relatedId: `${datasetId}-${page.id}`,
-                  mime: mime
-                }
-              });
-              // markdown.result.replace(
-              //   new RegExp(`!\[.*]\(${attachment.fileId}\)`, 'g'),
-              //   `![${attachment.title}](${src})`
-              // );
-              markdown.result = markdown.result.replaceAll(attachment.fileId, src);
-              console.log(`confluence page ${page.title} attachment: ${attachment.title}`);
+            if (markdown.result.includes(attachment.fileId)) {
+              if (attachment.mediaType.startsWith('image')) {
+                const imgBase64 = await confluenceClient.downloadAttachmentToBase64(
+                  attachment.downloadLink,
+                  attachment.mediaType
+                );
+                const mime = imgBase64.split(';')[0].split(':')[1];
+                const src = await uploadMongoImg({
+                  type: MongoImageTypeEnum.collectionImage,
+                  base64Img: imgBase64,
+                  teamId,
+                  metadata: {
+                    relatedId: `${datasetId}-${page.id}`,
+                    mime: mime
+                  }
+                });
+                markdown.result = markdown.result.replaceAll(attachment.fileId, src);
+              } else {
+                const webUI = global.feConfigs.confluenceUrl + attachment.webuiLink;
+                markdown.result = markdown.result.replaceAll(
+                  `![](${attachment.fileId})`,
+                  `[${attachment.title}](${webUI})`
+                );
+              }
             }
           }
 
