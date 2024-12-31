@@ -45,16 +45,6 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
 
   const { runAsync: onclickRegister, loading: requesting } = useRequest2(
     async ({ username, password, code }: RegisterType) => {
-      const fastgpt_sem = (() => {
-        try {
-          return sessionStorage.getItem('fastgpt_sem')
-            ? JSON.parse(sessionStorage.getItem('fastgpt_sem')!)
-            : undefined;
-        } catch {
-          return undefined;
-        }
-      })();
-
       loginSuccess(
         await postSimpleRegister({
           username,

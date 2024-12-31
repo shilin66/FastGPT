@@ -18,6 +18,8 @@ export type DatasetUpdateBody = {
   externalReadUrl?: DatasetSchemaType['externalReadUrl'];
   defaultPermission?: DatasetSchemaType['defaultPermission'];
   apiServer?: DatasetSchemaType['apiServer'];
+  yuqueServer?: DatasetSchemaType['yuqueServer'];
+  feishuServer?: DatasetSchemaType['feishuServer'];
 
   // sync schedule
   autoSync?: boolean;

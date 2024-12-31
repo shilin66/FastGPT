@@ -60,12 +60,14 @@ export type FastGPTFeConfigsType = {
     icon?: string;
     title?: string;
     url?: string;
+    autoLogin?: boolean;
   };
   oauth?: {
     github?: GithubType;
     google?: string;
     wechat?: string;
     microsoft?: MicrosoftType;
+    dingtalk?: string;
   };
   limit?: {
     exportDatasetLimitMinutes?: number;

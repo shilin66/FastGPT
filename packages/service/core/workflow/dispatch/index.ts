@@ -42,8 +42,7 @@ import {
   filterWorkflowEdges,
   checkNodeRunStatus,
   textAdaptGptResponse,
-  replaceEditorVariable,
-  formatVariableValByType
+  replaceEditorVariable
 } from '@fastgpt/global/core/workflow/runtime/utils';
 import { ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type';
 import { dispatchRunTools } from './agent/runTool/index';
@@ -73,7 +72,6 @@ import { dispatchLoopEnd } from './loop/runLoopEnd';
 import { dispatchLoopStart } from './loop/runLoopStart';
 import { dispatchFormInput } from './interactive/formInput';
 import { dispatchToolParams } from './agent/runTool/toolParams';
-import { AppChatConfigType } from '@fastgpt/global/core/app/type';
 
 const callbackMap: Record<FlowNodeTypeEnum, Function> = {
   [FlowNodeTypeEnum.workflowStart]: dispatchWorkflowStart,
@@ -635,7 +633,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     const entryNodes = runtimeNodes.filter((item) => item.isEntry);
     // reset entry
     runtimeNodes.forEach((item) => {
-      // Interactive node is not the entry node, return interactive result
+      // Interactively nodes will use the "isEntry", which does not need to be updated
       if (
         item.flowNodeType !== FlowNodeTypeEnum.userSelect &&
         item.flowNodeType !== FlowNodeTypeEnum.formInput &&
