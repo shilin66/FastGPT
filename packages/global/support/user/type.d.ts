@@ -15,10 +15,6 @@ export type UserModelSchema = {
   timezone: string;
   status: `${UserStatusEnum}`;
   lastLoginTmbId?: string;
-  openaiAccount?: {
-    key: string;
-    baseUrl: string;
-  };
   confluenceAccount?: {
     apiToken: string;
     account: string;
@@ -35,7 +31,6 @@ export type UserType = {
   timezone: string;
   loginType: string;
   promotionRate: UserModelSchema['promotionRate'];
-  openaiAccount: UserModelSchema['openaiAccount'];
   confluenceAccount: UserModelSchema['confluenceAccount'];
   team: TeamTmbItemType;
   standardInfo?: standardInfoType;

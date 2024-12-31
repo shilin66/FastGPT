@@ -24,11 +24,9 @@ import { AIChatItemType } from '@fastgpt/global/core/chat/type';
 import { formatToolResponse, initToolCallEdges, initToolNodes } from './utils';
 import { computedMaxToken, llmCompletionsBodyFormat } from '../../../../ai/utils';
 import { getNanoid, sliceStrStartEnd } from '@fastgpt/global/common/string/tools';
-import { addLog } from '../../../../../common/system/log';
 import { toolValueTypeList } from '@fastgpt/global/core/workflow/constants';
 import { WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import { ChatItemValueTypeEnum } from '@fastgpt/global/core/chat/constants';
-import { i18nT } from '../../../../../../web/i18n/utils';
 
 type ToolRunResponseType = {
   toolRunResponse: DispatchFlowResponse;
@@ -92,9 +90,9 @@ export const runToolWithToolChoice = async (
     runtimeNodes,
     runtimeEdges,
     stream,
-    user,
+    externalProvider,
     workflowStreamResponse,
-    params: { temperature = 0, maxToken = 4000, aiChatVision }
+    params: { temperature, maxToken, aiChatVision }
   } = workflowProps;
 
   if (maxRunToolTimes <= 0 && response) {
@@ -160,7 +158,8 @@ export const runToolWithToolChoice = async (
 
       return {
         dispatchFlowResponse: [toolRunResponse],
-        toolNodeTokens: 0,
+        toolNodeInputTokens: 0,
+        toolNodeOutputTokens: 0,
         completeMessages: requestMessages,
         assistantResponses: toolRunResponse.assistantResponses,
         runTimes: toolRunResponse.runTimes,
@@ -178,7 +177,8 @@ export const runToolWithToolChoice = async (
       },
       {
         dispatchFlowResponse: [toolRunResponse],
-        toolNodeTokens: 0,
+        toolNodeInputTokens: 0,
+        toolNodeOutputTokens: 0,
         assistantResponses: toolRunResponse.assistantResponses,
         runTimes: toolRunResponse.runTimes
       }
@@ -286,7 +286,7 @@ export const runToolWithToolChoice = async (
     getEmptyResponseTip
   } = await createChatCompletion({
     body: requestBody,
-    userKey: user.openaiAccount,
+    userKey: externalProvider.openaiAccount,
     options: {
       headers: {
         Accept: 'application/json, text/plain, */*'
@@ -440,7 +440,9 @@ export const runToolWithToolChoice = async (
     ] as ChatCompletionMessageParam[];
 
     // Only toolCall tokens are counted here, Tool response tokens count towards the next reply
-    const tokens = await countGptMessagesTokens(concatToolMessages, tools);
+    const inputTokens = await countGptMessagesTokens(requestMessages, tools);
+    const outputTokens = await countGptMessagesTokens(assistantToolMsgParams);
+
     /* 
         ...
         user
@@ -475,7 +477,10 @@ export const runToolWithToolChoice = async (
     const runTimes =
       (response?.runTimes || 0) +
       flatToolsResponseData.reduce((sum, item) => sum + item.runTimes, 0);
-    const toolNodeTokens = response ? response.toolNodeTokens + tokens : tokens;
+    const toolNodeInputTokens = response ? response.toolNodeInputTokens + inputTokens : inputTokens;
+    const toolNodeOutputTokens = response
+      ? response.toolNodeOutputTokens + outputTokens
+      : outputTokens;
 
     // Check stop signal
     const hasStopSignal = flatToolsResponseData.some(
@@ -508,7 +513,8 @@ export const runToolWithToolChoice = async (
 
       return {
         dispatchFlowResponse,
-        toolNodeTokens,
+        toolNodeInputTokens,
+        toolNodeOutputTokens,
         completeMessages,
         assistantResponses: toolNodeAssistants,
         runTimes,
@@ -524,7 +530,8 @@ export const runToolWithToolChoice = async (
       },
       {
         dispatchFlowResponse,
-        toolNodeTokens,
+        toolNodeInputTokens,
+        toolNodeOutputTokens,
         assistantResponses: toolNodeAssistants,
         runTimes
       }
@@ -536,14 +543,17 @@ export const runToolWithToolChoice = async (
       content: answer
     };
     const completeMessages = filterMessages.concat(gptAssistantResponse);
-    const tokens = await countGptMessagesTokens(completeMessages, tools);
+    const inputTokens = await countGptMessagesTokens(requestMessages, tools);
+    const outputTokens = await countGptMessagesTokens([gptAssistantResponse]);
 
     // concat tool assistant
     const toolNodeAssistant = GPTMessages2Chats([gptAssistantResponse])[0] as AIChatItemType;
 
     return {
       dispatchFlowResponse: response?.dispatchFlowResponse || [],
-      toolNodeTokens: response ? response.toolNodeTokens + tokens : tokens,
+      toolNodeInputTokens: response ? response.toolNodeInputTokens + inputTokens : inputTokens,
+      toolNodeOutputTokens: response ? response.toolNodeOutputTokens + outputTokens : outputTokens,
+
       completeMessages,
       assistantResponses: [...assistantResponses, ...toolNodeAssistant.value],
       runTimes: (response?.runTimes || 0) + 1
@@ -590,7 +600,8 @@ async function streamResponse({
           text: content
         })
       });
-    } else if (responseChoice?.tool_calls?.[0]) {
+    }
+    if (responseChoice?.tool_calls?.[0]) {
       const toolCall: ChatCompletionMessageToolCall = responseChoice.tool_calls[0];
       // In a stream response, only one tool is returned at a time.  If have id, description is executing a tool
       if (toolCall.id || callingTool) {

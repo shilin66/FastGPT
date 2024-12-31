@@ -1,4 +1,4 @@
-import { CollectionWithDatasetType, DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
+import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoDatasetCollection } from './collection/schema';
 import { MongoDataset } from './schema';
 import { delCollectionRelatedSource } from './collection/controller';
@@ -50,9 +50,9 @@ export async function findDatasetAndAllChildren({
 }
 
 export async function getCollectionWithDataset(collectionId: string) {
-  const data = (await MongoDatasetCollection.findById(collectionId)
-    .populate('datasetId')
-    .lean()) as CollectionWithDatasetType;
+  const data = await MongoDatasetCollection.findById(collectionId)
+    .populate<{ dataset: DatasetSchemaType }>('dataset')
+    .lean();
   if (!data) {
     return Promise.reject('Collection is not exist');
   }
@@ -72,19 +72,10 @@ export async function delDatasetRelevantData({
   const teamId = datasets[0].teamId;
 
   if (!teamId) {
-    return Promise.reject('teamId is required');
+    return Promise.reject('TeamId is required');
   }
 
-  const datasetIds = datasets.map((item) => String(item._id));
-
-  // Get _id, teamId, fileId, metadata.relatedImgId for all collections
-  const collections = await MongoDatasetCollection.find(
-    {
-      teamId,
-      datasetId: { $in: datasetIds }
-    },
-    '_id teamId datasetId fileId metadata'
-  ).lean();
+  const datasetIds = datasets.map((item) => item._id);
 
   // delete training data
   await MongoDatasetTraining.deleteMany({
@@ -92,20 +83,27 @@ export async function delDatasetRelevantData({
     datasetId: { $in: datasetIds }
   });
 
-  // image and file
-  await delCollectionRelatedSource({ collections, session });
-
-  // delete dataset.datas
-  await MongoDatasetData.deleteMany({ teamId, datasetId: { $in: datasetIds } }, { session });
-
-  // delete collections
-  await MongoDatasetCollection.deleteMany(
+  // Get _id, teamId, fileId, metadata.relatedImgId for all collections
+  const collections = await MongoDatasetCollection.find(
     {
       teamId,
       datasetId: { $in: datasetIds }
     },
+    '_id teamId datasetId fileId metadata',
     { session }
-  );
+  ).lean();
+
+  // image and file
+  await delCollectionRelatedSource({ collections, session });
+
+  // delete collections
+  await MongoDatasetCollection.deleteMany({
+    teamId,
+    datasetId: { $in: datasetIds }
+  }).session(session);
+
+  // delete dataset.datas(Not need session)
+  await MongoDatasetData.deleteMany({ teamId, datasetId: { $in: datasetIds } });
 
   // delete tags
   await MongoDatasetCollectionTags.deleteMany(

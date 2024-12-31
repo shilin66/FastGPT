@@ -18,10 +18,9 @@ import {
   Thead,
   Tr,
   Table,
-  useDisclosure
+  FlexProps
 } from '@chakra-ui/react';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
-import MySlider from '@/components/Slider';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import type { SettingAIDataType } from '@fastgpt/global/core/app/type.d';
 import { getDocPath } from '@/web/common/system/doc';
@@ -33,20 +32,37 @@ import MyIcon from '@fastgpt/web/components/common/Icon';
 import dynamic from 'next/dynamic';
 import InputSlider from '@fastgpt/web/components/common/MySlider/InputSlider';
 
-const AiPointsModal = dynamic(() =>
-  import('@/pages/price/components/Points').then((mod) => mod.AiPointsModal)
+const ModelPriceModal = dynamic(() =>
+  import('@/components/core/ai/ModelTable').then((mod) => mod.ModelPriceModal)
 );
+
+const FlexItemStyles: FlexProps = {
+  mt: 5,
+  alignItems: 'center',
+  h: '35px'
+};
+const LabelStyles: BoxProps = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  fontSize: 'sm',
+  color: 'myGray.900',
+  width: '9rem',
+  mr: 5
+};
+
+export type AIChatSettingsModalProps = {};
 
 const AIChatSettingsModal = ({
   onClose,
   onSuccess,
   defaultData,
   llmModels = []
-}: {
+}: AIChatSettingsModalProps & {
   onClose: () => void;
   onSuccess: (e: SettingAIDataType) => void;
   defaultData: SettingAIDataType;
-  llmModels?: LLMModelItemType[];
+  llmModels: LLMModelItemType[];
 }) => {
   const { t } = useTranslation();
   const [refresh, setRefresh] = useState(false);
@@ -59,7 +75,11 @@ const AIChatSettingsModal = ({
   const showResponseAnswerText = watch(NodeInputKeyEnum.aiChatIsResponseText) !== undefined;
   const showVisionSwitch = watch(NodeInputKeyEnum.aiChatVision) !== undefined;
   const showMaxHistoriesSlider = watch('maxHistories') !== undefined;
+
+  const maxToken = watch('maxToken');
+  const temperature = watch('temperature');
   const useVision = watch('aiChatVision');
+
   const selectedModel = getWebLLMModel(model);
   const llmSupportVision = !!selectedModel?.vision;
 
@@ -78,20 +98,6 @@ const AIChatSettingsModal = ({
 
     setRefresh(!refresh);
   };
-
-  const LabelStyles: BoxProps = {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: 'sm',
-    color: 'myGray.900',
-    width: '7rem'
-  };
-
-  const {
-    isOpen: isOpenAiPointsModal,
-    onClose: onCloseAiPointsModal,
-    onOpen: onOpenAiPointsModal
-  } = useDisclosure();
 
   return (
     <MyModal
@@ -116,9 +122,9 @@ const AIChatSettingsModal = ({
       }
       w={'500px'}
     >
-      <ModalBody overflowY={'auto'}>
+      <ModalBody overflowY={'auto'} overflowX={'hidden'}>
         <Flex alignItems={'center'}>
-          <Box {...LabelStyles} mr={2}>
+          <Box {...LabelStyles} w={'5rem'}>
             {t('common:core.ai.Model')}
           </Box>
           <Box flex={'1 0 0'}>
@@ -147,10 +153,11 @@ const AIChatSettingsModal = ({
                 <Th fontSize={'mini'} pb={2}>
                   <HStack spacing={1}>
                     <Box> {t('app:ai_point_price')}</Box>
-                    <QuestionTip
-                      label={t('app:look_ai_point_price')}
-                      onClick={onOpenAiPointsModal}
-                    />
+                    <ModelPriceModal>
+                      {({ onOpen }) => (
+                        <QuestionTip label={t('app:look_ai_point_price')} onClick={onOpen} />
+                      )}
+                    </ModelPriceModal>
                   </HStack>
                 </Th>
                 <Th fontSize={'mini'} pb={2}>
@@ -167,10 +174,28 @@ const AIChatSettingsModal = ({
             <Tbody>
               <Tr color={'myGray.900'}>
                 <Td pt={0} pb={2}>
-                  {t('common:support.wallet.Ai point every thousand tokens', {
-                    points: selectedModel?.charsPointsPrice || 0
-                  })}
+                  {typeof selectedModel?.inputPrice === 'number' ? (
+                    <>
+                      <Box>
+                        {t('common:support.wallet.Ai point every thousand tokens_input', {
+                          points: selectedModel?.inputPrice || 0
+                        })}
+                      </Box>
+                      <Box>
+                        {t('common:support.wallet.Ai point every thousand tokens_output', {
+                          points: selectedModel?.outputPrice || 0
+                        })}
+                      </Box>
+                    </>
+                  ) : (
+                    <>
+                      {t('common:support.wallet.Ai point every thousand tokens', {
+                        points: selectedModel?.charsPointsPrice || 0
+                      })}
+                    </>
+                  )}
                 </Td>
+
                 <Td pt={0} pb={2}>
                   {Math.round((selectedModel?.maxContext || 4096) / 1000)}K
                 </Td>
@@ -184,44 +209,13 @@ const AIChatSettingsModal = ({
           </Table>
         </TableContainer>
 
-        <Flex>
-          <Box {...LabelStyles} mr={2}>
-            {t('common:core.app.Temperature')}
-          </Box>
-          <Box flex={'1 0 0'}>
-            <InputSlider
-              min={0}
-              max={10}
-              step={1}
-              value={getValues(NodeInputKeyEnum.aiChatTemperature)}
-              onChange={(e) => {
-                setValue(NodeInputKeyEnum.aiChatTemperature, e);
-                setRefresh(!refresh);
-              }}
-            />
-          </Box>
-        </Flex>
-        <Flex mt={5}>
-          <Box {...LabelStyles} mr={2}>
-            {t('common:core.app.Max tokens')}
-          </Box>
-          <Box flex={'1 0 0'}>
-            <InputSlider
-              min={100}
-              max={tokenLimit}
-              step={200}
-              value={getValues(NodeInputKeyEnum.aiChatMaxToken)}
-              onChange={(val) => {
-                setValue(NodeInputKeyEnum.aiChatMaxToken, val);
-                setRefresh(!refresh);
-              }}
-            />
-          </Box>
-        </Flex>
         {showMaxHistoriesSlider && (
-          <Flex mt={5}>
-            <Box {...LabelStyles} mr={2}>
-              {t('app:max_histories_number')}
+          <Flex {...FlexItemStyles}>
+            <Box {...LabelStyles}>
+              <Flex alignItems={'center'}>
+                <Box>{t('app:max_histories_number')}</Box>
+                <QuestionTip label={t('app:max_histories_number_tip')} />
+              </Flex>
             </Box>
             <Box flex={'1 0 0'}>
               <InputSlider
@@ -237,15 +231,71 @@ const AIChatSettingsModal = ({
             </Box>
           </Flex>
         )}
+        <Flex {...FlexItemStyles}>
+          <Box {...LabelStyles}>
+            <Box>{t('app:max_tokens')}</Box>
+            <Switch
+              isChecked={maxToken !== undefined}
+              size={'sm'}
+              onChange={(e) => {
+                setValue('maxToken', e.target.checked ? tokenLimit / 2 : undefined);
+              }}
+            />
+          </Box>
+          <Box flex={'1 0 0'}>
+            <InputSlider
+              min={100}
+              max={tokenLimit}
+              step={200}
+              isDisabled={maxToken === undefined}
+              value={maxToken}
+              onChange={(val) => {
+                setValue(NodeInputKeyEnum.aiChatMaxToken, val);
+                setRefresh(!refresh);
+              }}
+            />
+          </Box>
+        </Flex>
+        <Flex {...FlexItemStyles}>
+          <Box {...LabelStyles}>
+            <Flex alignItems={'center'}>
+              {t('app:temperature')}
+              <QuestionTip label={t('app:temperature_tip')} />
+            </Flex>
+            <Switch
+              isChecked={temperature !== undefined}
+              size={'sm'}
+              onChange={(e) => {
+                setValue('temperature', e.target.checked ? 0 : undefined);
+              }}
+            />
+          </Box>
+
+          <Box flex={'1 0 0'}>
+            <InputSlider
+              min={0}
+              max={10}
+              step={1}
+              value={temperature}
+              isDisabled={temperature === undefined}
+              onChange={(e) => {
+                setValue(NodeInputKeyEnum.aiChatTemperature, e);
+                setRefresh(!refresh);
+              }}
+            />
+          </Box>
+        </Flex>
+
         {showResponseAnswerText && (
-          <Flex mt={5} alignItems={'center'}>
+          <Flex {...FlexItemStyles} h={'25px'}>
             <Box {...LabelStyles}>
-              {t('app:stream_response')}
-              <QuestionTip ml={1} label={t('app:stream_response_tip')}></QuestionTip>
-            </Box>
-            <Box flex={1}>
+              <Flex alignItems={'center'}>
+                {t('app:stream_response')}
+                <QuestionTip ml={1} label={t('app:stream_response_tip')}></QuestionTip>
+              </Flex>
               <Switch
                 isChecked={getValues(NodeInputKeyEnum.aiChatIsResponseText)}
+                size={'sm'}
                 onChange={(e) => {
                   const value = e.target.checked;
                   setValue(NodeInputKeyEnum.aiChatIsResponseText, value);
@@ -256,15 +306,17 @@ const AIChatSettingsModal = ({
           </Flex>
         )}
         {showVisionSwitch && (
-          <Flex mt={5} alignItems={'center'}>
+          <Flex {...FlexItemStyles} h={'25px'}>
             <Box {...LabelStyles}>
-              {t('app:llm_use_vision')}
-              <QuestionTip ml={1} label={t('app:llm_use_vision_tip')}></QuestionTip>
-            </Box>
-            <Box flex={1}>
+              <Flex alignItems={'center'}>
+                {t('app:llm_use_vision')}
+                <QuestionTip ml={1} label={t('app:llm_use_vision_tip')}></QuestionTip>
+              </Flex>
+
               {llmSupportVision ? (
                 <Switch
                   isChecked={useVision}
+                  size={'sm'}
                   onChange={(e) => {
                     const value = e.target.checked;
                     setValue(NodeInputKeyEnum.aiChatVision, value);
@@ -287,8 +339,6 @@ const AIChatSettingsModal = ({
           {t('common:common.Confirm')}
         </Button>
       </ModalFooter>
-
-      {isOpenAiPointsModal && <AiPointsModal onClose={onCloseAiPointsModal} />}
     </MyModal>
   );
 };

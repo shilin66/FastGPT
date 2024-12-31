@@ -8,9 +8,7 @@ import PageContainer from '@/components/PageContainer';
 import SideTabs from '@/components/SideTabs';
 import LightRowTabs from '@fastgpt/web/components/common/Tabs/LightRowTabs';
 import { useTranslation } from 'next-i18next';
-import Script from 'next/script';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
-import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 
 export enum TabEnum {
   'info' = 'info',
@@ -18,10 +16,13 @@ export enum TabEnum {
   'usage' = 'usage',
   'bill' = 'bill',
   'inform' = 'inform',
+  'setting' = 'setting',
+  'thirdParty' = 'thirdParty',
   'individuation' = 'individuation',
   'apikey' = 'apikey',
   'loginout' = 'loginout',
-  'team' = 'team'
+  'team' = 'team',
+  'model' = 'model'
 }
 
 const AccountContainer = ({
@@ -62,15 +63,25 @@ const AccountContainer = ({
           // }
         ]
       : []),
-    // ...(feConfigs?.show_pay && userInfo?.team?.permission.hasManagePer
-    //   ? [
-    //       {
-    //         icon: 'support/bill/payRecordLight',
-    //         label: t('account:bills_and_invoices'),
-    //         value: TabEnum.bill
-    //       }
-    //     ]
-    //   : []),
+    ...(feConfigs?.show_pay && userInfo?.team?.permission.hasManagePer
+      ? [
+          {
+            icon: 'support/bill/payRecordLight',
+            label: t('account:bills_and_invoices'),
+            value: TabEnum.bill
+          }
+        ]
+      : []),
+    {
+      icon: 'common/thirdParty',
+      label: t('account:third_party'),
+      value: TabEnum.thirdParty
+    },
+    {
+      icon: 'common/model',
+      label: t('account:model_provider'),
+      value: TabEnum.model
+    },
     ...(feConfigs?.show_promotion && userInfo?.team?.permission.isOwner
       ? [
           {
@@ -89,11 +100,7 @@ const AccountContainer = ({
           }
         ]
       : []),
-    {
-      icon: 'support/user/individuation',
-      label: t('account:personalization'),
-      value: TabEnum.individuation
-    },
+
     // ...(feConfigs.isPlus
     //   ? [
     //       {
@@ -103,6 +110,11 @@ const AccountContainer = ({
     //       }
     //     ]
     //   : []),
+    {
+      icon: 'common/settingLight',
+      label: t('common:common.Setting'),
+      value: TabEnum.setting
+    },
     {
       icon: 'support/account/loginoutLight',
       label: t('account:logout'),

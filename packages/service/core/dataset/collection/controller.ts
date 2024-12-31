@@ -4,11 +4,7 @@ import {
 } from '@fastgpt/global/core/dataset/constants';
 import type { CreateDatasetCollectionParams } from '@fastgpt/global/core/dataset/api.d';
 import { MongoDatasetCollection } from './schema';
-import {
-  CollectionWithDatasetType,
-  DatasetCollectionSchemaType,
-  DatasetSchemaType
-} from '@fastgpt/global/core/dataset/type';
+import { DatasetCollectionSchemaType, DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoDatasetTraining } from '../training/schema';
 import { MongoDatasetData } from '../data/schema';
 import { delImgByRelatedId } from '../../../common/file/image/controller';
@@ -231,7 +227,7 @@ export const delCollectionRelatedSource = async ({
   collections,
   session
 }: {
-  collections: (CollectionWithDatasetType | DatasetCollectionSchemaType)[];
+  collections: DatasetCollectionSchemaType[];
   session: ClientSession;
 }) => {
   if (collections.length === 0) return;
@@ -265,7 +261,7 @@ export async function delCollection({
   session,
   delRelatedSource
 }: {
-  collections: (CollectionWithDatasetType | DatasetCollectionSchemaType)[];
+  collections: DatasetCollectionSchemaType[];
   session: ClientSession;
   delRelatedSource: boolean;
 }) {
@@ -275,16 +271,7 @@ export async function delCollection({
 
   if (!teamId) return Promise.reject('teamId is not exist');
 
-  const datasetIds = Array.from(
-    new Set(
-      collections.map((item) => {
-        if (typeof item.datasetId === 'string') {
-          return String(item.datasetId);
-        }
-        return String(item.datasetId._id);
-      })
-    )
-  );
+  const datasetIds = Array.from(new Set(collections.map((item) => String(item.datasetId))));
   const collectionIds = collections.map((item) => String(item._id));
 
   // delete training data
@@ -325,7 +312,7 @@ export async function delOnlyCollection({
   collections,
   session
 }: {
-  collections: (CollectionWithDatasetType | DatasetCollectionSchemaType)[];
+  collections: DatasetCollectionSchemaType[];
   session: ClientSession;
 }) {
   if (collections.length === 0) return;
@@ -334,16 +321,7 @@ export async function delOnlyCollection({
 
   if (!teamId) return Promise.reject('teamId is not exist');
 
-  const datasetIds = Array.from(
-    new Set(
-      collections.map((item) => {
-        if (typeof item.datasetId === 'string') {
-          return String(item.datasetId);
-        }
-        return String(item.datasetId._id);
-      })
-    )
-  );
+  const datasetIds = Array.from(new Set(collections.map((item) => String(item.datasetId))));
   const collectionIds = collections.map((item) => String(item._id));
 
   // delete training data
