@@ -7,6 +7,8 @@ export enum DatasetTypeEnum {
   websiteDataset = 'websiteDataset', // depp link
   externalFile = 'externalFile',
   apiDataset = 'apiDataset',
+  feishu = 'feishu',
+  yuque = 'yuque',
   confluenceDataset = 'confluenceDataset'
 }
 export const DatasetTypeMap = {
@@ -39,6 +41,16 @@ export const DatasetTypeMap = {
     icon: 'core/dataset/confluenceDataset',
     label: 'confluence_dataset',
     collectionLabel: 'common.Website'
+  },
+  [DatasetTypeEnum.feishu]: {
+    icon: 'core/dataset/feishuDatasetOutline',
+    label: 'feishu_dataset',
+    collectionLabel: 'common.File'
+  },
+  [DatasetTypeEnum.yuque]: {
+    icon: 'core/dataset/yuqueDatasetOutline',
+    label: 'yuque_dataset',
+    collectionLabel: 'common.File'
   }
 };
 
