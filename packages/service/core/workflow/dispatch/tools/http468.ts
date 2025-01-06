@@ -25,6 +25,7 @@ import { createFileToken } from '../../../../support/permission/controller';
 import { JSONPath } from 'jsonpath-plus';
 import type { SystemPluginSpecialResponse } from '../../../../../plugins/type';
 import json5 from 'json5';
+import qs from 'qs';
 
 type PropsArrType = {
   key: string;
@@ -326,6 +327,7 @@ async function fetchData({
     },
     timeout: timeout * 1000,
     params: params,
+    paramsSerializer: (params) => qs.stringify(params, { encode: false }),
     data: ['POST', 'PUT', 'PATCH'].includes(method) ? body : undefined
   });
 
