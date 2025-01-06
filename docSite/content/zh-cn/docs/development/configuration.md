@@ -168,6 +168,7 @@ weight: 707
   "reRankModels": [],
   "audioSpeechModels": [
     {
+      "provider": "OpenAI",
       "model": "tts-1",
       "name": "OpenAI TTS1",
       "charsPointsPrice": 0,
@@ -182,6 +183,7 @@ weight: 707
     }
   ],
   "whisperModel": {
+    "provider": "OpenAI",
     "model": "whisper-1",
     "name": "Whisper1",
     "charsPointsPrice": 0
@@ -201,7 +203,9 @@ weight: 707
 - OpenAI
 - Claude
 - Gemini
+- Meta
 - MistralAI
+- AliCloud - 阿里云
 - Qwen - 通义千问
 - Doubao - 豆包
 - ChatGLM - 智谱
@@ -213,7 +217,10 @@ weight: 707
 - Baichuan - 百川
 - Yi - 零一万物
 - Ernie - 文心一言
+- StepFun - 阶跃星辰
 - Ollama
+- BAAI - 智源研究院
+- FishAudio
 - Other - 其他
 
 
