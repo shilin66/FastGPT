@@ -327,7 +327,7 @@ async function fetchData({
     },
     timeout: timeout * 1000,
     params: params,
-    paramsSerializer: (params) => qs.stringify(params, { encode: false }),
+    paramsSerializer: (params) => qs.stringify(params, { encode: true }),
     data: ['POST', 'PUT', 'PATCH'].includes(method) ? body : undefined
   });
 
