@@ -2,8 +2,6 @@ import {
   TeamMemberItemType,
   TeamMemberSchema,
   TeamMemberWithTeamAndUserSchema,
-  TeamMemberWithTeamSchema,
-  TeamMemberWithUserSchema,
   TeamSchema,
   TeamTmbItemType
 } from '@fastgpt/global/support/user/team/type';
@@ -324,19 +322,19 @@ export async function createTeam({ name, avatar }: CreateTeamProps, userId: stri
 
 export async function listUserTeam(status: string, userId: string): Promise<TeamTmbItemType[]> {
   const tmbList = (await MongoTeamMember.find({ status, userId }).populate(
-    'teamId'
-  )) as TeamMemberWithTeamSchema[];
+    'team'
+  )) as TeamMemberWithTeamAndUserSchema[];
 
   // teams 转成 TeamTmbItemType 数据
   return tmbList.map((tmb) => ({
     userId: String(tmb.userId),
-    teamId: String(tmb.teamId._id),
-    teamName: tmb.teamId.name,
+    teamId: String(tmb.team._id),
+    teamName: tmb.team.name,
     memberName: tmb.name,
-    avatar: tmb.teamId.avatar,
-    balance: tmb.teamId.balance,
+    avatar: tmb.team.avatar,
+    balance: tmb.team.balance,
     tmbId: String(tmb._id),
-    teamDomain: tmb.teamId.teamDomain,
+    teamDomain: tmb.team.teamDomain,
     role: tmb.role,
     status: tmb.status
   })) as TeamTmbItemType[];
@@ -344,8 +342,8 @@ export async function listUserTeam(status: string, userId: string): Promise<Team
 
 export async function getTeamMembers(teamId: string): Promise<TeamMemberItemType[]> {
   const tmbUserList = (await MongoTeamMember.find({ teamId })
-    .populate('teamId')
-    .populate('userId')) as TeamMemberWithTeamAndUserSchema[];
+    .populate('team')
+    .populate('user')) as TeamMemberWithTeamAndUserSchema[];
   const tmbIds = tmbUserList.map((tmb) => tmb._id.toString());
   const permissionMap = new Map<string, { permission?: number }>();
   await Promise.all(
@@ -367,13 +365,13 @@ export async function getTeamMembers(teamId: string): Promise<TeamMemberItemType
       }
       const permData = permissionMap.get(tmb._id.valueOf()) || {};
       return {
-        userId: tmb.userId._id,
-        teamId: tmb.teamId._id,
+        userId: tmb.user._id,
+        teamId: tmb.team._id,
         memberName: tmb.name,
-        avatar: tmb.userId.avatar,
-        balance: tmb.teamId.balance,
+        avatar: tmb.user.avatar,
+        balance: tmb.team.balance,
         tmbId: tmb._id,
-        teamDomain: tmb.teamId.teamDomain,
+        teamDomain: tmb.team.teamDomain,
         role: tmb.role,
         status: tmb.status,
         permission: new TeamPermission({
@@ -497,10 +495,10 @@ export async function inviteTeamMember({
     const existTeamMembers = (await MongoTeamMember.find({
       teamId,
       userId: { $in: userIds }
-    }).populate('userId')) as TeamMemberWithUserSchema[];
+    }).populate('user')) as TeamMemberWithTeamAndUserSchema[];
 
     // get exist team member usernames
-    existTeamMemberUsernames = existTeamMembers.map((member) => member.userId.username);
+    existTeamMemberUsernames = existTeamMembers.map((member) => member.user.username);
 
     // find userMaps username not exist in team
     userMap.forEach((userId, username) => {

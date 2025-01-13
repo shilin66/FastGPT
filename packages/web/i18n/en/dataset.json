@@ -76,7 +76,7 @@
   "website_dataset_desc": "Website sync allows you to build a Dataset directly using a web link.",
   "yuque_dataset": "Yuque Dataset",
   "yuque_dataset_config": "Yuque Dataset Config",
-  "yuque_dataset_desc": "Can build a dataset using Yuque documents by configuring permissions, without secondary storage"
+  "yuque_dataset_desc": "Can build a dataset using Yuque documents by configuring permissions, without secondary storage",
   "confluence_dataset": "Confluence Dataset",
   "confluence_dataset_desc": "Build a Dataset by configuring Confluence's spaces or pages."
 }

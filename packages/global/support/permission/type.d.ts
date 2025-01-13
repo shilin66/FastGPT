@@ -32,7 +32,11 @@ export type ResourcePermissionType = {
 }>;
 
 export type ResourcePerWithTmbWithUser = Omit<ResourcePermissionType, 'tmbId'> & {
-  tmbId: TeamMemberSchema & { user: UserModelSchema };
+  tmb: TeamMemberSchema & { user: UserModelSchema };
+};
+
+export type ResourcePerWithGroup = Omit<ResourcePermissionType, 'groupId'> & {
+  group: MemberGroupSchemaType;
 };
 
 export type PermissionSchemaType = {
