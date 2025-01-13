@@ -11,7 +11,8 @@ export const getTemplateMarketItemDetail = (templateId: string) =>
   GET<AppTemplateSchemaType>(`/core/app/template/detail?templateId=${templateId}`);
 
 export const getTemplateTagList = () => {
-  return useSystemStore.getState()?.feConfigs?.isPlus
-    ? GET<TemplateTypeSchemaType[]>('/proApi/core/app/template/getTemplateTypes')
-    : Promise.resolve(defaultTemplateTypes);
+  // return useSystemStore.getState()?.feConfigs?.isPlus
+  //   ? GET<TemplateTypeSchemaType[]>('/proApi/core/app/template/getTemplateTypes')
+  //   : Promise.resolve(defaultTemplateTypes);
+  return Promise.resolve(defaultTemplateTypes);
 };

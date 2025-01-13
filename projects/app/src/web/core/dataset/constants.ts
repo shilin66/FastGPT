@@ -74,5 +74,6 @@ export const datasetTypeCourseMap: Record<`${DatasetTypeEnum}`, string> = {
   [DatasetTypeEnum.websiteDataset]: '/docs/guide/knowledge_base/websync/',
   [DatasetTypeEnum.feishu]: '/docs/guide/knowledge_base/lark_dataset/',
   [DatasetTypeEnum.yuque]: '/docs/guide/knowledge_base/yuque_dataset/',
-  [DatasetTypeEnum.externalFile]: ''
+  [DatasetTypeEnum.externalFile]: '',
+  [DatasetTypeEnum.confluenceDataset]: ''
 };
