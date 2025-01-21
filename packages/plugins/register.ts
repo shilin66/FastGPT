@@ -29,7 +29,12 @@ const packagePluginList = [
   'Doc2X',
   'Doc2X/PDF2text',
   'searchXNG',
-  'sleep'
+  'sleep',
+  'firecrawl',
+  'firecrawl/scrape',
+  'firecrawl/batchScrape',
+  'firecrawl/crawl',
+  'firecrawl/map'
 ];
 
 export const list = [...staticPluginList, ...packagePluginList];
