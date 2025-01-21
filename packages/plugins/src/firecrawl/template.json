@@ -1,0 +1,17 @@
+{
+  "author": "collin",
+  "version": "4818",
+  "name": "firecrawl",
+  "avatar": "core/workflow/template/firecrawl",
+  "intro": "Firecrawl 集成，用于网页爬取和数据抓取。官方文档：https://docs.firecrawl.dev/introduction",
+  "showStatus": true,
+  "weight": 10,
+
+  "isTool": true,
+  "templateType": "tools",
+
+  "workflow": {
+    "nodes": [],
+    "edges": []
+  }
+}

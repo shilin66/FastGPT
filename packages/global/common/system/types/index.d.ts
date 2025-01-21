@@ -57,6 +57,7 @@ export type FastGPTFeConfigsType = {
   docUrl?: string;
   openAPIDocUrl?: string;
   systemPluginCourseUrl?: string;
+  firecrawlUrl?: string;
   appTemplateCourse?: string;
 
   systemTitle?: string;
