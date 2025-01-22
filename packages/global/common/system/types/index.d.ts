@@ -40,7 +40,7 @@ export type FastGPTConfigFileType = {
 
 export type FastGPTFeConfigsType = {
   show_emptyChat?: boolean;
-  register_method?: ['email' | 'phone'];
+  register_method?: ['email' | 'phone' | 'sync'];
   login_method?: ['email' | 'phone']; // Attention: login method is diffrent with oauth
   find_password_method?: ['email' | 'phone'];
   bind_notification_method?: ['email' | 'phone'];
@@ -57,7 +57,6 @@ export type FastGPTFeConfigsType = {
   docUrl?: string;
   openAPIDocUrl?: string;
   systemPluginCourseUrl?: string;
-  firecrawlUrl?: string;
   appTemplateCourse?: string;
 
   systemTitle?: string;
@@ -77,6 +76,10 @@ export type FastGPTFeConfigsType = {
     wechat?: string;
     microsoft?: MicrosoftType;
     dingtalk?: string;
+    wecom?: {
+      corpid?: string;
+      agentid?: string;
+    };
   };
   limit?: {
     exportDatasetLimitMinutes?: number;

@@ -11,6 +11,7 @@ import {
 import { DatasetPermission } from '../../support/permission/dataset/controller';
 import { Permission } from '../../support/permission/controller';
 import { APIFileServer, FeishuServer, YuqueServer } from './apiDataset';
+import { SourceMemberType } from 'support/user/type';
 import { ImportProcessWayEnum } from '../../../../projects/app/src/web/core/dataset/constants';
 
 export type DatasetSchemaType = {
@@ -130,6 +131,15 @@ export type DatasetDataSchemaType = {
   rebuilding?: boolean;
 };
 
+export type DatasetDataTextSchemaType = {
+  _id: string;
+  teamId: string;
+  datasetId: string;
+  collectionId: string;
+  dataId: string;
+  fullTextToken: string;
+};
+
 export type DatasetTrainingSchemaType = {
   _id: string;
   userId: string;
@@ -174,6 +184,7 @@ export type DatasetListItemType = {
   vectorModel: VectorModelItemType;
   inheritPermission: boolean;
   private?: boolean;
+  sourceMember?: SourceMemberType;
 };
 
 export type DatasetItemType = Omit<DatasetSchemaType, 'vectorModel' | 'agentModel'> & {

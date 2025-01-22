@@ -250,7 +250,7 @@ const InputTypeConfig = ({
               max={50000}
               onChange={(e) => {
                 // @ts-ignore
-                setValue('maxLength', e || 0);
+                setValue('maxLength', e ?? '');
               }}
             />
           </Flex>
@@ -266,7 +266,7 @@ const InputTypeConfig = ({
                 value={max}
                 onChange={(e) => {
                   // @ts-ignore
-                  setValue('max', e || 0);
+                  setValue('max', e ?? '');
                 }}
               />
             </Flex>
@@ -278,7 +278,7 @@ const InputTypeConfig = ({
                 value={min}
                 onChange={(e) => {
                   // @ts-ignore
-                  setValue('min', e || 0);
+                  setValue('min', e ?? '');
                 }}
               />
             </Flex>
@@ -298,7 +298,7 @@ const InputTypeConfig = ({
                   max={max}
                   onChange={(e) => {
                     // @ts-ignore
-                    setValue('defaultValue', e || 0);
+                    setValue('defaultValue', e ?? '');
                   }}
                 />
               )}

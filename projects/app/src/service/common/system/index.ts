@@ -1,5 +1,5 @@
 import { initHttpAgent } from '@fastgpt/service/common/middle/httpAgent';
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import fs, { existsSync, readdirSync } from 'fs';
 import type { FastGPTFeConfigsType } from '@fastgpt/global/common/system/types/index.d';
 import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types/index.d';
 import { PluginSourceEnum } from '@fastgpt/global/core/plugin/constants';
@@ -17,7 +17,7 @@ import { defaultGroup, defaultTemplateTypes } from '@fastgpt/web/core/workflow/c
 import { MongoPluginGroups } from '@fastgpt/service/core/app/plugin/pluginGroupSchema';
 import { MongoTemplateTypes } from '@fastgpt/service/core/app/templates/templateTypeSchema';
 
-export const readConfigData = (name: string) => {
+export const readConfigData = async (name: string) => {
   const splitName = name.split('.');
   const devName = `${splitName[0]}.local.${splitName[1]}`;
 
@@ -34,7 +34,7 @@ export const readConfigData = (name: string) => {
     return `/app/data/${name}`;
   })();
 
-  const content = readFileSync(filename, 'utf-8');
+  const content = await fs.promises.readFile(filename, 'utf-8');
 
   return content;
 };
@@ -127,13 +127,13 @@ export async function initSystemConfig() {
   });
 }
 
-function getSystemVersion() {
+async function getSystemVersion() {
   if (global.systemVersion) return;
   try {
     if (process.env.NODE_ENV === 'development') {
       global.systemVersion = process.env.npm_package_version || '0.0.0';
     } else {
-      const packageJson = json5.parse(readFileSync('/app/package.json', 'utf-8'));
+      const packageJson = json5.parse(await fs.promises.readFile('/app/package.json', 'utf-8'));
 
       global.systemVersion = packageJson?.version;
     }
@@ -145,7 +145,7 @@ function getSystemVersion() {
   }
 }
 
-function getSystemPlugin() {
+async function getSystemPlugin() {
   if (global.communityPlugins && global.communityPlugins.length > 0) return;
 
   const basePath =
@@ -156,15 +156,17 @@ function getSystemPlugin() {
   const filterFiles = files.filter((item) => item.endsWith('.json'));
 
   // read json file
-  const fileTemplates = filterFiles.map<SystemPluginTemplateItemType>((filename) => {
-    const content = readFileSync(`${basePath}/${filename}`, 'utf-8');
-    return {
-      ...json5.parse(content),
-      originCost: 0,
-      currentCost: 0,
-      id: `${PluginSourceEnum.community}-${filename.replace('.json', '')}`
-    };
-  });
+  const fileTemplates = await Promise.all(
+    filterFiles.map<Promise<SystemPluginTemplateItemType>>(async (filename) => {
+      const content = await fs.promises.readFile(`${basePath}/${filename}`, 'utf-8');
+      return {
+        ...json5.parse(content),
+        originCost: 0,
+        currentCost: 0,
+        id: `${PluginSourceEnum.community}-${filename.replace('.json', '')}`
+      };
+    })
+  );
 
   fileTemplates.sort((a, b) => (b.weight || 0) - (a.weight || 0));
 

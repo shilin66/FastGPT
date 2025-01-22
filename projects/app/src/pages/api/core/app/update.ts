@@ -22,6 +22,8 @@ import { getResourceClbsAndGroups } from '@fastgpt/service/support/permission/co
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { TeamWritePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 import { AppErrEnum } from '@fastgpt/global/common/error/code/app';
+import { refreshSourceAvatar } from '@fastgpt/service/common/file/image/controller';
+import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 
 export type AppUpdateQuery = {
   appId: string;
@@ -95,6 +97,8 @@ async function handler(req: ApiRequestProps<AppUpdateBody, AppUpdateQuery>) {
       isPlugin: app.type === AppTypeEnum.plugin
     });
 
+    await refreshSourceAvatar(avatar, app.avatar, session);
+
     return MongoApp.findByIdAndUpdate(
       appId,
       {
@@ -145,6 +149,12 @@ async function handler(req: ApiRequestProps<AppUpdateBody, AppUpdateQuery>) {
           collaborators: parentClbsAndGroups,
           session
         });
+      } else {
+        // Not folder, delete all clb
+        await MongoResourcePermission.deleteMany(
+          { resourceType: PerResourceTypeEnum.app, teamId: app.teamId, resourceId: app._id },
+          { session }
+        );
       }
       return onUpdate(session);
     });

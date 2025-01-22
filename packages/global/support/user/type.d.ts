@@ -1,5 +1,6 @@
 import { TeamPermission } from '../permission/user/controller';
 import { UserStatusEnum } from './constant';
+import { TeamMemberStatusEnum } from './team/constant';
 import { TeamTmbItemType } from './team/type';
 
 export type UserModelSchema = {
@@ -7,7 +8,6 @@ export type UserModelSchema = {
   username: string;
   loginType: string;
   password: string;
-  avatar: string;
   promotionRate: number;
   inviterId?: string;
   openaiKey: string;
@@ -27,7 +27,7 @@ export type UserModelSchema = {
 export type UserType = {
   _id: string;
   username: string;
-  avatar: string;
+  avatar: string; // it should be team member's avatar after 4.8.18
   timezone: string;
   loginType: string;
   promotionRate: UserModelSchema['promotionRate'];
@@ -36,4 +36,10 @@ export type UserType = {
   standardInfo?: standardInfoType;
   notificationAccount?: string;
   permission: TeamPermission;
+};
+
+export type SourceMemberType = {
+  name: string;
+  avatar: string;
+  status: `${TeamMemberStatusEnum}`;
 };
