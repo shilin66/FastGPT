@@ -1,5 +1,9 @@
 import { GET, POST, PUT, DELETE } from '@/web/common/api/request';
-import { UpdatePermissionBody } from '@fastgpt/global/support/permission/collaborator';
+import {
+  CollaboratorItemType,
+  DeletePermissionQuery,
+  UpdateClbPermissionProps
+} from '@fastgpt/global/support/permission/collaborator';
 import {
   CreateTeamProps,
   InviteMemberProps,
@@ -15,7 +19,7 @@ import {
 } from '@fastgpt/global/support/user/team/type.d';
 import { FeTeamPlanStatusType, TeamSubSchema } from '@fastgpt/global/support/wallet/sub/type';
 import { TeamInvoiceHeaderType } from '@fastgpt/global/support/user/team/type';
-import { ResourcePermissionType } from '@fastgpt/global/support/permission/type';
+import { PaginationProps, PaginationResponse } from '@fastgpt/web/common/fetch/type';
 
 /* --------------- team  ---------------- */
 export const getTeamList = (status: `${TeamMemberSchema['status']}`) =>
@@ -27,7 +31,8 @@ export const putSwitchTeam = (teamId: string) =>
   PUT<string>(`/support/user/team/switch`, { teamId });
 
 /* --------------- team member ---------------- */
-export const getTeamMembers = () => GET<TeamMemberItemType[]>(`/support/user/team/member/list`);
+export const getTeamMembers = (props: PaginationProps) =>
+  GET<PaginationResponse<TeamMemberItemType>>(`/support/user/team/member/list`, props);
 export const postInviteTeamMember = (data: InviteMemberProps) =>
   POST<InviteMemberResponse>(`/support/user/team/member/invite`, data);
 export const putUpdateMemberName = (name: string) =>
@@ -36,15 +41,15 @@ export const delRemoveMember = (tmbId: string) =>
   DELETE(`/support/user/team/member/delete`, { tmbId });
 export const updateInviteResult = (data: UpdateInviteProps) =>
   PUT('/support/user/team/member/updateInvite', data);
-export const delLeaveTeam = (teamId: string) =>
-  DELETE('/support/user/team/member/leave', { teamId });
-
-export const getTeamClbs = () =>
-  GET<ResourcePermissionType[]>(`/support/user/team/collaborator/list`);
+export const delLeaveTeam = () => DELETE('/support/user/team/member/leave');
 
 /* -------------- team collaborator -------------------- */
-export const updateMemberPermission = (data: UpdatePermissionBody) =>
-  PUT('/support/user/team/collaborator/updatePermission', data);
+export const getTeamClbs = () =>
+  GET<CollaboratorItemType[]>(`/support/user/team/collaborator/list`);
+export const updateMemberPermission = (data: UpdateClbPermissionProps) =>
+  PUT('/support/user/team/collaborator/update', data);
+export const deleteMemberPermission = (id: DeletePermissionQuery) =>
+  DELETE('/support/user/team/collaborator/delete', id);
 
 /* --------------- team tags ---------------- */
 export const getTeamsTags = () => GET<TeamTagSchema[]>(`/support/user/team/tag/list`);

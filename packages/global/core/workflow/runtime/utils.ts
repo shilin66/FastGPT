@@ -9,7 +9,7 @@ import { isValidReferenceValueFormat } from '../utils';
 import { FlowNodeOutputItemType, ReferenceValueType } from '../type/io';
 import { ChatItemType, NodeOutputItemType } from '../../../core/chat/type';
 import { ChatItemValueTypeEnum, ChatRoleEnum } from '../../../core/chat/constants';
-import { replaceVariable } from '../../../common/string/tools';
+import { replaceVariable, valToStr } from '../../../common/string/tools';
 
 export const getMaxHistoryLimitFromNodes = (nodes: StoreNodeItemType[]): number => {
   let limit = 10;
@@ -339,15 +339,12 @@ export function replaceEditorVariable({
       const output = node.outputs.find((output) => output.id === id);
       if (output) return formatVariableValByType(output.value, output.valueType);
 
+      // Use the node's input as the variable value(Example: HTTP data will reference its own dynamic input)
       const input = node.inputs.find((input) => input.key === id);
       if (input) return getReferenceVariableValue({ value: input.value, nodes, variables });
     })();
 
-    const formatVal = (() => {
-      if (variableVal === undefined) return 'undefined';
-      if (variableVal === null) return 'null';
-      return typeof variableVal === 'object' ? JSON.stringify(variableVal) : String(variableVal);
-    })();
+    const formatVal = valToStr(variableVal);
 
     const regex = new RegExp(`\\{\\{\\$(${nodeId}\\.${id})\\$\\}\\}`, 'g');
     text = text.replace(regex, () => formatVal);

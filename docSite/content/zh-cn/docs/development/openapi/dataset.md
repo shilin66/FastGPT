@@ -733,6 +733,21 @@ data 为集合的 ID。
 {{< tab tabName="请求示例" >}}
 {{< markdownify >}}
 
+**4.8.19+**
+```bash
+curl --location --request POST 'http://localhost:3000/api/core/dataset/collection/listv2' \
+--header 'Authorization: Bearer {{authorization}}' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "offset":0,
+    "pageSize": 10,
+    "datasetId":"6593e137231a2be9c5603ba7",
+    "parentId": null,
+    "searchText":""
+}'
+```
+
+**4.8.19-(不再维护)**
 ```bash
 curl --location --request POST 'http://localhost:3000/api/core/dataset/collection/list' \
 --header 'Authorization: Bearer {{authorization}}' \
@@ -753,7 +768,7 @@ curl --location --request POST 'http://localhost:3000/api/core/dataset/collectio
 {{< markdownify >}}
 
 {{% alert icon=" " context="success" %}}
-- pageNum: 页码（选填）
+- offset: 偏移量
 - pageSize: 每页数量，最大30（选填）
 - datasetId: 知识库的ID(必填)
 - parentId: 父级Id（选填）
@@ -773,9 +788,7 @@ curl --location --request POST 'http://localhost:3000/api/core/dataset/collectio
     "statusText": "",
     "message": "",
     "data": {
-        "pageNum": 1,
-        "pageSize": 10,
-        "data": [
+        "list": [
             {
                 "_id": "6593e137231a2be9c5603ba9",
                 "parentId": null,
@@ -1175,7 +1188,7 @@ curl --location --request POST 'http://localhost:3000/api/core/dataset/data/v2/l
 }'
 ```
 
-**4.6.7+**
+**4.6.7-(即将弃用)**
 
 ```bash
 curl --location --request POST 'http://localhost:3000/api/core/dataset/data/list' \
@@ -1197,8 +1210,7 @@ curl --location --request POST 'http://localhost:3000/api/core/dataset/data/list
 
 {{% alert icon=" " context="success" %}}
 
-- pageNum: 偏移量（选填）
-- pageNum: 页码（选填）
+- offset: 偏移量（选填）
 - pageSize: 每页数量，最大30（选填）
 - collectionId: 集合的ID（必填）
 - searchText: 模糊搜索词（选填）
@@ -1218,9 +1230,7 @@ curl --location --request POST 'http://localhost:3000/api/core/dataset/data/list
     "statusText": "",
     "message": "",
     "data": {
-        "pageNum": 1,
-        "pageSize": 10,
-        "data": [
+        "list": [
             {
                 "_id": "65abd4b29d1448617cba61db",
                 "datasetId": "65abc9bd9d1448617cba5e6c",

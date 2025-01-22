@@ -10,7 +10,6 @@ import { MongoResourcePermission } from './schema';
 import { ClientSession } from 'mongoose';
 import {
   PermissionValueType,
-  ResourcePermissionType,
   ResourcePerWithGroup,
   ResourcePerWithTmbWithUser
 } from '@fastgpt/global/support/permission/type';
@@ -26,7 +25,8 @@ import { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import { MemberGroupSchemaType } from '@fastgpt/global/support/permission/memberGroup/type';
 import { TeamMemberSchema } from '@fastgpt/global/support/user/team/type';
-import { UserModelSchema } from '@fastgpt/global/support/user/type';
+import { OrgSchemaType } from '@fastgpt/global/support/user/team/org/type';
+import { getOrgIdSetWithParentByTmbId } from './org/controllers';
 import { MongoApp } from '../../core/app/schema';
 import { MongoDataset } from '../../core/dataset/schema';
 
@@ -75,66 +75,43 @@ export const getResourcePermission = async ({
   }
 
   // If there is no personal permission, get the group permission
-  const groupIdList = (await getGroupsByTmbId({ tmbId, teamId })).map((item) => item._id);
+  const [groupPers, orgPers] = await Promise.all([
+    getGroupsByTmbId({ tmbId, teamId })
+      .then((res) => res.map((item) => item._id))
+      .then((groupIdList) =>
+        MongoResourcePermission.find(
+          {
+            teamId,
+            resourceType,
+            groupId: {
+              $in: groupIdList
+            },
+            resourceId
+          },
+          'permission'
+        ).lean()
+      )
+      .then((perList) => perList.map((item) => item.permission)),
+    getOrgIdSetWithParentByTmbId({ tmbId, teamId })
+      .then((item) => Array.from(item))
+      .then((orgIds) =>
+        MongoResourcePermission.find(
+          {
+            teamId,
+            resourceType,
+            orgId: {
+              $in: Array.from(orgIds)
+            },
+            resourceId
+          },
+          'permission'
+        ).lean()
+      )
+      .then((perList) => perList.map((item) => item.permission))
+  ]);
 
-  if (groupIdList.length === 0) {
-    return undefined;
-  }
-
-  // get the maximum permission of the group
-  const pers = (
-    await MongoResourcePermission.find(
-      {
-        teamId,
-        resourceType,
-        groupId: {
-          $in: groupIdList
-        },
-        resourceId
-      },
-      'permission'
-    ).lean()
-  ).map((item) => item.permission);
-
-  const groupPer = getGroupPer(pers);
-
-  return groupPer;
+  return concatPer([...groupPers, ...orgPers]);
 };
-
-/* 仅取 members 不取 groups */
-export async function getResourceAllClbs({
-  resourceId,
-  teamId,
-  resourceType,
-  session
-}: {
-  teamId: string;
-  session?: ClientSession;
-} & (
-  | {
-      resourceType: 'team';
-      resourceId?: undefined;
-    }
-  | {
-      resourceType: Omit<PerResourceTypeEnum, 'team'>;
-      resourceId?: string | null;
-    }
-)): Promise<ResourcePermissionType[]> {
-  return MongoResourcePermission.find(
-    {
-      resourceType: resourceType,
-      teamId: teamId,
-      resourceId,
-      groupId: {
-        $exists: false
-      }
-    },
-    null,
-    {
-      session
-    }
-  ).lean();
-}
 
 export async function getResourceClbsAndGroups({
   resourceId,
@@ -163,10 +140,17 @@ export const getClbsAndGroupsWithInfo = async ({
   resourceType,
   teamId
 }: {
-  resourceId: ParentIdType;
-  resourceType: Omit<`${PerResourceTypeEnum}`, 'team'>;
   teamId: string;
-}) =>
+} & (
+  | {
+      resourceId: ParentIdType;
+      resourceType: Omit<`${PerResourceTypeEnum}`, 'team'>;
+    }
+  | {
+      resourceType: 'team';
+      resourceId?: undefined;
+    }
+)) =>
   Promise.all([
     await MongoResourcePermission.find({
       teamId,
@@ -176,13 +160,9 @@ export const getClbsAndGroupsWithInfo = async ({
         $exists: true
       }
     })
-      .populate<{ tmb: TeamMemberSchema & { user: UserModelSchema } }>({
+      .populate<{ tmb: TeamMemberSchema }>({
         path: 'tmb',
-        select: 'name userId',
-        populate: {
-          path: 'user',
-          select: 'username avatar'
-        }
+        select: 'name userId avatar'
       })
       .lean(),
     await MongoResourcePermission.find({
@@ -194,6 +174,16 @@ export const getClbsAndGroupsWithInfo = async ({
       }
     })
       .populate<{ group: MemberGroupSchemaType }>('group', 'name avatar')
+      .lean(),
+    MongoResourcePermission.find({
+      teamId,
+      resourceId,
+      resourceType,
+      orgId: {
+        $exists: true
+      }
+    })
+      .populate<{ org: OrgSchemaType }>({ path: 'org', select: 'name avatar' })
       .lean()
   ]);
 
@@ -204,6 +194,7 @@ export const delResourcePermission = ({
   session,
   tmbId,
   groupId,
+  orgId,
   ...props
 }: {
   resourceType: PerResourceTypeEnum;
@@ -212,15 +203,18 @@ export const delResourcePermission = ({
   session?: ClientSession;
   tmbId?: string;
   groupId?: string;
+  orgId?: string;
 }) => {
-  // tmbId or groupId only one and not both
-  if (!!tmbId === !!groupId) {
+  // either tmbId or groupId or orgId must be provided
+  if (!tmbId && !groupId && !orgId) {
     return Promise.reject(CommonErrEnum.missingParams);
   }
+
   return MongoResourcePermission.deleteOne(
     {
       ...(tmbId ? { tmbId } : {}),
       ...(groupId ? { groupId } : {}),
+      ...(orgId ? { orgId } : {}),
       ...props
     },
     { session }
@@ -228,7 +222,6 @@ export const delResourcePermission = ({
 };
 
 /* 下面代码等迁移 */
-
 /* create token */
 export function createJWT(user: {
   _id?: string;
@@ -259,7 +252,7 @@ export function authJWT(token: string) {
   }>((resolve, reject) => {
     const key = process.env.TOKEN_KEY as string;
 
-    jwt.verify(token, key, function (err, decoded: any) {
+    jwt.verify(token, key, (err, decoded: any) => {
       if (err || !decoded?.userId) {
         reject(ERROR_ENUM.unAuthorization);
         return;
@@ -293,7 +286,6 @@ export async function parseHeaderCert({
 
     return await authJWT(cookieToken);
   }
-
   // from authorization get apikey
   async function parseAuthorization(authorization?: string) {
     if (!authorization) {
@@ -335,7 +327,6 @@ export async function parseHeaderCert({
       sourceName
     };
   }
-
   // root user
   async function parseRootKey(rootKey?: string) {
     if (!rootKey || !process.env.ROOT_KEY || rootKey !== process.env.ROOT_KEY) {
@@ -447,7 +438,7 @@ export const authFileToken = (token?: string) =>
     }
     const key = (process.env.FILE_TOKEN_KEY as string) ?? 'filetoken';
 
-    jwt.verify(token, key, function (err, decoded: any) {
+    jwt.verify(token, key, (err, decoded: any) => {
       if (err || !decoded.bucketName || !decoded?.teamId || !decoded?.fileId) {
         reject(ERROR_ENUM.unAuthFile);
         return;
@@ -461,12 +452,12 @@ export const authFileToken = (token?: string) =>
     });
   });
 
-export const getGroupPer = (groups: PermissionValueType[] = []) => {
-  if (groups.length === 0) {
+export const concatPer = (perList: PermissionValueType[] = []) => {
+  if (perList.length === 0) {
     return undefined;
   }
 
-  return new Permission().addPer(...groups).value;
+  return new Permission().addPer(...perList).value;
 };
 
 export async function updateCollaborators(

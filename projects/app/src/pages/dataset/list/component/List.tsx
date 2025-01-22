@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { resumeInheritPer } from '@/web/core/dataset/api';
+import { postChangeOwner, resumeInheritPer } from '@/web/core/dataset/api';
 import { Box, Flex, Grid, HStack } from '@chakra-ui/react';
 import { DatasetTypeEnum, DatasetTypeMap } from '@fastgpt/global/core/dataset/constants';
 import MyMenu from '@fastgpt/web/components/common/MyMenu';
@@ -28,9 +28,10 @@ import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import { useFolderDrag } from '@/components/common/folder/useFolderDrag';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import { useTranslation } from 'next-i18next';
-import { useUserStore } from '@/web/support/user/useUserStore';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import SideTag from './SideTag';
+import { getModelProvider } from '@fastgpt/global/core/ai/provider';
+import UserBox from '@fastgpt/web/components/common/UserBox';
 
 const EditResourceModal = dynamic(() => import('@/components/common/Modal/EditResourceModal'));
 
@@ -38,7 +39,6 @@ function List() {
   const { setLoading } = useSystemStore();
   const { isPc } = useSystem();
   const { t } = useTranslation();
-  const { loadAndGetTeamMembers } = useUserStore();
   const {
     loadMyDatasets,
     setMoveDatasetId,
@@ -78,10 +78,6 @@ function List() {
         })
       )();
     }
-  });
-
-  const { data: members = [] } = useRequest2(loadAndGetTeamMembers, {
-    manual: false
   });
 
   const editPerDataset = useMemo(
@@ -155,7 +151,8 @@ function List() {
           alignItems={'stretch'}
         >
           {formatDatasets.map((dataset, index) => {
-            const owner = members.find((v) => v.tmbId === dataset.tmbId);
+            const vectorModelAvatar = getModelProvider(dataset.vectorModel.provider)?.avatar;
+
             return (
               <MyTooltip
                 key={dataset._id}
@@ -262,14 +259,12 @@ function List() {
                     color={'myGray.500'}
                   >
                     <HStack spacing={3.5}>
-                      {owner && (
-                        <HStack spacing={1}>
-                          <Avatar src={owner.avatar} w={'0.875rem'} borderRadius={'50%'} />
-                          <Box maxW={'150px'} className="textEllipsis" fontSize={'mini'}>
-                            {owner.memberName}
-                          </Box>
-                        </HStack>
-                      )}
+                      <UserBox
+                        sourceMember={dataset.sourceMember}
+                        fontSize="xs"
+                        avatarSize="1rem"
+                        spacing={0.5}
+                      />
                       <PermissionIconText
                         flexShrink={0}
                         private={dataset.private}
@@ -281,7 +276,7 @@ function List() {
                     <HStack>
                       {isPc && dataset.type !== DatasetTypeEnum.folder && (
                         <HStack spacing={1} className="time">
-                          <Avatar src={dataset.vectorModel.avatar} w={'0.85rem'} />
+                          <Avatar src={vectorModelAvatar} w={'0.85rem'} />
                           <Box color={'myGray.500'} fontSize={'mini'}>
                             {dataset.vectorModel.name}
                           </Box>
@@ -347,7 +342,7 @@ function List() {
                                   ...(dataset.permission.hasManagePer
                                     ? [
                                         {
-                                          icon: 'support/team/key',
+                                          icon: 'key',
                                           label: t('common:permission.Permission'),
                                           onClick: () => setEditPerDatasetIndex(index)
                                         }
@@ -422,6 +417,12 @@ function List() {
 
       {!!editPerDataset && (
         <ConfigPerModal
+          onChangeOwner={(tmbId: string) =>
+            postChangeOwner({
+              datasetId: editPerDataset._id,
+              ownerId: tmbId
+            }).then(() => loadMyDatasets())
+          }
           hasParent={!!parentId}
           refetchResource={loadMyDatasets}
           isInheritPermission={editPerDataset.inheritPermission}
@@ -431,7 +432,6 @@ function List() {
           avatar={editPerDataset.avatar}
           name={editPerDataset.name}
           managePer={{
-            mode: 'all',
             permission: editPerDataset.permission,
             onGetCollaboratorList: () => getCollaboratorList(editPerDataset._id),
             permissionList: DatasetPermissionList,

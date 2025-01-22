@@ -6,19 +6,6 @@ import { OAuthEnum, UserStatusEnum, userStatusMap } from '@fastgpt/global/suppor
 
 export const userCollectionName = 'users';
 
-const defaultAvatars = [
-  '/imgs/avatar/RoyalBlueAvatar.svg',
-  '/imgs/avatar/PurpleAvatar.svg',
-  '/imgs/avatar/AdoraAvatar.svg',
-  '/imgs/avatar/OrangeAvatar.svg',
-  '/imgs/avatar/RedAvatar.svg',
-  '/imgs/avatar/GrayModernAvatar.svg',
-  '/imgs/avatar/TealAvatar.svg',
-  '/imgs/avatar/GreenAvatar.svg',
-  '/imgs/avatar/BrightBlueAvatar.svg',
-  '/imgs/avatar/BlueAvatar.svg'
-];
-
 const UserSchema = new Schema({
   status: {
     type: String,
@@ -47,11 +34,6 @@ const UserSchema = new Schema({
     type: Date,
     default: () => new Date()
   },
-  avatar: {
-    type: String,
-    default: defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)]
-  },
-
   promotionRate: {
     type: Number,
     default: 15
@@ -82,15 +64,15 @@ const UserSchema = new Schema({
     ref: userCollectionName
   },
   fastgpt_sem: Object,
-  sourceDomain: String
+  sourceDomain: String,
+
+  /** @deprecated */
+  avatar: String
 });
 
 try {
-  // login
-  UserSchema.index({ username: 1, password: 1 }, { background: true });
-
   // Admin charts
-  UserSchema.index({ createTime: -1 }, { background: true });
+  UserSchema.index({ createTime: -1 });
 } catch (error) {
   console.log(error);
 }

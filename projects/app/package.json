@@ -1,6 +1,6 @@
 {
   "name": "app",
-  "version": "4.8.17",
+  "version": "4.8.19",
   "private": false,
   "scripts": {
     "dev": "next dev",
@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@azure/msal-node": "^2.11.0",
-    "@bany/curl-to-json": "^1.2.8",
     "@chakra-ui/anatomy": "2.2.1",
     "@chakra-ui/icons": "2.1.1",
     "@chakra-ui/next-js": "2.1.5",
