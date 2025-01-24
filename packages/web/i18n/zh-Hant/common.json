@@ -479,6 +479,8 @@
   "core.chat.response.text output": "文字輸出",
   "core.chat.response.update_var_result": "變數更新結果（依序顯示多個變數更新結果）",
   "core.chat.response.user_select_result": "使用者選擇結果",
+  "core.chat.response.thinking": "思考中...",
+  "core.chat.response.think process": "思考過程",
   "core.chat.retry": "重新產生",
   "core.chat.tts.Stop Speech": "停止",
   "core.common.tip.leave page": "內容已修改，確認離開頁面嗎？",

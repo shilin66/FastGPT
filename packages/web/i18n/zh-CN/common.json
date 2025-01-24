@@ -483,6 +483,8 @@
   "core.chat.response.text output": "文本输出",
   "core.chat.response.update_var_result": "变量更新结果(按顺序展示多个变量更新结果)",
   "core.chat.response.user_select_result": "用户选择结果",
+  "core.chat.response.thinking": "思考中...",
+  "core.chat.response.think process": "思考过程",
   "core.chat.retry": "重新生成",
   "core.chat.tts.Stop Speech": "停止",
   "core.common.tip.leave page": "内容已修改，确认离开页面吗？",
