@@ -1,11 +1,11 @@
-import { VectorModelItemType } from '@fastgpt/global/core/ai/model.d';
+import { EmbeddingModelItemType } from '@fastgpt/global/core/ai/model.d';
 import { getAIApi } from '../config';
 import { countPromptTokens } from '../../../common/string/tiktoken/index';
 import { EmbeddingTypeEnm } from '@fastgpt/global/core/ai/constants';
 import { addLog } from '../../../common/system/log';
 
 type GetVectorProps = {
-  model: VectorModelItemType;
+  model: EmbeddingModelItemType;
   input: string;
   type?: `${EmbeddingTypeEnm}`;
 };
@@ -24,13 +24,25 @@ export async function getVectorsByText({ model, input, type }: GetVectorProps) {
 
     // input text to vector
     const result = await ai.embeddings
-      .create({
-        ...model.defaultConfig,
-        ...(type === EmbeddingTypeEnm.db && model.dbConfig),
-        ...(type === EmbeddingTypeEnm.query && model.queryConfig),
-        model: model.model,
-        input: [input]
-      })
+      .create(
+        {
+          ...model.defaultConfig,
+          ...(type === EmbeddingTypeEnm.db && model.dbConfig),
+          ...(type === EmbeddingTypeEnm.query && model.queryConfig),
+          model: model.model,
+          input: [input]
+        },
+        model.requestUrl
+          ? {
+              path: model.requestUrl,
+              headers: model.requestAuth
+                ? {
+                    Authorization: `Bearer ${model.requestAuth}`
+                  }
+                : undefined
+            }
+          : {}
+      )
       .then(async (res) => {
         if (!res.data) {
           addLog.error('Embedding API is not responding', res);

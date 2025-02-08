@@ -67,17 +67,15 @@ const DatasetParamsModal = ({
   const theme = useTheme();
   const { toast } = useToast();
   const { teamPlanStatus } = useUserStore();
-  const { reRankModelList, llmModelList } = useSystemStore();
+  const { reRankModelList, llmModelList, defaultModels } = useSystemStore();
   const [refresh, setRefresh] = useState(false);
   const [currentTabType, setCurrentTabType] = useState(SearchSettingTabEnum.searchMode);
 
   const chatModelSelectList = (() =>
-    llmModelList
-      .filter((model) => model.usedInQueryExtension)
-      .map((item) => ({
-        value: item.model,
-        label: item.name
-      })))();
+    llmModelList.map((item) => ({
+      value: item.model,
+      label: item.name
+    })))();
   const reRankSelectList = (() =>
     reRankModelList.map((item) => ({
       value: item.model,
@@ -92,7 +90,7 @@ const DatasetParamsModal = ({
       usingReRank: !!usingReRank && teamPlanStatus?.standardConstants?.permissionReRank !== false,
       reRankModel: reRankModel || reRankSelectList[0]?.value,
       datasetSearchUsingExtensionQuery,
-      datasetSearchExtensionModel: datasetSearchExtensionModel || chatModelSelectList[0]?.value,
+      datasetSearchExtensionModel: datasetSearchExtensionModel || defaultModels.llm?.model,
       datasetSearchExtensionBg
     }
   });
