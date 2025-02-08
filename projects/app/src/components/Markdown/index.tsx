@@ -55,15 +55,75 @@ const MarkdownRender = ({ source = '', showAnimation, isDisabled, forbidZhFormat
     []
   );
 
+  const { t } = useTranslation();
+  const converterThinkTags = (input: string): string => {
+    const thinkTagReg = /<think>([\s\S]*?)<\/think>/g;
+    if (input.startsWith('<think>')) {
+      if (!thinkTagReg.test(input)) {
+        const quotedContent = input
+          .trim()
+          .split('\n')
+          .map((line: string) => `> ${line.trim()}`)
+          .join('\n');
+        return `
+<details open>
+<summary style="
+  padding: 6px;
+  color: #595959;
+  font-size: 15px;
+  border-radius: 4px;
+  width: 150px;
+  background: white;
+">
+  🤔️ ${t('core.chat.response.thinking')}
+</summary>
+
+${quotedContent}
+
+</details>
+`;
+      } else {
+        return input.replace(/<think>([\s\S]*?)<\/think>/g, (_, content) => {
+          const quotedContent = content
+            .trim()
+            .split('\n')
+            .map((line: string) => `> ${line}`)
+            .join('\n');
+
+          return `
+<details>
+<summary style="
+  padding: 6px;
+  color: #595959;
+  font-size: 15px;
+  border-radius: 6px;
+  width: 150px;
+  background: white;
+">
+   🤔️ ${t('core.chat.response.think process')}
+</summary>
+
+${quotedContent}
+
+</details>
+`;
+        });
+      }
+    } else {
+      return input;
+    }
+  };
+
   const formatSource = useMemo(() => {
-    source = source
+    const latex = source
       .replace(/\\\(.*?\\\)/g, (match) => `$${match.slice(2, -2)}$`)
       .replace(/\\\[.*?\\\]/gs, (match) => `$$${match.slice(2, -2)}$$`);
-    if (showAnimation || forbidZhFormat) return source;
+    const think = converterThinkTags(latex);
+    if (showAnimation || forbidZhFormat) return think;
 
     // 保护 URL 格式：https://, http://, /api/xxx
     const urlPlaceholders: string[] = [];
-    const textWithProtectedUrls = source.replace(
+    const textWithProtectedUrls = think.replace(
       /(https?:\/\/[^\s<]+[^<.,:;"')\]\s]|\/api\/[^\s]+)(?=\s|$)/g,
       (match) => {
         urlPlaceholders.push(match);
