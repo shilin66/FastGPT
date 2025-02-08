@@ -204,7 +204,7 @@ export const runToolWithFunctionCall = async (
   ]);
 
   const { canStream, funcList } = (() => {
-    if (toolModel.toolChoiceStream === undefined || toolModel.toolChoiceStream)
+    if (toolModel.functionChoiceStream === undefined || toolModel.functionChoiceStream)
       return { canStream: true, funcList: functions };
     if (assistantResponses && assistantResponses.length > 0) {
       return { canStream: true, funcList: [] };

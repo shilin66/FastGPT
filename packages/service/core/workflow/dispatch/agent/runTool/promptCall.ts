@@ -505,6 +505,7 @@ async function streamResponse({
 
   let startResponseWrite = false;
   let textAnswer = '';
+  let thinkProcessed = false;
 
   for await (const part of stream) {
     if (res.closed) {
@@ -529,7 +530,13 @@ async function streamResponse({
         });
       } else if (textAnswer.length >= 3) {
         textAnswer = textAnswer.trim();
-        if (textAnswer.startsWith('0')) {
+        // 处理 think 标签
+        const thinkTagReg = /^<think>.*?<\/think>/s;
+        if (!thinkProcessed && thinkTagReg.test(textAnswer)) {
+          textAnswer = textAnswer.replace(thinkTagReg, '').trim();
+          thinkProcessed = true;
+        }
+        if (textAnswer.startsWith('0:')) {
           startResponseWrite = true;
           // find first : index
           const firstIndex = textAnswer.indexOf(':');
@@ -556,6 +563,11 @@ const parseAnswer = (
   toolJson?: FunctionCallCompletion;
 } => {
   str = str.trim();
+  // 处理 think 标签
+  const thinkTagReg = /^<think>.*?<\/think>/s;
+  if (thinkTagReg.test(str)) {
+    str = str.replace(thinkTagReg, '').trim();
+  }
   // 首先，使用正则表达式提取TOOL_ID和TOOL_ARGUMENTS
   const prefixReg = /^1(:|：)/;
   const answerPrefixReg = /^0(:|：)/;
