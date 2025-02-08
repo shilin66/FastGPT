@@ -33,7 +33,13 @@ const DatasetDataTextSchema = new Schema({
 });
 
 try {
-  DatasetDataTextSchema.index({ teamId: 1, datasetId: 1, fullTextToken: 'text' });
+  DatasetDataTextSchema.index(
+    { teamId: 1, datasetId: 1, fullTextToken: 'text' },
+    {
+      name: 'teamId_1_datasetId_1_fullTextToken_text',
+      default_language: 'none'
+    }
+  );
   DatasetDataTextSchema.index({ dataId: 1 }, { unique: true });
 } catch (error) {
   console.log(error);

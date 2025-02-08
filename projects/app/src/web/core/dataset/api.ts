@@ -66,6 +66,7 @@ import type {
   listExistIdQuery,
   listExistIdResponse
 } from '@/pages/api/core/dataset/apiDataset/listExistId';
+import { GetQuoteDataResponse } from '@/pages/api/core/dataset/data/getQuoteData';
 
 /* ======================== dataset ======================= */
 export const getDatasets = (data: GetDatasetListBody) =>
@@ -208,6 +209,10 @@ export const putDatasetDataById = (data: UpdateDatasetDataProps) =>
  */
 export const delOneDatasetDataById = (id: string) =>
   DELETE<string>(`/core/dataset/data/delete`, { id });
+
+// Get quote data
+export const getQuoteData = (id: string) =>
+  GET<GetQuoteDataResponse>(`/core/dataset/data/getQuoteData`, { id });
 
 /* ================ training ==================== */
 export const postRebuildEmbedding = (data: rebuildEmbeddingBody) =>
