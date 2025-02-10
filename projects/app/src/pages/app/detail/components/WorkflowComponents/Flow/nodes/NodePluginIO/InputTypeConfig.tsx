@@ -250,7 +250,7 @@ const InputTypeConfig = ({
               max={50000}
               onChange={(e) => {
                 // @ts-ignore
-                setValue('maxLength', e || '');
+                setValue('maxLength', e || 0);
               }}
             />
           </Flex>
@@ -266,7 +266,7 @@ const InputTypeConfig = ({
                 value={max}
                 onChange={(e) => {
                   // @ts-ignore
-                  setValue('max', e || '');
+                  setValue('max', e || 0);
                 }}
               />
             </Flex>
@@ -278,7 +278,7 @@ const InputTypeConfig = ({
                 value={min}
                 onChange={(e) => {
                   // @ts-ignore
-                  setValue('min', e || '');
+                  setValue('min', e || 0);
                 }}
               />
             </Flex>
@@ -298,7 +298,7 @@ const InputTypeConfig = ({
                   max={max}
                   onChange={(e) => {
                     // @ts-ignore
-                    setValue('defaultValue', e || '');
+                    setValue('defaultValue', e || 0);
                   }}
                 />
               )}
@@ -351,12 +351,6 @@ const InputTypeConfig = ({
 
         {inputType === FlowNodeInputTypeEnum.addInputParam && (
           <>
-            {/* <Flex alignItems={'center'}>
-              <FormLabel flex={'0 0 132px'} fontWeight={'medium'}>
-                {t('common:core.module.Input Type')}
-              </FormLabel>
-              <Box fontSize={'14px'}>{t('workflow:only_the_reference_type_is_supported')}</Box>
-            </Flex> */}
             <Box>
               <HStack mb={1}>
                 <FormLabel fontWeight={'medium'}>{t('workflow:optional_value_type')}</FormLabel>

@@ -17,7 +17,7 @@ import { getCollectionWithDataset } from '../controller';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoTeamMember } from '../../../support/user/team/teamMemberSchema';
-import { TeamMemberWithUserSchema } from '@fastgpt/global/support/user/team/type';
+import { TeamMemberWithTeamAndUserSchema } from '@fastgpt/global/support/user/team/type';
 import ConfluenceClient, { Page } from '../../../common/confluence/client';
 import {
   getAllAttachmentsByPageId,
@@ -61,7 +61,7 @@ export const pushDataListToTrainingQueueByCollectionId = async ({
   session?: ClientSession;
 } & PushDatasetDataProps) => {
   const {
-    datasetId: { _id: datasetId, agentModel, vectorModel }
+    dataset: { _id: datasetId, agentModel, vectorModel }
   } = await getCollectionWithDataset(collectionId);
   return pushDataListToTrainingQueue({
     ...props,
@@ -240,15 +240,15 @@ export const trainConfluenceCollection = async ({
   teamId: string;
 }) => {
   const tmb = (await MongoTeamMember.findById(dataset.tmbId)
-    .populate('userId')
-    .lean()) as TeamMemberWithUserSchema;
+    .populate('user')
+    .lean()) as TeamMemberWithTeamAndUserSchema;
   if (!tmb) {
     throw new Error("The dataset's owner is not found");
   }
 
   if (
-    !tmb.userId.confluenceAccount ||
-    !(tmb.userId.confluenceAccount.account && tmb.userId.confluenceAccount.apiToken)
+    !tmb.user.confluenceAccount ||
+    !(tmb.user.confluenceAccount.account && tmb.user.confluenceAccount.apiToken)
   ) {
     throw new Error("The dataset's owner has not configured Confluence API token");
   }
@@ -265,8 +265,8 @@ export const trainConfluenceCollection = async ({
   }
   const confluenceClient = new ConfluenceClient(
     baseURL,
-    tmb.userId.confluenceAccount.account,
-    tmb.userId.confluenceAccount.apiToken
+    tmb.user.confluenceAccount.account,
+    tmb.user.confluenceAccount.apiToken
   );
 
   const spaces = await confluenceClient.getSpacesByKeys(spaceKey);
@@ -386,7 +386,7 @@ export const trainConfluenceCollection = async ({
           await reloadConfluencePageCollectionChunks({
             collection: {
               ...collection.toObject(),
-              datasetId: dataset
+              dataset: dataset
             },
             tmbId,
             rawText: markdown.result,

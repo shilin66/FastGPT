@@ -51,10 +51,10 @@ export const runToolWithPromptCall = async (
     requestOrigin,
     runtimeNodes,
     runtimeEdges,
-    user,
+    externalProvider,
     stream,
     workflowStreamResponse,
-    params: { temperature = 0, maxToken = 4000, aiChatVision }
+    params: { temperature, maxToken, aiChatVision }
   } = workflowProps;
 
   if (interactiveEntryToolParams) {
@@ -115,7 +115,8 @@ export const runToolWithPromptCall = async (
 
       return {
         dispatchFlowResponse: [toolRunResponse],
-        toolNodeTokens: 0,
+        toolNodeInputTokens: 0,
+        toolNodeOutputTokens: 0,
         completeMessages: concatMessages,
         assistantResponses: toolRunResponse.assistantResponses,
         runTimes: toolRunResponse.runTimes,
@@ -131,7 +132,8 @@ export const runToolWithPromptCall = async (
       },
       {
         dispatchFlowResponse: [toolRunResponse],
-        toolNodeTokens: 0,
+        toolNodeInputTokens: 0,
+        toolNodeOutputTokens: 0,
         assistantResponses: toolRunResponse.assistantResponses,
         runTimes: toolRunResponse.runTimes
       }
@@ -230,7 +232,7 @@ export const runToolWithPromptCall = async (
     getEmptyResponseTip
   } = await createChatCompletion({
     body: requestBody,
-    userKey: user.openaiAccount,
+    userKey: externalProvider.openaiAccount,
     options: {
       headers: {
         Accept: 'application/json, text/plain, */*'
@@ -286,15 +288,20 @@ export const runToolWithPromptCall = async (
       content: replaceAnswer
     };
     const completeMessages = filterMessages.concat(gptAssistantResponse);
-    const tokens = await countGptMessagesTokens(completeMessages, undefined);
-    // console.log(tokens, 'response token');
+    const inputTokens = await countGptMessagesTokens(requestMessages);
+    const outputTokens = await countGptMessagesTokens([gptAssistantResponse]);
 
     // concat tool assistant
     const toolNodeAssistant = GPTMessages2Chats([gptAssistantResponse])[0] as AIChatItemType;
 
     return {
       dispatchFlowResponse: response?.dispatchFlowResponse || [],
-      toolNodeTokens: response?.toolNodeTokens ? response.toolNodeTokens + tokens : tokens,
+      toolNodeInputTokens: response?.toolNodeInputTokens
+        ? response.toolNodeInputTokens + inputTokens
+        : inputTokens,
+      toolNodeOutputTokens: response?.toolNodeOutputTokens
+        ? response.toolNodeOutputTokens + outputTokens
+        : outputTokens,
       completeMessages,
       assistantResponses: [...assistantResponses, ...toolNodeAssistant.value],
       runTimes: (response?.runTimes || 0) + 1
@@ -366,17 +373,9 @@ export const runToolWithPromptCall = async (
     function_call: toolJson
   };
 
-  /* 
-    ...
-    user
-    assistant: tool data
-  */
-  const concatToolMessages = [
-    ...requestMessages,
-    assistantToolMsgParams
-  ] as ChatCompletionMessageParam[];
   // Only toolCall tokens are counted here, Tool response tokens count towards the next reply
-  const tokens = await countGptMessagesTokens(concatToolMessages, undefined);
+  const inputTokens = await countGptMessagesTokens(requestMessages);
+  const outputTokens = await countGptMessagesTokens([assistantToolMsgParams]);
 
   /* 
     ...
@@ -437,7 +436,12 @@ ANSWER: `;
   }
 
   const runTimes = (response?.runTimes || 0) + toolsRunResponse.toolResponse.runTimes;
-  const toolNodeTokens = response?.toolNodeTokens ? response.toolNodeTokens + tokens : tokens;
+  const toolNodeInputTokens = response?.toolNodeInputTokens
+    ? response.toolNodeInputTokens + inputTokens
+    : inputTokens;
+  const toolNodeOutputTokens = response?.toolNodeOutputTokens
+    ? response.toolNodeOutputTokens + outputTokens
+    : outputTokens;
 
   // Check stop signal
   const hasStopSignal = toolsRunResponse.toolResponse.flowResponses.some((item) => !!item.toolStop);
@@ -460,7 +464,8 @@ ANSWER: `;
 
     return {
       dispatchFlowResponse,
-      toolNodeTokens,
+      toolNodeInputTokens,
+      toolNodeOutputTokens,
       completeMessages: filterMessages,
       assistantResponses: toolNodeAssistants,
       runTimes,
@@ -475,7 +480,8 @@ ANSWER: `;
     },
     {
       dispatchFlowResponse,
-      toolNodeTokens,
+      toolNodeInputTokens,
+      toolNodeOutputTokens,
       assistantResponses: toolNodeAssistants,
       runTimes
     }
@@ -499,6 +505,7 @@ async function streamResponse({
 
   let startResponseWrite = false;
   let textAnswer = '';
+  let thinkProcessed = false;
 
   for await (const part of stream) {
     if (res.closed) {
@@ -523,7 +530,13 @@ async function streamResponse({
         });
       } else if (textAnswer.length >= 3) {
         textAnswer = textAnswer.trim();
-        if (textAnswer.startsWith('0')) {
+        // 处理 think 标签
+        const thinkTagReg = /^<think>.*?<\/think>/s;
+        if (!thinkProcessed && thinkTagReg.test(textAnswer)) {
+          textAnswer = textAnswer.replace(thinkTagReg, '').trim();
+          thinkProcessed = true;
+        }
+        if (textAnswer.startsWith('0:')) {
           startResponseWrite = true;
           // find first : index
           const firstIndex = textAnswer.indexOf(':');
@@ -550,6 +563,11 @@ const parseAnswer = (
   toolJson?: FunctionCallCompletion;
 } => {
   str = str.trim();
+  // 处理 think 标签
+  const thinkTagReg = /^<think>.*?<\/think>/s;
+  if (thinkTagReg.test(str)) {
+    str = str.replace(thinkTagReg, '').trim();
+  }
   // 首先，使用正则表达式提取TOOL_ID和TOOL_ARGUMENTS
   const prefixReg = /^1(:|：)/;
   const answerPrefixReg = /^0(:|：)/;

@@ -5,7 +5,15 @@ import { cloneDeep } from 'lodash';
 import { WorkerNameEnum, runWorker } from '@fastgpt/service/worker/utils';
 
 // Run in main thread
-const staticPluginList = ['getTime', 'fetchUrl', 'feishu', 'google', 'bing'];
+const staticPluginList = [
+  'getTime',
+  'fetchUrl',
+  'feishu',
+  'DingTalkWebhook',
+  'WeWorkWebhook',
+  'google',
+  'bing'
+];
 // Run in worker thread (Have npm packages)
 const packagePluginList = [
   'mathExprVal',
@@ -19,7 +27,14 @@ const packagePluginList = [
   'wiki',
   'databaseConnection',
   'Doc2X',
-  'Doc2X/PDF2text'
+  'Doc2X/PDF2text',
+  'searchXNG',
+  'sleep',
+  'firecrawl',
+  'firecrawl/scrape',
+  'firecrawl/batchScrape',
+  'firecrawl/crawl',
+  'firecrawl/map'
 ];
 
 export const list = [...staticPluginList, ...packagePluginList];

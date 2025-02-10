@@ -89,8 +89,8 @@ export const reloadConfluencePageCollectionChunks = async ({
 
   // insert to training queue
   const model = await (() => {
-    if (collection.trainingType === TrainingModeEnum.chunk) return collection.datasetId.vectorModel;
-    if (collection.trainingType === TrainingModeEnum.qa) return collection.datasetId.agentModel;
+    if (collection.trainingType === TrainingModeEnum.chunk) return collection.dataset.vectorModel;
+    if (collection.trainingType === TrainingModeEnum.qa) return collection.dataset.agentModel;
     return Promise.reject('Training model error');
   })();
 
@@ -98,7 +98,7 @@ export const reloadConfluencePageCollectionChunks = async ({
     chunks.map((item, i) => ({
       teamId: collection.teamId,
       tmbId,
-      datasetId: collection.datasetId._id,
+      datasetId: collection.dataset._id,
       collectionId: collection._id,
       mode: collection.trainingType,
       prompt: '',
@@ -191,7 +191,7 @@ export const collectionTagsToTagLabel = async ({
 };
 
 export const syncCollection = async (collection: CollectionWithDatasetType) => {
-  const dataset = collection.datasetId;
+  const dataset = collection.dataset;
 
   if (
     collection.type !== DatasetCollectionTypeEnum.link &&
@@ -244,7 +244,7 @@ export const syncCollection = async (collection: CollectionWithDatasetType) => {
         teamId: collection.teamId,
         tmbId: collection.tmbId,
         name: collection.name,
-        datasetId: collection.datasetId._id,
+        datasetId: collection.datasetId,
         parentId: collection.parentId,
         type: collection.type,
 

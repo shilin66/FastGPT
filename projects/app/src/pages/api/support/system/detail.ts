@@ -15,7 +15,7 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
       error: 'No permission'
     });
   }
-  return await getFastGPTConfigFromDB();
+  return (await getFastGPTConfigFromDB()).config;
 }
 
 export default NextAPI(handler);

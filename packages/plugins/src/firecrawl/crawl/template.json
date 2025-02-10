@@ -1,0 +1,1277 @@
+{
+  "author": "collin",
+  "version": "4818",
+  "name": "crawl",
+  "avatar": "core/workflow/template/firecrawl",
+  "intro": "递归爬取一个网站的子域名。crawl api 文档：https://docs.firecrawl.dev/api-reference/endpoint/crawl-post",
+  "showStatus": true,
+  "weight": 10,
+
+  "isTool": true,
+  "templateType": "tools",
+
+  "workflow": {
+    "nodes": [
+      {
+        "nodeId": "pluginInput",
+        "name": "workflow:template.plugin_start",
+        "intro": "workflow:intro_plugin_input",
+        "avatar": "core/workflow/template/workflowStart",
+        "flowNodeType": "pluginInput",
+        "showStatus": false,
+        "position": {
+          "x": 607.5020041703815,
+          "y": -132.7238500686325
+        },
+        "version": "481",
+        "inputs": [
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "apiKey",
+            "label": "apiKey",
+            "description": "firecrawl  的apiKey",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "firecrawl  的apiKey"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "apiUrl",
+            "label": "apiUrl",
+            "description": "apiUrl地址。\n如果使用官方云服务，无需填写。",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "apiUrl地址。\n如果使用官方云服务，无需填写。"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "url",
+            "label": "url",
+            "description": "要爬取网站的起始URL",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": true,
+            "toolDescription": "要爬取网站的起始URL"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "excludePaths",
+            "label": "excludePaths",
+            "description": "匹配这些模式的页面将被跳过，多个标签时使用半角逗号分隔。示例：blog/*, about/*",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "匹配这些模式的页面将被跳过，多个标签时使用半角逗号分隔。示例：blog/*, about/*"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "includePaths",
+            "label": "includePaths",
+            "description": "只有与这些模式匹配的页面才会被爬取，多个标签时使用逗号分隔。示例：blog/*, about/*",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "只有与这些模式匹配的页面才会被爬取，多个标签时使用逗号分隔。示例：blog/*, about/*"
+          },
+          {
+            "renderTypeList": [
+              "numberInput",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "number",
+            "canEdit": true,
+            "key": "maxDepth",
+            "label": "maxDepth",
+            "description": "相对于输入的URL，爬取的最大深度。maxDepth为0时，仅抓取输入的URL。maxDepth为1时，抓取输入的URL以及所有一级深层页面。maxDepth为2时，抓取输入的URL以及所有两级深层页面。更高值遵循相同模式。",
+            "defaultValue": 2,
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "相对于输入的URL，爬取的最大深度。maxDepth为0时，仅抓取输入的URL。maxDepth为1时，抓取输入的URL以及所有一级深层页面。maxDepth为2时，抓取输入的URL以及所有两级深层页面。更高值遵循相同模式。",
+            "min": 0
+          },
+          {
+            "renderTypeList": [
+              "numberInput",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "number",
+            "canEdit": true,
+            "key": "limit",
+            "label": "limit",
+            "description": "指定要爬取的最大页面数。爬虫将在达到此限制后停止。",
+            "defaultValue": 5,
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "指定要爬取的最大页面数。爬虫将在达到此限制后停止。",
+            "min": 1
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "formats",
+            "label": "formats",
+            "description": "将网页转换成最终输出的格式，以逗号分隔。支持一下格式：markdown, html, rawHtml, links, screenshot。开源版不支持screenshot。",
+            "defaultValue": "markdown",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "将网页转换成最终输出的格式，以逗号分隔。支持一下格式：markdown, html, rawHtml, links, screenshot。开源版不支持screenshot。"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "onlyMainContent",
+            "label": "onlyMainContent",
+            "description": "只返回页面的主要内容，不包括头部，导航栏，尾部等",
+            "defaultValue": true,
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "只返回页面的主要内容，不包括头部，导航栏，尾部等"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "excludeTags",
+            "label": "excludeTags",
+            "description": "在最终的输出中需要移除HTML的标签，可通过标签名，类或id设定，用逗号分隔，示例：script, .ad, #footer",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "在最终的输出中需要移除HTML的标签，可通过标签名，类或id设定，用逗号分隔，示例：script, .ad, #footer"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "includeTags",
+            "label": "includeTags",
+            "description": "在最终的输出中只包含这些HTML的标签，可通过标签名，类或id设定，用逗号分隔，示例：script, .ad, #footer",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "在最终的输出中只包含这些HTML的标签，可通过标签名，类或id设定，用逗号分隔，示例：script, .ad, #footer"
+          },
+          {
+            "renderTypeList": [
+              "numberInput",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "number",
+            "canEdit": true,
+            "key": "waitFor",
+            "label": "waitFor",
+            "description": "等待指定毫秒，使页面有足够的时间加载",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "等待指定毫秒，使页面有足够的时间加载",
+            "min": ""
+          },
+          {
+            "renderTypeList": [
+              "JSONEditor",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "headers",
+            "label": "headers",
+            "description": "随请求发送的头部。可以用来发送cookies、用户代理等。示例：{\"cookies\": \"testcookies\"}",
+            "defaultValue": "{}",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "随请求发送的头部。可以用来发送cookies、用户代理等。示例：{\"cookies\": \"testcookies\"}"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "allowBackwardLinks",
+            "label": "allowBackwardLinks",
+            "description": "使爬虫能够从特定URL导航到之前链接的页面。例如，从'example.com/product/123'返回到'example.com/product'",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "使爬虫能够从特定URL导航到之前链接的页面。例如，从'example.com/product/123'返回到'example.com/product'"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "allowExternalLinks",
+            "label": "allowExternalLinks",
+            "description": "允许爬取外部网站的链接",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "允许爬取外部网站的链接"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "removeBase64Images",
+            "label": "removeBase64Images",
+            "description": "从输出中删除所有基于base64 图像，这些图像可能非常长。图像的替代文本保留在输出中，但 URL 被替换为占位符",
+            "defaultValue": true,
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "从输出中删除所有基于base64 图像，这些图像可能非常长。图像的替代文本保留在输出中，但 URL 被替换为占位符"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "mobile",
+            "label": "mobile",
+            "description": "模拟从移动设备抓取数据。这对于测试响应式页面和截取移动设备屏幕截图很有用。",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "模拟从移动设备抓取数据。这对于测试响应式页面和截取移动设备屏幕截图很有用。"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "ignoreSitemap",
+            "label": "ignoreSitemap",
+            "description": "爬取时忽略网站站点地图。",
+            "defaultValue": true,
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "爬取时忽略网站站点地图。"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "webhook",
+            "label": "webhook",
+            "description": "发送Webhook的URL。这将在开始爬取（crawl.started）、每爬取一个页面（crawl.page）以及爬取完成（crawl.completed或crawl.failed）时触发。响应将与/scrape端点相同。",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "发送Webhook的URL。这将在开始爬取（crawl.started）、每爬取一个页面（crawl.page）以及爬取完成（crawl.completed或crawl.failed）时触发。响应将与/scrape端点相同。"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "apiKey",
+            "valueType": "string",
+            "key": "apiKey",
+            "label": "apiKey",
+            "type": "hidden"
+          },
+          {
+            "id": "url",
+            "valueType": "string",
+            "key": "url",
+            "label": "url",
+            "type": "hidden"
+          },
+          {
+            "id": "formats",
+            "valueType": "string",
+            "key": "formats",
+            "label": "formats",
+            "type": "hidden"
+          },
+          {
+            "id": "onlyMainContent",
+            "valueType": "boolean",
+            "key": "onlyMainContent",
+            "label": "onlyMainContent",
+            "type": "hidden"
+          },
+          {
+            "id": "excludeTags",
+            "valueType": "string",
+            "key": "excludeTags",
+            "label": "excludeTags",
+            "type": "hidden"
+          },
+          {
+            "id": "includeTags",
+            "valueType": "string",
+            "key": "includeTags",
+            "label": "includeTags",
+            "type": "hidden"
+          },
+          {
+            "id": "waitFor",
+            "valueType": "number",
+            "key": "waitFor",
+            "label": "waitFor",
+            "type": "hidden"
+          },
+          {
+            "id": "headers",
+            "valueType": "string",
+            "key": "headers",
+            "label": "headers",
+            "type": "hidden"
+          },
+          {
+            "id": "removeBase64Images",
+            "valueType": "boolean",
+            "key": "removeBase64Images",
+            "label": "removeBase64Images",
+            "type": "hidden"
+          },
+          {
+            "id": "apiUrl",
+            "valueType": "string",
+            "key": "apiUrl",
+            "label": "apiUrl",
+            "type": "hidden"
+          },
+          {
+            "id": "mobile",
+            "valueType": "boolean",
+            "key": "mobile",
+            "label": "mobile",
+            "type": "hidden"
+          },
+          {
+            "id": "excludePaths",
+            "valueType": "string",
+            "key": "excludePaths",
+            "label": "excludePaths",
+            "type": "hidden"
+          },
+          {
+            "id": "includePaths",
+            "valueType": "string",
+            "key": "includePaths",
+            "label": "includePaths",
+            "type": "hidden"
+          },
+          {
+            "id": "maxDepth",
+            "valueType": "number",
+            "key": "maxDepth",
+            "label": "maxDepth",
+            "type": "hidden"
+          },
+          {
+            "id": "ignoreSitemap",
+            "valueType": "boolean",
+            "key": "ignoreSitemap",
+            "label": "ignoreSitemap",
+            "type": "hidden"
+          },
+          {
+            "id": "limit",
+            "valueType": "number",
+            "key": "limit",
+            "label": "limit",
+            "type": "hidden"
+          },
+          {
+            "id": "allowBackwardLinks",
+            "valueType": "boolean",
+            "key": "allowBackwardLinks",
+            "label": "allowBackwardLinks",
+            "type": "hidden"
+          },
+          {
+            "id": "allowExternalLinks",
+            "valueType": "boolean",
+            "key": "allowExternalLinks",
+            "label": "allowExternalLinks",
+            "type": "hidden"
+          },
+          {
+            "id": "webhook",
+            "valueType": "string",
+            "key": "webhook",
+            "label": "webhook",
+            "type": "hidden"
+          }
+        ]
+      },
+      {
+        "nodeId": "pluginOutput",
+        "name": "common:core.module.template.self_output",
+        "intro": "workflow:intro_custom_plugin_output",
+        "avatar": "core/workflow/template/pluginOutput",
+        "flowNodeType": "pluginOutput",
+        "showStatus": false,
+        "position": {
+          "x": 2955.9385712886306,
+          "y": -132.7238500686325
+        },
+        "version": "481",
+        "inputs": [
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "any",
+            "canEdit": true,
+            "key": "data",
+            "label": "data",
+            "isToolOutput": true,
+            "description": "",
+            "required": true,
+            "value": [
+              "zCJC6zw7c14i",
+              "httpRawResponse"
+            ]
+          }
+        ],
+        "outputs": []
+      },
+      {
+        "nodeId": "pluginConfig",
+        "name": "common:core.module.template.system_config",
+        "intro": "",
+        "avatar": "core/workflow/template/systemConfig",
+        "flowNodeType": "pluginConfig",
+        "position": {
+          "x": 184.66337662472682,
+          "y": -216.05298493910115
+        },
+        "version": "4811",
+        "inputs": [],
+        "outputs": []
+      },
+      {
+        "nodeId": "zCJC6zw7c14i",
+        "name": "HTTP 请求",
+        "intro": "可以发出一个 HTTP 请求，实现更为复杂的操作（联网搜索、数据库查询等）",
+        "avatar": "core/workflow/template/httpRequest",
+        "flowNodeType": "httpRequest468",
+        "showStatus": true,
+        "position": {
+          "x": 1965.1157955323695,
+          "y": -533.9093612565565
+        },
+        "version": "481",
+        "inputs": [
+          {
+            "key": "system_addInputParam",
+            "renderTypeList": [
+              "addInputParam"
+            ],
+            "valueType": "dynamic",
+            "label": "",
+            "required": false,
+            "description": "common:core.module.input.description.HTTP Dynamic Input",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpMethod",
+            "renderTypeList": [
+              "custom"
+            ],
+            "valueType": "string",
+            "label": "",
+            "value": "POST",
+            "required": true,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpTimeout",
+            "renderTypeList": [
+              "custom"
+            ],
+            "valueType": "number",
+            "label": "",
+            "value": 30,
+            "min": 5,
+            "max": 600,
+            "required": true,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpReqUrl",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "string",
+            "label": "",
+            "description": "common:core.module.input.description.Http Request Url",
+            "placeholder": "https://api.ai.com/getInventory",
+            "required": false,
+            "value": "firecrawl/crawl",
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpHeader",
+            "renderTypeList": [
+              "custom"
+            ],
+            "valueType": "any",
+            "value": [],
+            "label": "",
+            "description": "common:core.module.input.description.Http Request Header",
+            "placeholder": "common:core.module.input.description.Http Request Header",
+            "required": false,
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpParams",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "any",
+            "value": [],
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpJsonBody",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "any",
+            "value": "{ \n        \"apiKey\": \"{{$pluginInput.apiKey$}}\",\n        \"apiUrl\":\"{{$pluginInput.apiUrl$}}\",\n\t\"url\": \"{{$pluginInput.url$}}\",\n\t\"excludePaths\": {{$eegHU7czel1c.wttf9D4HGUS9$}},\n\t\"includePaths\": {{$eegHU7czel1c.rS2afVts6rAy$}},\n\t\"maxDepth\": {{$pluginInput.maxDepth$}},\n\t\"ignoreSitemap\": {{$pluginInput.ignoreSitemap$}},\n\t\"limit\": {{$pluginInput.limit$}},\n\t\"allowBackwardLinks\": {{$pluginInput.allowBackwardLinks$}},\n\t\"allowExternalLinks\":{{$pluginInput.allowExternalLinks$}},\n\t\"webhook\": \"{{$pluginInput.webhook$}}\",\n\t\"scrapeOptions\": {\n\t\t\"formats\": {{$eegHU7czel1c.dyQLxhPoRjiJ$}},\n\t\t\"headers\": {{$pluginInput.headers$}},\n\t\t\"includeTags\": {{$eegHU7czel1c.gR0mkQpJ4Og8$}},\n\t\t\"excludeTags\":{{$eegHU7czel1c.qLUQfhG0ILRX$}},\n\t\t\"onlyMainContent\": {{$pluginInput.onlyMainContent$}},\n\t\t\"removeBase64Images\": {{$pluginInput.removeBase64Images$}},\n\t\t\"mobile\": {{$pluginInput.mobile$}},\n\t\t\"waitFor\": {{$pluginInput.waitFor$}}\n\t}\n}",
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpFormBody",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "any",
+            "value": [],
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpContentType",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "string",
+            "value": "json",
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          }
+        ],
+        "outputs": [
+          {
+            "id": "error",
+            "key": "error",
+            "label": "workflow:request_error",
+            "description": "HTTP请求错误信息，成功时返回空",
+            "valueType": "object",
+            "type": "static"
+          },
+          {
+            "id": "httpRawResponse",
+            "key": "httpRawResponse",
+            "required": true,
+            "label": "workflow:raw_response",
+            "description": "HTTP请求的原始响应。只能接受字符串或JSON类型响应数据。",
+            "valueType": "any",
+            "type": "static"
+          },
+          {
+            "id": "system_addOutputParam",
+            "key": "system_addOutputParam",
+            "type": "dynamic",
+            "valueType": "dynamic",
+            "label": "输出字段提取",
+            "customFieldConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": false
+            },
+            "description": "可以通过 JSONPath 语法来提取响应值中的指定字段",
+            "valueDesc": ""
+          }
+        ]
+      },
+      {
+        "nodeId": "eegHU7czel1c",
+        "name": "代码运行",
+        "intro": "执行一段简单的脚本代码，通常用于进行复杂的数据处理。",
+        "avatar": "core/workflow/template/codeRun",
+        "flowNodeType": "code",
+        "showStatus": true,
+        "position": {
+          "x": 1283.5017487605994,
+          "y": -359.32841406751083
+        },
+        "version": "482",
+        "inputs": [
+          {
+            "key": "system_addInputParam",
+            "renderTypeList": [
+              "addInputParam"
+            ],
+            "valueType": "dynamic",
+            "label": "",
+            "required": false,
+            "description": "workflow:these_variables_will_be_input_parameters_for_code_execution",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "codeType",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "label": "",
+            "value": "js",
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "code",
+            "renderTypeList": [
+              "custom"
+            ],
+            "label": "",
+            "value": "function main({ excludeTags, includeTags, formats, excludePaths, includePaths }) {\n    return {\n        excludeTags: excludeTags.split(\",\")\n            .map(item => item.trim())\n            .filter(item => item !== \"\"),\n        includeTags: includeTags.split(\",\")\n            .map(item => item.trim())\n            .filter(item => item !== \"\"),\n        formats: formats.split(\",\")\n            .map(item => item.trim())\n            .filter(item => item !== \"\"),\n        excludePaths: excludePaths.split(\",\")\n            .map(item => item.trim())\n            .filter(item => item !== \"\"),\n        includePaths: includePaths.split(\",\")\n            .map(item => item.trim())\n            .filter(item => item !== \"\")\n    }\n}",
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "string",
+            "canEdit": true,
+            "key": "excludeTags",
+            "label": "excludeTags",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "required": true,
+            "value": [
+              "pluginInput",
+              "excludeTags"
+            ],
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "string",
+            "canEdit": true,
+            "key": "includeTags",
+            "label": "includeTags",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "required": true,
+            "value": [
+              "pluginInput",
+              "includeTags"
+            ],
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "string",
+            "canEdit": true,
+            "key": "formats",
+            "label": "formats",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "required": true,
+            "value": [
+              "pluginInput",
+              "formats"
+            ]
+          },
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "string",
+            "canEdit": true,
+            "key": "excludePaths",
+            "label": "excludePaths",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "required": true,
+            "value": [
+              "pluginInput",
+              "excludePaths"
+            ]
+          },
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "string",
+            "canEdit": true,
+            "key": "includePaths",
+            "label": "includePaths",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "required": true,
+            "value": [
+              "pluginInput",
+              "includeTags"
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "system_rawResponse",
+            "key": "system_rawResponse",
+            "label": "workflow:full_response_data",
+            "valueType": "object",
+            "type": "static",
+            "description": ""
+          },
+          {
+            "id": "error",
+            "key": "error",
+            "label": "workflow:execution_error",
+            "description": "代码运行错误信息，成功时返回空",
+            "valueType": "object",
+            "type": "static"
+          },
+          {
+            "id": "system_addOutputParam",
+            "key": "system_addOutputParam",
+            "type": "dynamic",
+            "valueType": "dynamic",
+            "label": "",
+            "customFieldConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": false
+            },
+            "description": "将代码中 return 的对象作为输出，传递给后续的节点。变量名需要对应 return 的 key",
+            "valueDesc": ""
+          },
+          {
+            "id": "qLUQfhG0ILRX",
+            "type": "dynamic",
+            "key": "excludeTags",
+            "valueType": "arrayString",
+            "label": "excludeTags",
+            "valueDesc": "",
+            "description": ""
+          },
+          {
+            "id": "gR0mkQpJ4Og8",
+            "type": "dynamic",
+            "key": "includeTags",
+            "valueType": "arrayString",
+            "label": "includeTags",
+            "valueDesc": "",
+            "description": ""
+          },
+          {
+            "id": "dyQLxhPoRjiJ",
+            "valueType": "arrayString",
+            "type": "dynamic",
+            "key": "formats",
+            "label": "formats"
+          },
+          {
+            "id": "wttf9D4HGUS9",
+            "valueType": "arrayString",
+            "type": "dynamic",
+            "key": "excludePaths",
+            "label": "excludePaths"
+          },
+          {
+            "id": "rS2afVts6rAy",
+            "valueType": "arrayString",
+            "type": "dynamic",
+            "key": "includePaths",
+            "label": "includePaths"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "zCJC6zw7c14i",
+        "target": "pluginOutput",
+        "sourceHandle": "zCJC6zw7c14i-source-right",
+        "targetHandle": "pluginOutput-target-left"
+      },
+      {
+        "source": "pluginInput",
+        "target": "eegHU7czel1c",
+        "sourceHandle": "pluginInput-source-right",
+        "targetHandle": "eegHU7czel1c-target-left"
+      },
+      {
+        "source": "eegHU7czel1c",
+        "target": "zCJC6zw7c14i",
+        "sourceHandle": "eegHU7czel1c-source-right",
+        "targetHandle": "zCJC6zw7c14i-target-left"
+      }
+    ],
+    "chatConfig": {
+      "welcomeText": "",
+      "variables": [],
+      "questionGuide": {
+        "open": false,
+        "model": "gpt-4o-mini",
+        "customPrompt": "You are an AI assistant tasked with predicting the user's next question based on the conversation history. Your goal is to generate 3 potential questions that will guide the user to continue the conversation. When generating these questions, adhere to the following rules:\n\n1. Use the same language as the user's last question in the conversation history.\n2. Keep each question under 20 characters in length.\n\nAnalyze the conversation history provided to you and use it as context to generate relevant and engaging follow-up questions. Your predictions should be logical extensions of the current topic or related areas that the user might be interested in exploring further.\n\nRemember to maintain consistency in tone and style with the existing conversation while providing diverse options for the user to choose from. Your goal is to keep the conversation flowing naturally and help the user delve deeper into the subject matter or explore related topics."
+      },
+      "ttsConfig": {
+        "type": "web"
+      },
+      "whisperConfig": {
+        "open": false,
+        "autoSend": false,
+        "autoTTSResponse": false
+      },
+      "chatInputGuide": {
+        "open": false,
+        "textList": [],
+        "customUrl": ""
+      },
+      "instruction": " 递归爬取一个网址的子域名，并收集内容。如果使用官方云服务，无需填写apiUrl，只要填写apiKey。如果使用开源版自行部署，根据部署情况填写apiKey和apiUrl。",
+      "autoExecute": {
+        "open": false,
+        "defaultPrompt": ""
+      },
+      "_id": "6784ba2c227f92f6c723ead0"
+    }
+  }
+}
