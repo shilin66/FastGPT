@@ -89,10 +89,12 @@ const Navbar = ({ unread }: { unread: number }) => {
           '/account/info',
           '/account/team',
           '/account/usage',
+          '/account/thirdParty',
           '/account/apikey',
-          '/account/individuation',
+          '/account/setting',
           '/account/inform',
-          '/account/promotion'
+          '/account/promotion',
+          '/account/model'
         ]
       },
       ...(userInfo && userInfo.username === 'root'

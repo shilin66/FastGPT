@@ -3,7 +3,7 @@ import { Box, Button, Flex } from '@chakra-ui/react';
 import PageContainer from '@/components/PageContainer';
 import dynamic from 'next/dynamic';
 import { createSystemConfig, getSystemConfig } from '@/web/support/system/api';
-import { serviceSideProps } from '@/web/common/utils/i18n';
+import { serviceSideProps } from '@fastgpt/web/common/system/nextjs';
 import { useLoading } from '@fastgpt/web/hooks/useLoading';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useTranslation } from 'next-i18next';

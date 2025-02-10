@@ -1,0 +1,1161 @@
+{
+  "author": "collin",
+  "version": "4818",
+  "name": "scrape",
+  "avatar": "core/workflow/template/firecrawl",
+  "intro": "指定URL，抓取单个页面。scrape api文档：https://docs.firecrawl.dev/api-reference/endpoint/scrape",
+  "showStatus": true,
+  "weight": 10,
+
+  "isTool": true,
+  "templateType": "tools",
+
+  "workflow": {
+    "nodes": [
+      {
+        "nodeId": "pluginInput",
+        "name": "workflow:template.plugin_start",
+        "intro": "workflow:intro_plugin_input",
+        "avatar": "core/workflow/template/workflowStart",
+        "flowNodeType": "pluginInput",
+        "showStatus": false,
+        "position": {
+          "x": 607.5020041703815,
+          "y": -132.7238500686325
+        },
+        "version": "481",
+        "inputs": [
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "apiKey",
+            "label": "apiKey",
+            "description": "firecrawl  的apiKey",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "firecrawl  的apiKey"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "apiUrl",
+            "label": "apiUrl",
+            "description": "apiUrl地址。如果使用官方云服务，则无须填写",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "apiUrl地址。如果使用官方云服务，则无须填写"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "url",
+            "label": "url",
+            "description": "要抓取并提取数据的网站URL",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": true,
+            "toolDescription": "要抓取并提取数据的网站URL"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "formats",
+            "label": "formats",
+            "description": "将网页转换成最终输出的格式，以逗号分隔。支持以下格式：markdown, html, rawHtml, links, screenshot, extract, screenshot@fullPage。开源版不支持screenshot, screenshot@fullPage",
+            "defaultValue": "markdown",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "将网页转换成最终输出的格式，以逗号分隔。支持一下格式：markdown, html, rawHtml, links, screenshot, extract, screenshot@fullPage。"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "onlyMainContent",
+            "label": "onlyMainContent",
+            "description": "只返回页面的主要内容，不包括头部，导航栏，尾部等",
+            "defaultValue": true,
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "只返回页面的主要内容，不包括头部，导航栏，尾部等"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "excludeTags",
+            "label": "excludeTags",
+            "description": "在最终的输出中需要移除HTML的标签，可通过标签名，类或id设定，用逗号分隔，示例：script, .ad, #footer",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "在最终的输出中需要移除HTML的标签，可通过标签名，类或id设定，用逗号分隔，示例：script, .ad, #footer"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "includeTags",
+            "label": "includeTags",
+            "description": "在最终的输出中只包含这些HTML的标签，可通过标签名，类或id设定，用逗号分隔，示例：script, .ad, #footer",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "在最终的输出中只包含这些HTML的标签，可通过标签名，类或id设定，用逗号分隔，示例：script, .ad, #footer"
+          },
+          {
+            "renderTypeList": [
+              "numberInput",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "number",
+            "canEdit": true,
+            "key": "waitFor",
+            "label": "waitFor",
+            "description": "等待指定毫秒，使页面有足够的时间加载",
+            "defaultValue": 0,
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "等待指定毫秒，使页面有足够的时间加载",
+            "min": 0
+          },
+          {
+            "renderTypeList": [
+              "numberInput",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "number",
+            "canEdit": true,
+            "key": "timeout",
+            "label": "timeout",
+            "description": "请求的超时时间，毫秒",
+            "defaultValue": 30000,
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "请求的超时时间，毫秒",
+            "min": 0
+          },
+          {
+            "renderTypeList": [
+              "JSONEditor",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "headers",
+            "label": "headers",
+            "description": "随请求发送的头部。可以用来发送cookies、用户代理等。示例：{\"cookies\": \"testcookies\"}",
+            "defaultValue": "{}",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "随请求发送的头部。可以用来发送cookies、用户代理等。示例：{\"cookies\": \"testcookies\"}"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "extractPrompt",
+            "label": "extractPrompt",
+            "description": "用于无schema时提取的提示词",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "用于无schema时提取的提示词"
+          },
+          {
+            "renderTypeList": [
+              "JSONEditor",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "extractSchema",
+            "label": "extractSchema",
+            "description": "使用指定的结构去提取，参数详情查看官方API。示例：\n{\n  \"properties\": {\n    \"company_mission\": {\n      \"type\": \"string\"\n    },\n    \"is_open_source\": {\n      \"type\": \"boolean\"\n    }\n  },\n  \"required\": [\n    \"company_mission\",\n    \"is_open_source\"\n  ],\n  \"type\": \"object\"\n}",
+            "defaultValue": "{}",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "使用指定的结构去提取，参数详情查看官方API。示例：\n{\n  \"properties\": {\n    \"company_mission\": {\n      \"type\": \"string\"\n    },\n    \"is_open_source\": {\n      \"type\": \"boolean\"\n    }\n  },\n  \"required\": [\n    \"company_mission\",\n    \"is_open_source\"\n  ],\n  \"type\": \"object\"\n}"
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "extractSystemPrompt",
+            "label": "extractSystemPrompt",
+            "description": "用于提取的系统提示词",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "用于提取的系统提示词"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "skipTlsVerification",
+            "label": "skipTlsVerification",
+            "description": "请求时跳过 TLS 证书验证。开源版不支持此参数",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "请求时跳过 TLS 证书验证。开源版不支持此参数"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "removeBase64Images",
+            "label": "removeBase64Images",
+            "description": "从输出中删除所有基于base64 图像，这些图像可能非常长。图像的替代文本保留在输出中，但 URL 被替换为占位符",
+            "defaultValue": true,
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "从输出中删除所有基于base64 图像，这些图像可能非常长。图像的替代文本保留在输出中，但 URL 被替换为占位符"
+          },
+          {
+            "renderTypeList": [
+              "JSONEditor",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "actions",
+            "label": "actions",
+            "description": "抓取内容之前在页面上执行的操作，参数详情查看官方API。开源版不支持此参数",
+            "defaultValue": "[]",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "抓取内容之前在页面上执行的操作，参数详情查看官方API。开源版不支持此参数"
+          },
+          {
+            "renderTypeList": [
+              "switch",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "boolean",
+            "canEdit": true,
+            "key": "mobile",
+            "label": "mobile",
+            "description": "模拟从移动设备抓取数据。这对于测试响应式页面和截取移动设备屏幕截图很有用。",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "模拟从移动设备抓取数据。这对于测试响应式页面和截取移动设备屏幕截图很有用。"
+          },
+          {
+            "renderTypeList": [
+              "JSONEditor",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "location",
+            "label": "location",
+            "description": "请求的位置设置，参数详情查看官方API。 指定后，将使用适当的代理（如果有），并模拟相应的语言和时区设置。 如果未指定，默认为 \"US\"。开源版不支持此参数",
+            "defaultValue": "{}",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": false,
+            "toolDescription": "请求的位置设置，参数详情查看官方API。 指定后，将使用适当的代理（如果有），并模拟相应的语言和时区设置。 如果未指定，默认为 \"US\"。开源版不支持此参数"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "apiKey",
+            "valueType": "string",
+            "key": "apiKey",
+            "label": "apiKey",
+            "type": "hidden"
+          },
+          {
+            "id": "url",
+            "valueType": "string",
+            "key": "url",
+            "label": "url",
+            "type": "hidden"
+          },
+          {
+            "id": "formats",
+            "valueType": "string",
+            "key": "formats",
+            "label": "formats",
+            "type": "hidden"
+          },
+          {
+            "id": "onlyMainContent",
+            "valueType": "boolean",
+            "key": "onlyMainContent",
+            "label": "onlyMainContent",
+            "type": "hidden"
+          },
+          {
+            "id": "excludeTags",
+            "valueType": "string",
+            "key": "excludeTags",
+            "label": "excludeTags",
+            "type": "hidden"
+          },
+          {
+            "id": "includeTags",
+            "valueType": "string",
+            "key": "includeTags",
+            "label": "includeTags",
+            "type": "hidden"
+          },
+          {
+            "id": "waitFor",
+            "valueType": "number",
+            "key": "waitFor",
+            "label": "waitFor",
+            "type": "hidden"
+          },
+          {
+            "id": "timeout",
+            "valueType": "number",
+            "key": "timeout",
+            "label": "timeout",
+            "type": "hidden"
+          },
+          {
+            "id": "headers",
+            "valueType": "string",
+            "key": "headers",
+            "label": "headers",
+            "type": "hidden"
+          },
+          {
+            "id": "extractPrompt",
+            "valueType": "string",
+            "key": "extractPrompt",
+            "label": "extractPrompt",
+            "type": "hidden"
+          },
+          {
+            "id": "extractSchema",
+            "valueType": "string",
+            "key": "extractSchema",
+            "label": "extractSchema",
+            "type": "hidden"
+          },
+          {
+            "id": "extractSystemPrompt",
+            "valueType": "string",
+            "key": "extractSystemPrompt",
+            "label": "extractSystemPrompt",
+            "type": "hidden"
+          },
+          {
+            "id": "skipTlsVerification",
+            "valueType": "boolean",
+            "key": "skipTlsVerification",
+            "label": "skipTlsVerification",
+            "type": "hidden"
+          },
+          {
+            "id": "removeBase64Images",
+            "valueType": "boolean",
+            "key": "removeBase64Images",
+            "label": "removeBase64Images",
+            "type": "hidden"
+          },
+          {
+            "id": "actions",
+            "valueType": "string",
+            "key": "actions",
+            "label": "actions",
+            "type": "hidden"
+          },
+          {
+            "id": "apiUrl",
+            "valueType": "string",
+            "key": "apiUrl",
+            "label": "apiUrl",
+            "type": "hidden"
+          },
+          {
+            "id": "mobile",
+            "valueType": "boolean",
+            "key": "mobile",
+            "label": "mobile",
+            "type": "hidden"
+          },
+          {
+            "id": "location",
+            "valueType": "string",
+            "key": "location",
+            "label": "location",
+            "type": "hidden"
+          }
+        ]
+      },
+      {
+        "nodeId": "pluginOutput",
+        "name": "common:core.module.template.self_output",
+        "intro": "workflow:intro_custom_plugin_output",
+        "avatar": "core/workflow/template/pluginOutput",
+        "flowNodeType": "pluginOutput",
+        "showStatus": false,
+        "position": {
+          "x": 2955.9385712886306,
+          "y": -132.7238500686325
+        },
+        "version": "481",
+        "inputs": [
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "any",
+            "canEdit": true,
+            "key": "data",
+            "label": "data",
+            "isToolOutput": true,
+            "description": "",
+            "required": true,
+            "value": [
+              "zCJC6zw7c14i",
+              "httpRawResponse"
+            ]
+          }
+        ],
+        "outputs": []
+      },
+      {
+        "nodeId": "pluginConfig",
+        "name": "common:core.module.template.system_config",
+        "intro": "",
+        "avatar": "core/workflow/template/systemConfig",
+        "flowNodeType": "pluginConfig",
+        "position": {
+          "x": 184.66337662472682,
+          "y": -216.05298493910115
+        },
+        "version": "4811",
+        "inputs": [],
+        "outputs": []
+      },
+      {
+        "nodeId": "zCJC6zw7c14i",
+        "name": "HTTP 请求",
+        "intro": "可以发出一个 HTTP 请求，实现更为复杂的操作（联网搜索、数据库查询等）",
+        "avatar": "core/workflow/template/httpRequest",
+        "flowNodeType": "httpRequest468",
+        "showStatus": true,
+        "position": {
+          "x": 1965.1157955323695,
+          "y": -533.9093612565565
+        },
+        "version": "481",
+        "inputs": [
+          {
+            "key": "system_addInputParam",
+            "renderTypeList": [
+              "addInputParam"
+            ],
+            "valueType": "dynamic",
+            "label": "",
+            "required": false,
+            "description": "common:core.module.input.description.HTTP Dynamic Input",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpMethod",
+            "renderTypeList": [
+              "custom"
+            ],
+            "valueType": "string",
+            "label": "",
+            "value": "POST",
+            "required": true,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpTimeout",
+            "renderTypeList": [
+              "custom"
+            ],
+            "valueType": "number",
+            "label": "",
+            "value": 30,
+            "min": 5,
+            "max": 600,
+            "required": true,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpReqUrl",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "string",
+            "label": "",
+            "description": "common:core.module.input.description.Http Request Url",
+            "placeholder": "https://api.ai.com/getInventory",
+            "required": false,
+            "value": "firecrawl/scrape",
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpHeader",
+            "renderTypeList": [
+              "custom"
+            ],
+            "valueType": "any",
+            "value": [],
+            "label": "",
+            "description": "common:core.module.input.description.Http Request Header",
+            "placeholder": "common:core.module.input.description.Http Request Header",
+            "required": false,
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpParams",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "any",
+            "value": [],
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpJsonBody",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "any",
+            "value": "{\n  \"actions\":{{$pluginInput.actions$}},\n  \"excludeTags\": {{$eegHU7czel1c.qLUQfhG0ILRX$}},\n  \"extract\": {\n    \"prompt\":  \"{{$pluginInput.extractPrompt$}}\",\n    \"schema\": {{$pluginInput.extractSchema$}},\n    \"systemPrompt\": \"{{$pluginInput.extractSystemPrompt$}}\"\n  },\n  \"formats\": {{$eegHU7czel1c.dyQLxhPoRjiJ$}},\n  \"headers\": {{$pluginInput.headers$}},\n  \"includeTags\": {{$eegHU7czel1c.gR0mkQpJ4Og8$}},\n  \"onlyMainContent\": {{$pluginInput.onlyMainContent$}},\n  \"removeBase64Images\": {{$pluginInput.removeBase64Images$}},\n  \"skipTlsVerification\": {{$pluginInput.skipTlsVerification$}},\n  \"timeout\": {{$pluginInput.timeout$}},\n  \"url\": \"{{$pluginInput.url$}}\",\n  \"waitFor\": {{$pluginInput.waitFor$}},\n  \"apiUrl\": \"{{$pluginInput.apiUrl$}}\",\n  \"apiKey\":\"{{$pluginInput.apiKey$}}\",\n  \"location\": {{$pluginInput.location$}},\n  \"mobile\":{{$pluginInput.mobile$}}\n}",
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpFormBody",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "any",
+            "value": [],
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpContentType",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "string",
+            "value": "json",
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          }
+        ],
+        "outputs": [
+          {
+            "id": "error",
+            "key": "error",
+            "label": "workflow:request_error",
+            "description": "HTTP请求错误信息，成功时返回空",
+            "valueType": "object",
+            "type": "static"
+          },
+          {
+            "id": "httpRawResponse",
+            "key": "httpRawResponse",
+            "required": true,
+            "label": "workflow:raw_response",
+            "description": "HTTP请求的原始响应。只能接受字符串或JSON类型响应数据。",
+            "valueType": "any",
+            "type": "static"
+          },
+          {
+            "id": "system_addOutputParam",
+            "key": "system_addOutputParam",
+            "type": "dynamic",
+            "valueType": "dynamic",
+            "label": "输出字段提取",
+            "customFieldConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": false
+            },
+            "description": "可以通过 JSONPath 语法来提取响应值中的指定字段",
+            "valueDesc": ""
+          }
+        ]
+      },
+      {
+        "nodeId": "eegHU7czel1c",
+        "name": "代码运行",
+        "intro": "执行一段简单的脚本代码，通常用于进行复杂的数据处理。",
+        "avatar": "core/workflow/template/codeRun",
+        "flowNodeType": "code",
+        "showStatus": true,
+        "position": {
+          "x": 1283.5017487605994,
+          "y": -359.32841406751083
+        },
+        "version": "482",
+        "inputs": [
+          {
+            "key": "system_addInputParam",
+            "renderTypeList": [
+              "addInputParam"
+            ],
+            "valueType": "dynamic",
+            "label": "",
+            "required": false,
+            "description": "workflow:these_variables_will_be_input_parameters_for_code_execution",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "codeType",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "label": "",
+            "value": "js",
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "code",
+            "renderTypeList": [
+              "custom"
+            ],
+            "label": "",
+            "value": "function main({ excludeTags, includeTags, formats }) {\n    return {\n        excludeTags: excludeTags.split(\",\")\n            .map(item => item.trim())\n            .filter(item => item !== \"\"),\n        includeTags: includeTags.split(\",\")\n            .map(item => item.trim())\n            .filter(item => item !== \"\"),\n        formats: formats.split(\",\")\n            .map(item => item.trim())\n            .filter(item => item !== \"\")\n    }\n}",
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "string",
+            "canEdit": true,
+            "key": "excludeTags",
+            "label": "excludeTags",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "required": true,
+            "value": [
+              "pluginInput",
+              "excludeTags"
+            ],
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "string",
+            "canEdit": true,
+            "key": "includeTags",
+            "label": "includeTags",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "required": true,
+            "value": [
+              "pluginInput",
+              "includeTags"
+            ],
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "string",
+            "canEdit": true,
+            "key": "formats",
+            "label": "formats",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "required": true,
+            "value": [
+              "pluginInput",
+              "formats"
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "system_rawResponse",
+            "key": "system_rawResponse",
+            "label": "workflow:full_response_data",
+            "valueType": "object",
+            "type": "static",
+            "description": ""
+          },
+          {
+            "id": "error",
+            "key": "error",
+            "label": "workflow:execution_error",
+            "description": "代码运行错误信息，成功时返回空",
+            "valueType": "object",
+            "type": "static"
+          },
+          {
+            "id": "system_addOutputParam",
+            "key": "system_addOutputParam",
+            "type": "dynamic",
+            "valueType": "dynamic",
+            "label": "",
+            "customFieldConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectApp",
+                "selectDataset"
+              ],
+              "showDescription": false,
+              "showDefaultValue": false
+            },
+            "description": "将代码中 return 的对象作为输出，传递给后续的节点。变量名需要对应 return 的 key",
+            "valueDesc": ""
+          },
+          {
+            "id": "qLUQfhG0ILRX",
+            "type": "dynamic",
+            "key": "excludeTags",
+            "valueType": "arrayString",
+            "label": "excludeTags",
+            "valueDesc": "",
+            "description": ""
+          },
+          {
+            "id": "gR0mkQpJ4Og8",
+            "type": "dynamic",
+            "key": "includeTags",
+            "valueType": "arrayString",
+            "label": "includeTags",
+            "valueDesc": "",
+            "description": ""
+          },
+          {
+            "id": "dyQLxhPoRjiJ",
+            "valueType": "arrayString",
+            "type": "dynamic",
+            "key": "formats",
+            "label": "formats"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "zCJC6zw7c14i",
+        "target": "pluginOutput",
+        "sourceHandle": "zCJC6zw7c14i-source-right",
+        "targetHandle": "pluginOutput-target-left"
+      },
+      {
+        "source": "pluginInput",
+        "target": "eegHU7czel1c",
+        "sourceHandle": "pluginInput-source-right",
+        "targetHandle": "eegHU7czel1c-target-left"
+      },
+      {
+        "source": "eegHU7czel1c",
+        "target": "zCJC6zw7c14i",
+        "sourceHandle": "eegHU7czel1c-source-right",
+        "targetHandle": "zCJC6zw7c14i-target-left"
+      }
+    ],
+    "chatConfig": {
+      "welcomeText": "",
+      "variables": [],
+      "questionGuide": {
+        "open": false,
+        "model": "gpt-4o-mini",
+        "customPrompt": "You are an AI assistant tasked with predicting the user's next question based on the conversation history. Your goal is to generate 3 potential questions that will guide the user to continue the conversation. When generating these questions, adhere to the following rules:\n\n1. Use the same language as the user's last question in the conversation history.\n2. Keep each question under 20 characters in length.\n\nAnalyze the conversation history provided to you and use it as context to generate relevant and engaging follow-up questions. Your predictions should be logical extensions of the current topic or related areas that the user might be interested in exploring further.\n\nRemember to maintain consistency in tone and style with the existing conversation while providing diverse options for the user to choose from. Your goal is to keep the conversation flowing naturally and help the user delve deeper into the subject matter or explore related topics."
+      },
+      "ttsConfig": {
+        "type": "web"
+      },
+      "whisperConfig": {
+        "open": false,
+        "autoSend": false,
+        "autoTTSResponse": false
+      },
+      "chatInputGuide": {
+        "open": false,
+        "textList": [],
+        "customUrl": ""
+      },
+      "instruction": "爬取任意网站转换成干净的数据。如果使用官方云服务，无需填写apiUrl，只要填写apiKey。如果使用开源版自行部署，根据部署情况填写apiKey和apiUrl。",
+      "autoExecute": {
+        "open": false,
+        "defaultPrompt": ""
+      },
+      "_id": "6784ba2c227f92f6c723ead0"
+    }
+  }
+}

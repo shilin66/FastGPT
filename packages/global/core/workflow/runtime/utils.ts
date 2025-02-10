@@ -9,6 +9,7 @@ import { isValidReferenceValueFormat } from '../utils';
 import { FlowNodeOutputItemType, ReferenceValueType } from '../type/io';
 import { ChatItemType, NodeOutputItemType } from '../../../core/chat/type';
 import { ChatItemValueTypeEnum, ChatRoleEnum } from '../../../core/chat/constants';
+import { replaceVariable } from '../../../common/string/tools';
 
 export const getMaxHistoryLimitFromNodes = (nodes: StoreNodeItemType[]): number => {
   let limit = 10;
@@ -284,9 +285,13 @@ export const formatVariableValByType = (val: any, valueType?: WorkflowIOValueTyp
   if (!valueType) return val;
   // Value type check, If valueType invalid, return undefined
   if (valueType.startsWith('array') && !Array.isArray(val)) return undefined;
-  if (valueType === WorkflowIOValueTypeEnum.boolean && typeof val !== 'boolean') return undefined;
-  if (valueType === WorkflowIOValueTypeEnum.number && typeof val !== 'number') return undefined;
-  if (valueType === WorkflowIOValueTypeEnum.string && typeof val !== 'string') return undefined;
+  if (valueType === WorkflowIOValueTypeEnum.boolean) return Boolean(val);
+  if (valueType === WorkflowIOValueTypeEnum.number) return Number(val);
+  if (valueType === WorkflowIOValueTypeEnum.string) {
+    if (val === undefined) return 'undefined';
+    if (val === null) return 'null';
+    return typeof val === 'object' ? JSON.stringify(val) : String(val);
+  }
   if (
     [
       WorkflowIOValueTypeEnum.object,
@@ -312,6 +317,8 @@ export function replaceEditorVariable({
   variables: Record<string, any>; // global variables
 }) {
   if (typeof text !== 'string') return text;
+
+  text = replaceVariable(text, variables);
 
   const variablePattern = /\{\{\$([^.]+)\.([^$]+)\$\}\}/g;
   const matches = [...text.matchAll(variablePattern)];

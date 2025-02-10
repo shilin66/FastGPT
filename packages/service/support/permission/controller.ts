@@ -24,6 +24,9 @@ import { getGroupsByTmbId } from './memberGroup/controllers';
 import { Permission } from '@fastgpt/global/support/permission/controller';
 import { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
+import { MemberGroupSchemaType } from '@fastgpt/global/support/permission/memberGroup/type';
+import { TeamMemberSchema } from '@fastgpt/global/support/user/team/type';
+import { UserModelSchema } from '@fastgpt/global/support/user/type';
 import { MongoApp } from '../../core/app/schema';
 import { MongoDataset } from '../../core/dataset/schema';
 
@@ -155,26 +158,6 @@ export async function getResourceClbsAndGroups({
   ).lean();
 }
 
-export async function getResourceAllClbsWithUser({
-  resourceId,
-  teamId,
-  resourceType
-}: {
-  resourceId: ParentIdType;
-  teamId: string;
-  resourceType: PerResourceTypeEnum;
-}): Promise<ResourcePerWithTmbWithUser[]> {
-  if (!resourceId) return [];
-
-  const res = (await MongoResourcePermission.find({
-    resourceId,
-    resourceType: resourceType,
-    teamId: teamId
-  }).populate({ path: 'tmbId', populate: { path: 'userId' } })) as ResourcePerWithTmbWithUser[];
-
-  return res;
-}
-
 export const getClbsAndGroupsWithInfo = async ({
   resourceId,
   resourceType,
@@ -185,32 +168,33 @@ export const getClbsAndGroupsWithInfo = async ({
   teamId: string;
 }) =>
   Promise.all([
-    (await MongoResourcePermission.find({
+    await MongoResourcePermission.find({
       teamId,
       resourceId,
       resourceType,
       tmbId: {
         $exists: true
       }
-    }).populate({
-      path: 'tmbId',
-      select: 'name userId',
-      populate: {
-        path: 'userId',
-        select: 'username avatar'
-      }
-    })) as ResourcePerWithTmbWithUser[],
-    (await MongoResourcePermission.find({
+    })
+      .populate<{ tmb: TeamMemberSchema & { user: UserModelSchema } }>({
+        path: 'tmb',
+        select: 'name userId',
+        populate: {
+          path: 'user',
+          select: 'username avatar'
+        }
+      })
+      .lean(),
+    await MongoResourcePermission.find({
       teamId,
       resourceId,
       resourceType,
       groupId: {
         $exists: true
       }
-    }).populate({
-      path: 'groupId',
-      select: 'name avatar'
-    })) as ResourcePerWithGroup[]
+    })
+      .populate<{ group: MemberGroupSchemaType }>('group', 'name avatar')
+      .lean()
   ]);
 
 export const delResourcePermissionById = (id: string) => {
@@ -588,28 +572,28 @@ export async function listCollaborator(
     //  判断item是ResourcePerWithTmbWithUser[]类型
     item.map((per) => {
       if (per.tmbId) {
-        const rpt = per as ResourcePerWithTmbWithUser;
+        const rpt = per as unknown as ResourcePerWithTmbWithUser;
         result.push({
           teamId: rpt.teamId,
-          tmbId: rpt.tmbId._id,
+          tmbId: rpt.tmb._id,
           permission: new Permission({
             per: rpt.permission,
-            isOwner: String(resource.tmbId) === String(rpt.tmbId._id)
+            isOwner: String(resource.tmbId) === String(rpt.tmb._id)
           }),
-          name: rpt.tmbId.name,
-          avatar: rpt.tmbId.userId.avatar
+          name: rpt.tmb.name,
+          avatar: rpt.tmb.user.avatar
         });
       }
       if (per.groupId) {
-        const rpg = per as ResourcePerWithGroup;
+        const rpg = per as unknown as ResourcePerWithGroup;
         result.push({
           teamId: rpg.teamId,
-          groupId: rpg.groupId._id,
+          groupId: rpg.group._id,
           permission: new Permission({
             per: rpg.permission
           }),
-          name: rpg.groupId.name,
-          avatar: rpg.groupId.avatar
+          name: rpg.group.name,
+          avatar: rpg.group.avatar
         });
       }
     });

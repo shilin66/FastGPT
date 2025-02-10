@@ -16,6 +16,8 @@ import { findAppAndAllChildren } from '@fastgpt/service/core/app/controller';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import { ClientSession } from '@fastgpt/service/common/mongo';
 import { deleteChatFiles } from '@fastgpt/service/core/chat/controller';
+import { pushTrack } from '@fastgpt/service/common/middle/tracks/utils';
+import { MongoOpenApi } from '@fastgpt/service/support/openapi/schema';
 
 async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   const { appId } = req.query as { appId: string };
@@ -25,12 +27,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   }
 
   // Auth owner (folder owner, can delete all apps in the folder)
-  const { teamId } = await authApp({ req, authToken: true, appId, per: OwnerPermissionVal });
+  const { teamId, tmbId, userId, app } = await authApp({
+    req,
+    authToken: true,
+    appId,
+    per: OwnerPermissionVal
+  });
 
   await onDelOneApp({
     teamId,
     appId
   });
+
+  // Tracks
+  pushTrack.countAppNodes({ teamId, tmbId, uid: userId, appId });
 }
 
 export default NextAPI(handler);
@@ -67,34 +77,31 @@ export const onDelOneApp = async ({
         },
         { session }
       );
+
       // 删除分享链接
-      await MongoOutLink.deleteMany(
-        {
-          appId
-        },
-        { session }
-      );
+      await MongoOutLink.deleteMany({
+        appId
+      }).session(session);
+      // Openapi
+      await MongoOpenApi.deleteMany({
+        appId
+      }).session(session);
+
       // delete version
-      await MongoAppVersion.deleteMany(
-        {
-          appId
-        },
-        { session }
-      );
-      await MongoChatInputGuide.deleteMany(
-        {
-          appId
-        },
-        { session }
-      );
-      await MongoResourcePermission.deleteMany(
-        {
-          resourceType: PerResourceTypeEnum.app,
-          teamId,
-          resourceId: appId
-        },
-        { session }
-      );
+      await MongoAppVersion.deleteMany({
+        appId
+      }).session(session);
+
+      await MongoChatInputGuide.deleteMany({
+        appId
+      }).session(session);
+
+      await MongoResourcePermission.deleteMany({
+        resourceType: PerResourceTypeEnum.app,
+        teamId,
+        resourceId: appId
+      }).session(session);
+
       // delete app
       await MongoApp.deleteOne(
         {

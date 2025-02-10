@@ -10,7 +10,7 @@ import {
 } from './constants';
 import { DatasetPermission } from '../../support/permission/dataset/controller';
 import { Permission } from '../../support/permission/controller';
-import { APIFileServer } from './apiDataset';
+import { APIFileServer, FeishuServer, YuqueServer } from './apiDataset';
 import { ImportProcessWayEnum } from '../../../../projects/app/src/web/core/dataset/constants';
 
 export type DatasetSchemaType = {
@@ -45,6 +45,8 @@ export type DatasetSchemaType = {
   };
   inheritPermission: boolean;
   apiServer?: APIFileServer;
+  feishuServer?: FeishuServer;
+  yuqueServer?: YuqueServer;
 
   autoSync?: boolean;
 
@@ -149,11 +151,8 @@ export type DatasetTrainingSchemaType = {
   indexes: Omit<DatasetDataIndexItemType, 'dataId'>[];
 };
 
-export type CollectionWithDatasetType = Omit<DatasetCollectionSchemaType, 'datasetId'> & {
-  datasetId: DatasetSchemaType;
-};
-export type DatasetDataWithCollectionType = Omit<DatasetDataSchemaType, 'collectionId'> & {
-  collectionId: DatasetCollectionSchemaType;
+export type CollectionWithDatasetType = DatasetCollectionSchemaType & {
+  dataset: DatasetSchemaType;
 };
 
 /* ================= dataset ===================== */
