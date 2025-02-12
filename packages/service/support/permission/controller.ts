@@ -11,6 +11,7 @@ import { ClientSession } from 'mongoose';
 import {
   PermissionValueType,
   ResourcePerWithGroup,
+  ResourcePerWithOrg,
   ResourcePerWithTmbWithUser
 } from '@fastgpt/global/support/permission/type';
 import {
@@ -29,6 +30,8 @@ import { OrgSchemaType } from '@fastgpt/global/support/user/team/org/type';
 import { getOrgIdSetWithParentByTmbId } from './org/controllers';
 import { MongoApp } from '../../core/app/schema';
 import { MongoDataset } from '../../core/dataset/schema';
+import { AppPermission } from '@fastgpt/global/support/permission/app/controller';
+import { DatasetPermission } from '@fastgpt/global/support/permission/dataset/controller';
 
 /** get resource permission for a team member
  * If there is no permission for the team member, it will return undefined
@@ -466,75 +469,59 @@ export async function updateCollaborators(
   resourceId: string,
   teamId: string
 ) {
-  const { members, groups, permission } = updateClbPermissionProps;
-
-  const existPermissions = await MongoResourcePermission.find({
-    resourceType,
-    resourceId,
-    teamId
-  });
-  const existPermissionMemberMap: { [key: string]: any } = {};
-  const existPermissionGroupMap: { [key: string]: any } = {};
-  existPermissions.map((item) => {
-    if (item.tmbId) {
-      existPermissionMemberMap[item.tmbId.toString()] = item;
-    }
-    if (item.groupId) {
-      existPermissionGroupMap[item.groupId.toString()] = item;
-    }
-  });
+  const { members, groups, orgs, permission } = updateClbPermissionProps;
 
   if (members && members.length > 0) {
     await Promise.all(
       members.map(async (tmbId) => {
-        if (existPermissionMemberMap[tmbId]) {
-          await MongoResourcePermission.updateOne(
-            {
-              resourceType,
-              resourceId,
-              tmbId,
-              teamId
-            },
-            {
-              permission
-            }
-          );
-        } else {
-          await MongoResourcePermission.create({
+        await MongoResourcePermission.updateOne(
+          {
             resourceType,
             resourceId,
             tmbId,
-            teamId,
-            permission
-          });
-        }
+            teamId
+          },
+          {
+            $set: { permission }
+          },
+          { upsert: true }
+        );
       })
     );
   }
   if (groups && groups.length > 0) {
     await Promise.all(
       groups.map(async (groupId) => {
-        if (existPermissionGroupMap[groupId]) {
-          await MongoResourcePermission.updateOne(
-            {
-              resourceType,
-              resourceId,
-              groupId,
-              teamId
-            },
-            {
-              permission
-            }
-          );
-        } else {
-          await MongoResourcePermission.create({
+        await MongoResourcePermission.updateOne(
+          {
             resourceType,
             resourceId,
             groupId,
-            teamId,
-            permission
-          });
-        }
+            teamId
+          },
+          {
+            $set: { permission }
+          },
+          { upsert: true }
+        );
+      })
+    );
+  }
+  if (orgs && orgs.length > 0) {
+    await Promise.all(
+      orgs.map(async (orgId) => {
+        await MongoResourcePermission.updateOne(
+          {
+            resourceType,
+            resourceId,
+            orgId,
+            teamId
+          },
+          {
+            $set: { permission }
+          },
+          { upsert: true }
+        );
       })
     );
   }
@@ -551,6 +538,10 @@ export async function listCollaborator(
     teamId
   });
   let resource: any = {};
+  const PermissionClass =
+    resourceType === PerResourceTypeEnum.app ? AppPermission : DatasetPermission;
+  const per = new AppPermission();
+  per.addPer();
   if (resourceType === PerResourceTypeEnum.app) {
     resource = await MongoApp.findById(resourceId);
   } else if (resourceType === PerResourceTypeEnum.dataset) {
@@ -567,12 +558,12 @@ export async function listCollaborator(
         result.push({
           teamId: rpt.teamId,
           tmbId: rpt.tmb._id,
-          permission: new Permission({
+          permission: new PermissionClass({
             per: rpt.permission,
             isOwner: String(resource.tmbId) === String(rpt.tmb._id)
           }),
           name: rpt.tmb.name,
-          avatar: rpt.tmb.user.avatar
+          avatar: rpt.tmb.avatar
         });
       }
       if (per.groupId) {
@@ -580,11 +571,24 @@ export async function listCollaborator(
         result.push({
           teamId: rpg.teamId,
           groupId: rpg.group._id,
-          permission: new Permission({
+          permission: new PermissionClass({
             per: rpg.permission
           }),
           name: rpg.group.name,
           avatar: rpg.group.avatar
+        });
+      }
+
+      if (per.orgId) {
+        const rpo = per as ResourcePerWithOrg;
+        result.push({
+          teamId: rpo.teamId,
+          orgId: rpo.org._id,
+          permission: new PermissionClass({
+            per: rpo.permission
+          }),
+          name: rpo.org.name,
+          avatar: rpo.org.avatar || ''
         });
       }
     });

@@ -12,7 +12,7 @@ import { AuthModeType, AuthResponseType } from '../type';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
 import { getTmbInfoByTmbId } from '../../user/team/controller';
-import { TeamDefaultPermissionVal } from '@fastgpt/global/support/permission/user/constant';
+import { MongoResourcePermission } from '../schema';
 
 /**
  * Get the default group of a team

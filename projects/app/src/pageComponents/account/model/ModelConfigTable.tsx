@@ -899,6 +899,19 @@ const ModelEditModal = ({
                   <Tr>
                     <Td>
                       <HStack spacing={1}>
+                        <Box>{t('account:model.tool_choice_stream')}</Box>
+                        <QuestionTip label={t('account:model.tool_choice_stream_tip')} />
+                      </HStack>
+                    </Td>
+                    <Td textAlign={'right'}>
+                      <Flex justifyContent={'flex-end'}>
+                        <Switch {...register('toolChoiceStream')} />
+                      </Flex>
+                    </Td>
+                  </Tr>
+                  <Tr>
+                    <Td>
+                      <HStack spacing={1}>
                         <Box>{t('account:model.function_call')}</Box>
                         <QuestionTip label={t('account:model.function_call_tip')} />
                       </HStack>
@@ -906,6 +919,19 @@ const ModelEditModal = ({
                     <Td textAlign={'right'}>
                       <Flex justifyContent={'flex-end'}>
                         <Switch {...register('functionCall')} />
+                      </Flex>
+                    </Td>
+                  </Tr>
+                  <Tr>
+                    <Td>
+                      <HStack spacing={1}>
+                        <Box>{t('account:model.function_call_stream')}</Box>
+                        <QuestionTip label={t('account:model.function_call_stream_tip')} />
+                      </HStack>
+                    </Td>
+                    <Td textAlign={'right'}>
+                      <Flex justifyContent={'flex-end'}>
+                        <Switch {...register('functionCallStream')} />
                       </Flex>
                     </Td>
                   </Tr>

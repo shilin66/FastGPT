@@ -17,16 +17,12 @@ type ReRankCallResult = { id: string; score?: number }[];
 export function reRankRecall({
   model = getDefaultRerankModel(),
   query,
-  reRankModel,
   documents
 }: {
   model?: ReRankModelItemType;
   query: string;
-  reRankModel: string;
   documents: { id: string; text: string }[];
 }): Promise<ReRankCallResult> {
-  const model = getReRankModel(reRankModel);
-
   if (!model) {
     return Promise.reject('no rerank model');
   }
