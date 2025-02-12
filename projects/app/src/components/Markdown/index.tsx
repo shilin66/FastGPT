@@ -13,6 +13,7 @@ import dynamic from 'next/dynamic';
 
 import { Box } from '@chakra-ui/react';
 import { CodeClassNameEnum } from './utils';
+import { useTranslation } from 'next-i18next';
 
 const CodeLight = dynamic(() => import('./codeBlock/CodeLight'), { ssr: false });
 const MermaidCodeBlock = dynamic(() => import('./img/MermaidCodeBlock'), { ssr: false });

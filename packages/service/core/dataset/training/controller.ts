@@ -34,7 +34,6 @@ import { MongoDataset } from '../schema';
 import pLimit from 'p-limit';
 import { Converter } from '../../../common/confluence/adf2md';
 import { uploadMongoImg } from '../../../common/file/image/controller';
-import { MongoImageTypeEnum } from '@fastgpt/global/common/file/image/constants';
 import adf2md = Converter.adf2md;
 import parseADF = Converter.parseADF;
 import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
@@ -363,7 +362,7 @@ export const trainConfluenceCollection = async ({
                 );
                 const mime = imgBase64.split(';')[0].split(':')[1];
                 const src = await uploadMongoImg({
-                  type: MongoImageTypeEnum.collectionImage,
+                  // type: MongoImageTypeEnum.collectionImage,
                   base64Img: imgBase64,
                   teamId,
                   metadata: {

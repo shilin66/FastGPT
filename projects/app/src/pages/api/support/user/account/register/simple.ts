@@ -58,14 +58,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     ]);
 
     // MongoResourcePermission 添加团队默认权限只读
-    await MongoResourcePermission.create([
-      {
-        resourceType: PerResourceTypeEnum.team,
-        tmbId: tmbId,
-        teamId: defaultTeam._id,
-        permission: PermissionList['read'].value
-      }
-    ]);
+    // await MongoResourcePermission.create([
+    //   {
+    //     resourceType: PerResourceTypeEnum.team,
+    //     tmbId: tmbId,
+    //     teamId: defaultTeam._id,
+    //     permission: PermissionList['read'].value
+    //   }
+    // ]);
 
     const userDetail = await getUserDetail({
       tmbId: defaultTeam._id,

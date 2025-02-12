@@ -10,7 +10,7 @@ import { deleteCollaborators, listCollaborator, updateCollaborators } from '../c
 import { MongoResourcePermission } from '../schema';
 
 export async function updateAppCollaborators(updateAppCollaboratorBody: UpdateAppCollaboratorBody) {
-  const { appId, members, groups, permission } = updateAppCollaboratorBody;
+  const { appId, members, groups, orgs, permission } = updateAppCollaboratorBody;
 
   const app = await MongoApp.findById(appId).lean();
   if (!app) {
@@ -18,7 +18,7 @@ export async function updateAppCollaborators(updateAppCollaboratorBody: UpdateAp
   }
 
   await updateCollaborators(
-    { members, groups, permission },
+    { members, groups, orgs, permission },
     PerResourceTypeEnum.app,
     appId,
     app.teamId

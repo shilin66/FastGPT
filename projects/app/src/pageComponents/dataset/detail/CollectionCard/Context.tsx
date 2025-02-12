@@ -18,9 +18,9 @@ import { usePagination } from '@fastgpt/web/hooks/usePagination';
 import { DatasetCollectionsListItemType } from '@/global/core/dataset/type';
 import { useRouter } from 'next/router';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
-import DatasetImportContextProvider from '@/pages/dataset/detail/components/Import/Context';
 import { ImportProcessWayEnum } from '@/web/core/dataset/constants';
 import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
+import DatasetImportContextProvider from '@/pageComponents/dataset/detail/Import/Context';
 
 const WebSiteConfigModal = dynamic(() => import('./WebsiteConfig'));
 const ConfluenceConfigModal = dynamic(() => import('./ConfluenceConfig'));

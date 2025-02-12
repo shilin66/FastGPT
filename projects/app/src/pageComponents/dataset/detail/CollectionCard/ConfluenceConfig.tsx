@@ -13,21 +13,20 @@ import {
   Switch,
   useDisclosure
 } from '@chakra-ui/react';
-import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useForm } from 'react-hook-form';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import NextLink from 'next/link';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
-import DataProcess from '@/pages/dataset/detail/components/Import/commonProgress/DataProcess';
 import { useContextSelector } from 'use-context-selector';
-import { DatasetImportContext } from '@/pages/dataset/detail/components/Import/Context';
 import { ImportProcessWayEnum } from '@/web/core/dataset/constants';
 import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
 import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
+import DataProcess from '@/pageComponents/dataset/detail/Import/commonProgress/DataProcess';
+import { DatasetImportContext } from '@/pageComponents/dataset/detail/Import/Context';
 
 const ConfluenceConfigModal = ({
   onClose,
@@ -51,7 +50,6 @@ const ConfluenceConfigModal = ({
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
   const { userInfo } = useUserStore();
-  const { toast } = useToast();
   const processParamsForm = useContextSelector(DatasetImportContext, (v) => v.processParamsForm);
   const datasetDetail = useContextSelector(DatasetPageContext, (v) => v.datasetDetail);
   const { register, handleSubmit, watch, setValue } = useForm({

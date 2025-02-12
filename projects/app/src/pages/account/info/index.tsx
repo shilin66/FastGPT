@@ -42,7 +42,7 @@ import AccountContainer from '@/pageComponents/account/AccountContainer';
 import { serviceSideProps } from '@fastgpt/web/common/system/nextjs';
 import { useRouter } from 'next/router';
 import TeamSelector from '@/pageComponents/account/TeamSelector';
-import ConfluenceAccountModal from '@/pages/account/info/components/ConfluenceAccountModal';
+import ConfluenceAccountModal from '@/pageComponents/account/info/ConfluenceAccountModal';
 
 const StandDetailModal = dynamic(
   () => import('@/pageComponents/account/info/standardDetailModal'),

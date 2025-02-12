@@ -125,9 +125,9 @@ const Layout = ({ children }: { children: JSX.Element }) => {
           {!!userInfo && <UpdateInviteModal />}
           {notSufficientModalType && <NotSufficientModal type={notSufficientModalType} />}
           {/*{!!userInfo && <SystemMsgModal />}*/}
-          {showUpdateNotification && (
-            <UpdateNotification onClose={() => setIsUpdateNotification(false)} />
-          )}
+          {/*{showUpdateNotification && (*/}
+          {/*  <UpdateNotification onClose={() => setIsUpdateNotification(false)} />*/}
+          {/*)}*/}
           {!!userInfo && importantInforms.length > 0 && (
             <ImportantInform informs={importantInforms} refetch={refetchUnRead} />
           )}
