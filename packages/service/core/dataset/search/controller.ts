@@ -45,7 +45,7 @@ export type SearchDatasetDataProps = {
   [NodeInputKeyEnum.datasetMaxTokens]: number; // max Token limit
   [NodeInputKeyEnum.datasetSearchMode]?: `${DatasetSearchModeEnum}`;
   [NodeInputKeyEnum.datasetSearchUsingReRank]?: boolean;
-  reRankModel?: string;
+  [NodeInputKeyEnum.datasetSearchReRankModel]?: string;
 
   /*
     {
@@ -81,9 +81,11 @@ export type SearchDatasetDataResponse = {
 };
 
 export const datasetDataReRank = async ({
+  reRankModel,
   data,
   query
 }: {
+  reRankModel?: string;
   data: SearchDataResponseItemType[];
   query: string;
 }): Promise<SearchDataResponseItemType[]> => {
@@ -644,6 +646,7 @@ export async function searchDatasetData(
     });
     try {
       return await datasetDataReRank({
+        reRankModel,
         query: reRankQuery,
         data: filterSameDataResults
       });
