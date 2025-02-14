@@ -123,10 +123,10 @@ ${quotedContent}
     // 保护 URL 格式：https://, http://, /api/xxx
     const urlPlaceholders: string[] = [];
     const textWithProtectedUrls = think.replace(
-      /(https?:\/\/[^\s<]+[^<.,:;"')\]\s]|\/api\/[^\s]+)(?=\s|$)/g,
+      /https?:\/\/(?:(?:[\w-]+\.)+[a-zA-Z]{2,6}|localhost)(?::\d{2,5})?(?:\/[\w\-./?%&=@]*)?/g,
       (match) => {
         urlPlaceholders.push(match);
-        return `__URL_${urlPlaceholders.length - 1}__`;
+        return `__URL_${urlPlaceholders.length - 1}__ `;
       }
     );
 
@@ -138,14 +138,14 @@ ${quotedContent}
       )
       // 处理引用标记
       .replace(/\n*(\[QUOTE SIGN\]\(.*\))/g, '$1')
-      // 处理 [quote:id] 格式引用，将 [quote:675934a198f46329dfc6d05a] 转换为 [675934a198f46329dfc6d05a]()
+      // 处理 [quote:id] 格式引用，将 [quote:675934a198f46329dfc6d05a] 转换为 [675934a198f46329dfc6d05a](QUOTE)
       .replace(/\[quote:?\s*([a-f0-9]{24})\](?!\()/gi, '[$1](QUOTE)')
       .replace(/\[([a-f0-9]{24})\](?!\()/g, '[$1](QUOTE)');
 
     // 还原 URL
     const finalText = textWithSpaces.replace(
       /__URL_(\d+)__/g,
-      (_, index) => urlPlaceholders[parseInt(index)]
+      (_, index) => `${urlPlaceholders[parseInt(index)]}`
     );
 
     return finalText;

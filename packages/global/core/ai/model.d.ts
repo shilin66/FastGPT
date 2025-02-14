@@ -26,10 +26,15 @@ type BaseModelItemType = {
 export type LLMModelItemType = PriceType &
   BaseModelItemType & {
     type: ModelTypeEnum.llm;
+    // Model params
     maxContext: number;
     maxResponse: number;
     quoteMaxToken: number;
     maxTemperature?: number;
+
+    showTopP?: boolean;
+    responseFormatList?: string[];
+    showStopSign?: boolean;
 
     censor?: boolean;
     vision?: boolean;
@@ -63,6 +68,7 @@ export type EmbeddingModelItemType = PriceType &
     weight: number; // training weight
     aiSearch?: boolean;
     hidden?: boolean; // Disallow creation
+    normalization?: boolean; // normalization processing
     defaultConfig?: Record<string, any>; // post request config
     dbConfig?: Record<string, any>; // Custom parameters for storage
     queryConfig?: Record<string, any>; // Custom parameters for query
