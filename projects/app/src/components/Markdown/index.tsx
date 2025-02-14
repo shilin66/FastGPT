@@ -116,7 +116,7 @@ ${quotedContent}
   const formatSource = useMemo(() => {
     const latex = source
       .replace(/\\\(.*?\\\)/g, (match) => `$${match.slice(2, -2)}$`)
-      .replace(/\\\[.*?\\\]/gs, (match) => `$$${match.slice(2, -2)}$$`);
+      .replace(/\\\[.*?\\\]/gs, (match) => `\n$$\n${match.slice(2, -2)}\n$$\n`);
     const think = converterThinkTags(latex);
     if (showAnimation || forbidZhFormat) return think;
 
