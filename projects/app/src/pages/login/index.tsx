@@ -29,6 +29,7 @@ import { GET } from '@/web/common/api/request';
 import { getDocPath } from '@/web/common/system/doc';
 import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 import LoginForm from '@/pageComponents/login/LoginForm/LoginForm';
+import { useToast } from '@fastgpt/web/hooks/useToast';
 
 const RegisterForm = dynamic(() => import('@/pageComponents/login/RegisterForm'));
 const ForgetPasswordForm = dynamic(() => import('@/pageComponents/login/ForgetPasswordForm'));
@@ -47,6 +48,7 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
   const { setLastChatAppId } = useChatStore();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isPc } = useSystem();
+  const { toast } = useToast();
 
   const {
     isOpen: isOpenCookiesDrawer,
@@ -69,7 +71,7 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
         router.push(navigateTo);
       }, 300);
     },
-    [lastRoute, router, setUserInfo]
+    [setUserInfo, lastRoute, router]
   );
 
   const DynamicComponent = useMemo(() => {

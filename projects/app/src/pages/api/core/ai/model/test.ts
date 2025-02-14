@@ -16,6 +16,7 @@ import { reRankRecall } from '@fastgpt/service/core/ai/rerank';
 import { aiTranscriptions } from '@fastgpt/service/core/ai/audio/transcriptions';
 import { isProduction } from '@fastgpt/global/common/system/constants';
 import * as fs from 'fs';
+import { llmCompletionsBodyFormat } from '@fastgpt/service/core/ai/utils';
 
 export type testQuery = { model: string };
 
@@ -56,23 +57,26 @@ async function handler(
 export default NextAPI(handler);
 
 const testLLMModel = async (model: LLMModelItemType) => {
-  const ai = getAIApi({});
-  const response = await ai.chat.completions.create(
+  const ai = getAIApi({
+    timeout: 10000
+  });
+  const requestBody = llmCompletionsBodyFormat(
     {
       model: model.model,
       messages: [{ role: 'user', content: 'hi' }],
       stream: false,
       max_tokens: 10
     },
-    {
-      ...(model.requestUrl ? { path: model.requestUrl } : {}),
-      headers: model.requestAuth
-        ? {
-            Authorization: `Bearer ${model.requestAuth}`
-          }
-        : undefined
-    }
+    model
   );
+  const response = await ai.chat.completions.create(requestBody, {
+    ...(model.requestUrl ? { path: model.requestUrl } : {}),
+    headers: model.requestAuth
+      ? {
+          Authorization: `Bearer ${model.requestAuth}`
+        }
+      : undefined
+  });
 
   const responseText = response.choices?.[0]?.message?.content;
 
@@ -91,7 +95,9 @@ const testEmbeddingModel = async (model: EmbeddingModelItemType) => {
 };
 
 const testTTSModel = async (model: TTSModelType) => {
-  const ai = getAIApi();
+  const ai = getAIApi({
+    timeout: 10000
+  });
   await ai.audio.speech.create(
     {
       model: model.model,
