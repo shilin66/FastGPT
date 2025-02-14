@@ -12,7 +12,7 @@ import {
   TrainingModeEnum
 } from '@fastgpt/global/core/dataset/constants';
 import { DatasetErrEnum } from '@fastgpt/global/common/error/code/dataset';
-import { readDatasetSourceRawText } from '../read';
+import { rawText2Chunks, readDatasetSourceRawText } from '../read';
 import { hashStr } from '@fastgpt/global/common/string/tools';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { createCollectionAndInsertData, delCollection } from './controller';
@@ -81,10 +81,12 @@ export const reloadConfluencePageCollectionChunks = async ({
   session: ClientSession;
 }): Promise<PushDatasetDataResponse> => {
   // split data
-  const { chunks } = splitText2Chunks({
-    text: rawText,
+  const chunks = rawText2Chunks({
+    rawText,
     chunkLen: collection.chunkSize || 512,
-    customReg: collection.chunkSplitter ? [collection.chunkSplitter] : []
+    overlapRatio: collection.trainingType === TrainingModeEnum.chunk ? 0.2 : 0,
+    customReg: collection.chunkSplitter ? [collection.chunkSplitter] : [],
+    isQAImport: false
   });
 
   // insert to training queue
@@ -101,10 +103,10 @@ export const reloadConfluencePageCollectionChunks = async ({
       datasetId: collection.dataset._id,
       collectionId: collection._id,
       mode: collection.trainingType,
-      prompt: '',
+      prompt: collection.qaPrompt,
       model,
-      q: item,
-      a: '',
+      q: item.q,
+      a: item.a,
       chunkIndex: i
     })),
     { session }
