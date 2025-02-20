@@ -11,9 +11,9 @@ import { useTranslation } from 'next-i18next';
 import type { StartChatFnProps } from '@/components/core/chat/ChatContainer/type';
 import PageContainer from '@/components/PageContainer';
 import SideBar from '@/components/SideBar';
-import ChatHistorySlider from './components/ChatHistorySlider';
-import SliderApps from './components/SliderApps';
-import ChatHeader from './components/ChatHeader';
+import ChatHistorySlider from '@/pageComponents/chat/ChatHistorySlider';
+import SliderApps from '@/pageComponents/chat/SliderApps';
+import ChatHeader from '@/pageComponents/chat/ChatHeader';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import { serviceSideProps } from '@fastgpt/web/common/system/nextjs';
 import { getChatTitleFromChatMessage } from '@fastgpt/global/core/chat/utils';
@@ -37,13 +37,14 @@ import ChatRecordContextProvider, {
   ChatRecordContext
 } from '@/web/core/chat/context/chatRecordContext';
 
-const CustomPluginRunBox = dynamic(() => import('./components/CustomPluginRunBox'));
+const CustomPluginRunBox = dynamic(() => import('@/pageComponents/chat/CustomPluginRunBox'));
 
 const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
   const router = useRouter();
   const theme = useTheme();
   const { t } = useTranslation();
   const { isPc } = useSystem();
+
   const { userInfo } = useUserStore();
   const { setLastChatAppId, chatId, appId, outLinkAuthData } = useChatStore();
 
@@ -186,7 +187,6 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
               apps={myApps}
               history={chatRecords}
               showHistory
-              onRouteToAppDetail={() => router.push(`/app/detail?appId=${appId}`)}
             />
 
             {/* chat box */}
@@ -208,8 +208,6 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
                   feedbackType={'user'}
                   onStartChat={onStartChat}
                   chatType={'chat'}
-                  showRawSource
-                  showNodeStatus
                   isReady={!loading}
                 />
               )}
@@ -221,8 +219,8 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
   );
 };
 
-const Render = (props: { appId: string }) => {
-  const { appId } = props;
+const Render = (props: { appId: string; isStandalone?: string }) => {
+  const { appId, isStandalone } = props;
   const { t } = useTranslation();
   const { toast } = useToast();
   const router = useRouter();
@@ -276,7 +274,12 @@ const Render = (props: { appId: string }) => {
 
   return source === ChatSourceEnum.online ? (
     <ChatContextProvider params={chatHistoryProviderParams}>
-      <ChatItemContextProvider>
+      <ChatItemContextProvider
+        showRouteToAppDetail={isStandalone !== '1'}
+        showRouteToDatasetDetail={isStandalone !== '1'}
+        isShowReadRawSource={true}
+        showNodeStatus
+      >
         <ChatRecordContextProvider params={chatRecordProviderParams}>
           <Chat myApps={myApps} />
         </ChatRecordContextProvider>
@@ -289,6 +292,7 @@ export async function getServerSideProps(context: any) {
   return {
     props: {
       appId: context?.query?.appId || '',
+      isStandalone: context?.query?.isStandalone || '',
       ...(await serviceSideProps(context, ['file', 'app', 'chat', 'workflow']))
     }
   };

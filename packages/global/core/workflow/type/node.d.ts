@@ -43,6 +43,17 @@ export type FlowNodeCommonType = {
   pluginId?: string;
   isFolder?: boolean;
   // pluginType?: AppTypeEnum;
+  pluginData?: PluginDataType;
+};
+
+export type PluginDataType = {
+  version: string;
+  diagram?: string;
+  userGuide?: string;
+  courseUrl?: string;
+  name?: string;
+  avatar?: string;
+  error?: string;
 };
 
 type HandleType = {
@@ -89,6 +100,7 @@ export type NodeTemplateListItemType = {
   hasTokenFee?: boolean; // 是否配置积分
   instructions?: string; // 使用说明
   courseUrl?: string; // 教程链接
+  sourceMember?: SourceMember;
 };
 
 export type NodeTemplateListType = {

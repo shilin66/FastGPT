@@ -1,5 +1,5 @@
 import { createChatCompletion } from '../../../../ai/config';
-import { filterGPTMessageByMaxTokens, loadRequestMessages } from '../../../../chat/utils';
+import { filterGPTMessageByMaxContext, loadRequestMessages } from '../../../../chat/utils';
 import {
   ChatCompletion,
   ChatCompletionMessageToolCall,
@@ -34,23 +34,23 @@ type ToolRunResponseType = {
   toolMsgParams: ChatCompletionToolMessageParam;
 }[];
 
-/*
+/* 
   调用思路：
   先Check 是否是交互节点触发
-
+    
   交互模式：
   1. 从缓存中获取工作流运行数据
   2. 运行工作流
   3. 检测是否有停止信号或交互响应
     - 无：汇总结果，递归运行工具
     - 有：缓存结果，结束调用
-
+  
   非交互模式：
   1. 组合 tools
   2. 过滤 messages
   3. Load request llm messages: system prompt, histories, human question, （assistant responses, tool responses, assistant responses....)
   4. 请求 LLM 获取结果
-
+    
     - 有工具调用
       1. 批量运行工具的工作流，获取结果（工作流原生结果，工具执行结果）
       2. 合并递归中，所有工具的原生运行结果
@@ -93,7 +93,15 @@ export const runToolWithToolChoice = async (
     stream,
     externalProvider,
     workflowStreamResponse,
-    params: { temperature, maxToken, aiChatVision }
+    params: {
+      temperature,
+      maxToken,
+      aiChatVision,
+      aiChatTopP,
+      aiChatStopSign,
+      aiChatResponseFormat,
+      aiChatJsonSchema
+    }
   } = workflowProps;
 
   if (maxRunToolTimes <= 0 && response) {
@@ -210,7 +218,7 @@ export const runToolWithToolChoice = async (
       properties[item.key] = {
         ...jsonSchema,
         description: item.toolDescription || '',
-        enum: item.enum?.split('\n').filter(Boolean) || []
+        enum: item.enum?.split('\n').filter(Boolean) || undefined
       };
     });
 
@@ -227,11 +235,17 @@ export const runToolWithToolChoice = async (
       }
     };
   });
+
+  const max_tokens = computedMaxToken({
+    model: toolModel,
+    maxToken
+  });
+
   // Filter histories by maxToken
   const filterMessages = (
-    await filterGPTMessageByMaxTokens({
+    await filterGPTMessageByMaxContext({
       messages,
-      maxTokens: toolModel.maxContext - 300 // filter token. not response maxToken
+      maxContext: toolModel.maxContext - (max_tokens || 0) // filter token. not response maxToken
     })
   ).map((item) => {
     if (item.role === 'assistant' && item.tool_calls) {
@@ -247,16 +261,11 @@ export const runToolWithToolChoice = async (
     return item;
   });
 
-  const [requestMessages, max_tokens] = await Promise.all([
+  const [requestMessages] = await Promise.all([
     loadRequestMessages({
       messages: filterMessages,
       useVision: toolModel.vision && aiChatVision,
       origin: requestOrigin
-    }),
-    computedMaxToken({
-      model: toolModel,
-      maxToken,
-      filterMessages
     })
   ]);
   const { canStream, toolList } = (() => {
@@ -270,16 +279,20 @@ export const runToolWithToolChoice = async (
   const requestBody = llmCompletionsBodyFormat(
     {
       model: toolModel.model,
-      temperature,
-      max_tokens,
       stream: canStream,
       messages: requestMessages,
       tools: toolList,
-      tool_choice: 'auto'
+      tool_choice: 'auto',
+      temperature,
+      max_tokens,
+      top_p: aiChatTopP,
+      stop: aiChatStopSign,
+      response_format: aiChatResponseFormat,
+      json_schema: aiChatJsonSchema
     },
     toolModel
   );
-  // console.log(JSON.stringify(requestBody, null, 2), '==requestBody');
+  // console.log(JSON.stringify(requestMessages, null, 2), '==requestBody');
   /* Run llm */
   const {
     response: aiResponse,
@@ -458,7 +471,7 @@ export const runToolWithToolChoice = async (
       }
     ];
 
-    /*
+    /* 
         ...
         user
         assistant: tool data
@@ -472,7 +485,7 @@ export const runToolWithToolChoice = async (
     const inputTokens = await countGptMessagesTokens(requestMessages, tools);
     const outputTokens = await countGptMessagesTokens(assistantToolMsgParams);
 
-    /*
+    /* 
       ...
       user
       assistant: tool data
@@ -483,7 +496,7 @@ export const runToolWithToolChoice = async (
       ...toolsRunResponse.map((item) => item?.toolMsgParams)
     ];
 
-    /*
+    /* 
       Get tool node assistant response
       history assistant
       current tool assistant

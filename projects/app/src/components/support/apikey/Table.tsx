@@ -26,7 +26,7 @@ import {
 import type { EditApiKeyProps } from '@/global/support/openapi/api.d';
 import dayjs from 'dayjs';
 import { AddIcon } from '@chakra-ui/icons';
-import { useCopyData } from '@/web/common/hooks/useCopyData';
+import { useCopyData } from '@fastgpt/web/hooks/useCopyData';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useTranslation } from 'next-i18next';
 import MyIcon from '@fastgpt/web/components/common/Icon';
@@ -250,7 +250,7 @@ const ApiKeyTable = ({ tips, appId }: { tips: string; appId?: string }) => {
       <MyModal
         isOpen={!!apiKey}
         w={['400px', '600px']}
-        iconSrc="/imgs/modal/key.svg"
+        iconSrc="keyPrimary"
         title={
           <Box>
             <Box fontWeight={'bold'}>{t('common:support.openapi.New api key')}</Box>
@@ -330,7 +330,7 @@ function EditKeyModal({
   return (
     <MyModal
       isOpen={true}
-      iconSrc="/imgs/modal/key.svg"
+      iconSrc="keyPrimary"
       title={isEdit ? t('publish:edit_api_key') : t('publish:create_api_key')}
     >
       <ModalBody>

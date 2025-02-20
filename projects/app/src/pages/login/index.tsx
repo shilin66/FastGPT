@@ -16,10 +16,9 @@ import type { ResLogin } from '@/global/support/api/userRes.d';
 import { useRouter } from 'next/router';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import { useChatStore } from '@/web/core/chat/context/useChatStore';
-import LoginForm from './components/LoginForm/LoginForm';
 import dynamic from 'next/dynamic';
 import { serviceSideProps } from '@fastgpt/web/common/system/nextjs';
-import { clearToken, setToken } from '@/web/support/user/auth';
+import { clearToken } from '@/web/support/user/auth';
 import Script from 'next/script';
 import Loading from '@fastgpt/web/components/common/MyLoading';
 import { useLocalStorageState, useMount } from 'ahooks';
@@ -29,10 +28,12 @@ import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import { GET } from '@/web/common/api/request';
 import { getDocPath } from '@/web/common/system/doc';
 import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
+import LoginForm from '@/pageComponents/login/LoginForm/LoginForm';
+import { useToast } from '@fastgpt/web/hooks/useToast';
 
-const RegisterForm = dynamic(() => import('./components/RegisterForm'));
-const ForgetPasswordForm = dynamic(() => import('./components/ForgetPasswordForm'));
-const WechatForm = dynamic(() => import('./components/LoginForm/WechatForm'));
+const RegisterForm = dynamic(() => import('@/pageComponents/login/RegisterForm'));
+const ForgetPasswordForm = dynamic(() => import('@/pageComponents/login/ForgetPasswordForm'));
+const WechatForm = dynamic(() => import('@/pageComponents/login/LoginForm/WechatForm'));
 const CommunityModal = dynamic(() => import('@/components/CommunityModal'));
 
 const ipDetectURL = 'https://qifu-api.baidubce.com/ip/local/geo/v1/district';
@@ -42,11 +43,12 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
   const { t } = useTranslation();
   const { lastRoute = '' } = router.query as { lastRoute: string };
   const { feConfigs } = useSystemStore();
-  const [pageType, setPageType] = useState<`${LoginPageTypeEnum}`>();
+  const [pageType, setPageType] = useState<`${LoginPageTypeEnum}`>(LoginPageTypeEnum.passwordLogin);
   const { setUserInfo } = useUserStore();
   const { setLastChatAppId } = useChatStore();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isPc } = useSystem();
+  const { toast } = useToast();
 
   const {
     isOpen: isOpenCookiesDrawer,
@@ -60,7 +62,6 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
   const loginSuccess = useCallback(
     (res: ResLogin) => {
       setUserInfo(res.user);
-      setToken(res.token);
 
       const decodeLastRoute = decodeURIComponent(lastRoute);
       // 检查是否是当前的 route
@@ -70,7 +71,7 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
         router.push(navigateTo);
       }, 300);
     },
-    [lastRoute, router, setUserInfo]
+    [setUserInfo, lastRoute, router]
   );
 
   const DynamicComponent = useMemo(() => {

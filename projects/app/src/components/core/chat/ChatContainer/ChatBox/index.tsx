@@ -18,7 +18,6 @@ import { Box, Checkbox } from '@chakra-ui/react';
 import { EventNameEnum, eventBus } from '@/web/common/utils/eventbus';
 import { chats2GPTMessages } from '@fastgpt/global/core/chat/adapt';
 import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/router';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useTranslation } from 'next-i18next';
 import {
@@ -104,14 +103,9 @@ const ChatBox = ({
   showVoiceIcon = true,
   showEmptyIntro = false,
   active = true,
-  shareId,
-  outLinkUid,
-  teamId,
-  teamToken,
   onStartChat
 }: Props) => {
   const ScrollContainerRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
   const { t } = useTranslation();
   const { toast } = useToast();
   const { feConfigs } = useSystemStore();
@@ -207,6 +201,7 @@ const ChatBox = ({
     ({
       event,
       text = '',
+      reasoningText,
       status,
       name,
       tool,
@@ -231,6 +226,25 @@ const ChatBox = ({
               status,
               moduleName: name
             };
+          } else if (reasoningText) {
+            if (lastValue.type === ChatItemValueTypeEnum.reasoning && lastValue.reasoning) {
+              lastValue.reasoning.content += reasoningText;
+              return {
+                ...item,
+                value: item.value.slice(0, -1).concat(lastValue)
+              };
+            } else {
+              const val: AIChatItemValueItemType = {
+                type: ChatItemValueTypeEnum.reasoning,
+                reasoning: {
+                  content: reasoningText
+                }
+              };
+              return {
+                ...item,
+                value: item.value.concat(val)
+              };
+            }
           } else if (
             (event === SseResponseEventEnum.answer || event === SseResponseEventEnum.fastAnswer) &&
             text
@@ -925,10 +939,6 @@ const ChatBox = ({
                       isLastChild={index === chatRecords.length - 1}
                       {...{
                         showVoiceIcon,
-                        shareId,
-                        outLinkUid,
-                        teamId,
-                        teamToken,
                         statusBoxData,
                         questionGuides,
                         onMark: onMark(
@@ -1004,17 +1014,13 @@ const ChatBox = ({
     onCloseUserLike,
     onMark,
     onReadUserDislike,
-    outLinkUid,
     questionGuides,
     retryInput,
-    shareId,
     showEmpty,
     showMarkIcon,
     showVoiceIcon,
     statusBoxData,
     t,
-    teamId,
-    teamToken,
     userAvatar,
     variableList?.length,
     welcomeText

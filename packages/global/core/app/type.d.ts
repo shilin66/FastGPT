@@ -12,8 +12,9 @@ import { TeamTagSchema as TeamTagsSchemaType } from '@fastgpt/global/support/use
 import { StoreEdgeItemType } from '../workflow/type/edge';
 import { AppPermission } from '../../support/permission/app/controller';
 import { ParentIdType } from '../../common/parentFolder/type';
-import { FlowNodeInputTypeEnum } from 'core/workflow/node/constant';
+import { FlowNodeInputTypeEnum } from '../../core/workflow/node/constant';
 import { WorkflowTemplateBasicType } from '@fastgpt/global/core/workflow/type';
+import { SourceMemberType } from '../../support/user/type';
 
 export type AppSchema = {
   _id: string;
@@ -63,6 +64,7 @@ export type AppListItemType = {
   permission: AppPermission;
   inheritPermission?: boolean;
   private?: boolean;
+  sourceMember: SourceMemberType;
 };
 
 export type AppDetailType = AppSchema & {
@@ -72,12 +74,17 @@ export type AppDetailType = AppSchema & {
 export type AppSimpleEditFormType = {
   // templateId: string;
   aiSettings: {
-    model: string;
-    systemPrompt?: string | undefined;
-    temperature?: number;
-    maxToken?: number;
-    isResponseAnswerText: boolean;
+    [NodeInputKeyEnum.aiModel]: string;
+    [NodeInputKeyEnum.aiSystemPrompt]?: string | undefined;
+    [NodeInputKeyEnum.aiChatTemperature]?: number;
+    [NodeInputKeyEnum.aiChatMaxToken]?: number;
+    [NodeInputKeyEnum.aiChatIsResponseText]: boolean;
     maxHistories: number;
+    [NodeInputKeyEnum.aiChatReasoning]?: boolean; // Is open reasoning mode
+    [NodeInputKeyEnum.aiChatTopP]?: number;
+    [NodeInputKeyEnum.aiChatStopSign]?: string;
+    [NodeInputKeyEnum.aiChatResponseFormat]?: string;
+    [NodeInputKeyEnum.aiChatJsonSchema]?: string;
   };
   dataset: {
     datasets: SelectedDatasetType;
@@ -116,6 +123,11 @@ export type SettingAIDataType = {
   isResponseAnswerText?: boolean;
   maxHistories?: number;
   [NodeInputKeyEnum.aiChatVision]?: boolean; // Is open vision mode
+  [NodeInputKeyEnum.aiChatReasoning]?: boolean; // Is open reasoning mode
+  [NodeInputKeyEnum.aiChatTopP]?: number;
+  [NodeInputKeyEnum.aiChatStopSign]?: string;
+  [NodeInputKeyEnum.aiChatResponseFormat]?: string;
+  [NodeInputKeyEnum.aiChatJsonSchema]?: string;
 };
 
 // variable

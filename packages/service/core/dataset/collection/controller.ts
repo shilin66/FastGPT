@@ -19,11 +19,12 @@ import { predictDataLimitLength } from '../../../../global/core/dataset/utils';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { createTrainingUsage } from '../../../support/wallet/usage/controller';
 import { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
-import { getLLMModel, getVectorModel } from '../../ai/model';
+import { getLLMModel, getEmbeddingModel } from '../../ai/model';
 import { pushDataListToTrainingQueue } from '../training/controller';
 import { MongoImage } from '../../../common/file/image/schema';
 import { hashStr } from '@fastgpt/global/common/string/tools';
 import { addDays } from 'date-fns';
+import { MongoDatasetDataText } from '../data/dataTextSchema';
 
 export const createCollectionAndInsertData = async ({
   dataset,
@@ -92,7 +93,7 @@ export const createCollectionAndInsertData = async ({
       tmbId,
       appName: usageName,
       billSource: UsageSourceEnum.training,
-      vectorModel: getVectorModel(dataset.vectorModel)?.name,
+      vectorModel: getEmbeddingModel(dataset.vectorModel)?.name,
       agentModel: getLLMModel(dataset.agentModel)?.name,
       session
     });
@@ -241,12 +242,12 @@ export const delCollectionRelatedSource = async ({
     .map((item) => item?.metadata?.relatedImgId || '')
     .filter(Boolean);
 
-  // delete files
+  // Delete files
   await delFileByFileIdList({
     bucketName: BucketNameEnum.dataset,
     fileIdList
   });
-  // delete images
+  // Delete images
   await delImgByRelatedId({
     teamId,
     relateIds: relatedImageIds,
@@ -274,7 +275,7 @@ export async function delCollection({
   const datasetIds = Array.from(new Set(collections.map((item) => String(item.datasetId))));
   const collectionIds = collections.map((item) => String(item._id));
 
-  // delete training data
+  // Delete training data
   await MongoDatasetTraining.deleteMany({
     teamId,
     datasetIds: { $in: datasetIds },
@@ -286,8 +287,13 @@ export async function delCollection({
     await delCollectionRelatedSource({ collections, session });
   }
 
-  // delete dataset.datas
+  // Delete dataset_datas
   await MongoDatasetData.deleteMany(
+    { teamId, datasetIds: { $in: datasetIds }, collectionId: { $in: collectionIds } },
+    { session }
+  );
+  // Delete dataset_data_texts
+  await MongoDatasetDataText.deleteMany(
     { teamId, datasetIds: { $in: datasetIds }, collectionId: { $in: collectionIds } },
     { session }
   );

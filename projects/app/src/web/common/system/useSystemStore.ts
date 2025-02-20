@@ -4,18 +4,27 @@ import { immer } from 'zustand/middleware/immer';
 import axios from 'axios';
 import { OAuthEnum } from '@fastgpt/global/support/user/constant';
 import type {
-  AudioSpeechModelType,
+  TTSModelType,
   LLMModelItemType,
   ReRankModelItemType,
-  VectorModelItemType,
+  EmbeddingModelItemType,
   STTModelType
 } from '@fastgpt/global/core/ai/model.d';
 import { InitDateResponse } from '@/global/common/api/systemRes';
 import { FastGPTFeConfigsType } from '@fastgpt/global/common/system/types';
 import { SubPlanType } from '@fastgpt/global/support/wallet/sub/type';
-import { defaultWhisperModel } from '@fastgpt/global/core/ai/model';
+import { ModelTypeEnum } from '@fastgpt/global/core/ai/model';
+import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
+import { SystemDefaultModelType } from '@fastgpt/service/core/ai/type';
 
 type LoginStoreType = { provider: `${OAuthEnum}`; lastRoute: string; state: string };
+
+export type NotSufficientModalType =
+  | TeamErrEnum.datasetSizeNotEnough
+  | TeamErrEnum.aiPointsNotEnough
+  | TeamErrEnum.datasetAmountNotEnough
+  | TeamErrEnum.teamMemberOverSize
+  | TeamErrEnum.appAmountNotEnough;
 
 type State = {
   initd: boolean;
@@ -27,25 +36,27 @@ type State = {
   setLastAppListRouteType: (e?: string) => void;
 
   loginStore?: LoginStoreType;
-  setLoginStore: (e: LoginStoreType) => void;
+  setLoginStore: (e?: LoginStoreType) => void;
+
   loading: boolean;
   setLoading: (val: boolean) => null;
   gitStar: number;
   loadGitStar: () => Promise<void>;
 
-  isNotSufficientModal: boolean;
-  setIsNotSufficientModal: (val: boolean) => void;
+  notSufficientModalType?: NotSufficientModalType;
+  setNotSufficientModalType: (val?: NotSufficientModalType) => void;
 
   initDataBufferId?: string;
   feConfigs: FastGPTFeConfigsType;
   subPlans?: SubPlanType;
   systemVersion: string;
+  defaultModels: SystemDefaultModelType;
   llmModelList: LLMModelItemType[];
   datasetModelList: LLMModelItemType[];
-  vectorModelList: VectorModelItemType[];
-  audioSpeechModelList: AudioSpeechModelType[];
+  embeddingModelList: EmbeddingModelItemType[];
+  ttsModelList: TTSModelType[];
   reRankModelList: ReRankModelItemType[];
-  whisperModel: STTModelType;
+  sttModelList: STTModelType[];
   initStaticData: (e: InitDateResponse) => void;
   appType?: string;
   setAppType: (e?: string) => void;
@@ -93,7 +104,7 @@ export const useSystemStore = create<State>()(
           return null;
         },
 
-        gitStar: 15600,
+        gitStar: 20000,
         async loadGitStar() {
           if (!get().feConfigs?.show_git) return;
           try {
@@ -105,10 +116,10 @@ export const useSystemStore = create<State>()(
           } catch (error) {}
         },
 
-        isNotSufficientModal: false,
-        setIsNotSufficientModal(val: boolean) {
+        notSufficientModalType: undefined,
+        setNotSufficientModalType(type) {
           set((state) => {
-            state.isNotSufficientModal = val;
+            state.notSufficientModalType = type;
           });
         },
 
@@ -116,12 +127,13 @@ export const useSystemStore = create<State>()(
         feConfigs: {},
         subPlans: undefined,
         systemVersion: '0.0.0',
+        defaultModels: {},
         llmModelList: [],
         datasetModelList: [],
-        vectorModelList: [],
-        audioSpeechModelList: [],
+        embeddingModelList: [],
+        ttsModelList: [],
         reRankModelList: [],
-        whisperModel: defaultWhisperModel,
+        sttModelList: [],
         initStaticData(res) {
           set((state) => {
             state.initDataBufferId = res.bufferId;
@@ -130,12 +142,24 @@ export const useSystemStore = create<State>()(
             state.subPlans = res.subPlans ?? state.subPlans;
             state.systemVersion = res.systemVersion ?? state.systemVersion;
 
-            state.llmModelList = res.llmModels ?? state.llmModelList;
+            state.llmModelList =
+              res.activeModelList?.filter((item) => item.type === ModelTypeEnum.llm) ??
+              state.llmModelList;
             state.datasetModelList = state.llmModelList.filter((item) => item.datasetProcess);
-            state.vectorModelList = res.vectorModels ?? state.vectorModelList;
-            state.audioSpeechModelList = res.audioSpeechModels ?? state.audioSpeechModelList;
-            state.reRankModelList = res.reRankModels ?? state.reRankModelList;
-            state.whisperModel = res.whisperModel ?? state.whisperModel;
+            state.embeddingModelList =
+              res.activeModelList?.filter((item) => item.type === ModelTypeEnum.embedding) ??
+              state.embeddingModelList;
+            state.ttsModelList =
+              res.activeModelList?.filter((item) => item.type === ModelTypeEnum.tts) ??
+              state.ttsModelList;
+            state.reRankModelList =
+              res.activeModelList?.filter((item) => item.type === ModelTypeEnum.rerank) ??
+              state.reRankModelList;
+            state.sttModelList =
+              res.activeModelList?.filter((item) => item.type === ModelTypeEnum.stt) ??
+              state.sttModelList;
+
+            state.defaultModels = res.defaultModels ?? state.defaultModels;
           });
         }
       })),
@@ -147,12 +171,13 @@ export const useSystemStore = create<State>()(
           feConfigs: state.feConfigs,
           subPlans: state.subPlans,
           systemVersion: state.systemVersion,
+          defaultModels: state.defaultModels,
           llmModelList: state.llmModelList,
           datasetModelList: state.datasetModelList,
-          vectorModelList: state.vectorModelList,
-          audioSpeechModelList: state.audioSpeechModelList,
+          embeddingModelList: state.embeddingModelList,
+          ttsModelList: state.ttsModelList,
           reRankModelList: state.reRankModelList,
-          whisperModel: state.whisperModel
+          sttModelList: state.sttModelList
         })
       }
     )

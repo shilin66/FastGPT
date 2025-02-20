@@ -1,4 +1,4 @@
-import type { LLMModelItemType, VectorModelItemType } from '../../core/ai/model.d';
+import type { LLMModelItemType, EmbeddingModelItemType } from '../../core/ai/model.d';
 import { PermissionTypeEnum } from '../../support/permission/constant';
 import { PushDatasetDataChunkProps } from './api';
 import {
@@ -11,6 +11,7 @@ import {
 import { DatasetPermission } from '../../support/permission/dataset/controller';
 import { Permission } from '../../support/permission/controller';
 import { APIFileServer, FeishuServer, YuqueServer } from './apiDataset';
+import { SourceMemberType } from 'support/user/type';
 import { ImportProcessWayEnum } from '../../../../projects/app/src/web/core/dataset/constants';
 
 export type DatasetSchemaType = {
@@ -130,6 +131,15 @@ export type DatasetDataSchemaType = {
   rebuilding?: boolean;
 };
 
+export type DatasetDataTextSchemaType = {
+  _id: string;
+  teamId: string;
+  datasetId: string;
+  collectionId: string;
+  dataId: string;
+  fullTextToken: string;
+};
+
 export type DatasetTrainingSchemaType = {
   _id: string;
   userId: string;
@@ -160,7 +170,7 @@ export type DatasetSimpleItemType = {
   _id: string;
   avatar: string;
   name: string;
-  vectorModel: VectorModelItemType;
+  vectorModel: EmbeddingModelItemType;
 };
 export type DatasetListItemType = {
   _id: string;
@@ -171,13 +181,14 @@ export type DatasetListItemType = {
   intro: string;
   type: `${DatasetTypeEnum}`;
   permission: DatasetPermission;
-  vectorModel: VectorModelItemType;
+  vectorModel: EmbeddingModelItemType;
   inheritPermission: boolean;
   private?: boolean;
+  sourceMember?: SourceMemberType;
 };
 
 export type DatasetItemType = Omit<DatasetSchemaType, 'vectorModel' | 'agentModel'> & {
-  vectorModel: VectorModelItemType;
+  vectorModel: EmbeddingModelItemType;
   agentModel: LLMModelItemType;
   permission: DatasetPermission;
 };

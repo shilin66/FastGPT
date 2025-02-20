@@ -7,6 +7,7 @@ import { MongoDatasetTraining } from './training/schema';
 import { MongoDatasetData } from './data/schema';
 import { deleteDatasetDataVector } from '../../common/vectorStore/controller';
 import { MongoDatasetCollectionTags } from './tag/schema';
+import { MongoDatasetDataText } from './data/dataTextSchema';
 
 /* ============= dataset ========== */
 /* find all datasetId by top datasetId */
@@ -93,7 +94,7 @@ export async function delDatasetRelevantData({
     { session }
   ).lean();
 
-  // image and file
+  // Delete Image and file
   await delCollectionRelatedSource({ collections, session });
 
   // delete collections
@@ -102,9 +103,16 @@ export async function delDatasetRelevantData({
     datasetId: { $in: datasetIds }
   }).session(session);
 
-  // delete dataset.datas(Not need session)
+  // No session delete:
+  // Delete dataset_data_texts
+  await MongoDatasetDataText.deleteMany({
+    teamId,
+    datasetId: { $in: datasetIds }
+  });
+  // delete dataset_datas
   await MongoDatasetData.deleteMany({ teamId, datasetId: { $in: datasetIds } });
 
+  // Delete vector data
   // delete tags
   await MongoDatasetCollectionTags.deleteMany(
     {

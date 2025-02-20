@@ -7,11 +7,12 @@ export type ModelProviderIdType =
   | 'Meta'
   | 'MistralAI'
   | 'Groq'
+  | 'Grok'
   | 'AliCloud'
   | 'Qwen'
   | 'Doubao'
-  | 'ChatGLM'
   | 'DeepSeek'
+  | 'ChatGLM'
   | 'Ernie'
   | 'Moonshot'
   | 'MiniMax'
@@ -20,14 +21,17 @@ export type ModelProviderIdType =
   | 'Baichuan'
   | 'StepFun'
   | 'Yi'
+  | 'Siliconflow'
   | 'Ollama'
   | 'BAAI'
   | 'FishAudio'
+  | 'Intern'
+  | 'Moka'
   | 'Other';
 
 export type ModelProviderType = {
   id: ModelProviderIdType;
-  name: string;
+  name: any;
   avatar: string;
 };
 
@@ -56,6 +60,11 @@ export const ModelProviderList: ModelProviderType[] = [
     id: 'MistralAI',
     name: 'MistralAI',
     avatar: 'model/mistral'
+  },
+  {
+    id: 'Grok',
+    name: 'Grok',
+    avatar: 'model/grok'
   },
   {
     id: 'Groq',
@@ -144,6 +153,21 @@ export const ModelProviderList: ModelProviderType[] = [
     avatar: 'model/fishaudio'
   },
   {
+    id: 'Intern',
+    name: i18nT('common:model_intern'),
+    avatar: 'model/intern'
+  },
+  {
+    id: 'Moka',
+    name: i18nT('common:model_moka'),
+    avatar: 'model/moka'
+  },
+  {
+    id: 'Siliconflow',
+    name: i18nT('common:model_siliconflow'),
+    avatar: 'model/siliconflow'
+  },
+  {
     id: 'Other',
     name: i18nT('common:model_other'),
     avatar: 'model/huggingface'
@@ -153,6 +177,7 @@ export const ModelProviderMap = Object.fromEntries(
   ModelProviderList.map((item, index) => [item.id, { ...item, order: index }])
 );
 
-export const getModelProvider = (provider: ModelProviderIdType) => {
+export const getModelProvider = (provider?: ModelProviderIdType) => {
+  if (!provider) return ModelProviderMap.Other;
   return ModelProviderMap[provider] ?? ModelProviderMap.Other;
 };

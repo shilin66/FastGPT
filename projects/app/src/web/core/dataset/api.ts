@@ -38,7 +38,6 @@ import type { DatasetCollectionItemType } from '@fastgpt/global/core/dataset/typ
 import { DatasetCollectionSyncResultEnum } from '@fastgpt/global/core/dataset/constants';
 import type { DatasetDataItemType } from '@fastgpt/global/core/dataset/type';
 import type { DatasetCollectionsListItemType } from '@/global/core/dataset/type.d';
-import { PagingData } from '@/types';
 import type { getDatasetTrainingQueueResponse } from '@/pages/api/core/dataset/training/getDatasetTrainingQueue';
 import type { rebuildEmbeddingBody } from '@/pages/api/core/dataset/training/rebuildEmbedding';
 import type {
@@ -67,7 +66,7 @@ import type {
   listExistIdQuery,
   listExistIdResponse
 } from '@/pages/api/core/dataset/apiDataset/listExistId';
-import { FeishuServer, YuqueServer } from '@fastgpt/global/core/dataset/apiDataset';
+import { GetQuoteDataResponse } from '@/pages/api/core/dataset/data/getQuoteData';
 
 /* ======================== dataset ======================= */
 export const getDatasets = (data: GetDatasetListBody) =>
@@ -106,13 +105,16 @@ export const postCreateDatasetFolder = (data: DatasetFolderCreateBody) =>
 export const resumeInheritPer = (datasetId: string) =>
   GET(`/core/dataset/resumeInheritPermission`, { datasetId });
 
+export const postChangeOwner = (data: { ownerId: string; datasetId: string }) =>
+  POST(`/proApi/core/dataset/changeOwner`, data);
+
 /* =========== search test ============ */
 export const postSearchText = (data: SearchTestProps) =>
   POST<SearchTestResponse>(`/core/dataset/searchTest`, data);
 
 /* ============================= collections ==================================== */
 export const getDatasetCollections = (data: GetDatasetCollectionsProps) =>
-  POST<PagingData<DatasetCollectionsListItemType>>(`/core/dataset/collection/list`, data);
+  POST<PaginationResponse<DatasetCollectionsListItemType>>(`/core/dataset/collection/listV2`, data);
 export const getDatasetCollectionPathById = (parentId: string) =>
   GET<ParentTreePathItemType[]>(`/core/dataset/collection/paths`, { parentId });
 export const getDatasetCollectionById = (id: string) =>
@@ -207,6 +209,10 @@ export const putDatasetDataById = (data: UpdateDatasetDataProps) =>
  */
 export const delOneDatasetDataById = (id: string) =>
   DELETE<string>(`/core/dataset/data/delete`, { id });
+
+// Get quote data
+export const getQuoteData = (id: string) =>
+  GET<GetQuoteDataResponse>(`/core/dataset/data/getQuoteData`, { id });
 
 /* ================ training ==================== */
 export const postRebuildEmbedding = (data: rebuildEmbeddingBody) =>

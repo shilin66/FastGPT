@@ -3,7 +3,6 @@ import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/sch
 import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
 import { pushGenerateVectorUsage } from '@/service/support/wallet/usage/push';
 import { checkTeamAiPointsAndLock } from './utils';
-import { checkInvalidChunkAndLock } from '@fastgpt/service/core/dataset/training/utils';
 import { addMinutes } from 'date-fns';
 import { addLog } from '@fastgpt/service/common/system/log';
 import { MongoDatasetData } from '@fastgpt/service/core/dataset/data/schema';
@@ -11,7 +10,7 @@ import {
   deleteDatasetDataVector,
   insertDatasetDataVector
 } from '@fastgpt/service/common/vectorStore/controller';
-import { getVectorModel } from '@fastgpt/service/core/ai/model';
+import { getEmbeddingModel } from '@fastgpt/service/core/ai/model';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
 import { DatasetTrainingSchemaType } from '@fastgpt/global/core/dataset/type';
 import { Document } from '@fastgpt/service/common/mongo';
@@ -40,7 +39,7 @@ export async function generateVector(): Promise<any> {
         {
           mode: TrainingModeEnum.chunk,
           retryCount: { $gte: 0 },
-          lockTime: { $lte: addMinutes(new Date(), -6) }
+          lockTime: { $lte: addMinutes(new Date(), -3) }
         },
         {
           lockTime: new Date(),
@@ -126,10 +125,6 @@ export async function generateVector(): Promise<any> {
     addLog.error(`[Vector Queue] Error`, err);
     reduceQueue();
 
-    if (await checkInvalidChunkAndLock({ err, data, errText: '向量模型调用失败' })) {
-      return generateVector();
-    }
-
     setTimeout(() => {
       generateVector();
     }, 1000);
@@ -166,9 +161,9 @@ const rebuildData = async ({
     // get new mongoData insert to training
     const newRebuildingData = await MongoDatasetData.findOneAndUpdate(
       {
+        rebuilding: true,
         teamId: mongoData.teamId,
-        datasetId: mongoData.datasetId,
-        rebuilding: true
+        datasetId: mongoData.datasetId
       },
       {
         $unset: {
@@ -193,7 +188,8 @@ const rebuildData = async ({
             billId: trainingData.billId,
             mode: TrainingModeEnum.chunk,
             model: trainingData.model,
-            dataId: newRebuildingData._id
+            dataId: newRebuildingData._id,
+            retryCount: 50
           }
         ],
         { session }
@@ -207,7 +203,7 @@ const rebuildData = async ({
     mongoData.indexes.map(async (index, i) => {
       const result = await insertDatasetDataVector({
         query: index.text,
-        model: getVectorModel(trainingData.model),
+        model: getEmbeddingModel(trainingData.model),
         teamId: mongoData.teamId,
         datasetId: mongoData.datasetId,
         collectionId: mongoData.collectionId

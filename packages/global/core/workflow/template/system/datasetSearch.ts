@@ -1,5 +1,6 @@
 import {
   datasetQuoteValueDesc,
+  datasetSelectValueDesc,
   FlowNodeInputTypeEnum,
   FlowNodeOutputTypeEnum,
   FlowNodeTypeEnum
@@ -38,7 +39,8 @@ export const DatasetSearchModule: FlowNodeTemplateType = {
       label: i18nT('common:core.module.input.label.Select dataset'),
       value: [],
       valueType: WorkflowIOValueTypeEnum.selectDataset,
-      required: true
+      required: true,
+      valueDesc: datasetSelectValueDesc
     },
     {
       key: NodeInputKeyEnum.datasetSimilarity,
@@ -94,6 +96,13 @@ export const DatasetSearchModule: FlowNodeTemplateType = {
       label: '',
       valueType: WorkflowIOValueTypeEnum.string,
       value: ''
+    },
+    {
+      key: NodeInputKeyEnum.authTmbId,
+      renderTypeList: [FlowNodeInputTypeEnum.hidden],
+      label: '',
+      valueType: WorkflowIOValueTypeEnum.boolean,
+      value: false
     },
     {
       ...Input_Template_UserChatInput,

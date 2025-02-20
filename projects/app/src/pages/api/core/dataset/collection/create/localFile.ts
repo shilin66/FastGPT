@@ -64,7 +64,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>): CreateCo
       path: file.path,
       filename: file.originalname,
       contentType: file.mimetype,
-      encoding: file.encoding,
       metadata: fileMetadata
     });
 
@@ -74,7 +73,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>): CreateCo
     const { collectionId, insertResults } = await createCollectionAndInsertData({
       dataset,
       rawText,
-      relatedId: fileId,
+      relatedId: relatedImgId,
       createCollectionParams: {
         ...collectionData,
         name: collectionName,

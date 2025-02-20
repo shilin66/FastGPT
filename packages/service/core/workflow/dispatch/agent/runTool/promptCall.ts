@@ -1,5 +1,5 @@
 import { createChatCompletion } from '../../../../ai/config';
-import { filterGPTMessageByMaxTokens, loadRequestMessages } from '../../../../chat/utils';
+import { filterGPTMessageByMaxContext, loadRequestMessages } from '../../../../chat/utils';
 import {
   ChatCompletion,
   StreamChatType,
@@ -54,7 +54,15 @@ export const runToolWithPromptCall = async (
     externalProvider,
     stream,
     workflowStreamResponse,
-    params: { temperature, maxToken, aiChatVision }
+    params: {
+      temperature,
+      maxToken,
+      aiChatVision,
+      aiChatTopP,
+      aiChatStopSign,
+      aiChatResponseFormat,
+      aiChatJsonSchema
+    }
   } = workflowProps;
 
   if (interactiveEntryToolParams) {
@@ -196,30 +204,33 @@ export const runToolWithPromptCall = async (
     return Promise.reject('Prompt call invalid input');
   }
 
-  const filterMessages = await filterGPTMessageByMaxTokens({
+  const max_tokens = computedMaxToken({
+    model: toolModel,
+    maxToken
+  });
+  const filterMessages = await filterGPTMessageByMaxContext({
     messages,
-    maxTokens: toolModel.maxContext - 500 // filter token. not response maxToken
+    maxContext: toolModel.maxContext - (max_tokens || 0) // filter token. not response maxToken
   });
 
-  const [requestMessages, max_tokens] = await Promise.all([
+  const [requestMessages] = await Promise.all([
     loadRequestMessages({
       messages: filterMessages,
       useVision: toolModel.vision && aiChatVision,
       origin: requestOrigin
-    }),
-    computedMaxToken({
-      model: toolModel,
-      maxToken,
-      filterMessages
     })
   ]);
   const requestBody = llmCompletionsBodyFormat(
     {
       model: toolModel.model,
+      stream,
+      messages: requestMessages,
       temperature,
       max_tokens,
-      stream,
-      messages: requestMessages
+      top_p: aiChatTopP,
+      stop: aiChatStopSign,
+      response_format: aiChatResponseFormat,
+      json_schema: aiChatJsonSchema
     },
     toolModel
   );

@@ -4,13 +4,14 @@ import { deleteMemberPermission } from '@fastgpt/service/support/user/team/contr
 import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { NextApiRequest } from 'next';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
+import { DeletePermissionQuery } from '@fastgpt/global/support/permission/collaborator';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
-  const tmbId = req.query.tmbId as string;
+  const deletePer = req.query as DeletePermissionQuery;
 
   await authUserPer({ req, authToken: true, per: ManagePermissionVal });
 
-  // await deleteMemberPermission(tmbId);
+  await deleteMemberPermission(deletePer);
 }
 
 export default NextAPI(handler);
