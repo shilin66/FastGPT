@@ -12,7 +12,8 @@ const staticPluginList = [
   'DingTalkWebhook',
   'WeWorkWebhook',
   'google',
-  'bing'
+  'bing',
+  'delay'
 ];
 // Run in worker thread (Have npm packages)
 const packagePluginList = [
@@ -29,7 +30,6 @@ const packagePluginList = [
   'Doc2X',
   'Doc2X/PDF2text',
   'searchXNG',
-  'sleep',
   'firecrawl',
   'firecrawl/scrape',
   'firecrawl/batchScrape',
@@ -41,24 +41,26 @@ export const list = [...staticPluginList, ...packagePluginList];
 
 /* Get plugins */
 export const getCommunityPlugins = () => {
-  return list.map<SystemPluginTemplateItemType>((name) => {
-    const config = require(`./src/${name}/template.json`);
+  return Promise.all(
+    list.map<Promise<SystemPluginTemplateItemType>>(async (name) => {
+      const config = (await import(`./src/${name}/template.json`))?.default;
 
-    const isFolder = list.find((item) => item.startsWith(`${name}/`));
+      const isFolder = list.find((item) => item.startsWith(`${name}/`));
 
-    const parentIdList = name.split('/').slice(0, -1);
-    const parentId =
-      parentIdList.length > 0 ? `${PluginSourceEnum.community}-${parentIdList.join('/')}` : null;
+      const parentIdList = name.split('/').slice(0, -1);
+      const parentId =
+        parentIdList.length > 0 ? `${PluginSourceEnum.community}-${parentIdList.join('/')}` : null;
 
-    return {
-      ...config,
-      id: `${PluginSourceEnum.community}-${name}`,
-      isFolder,
-      parentId,
-      isActive: true,
-      isOfficial: true
-    };
-  });
+      return {
+        ...config,
+        id: `${PluginSourceEnum.community}-${name}`,
+        isFolder,
+        parentId,
+        isActive: true,
+        isOfficial: true
+      };
+    })
+  );
 };
 
 export const getSystemPluginTemplates = () => {

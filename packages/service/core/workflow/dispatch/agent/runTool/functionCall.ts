@@ -1,5 +1,5 @@
 import { createChatCompletion } from '../../../../ai/config';
-import { filterGPTMessageByMaxTokens, loadRequestMessages } from '../../../../chat/utils';
+import { filterGPTMessageByMaxContext, loadRequestMessages } from '../../../../chat/utils';
 import {
   ChatCompletion,
   StreamChatType,
@@ -46,7 +46,15 @@ export const runToolWithFunctionCall = async (
     externalProvider,
     stream,
     workflowStreamResponse,
-    params: { temperature, maxToken, aiChatVision }
+    params: {
+      temperature,
+      maxToken,
+      aiChatVision,
+      aiChatTopP,
+      aiChatStopSign,
+      aiChatResponseFormat,
+      aiChatJsonSchema
+    }
   } = workflowProps;
 
   // Interactive
@@ -172,10 +180,14 @@ export const runToolWithFunctionCall = async (
     };
   });
 
+  const max_tokens = computedMaxToken({
+    model: toolModel,
+    maxToken
+  });
   const filterMessages = (
-    await filterGPTMessageByMaxTokens({
+    await filterGPTMessageByMaxContext({
       messages,
-      maxTokens: toolModel.maxContext - 300 // filter token. not response maxToken
+      maxContext: toolModel.maxContext - (max_tokens || 0) // filter token. not response maxToken
     })
   ).map((item) => {
     if (item.role === ChatCompletionRequestMessageRoleEnum.Assistant && item.function_call) {
@@ -190,16 +202,11 @@ export const runToolWithFunctionCall = async (
     }
     return item;
   });
-  const [requestMessages, max_tokens] = await Promise.all([
+  const [requestMessages] = await Promise.all([
     loadRequestMessages({
       messages: filterMessages,
       useVision: toolModel.vision && aiChatVision,
       origin: requestOrigin
-    }),
-    computedMaxToken({
-      model: toolModel,
-      maxToken,
-      filterMessages
     })
   ]);
 
@@ -214,12 +221,18 @@ export const runToolWithFunctionCall = async (
   const requestBody = llmCompletionsBodyFormat(
     {
       model: toolModel.model,
-      temperature,
-      max_tokens,
+
       stream: canStream,
       messages: requestMessages,
       functions: funcList,
-      function_call: 'auto'
+      function_call: 'auto',
+
+      temperature,
+      max_tokens,
+      top_p: aiChatTopP,
+      stop: aiChatStopSign,
+      response_format: aiChatResponseFormat,
+      json_schema: aiChatJsonSchema
     },
     toolModel
   );
@@ -249,7 +262,7 @@ export const runToolWithFunctionCall = async (
         workflowStreamResponse
       });
     } else {
-      const result = aiResponse as unknown as ChatCompletion;
+      const result = aiResponse as ChatCompletion;
       const function_call = result.choices?.[0]?.message?.function_call;
       const toolNode = toolNodes.find((node) => node.nodeId === function_call?.name);
 

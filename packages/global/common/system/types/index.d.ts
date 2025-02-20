@@ -3,7 +3,7 @@ import type {
   ChatModelItemType,
   FunctionModelItemType,
   LLMModelItemType,
-  VectorModelItemType,
+  EmbeddingModelItemType,
   AudioSpeechModels,
   STTModelType,
   ReRankModelItemType
@@ -31,16 +31,18 @@ export type FastGPTConfigFileType = {
   feConfigs: FastGPTFeConfigsType;
   systemEnv: SystemEnvType;
   subPlans?: SubPlanType;
-  llmModels: ChatModelItemType[];
-  vectorModels: VectorModelItemType[];
-  reRankModels: ReRankModelItemType[];
-  audioSpeechModels: AudioSpeechModelType[];
-  whisperModel: STTModelType;
+
+  // Abandon
+  llmModels?: ChatModelItemType[];
+  vectorModels?: EmbeddingModelItemType[];
+  reRankModels?: ReRankModelItemType[];
+  audioSpeechModels?: TTSModelType[];
+  whisperModel?: STTModelType;
 };
 
 export type FastGPTFeConfigsType = {
   show_emptyChat?: boolean;
-  register_method?: ['email' | 'phone'];
+  register_method?: ['email' | 'phone' | 'sync'];
   login_method?: ['email' | 'phone']; // Attention: login method is diffrent with oauth
   find_password_method?: ['email' | 'phone'];
   bind_notification_method?: ['email' | 'phone'];
@@ -57,7 +59,6 @@ export type FastGPTFeConfigsType = {
   docUrl?: string;
   openAPIDocUrl?: string;
   systemPluginCourseUrl?: string;
-  firecrawlUrl?: string;
   appTemplateCourse?: string;
 
   systemTitle?: string;
@@ -77,6 +78,10 @@ export type FastGPTFeConfigsType = {
     wechat?: string;
     microsoft?: MicrosoftType;
     dingtalk?: string;
+    wecom?: {
+      corpid?: string;
+      agentid?: string;
+    };
   };
   limit?: {
     exportDatasetLimitMinutes?: number;

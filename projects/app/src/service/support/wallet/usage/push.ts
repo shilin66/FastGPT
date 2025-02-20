@@ -1,10 +1,11 @@
 import { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
-import { ModelTypeEnum } from '@fastgpt/service/core/ai/model';
 import { addLog } from '@fastgpt/service/common/system/log';
 import { createUsage, concatUsage } from './controller';
 import { formatModelChars2Points } from '@fastgpt/service/support/wallet/usage/utils';
 import { ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type';
 import { i18nT } from '@fastgpt/web/i18n/utils';
+import { ModelTypeEnum } from '@fastgpt/global/core/ai/model';
+import { getDefaultTTSModel } from '@fastgpt/service/core/ai/model';
 
 export const pushChatUsage = ({
   appName,
@@ -94,7 +95,10 @@ export const pushGenerateVectorUsage = ({
   source = UsageSourceEnum.fastgpt,
   extensionModel,
   extensionInputTokens,
-  extensionOutputTokens
+  extensionOutputTokens,
+  deepSearchModel,
+  deepSearchInputTokens,
+  deepSearchOutputTokens
 }: {
   billId?: string;
   teamId: string;
@@ -106,9 +110,13 @@ export const pushGenerateVectorUsage = ({
   extensionModel?: string;
   extensionInputTokens?: number;
   extensionOutputTokens?: number;
+
+  deepSearchModel?: string;
+  deepSearchInputTokens?: number;
+  deepSearchOutputTokens?: number;
 }) => {
   const { totalPoints: totalVector, modelName: vectorModelName } = formatModelChars2Points({
-    modelType: ModelTypeEnum.vector,
+    modelType: ModelTypeEnum.embedding,
     model,
     inputTokens
   });
@@ -130,8 +138,25 @@ export const pushGenerateVectorUsage = ({
       extensionModelName: modelName
     };
   })();
+  const { deepSearchTotalPoints, deepSearchModelName } = (() => {
+    if (!deepSearchModel || !deepSearchInputTokens)
+      return {
+        deepSearchTotalPoints: 0,
+        deepSearchModelName: ''
+      };
+    const { totalPoints, modelName } = formatModelChars2Points({
+      modelType: ModelTypeEnum.llm,
+      model: deepSearchModel,
+      inputTokens: deepSearchInputTokens,
+      outputTokens: deepSearchOutputTokens
+    });
+    return {
+      deepSearchTotalPoints: totalPoints,
+      deepSearchModelName: modelName
+    };
+  })();
 
-  const totalPoints = totalVector + extensionTotalPoints;
+  const totalPoints = totalVector + extensionTotalPoints + deepSearchTotalPoints;
 
   // 插入 Bill 记录
   if (billId) {
@@ -147,12 +172,12 @@ export const pushGenerateVectorUsage = ({
     createUsage({
       teamId,
       tmbId,
-      appName: 'support.wallet.moduleName.index',
+      appName: i18nT('common:support.wallet.moduleName.index'),
       totalPoints,
       source,
       list: [
         {
-          moduleName: 'support.wallet.moduleName.index',
+          moduleName: i18nT('common:support.wallet.moduleName.index'),
           amount: totalVector,
           model: vectorModelName,
           inputTokens
@@ -160,11 +185,22 @@ export const pushGenerateVectorUsage = ({
         ...(extensionModel !== undefined
           ? [
               {
-                moduleName: 'core.module.template.Query extension',
+                moduleName: i18nT('common:core.module.template.Query extension'),
                 amount: extensionTotalPoints,
                 model: extensionModelName,
                 inputTokens: extensionInputTokens,
                 outputTokens: extensionOutputTokens
+              }
+            ]
+          : []),
+        ...(deepSearchModel !== undefined
+          ? [
+              {
+                moduleName: i18nT('common:deep_rag_search'),
+                amount: deepSearchTotalPoints,
+                model: deepSearchModelName,
+                inputTokens: deepSearchInputTokens,
+                outputTokens: deepSearchOutputTokens
               }
             ]
           : [])
@@ -175,21 +211,22 @@ export const pushGenerateVectorUsage = ({
 };
 
 export const pushQuestionGuideUsage = ({
+  model,
   inputTokens,
   outputTokens,
   teamId,
   tmbId
 }: {
+  model: string;
   inputTokens: number;
   outputTokens: number;
   teamId: string;
   tmbId: string;
 }) => {
-  const qgModel = global.llmModels[0];
   const { totalPoints, modelName } = formatModelChars2Points({
     inputTokens,
     outputTokens,
-    model: qgModel.model,
+    model,
     modelType: ModelTypeEnum.llm
   });
 
@@ -229,7 +266,7 @@ export function pushAudioSpeechUsage({
   const { totalPoints, modelName } = formatModelChars2Points({
     model,
     inputTokens: charsLength,
-    modelType: ModelTypeEnum.audioSpeech
+    modelType: ModelTypeEnum.tts
   });
 
   createUsage({
@@ -258,14 +295,14 @@ export function pushWhisperUsage({
   tmbId: string;
   duration: number;
 }) {
-  const whisperModel = global.whisperModel;
+  const whisperModel = getDefaultTTSModel();
 
   if (!whisperModel) return;
 
   const { totalPoints, modelName } = formatModelChars2Points({
     model: whisperModel.model,
     inputTokens: duration,
-    modelType: ModelTypeEnum.whisper,
+    modelType: ModelTypeEnum.stt,
     multiple: 60
   });
 

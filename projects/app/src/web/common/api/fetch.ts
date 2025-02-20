@@ -179,6 +179,12 @@ export const streamFetch = ({
           })();
           // console.log(parseJson, event);
           if (event === SseResponseEventEnum.answer) {
+            const reasoningText = parseJson.choices?.[0]?.delta?.reasoning_content || '';
+            onMessage({
+              event,
+              reasoningText
+            });
+
             const text = parseJson.choices?.[0]?.delta?.content || '';
             for (const item of text) {
               pushDataToQueue({
@@ -187,6 +193,12 @@ export const streamFetch = ({
               });
             }
           } else if (event === SseResponseEventEnum.fastAnswer) {
+            const reasoningText = parseJson.choices?.[0]?.delta?.reasoning_content || '';
+            onMessage({
+              event,
+              reasoningText
+            });
+
             const text = parseJson.choices?.[0]?.delta?.content || '';
             pushDataToQueue({
               event,
@@ -220,7 +232,7 @@ export const streamFetch = ({
             });
           } else if (event === SseResponseEventEnum.error) {
             if (parseJson.statusText === TeamErrEnum.aiPointsNotEnough) {
-              useSystemStore.getState().setIsNotSufficientModal(true);
+              useSystemStore.getState().setNotSufficientModalType(TeamErrEnum.aiPointsNotEnough);
             }
             errMsg = getErrText(parseJson, '流响应错误');
           }

@@ -11,7 +11,7 @@ import {
 } from '@fastgpt/global/core/dataset/constants';
 import { simpleText } from '@fastgpt/global/common/string/tools';
 import { ClientSession } from '../../../common/mongo';
-import { getLLMModel, getVectorModel } from '../../ai/model';
+import { getLLMModel, getEmbeddingModel } from '../../ai/model';
 import { addLog } from '../../../common/system/log';
 import { getCollectionWithDataset } from '../controller';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
@@ -34,7 +34,6 @@ import { MongoDataset } from '../schema';
 import pLimit from 'p-limit';
 import { Converter } from '../../../common/confluence/adf2md';
 import { uploadMongoImg } from '../../../common/file/image/controller';
-import { MongoImageTypeEnum } from '@fastgpt/global/common/file/image/constants';
 import adf2md = Converter.adf2md;
 import parseADF = Converter.parseADF;
 import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
@@ -97,7 +96,7 @@ export async function pushDataListToTrainingQueue({
     if (!agentModelData) {
       return Promise.reject(`File model ${agentModel} is inValid`);
     }
-    const vectorModelData = getVectorModel(vectorModel);
+    const vectorModelData = getEmbeddingModel(vectorModel);
     if (!vectorModelData) {
       return Promise.reject(`Vector model ${vectorModel} is inValid`);
     }
@@ -363,7 +362,7 @@ export const trainConfluenceCollection = async ({
                 );
                 const mime = imgBase64.split(';')[0].split(':')[1];
                 const src = await uploadMongoImg({
-                  type: MongoImageTypeEnum.collectionImage,
+                  // type: MongoImageTypeEnum.collectionImage,
                   base64Img: imgBase64,
                   teamId,
                   metadata: {

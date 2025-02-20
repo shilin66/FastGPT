@@ -9,7 +9,7 @@ import { isValidReferenceValueFormat } from '../utils';
 import { FlowNodeOutputItemType, ReferenceValueType } from '../type/io';
 import { ChatItemType, NodeOutputItemType } from '../../../core/chat/type';
 import { ChatItemValueTypeEnum, ChatRoleEnum } from '../../../core/chat/constants';
-import { replaceVariable } from '../../../common/string/tools';
+import { replaceVariable, valToStr } from '../../../common/string/tools';
 
 export const getMaxHistoryLimitFromNodes = (nodes: StoreNodeItemType[]): number => {
   let limit = 10;
@@ -176,6 +176,7 @@ export const checkNodeRunStatus = ({
       }
       visited.add(edge.source);
 
+      // 递归检测后面的 edge，如果有其中一个成环，则返回 true
       const nextEdges = allEdges.filter((item) => item.target === edge.source);
       return nextEdges.some((nextEdge) => checkIsCircular(nextEdge, new Set(visited)));
     };
@@ -207,20 +208,28 @@ export const checkNodeRunStatus = ({
     currentNode: node
   });
 
-  // check skip（其中一组边，全 skip）
+  // check active（其中一组边，至少有一个 active，且没有 waiting 即可运行）
+  if (
+    commonEdges.length > 0 &&
+    commonEdges.some((item) => item.status === 'active') &&
+    commonEdges.every((item) => item.status !== 'waiting')
+  ) {
+    return 'run';
+  }
+  if (
+    recursiveEdges.length > 0 &&
+    recursiveEdges.some((item) => item.status === 'active') &&
+    recursiveEdges.every((item) => item.status !== 'waiting')
+  ) {
+    return 'run';
+  }
+
+  // check skip（其中一组边，全是 skiped 则跳过运行）
   if (commonEdges.length > 0 && commonEdges.every((item) => item.status === 'skipped')) {
     return 'skip';
   }
   if (recursiveEdges.length > 0 && recursiveEdges.every((item) => item.status === 'skipped')) {
     return 'skip';
-  }
-
-  // check active（有一类边，不全是 wait 即可运行）
-  if (commonEdges.length > 0 && commonEdges.every((item) => item.status !== 'waiting')) {
-    return 'run';
-  }
-  if (recursiveEdges.length > 0 && recursiveEdges.every((item) => item.status !== 'waiting')) {
-    return 'run';
   }
 
   return 'wait';
@@ -283,13 +292,12 @@ export const getReferenceVariableValue = ({
 
 export const formatVariableValByType = (val: any, valueType?: WorkflowIOValueTypeEnum) => {
   if (!valueType) return val;
+  if (val === undefined || val === null) return;
   // Value type check, If valueType invalid, return undefined
   if (valueType.startsWith('array') && !Array.isArray(val)) return undefined;
   if (valueType === WorkflowIOValueTypeEnum.boolean) return Boolean(val);
   if (valueType === WorkflowIOValueTypeEnum.number) return Number(val);
   if (valueType === WorkflowIOValueTypeEnum.string) {
-    if (val === undefined) return 'undefined';
-    if (val === null) return 'null';
     return typeof val === 'object' ? JSON.stringify(val) : String(val);
   }
   if (
@@ -339,15 +347,12 @@ export function replaceEditorVariable({
       const output = node.outputs.find((output) => output.id === id);
       if (output) return formatVariableValByType(output.value, output.valueType);
 
+      // Use the node's input as the variable value(Example: HTTP data will reference its own dynamic input)
       const input = node.inputs.find((input) => input.key === id);
       if (input) return getReferenceVariableValue({ value: input.value, nodes, variables });
     })();
 
-    const formatVal = (() => {
-      if (variableVal === undefined) return 'undefined';
-      if (variableVal === null) return 'null';
-      return typeof variableVal === 'object' ? JSON.stringify(variableVal) : String(variableVal);
-    })();
+    const formatVal = valToStr(variableVal);
 
     const regex = new RegExp(`\\{\\{\\$(${nodeId}\\.${id})\\$\\}\\}`, 'g');
     text = text.replace(regex, () => formatVal);
@@ -358,12 +363,14 @@ export function replaceEditorVariable({
 
 export const textAdaptGptResponse = ({
   text,
+  reasoning_content,
   model = '',
   finish_reason = null,
   extraData = {}
 }: {
   model?: string;
-  text: string | null;
+  text?: string | null;
+  reasoning_content?: string | null;
   finish_reason?: null | 'stop';
   extraData?: Object;
 }) => {
@@ -375,10 +382,11 @@ export const textAdaptGptResponse = ({
     model,
     choices: [
       {
-        delta:
-          text === null
-            ? {}
-            : { role: ChatCompletionRequestMessageRoleEnum.Assistant, content: text },
+        delta: {
+          role: ChatCompletionRequestMessageRoleEnum.Assistant,
+          content: text,
+          ...(reasoning_content && { reasoning_content })
+        },
         index: 0,
         finish_reason
       }

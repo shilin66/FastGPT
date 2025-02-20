@@ -2,6 +2,7 @@ import type { ModuleDispatchProps } from '@fastgpt/global/core/workflow/runtime/
 import {
   NodeInputKeyEnum,
   NodeOutputKeyEnum,
+  VARIABLE_NODE_ID,
   WorkflowIOValueTypeEnum
 } from '@fastgpt/global/core/workflow/constants';
 import {
@@ -16,7 +17,9 @@ import { DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/ty
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import {
   textAdaptGptResponse,
-  replaceEditorVariable
+  replaceEditorVariable,
+  formatVariableValByType,
+  getReferenceVariableValue
 } from '@fastgpt/global/core/workflow/runtime/utils';
 import { ContentTypes } from '@fastgpt/global/core/workflow/constants';
 import { uploadFileFromBase64Img } from '../../../../common/file/gridfs/controller';
@@ -36,10 +39,10 @@ type HttpRequestProps = ModuleDispatchProps<{
   [NodeInputKeyEnum.abandon_httpUrl]: string;
   [NodeInputKeyEnum.httpMethod]: string;
   [NodeInputKeyEnum.httpReqUrl]: string;
-  [NodeInputKeyEnum.httpHeaders]: PropsArrType[];
-  [NodeInputKeyEnum.httpParams]: PropsArrType[];
-  [NodeInputKeyEnum.httpJsonBody]: string;
-  [NodeInputKeyEnum.httpFormBody]: PropsArrType[];
+  [NodeInputKeyEnum.httpHeaders]?: PropsArrType[];
+  [NodeInputKeyEnum.httpParams]?: PropsArrType[];
+  [NodeInputKeyEnum.httpJsonBody]?: string;
+  [NodeInputKeyEnum.httpFormBody]?: PropsArrType[];
   [NodeInputKeyEnum.httpContentType]: ContentTypes;
   [NodeInputKeyEnum.addInputParam]: Record<string, any>;
   [NodeInputKeyEnum.httpTimeout]?: number;
@@ -74,10 +77,10 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
     params: {
       system_httpMethod: httpMethod = 'POST',
       system_httpReqUrl: httpReqUrl,
-      system_httpHeader: httpHeader,
+      system_httpHeader: httpHeader = [],
       system_httpParams: httpParams = [],
-      system_httpJsonBody: httpJsonBody,
-      system_httpFormBody: httpFormBody,
+      system_httpJsonBody: httpJsonBody = '',
+      system_httpFormBody: httpFormBody = [],
       system_httpContentType: httpContentType = ContentTypes.json,
       system_httpTimeout: httpTimeout = 60,
       [NodeInputKeyEnum.addInputParam]: dynamicInput,
@@ -98,22 +101,86 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
   const concatVariables = {
     ...variables,
     ...body,
-    // ...dynamicInput,
     ...systemVariables
   };
-  const allVariables = {
+  const allVariables: Record<string, any> = {
     [NodeInputKeyEnum.addInputParam]: concatVariables,
     ...concatVariables
   };
+
+  // General data for variable substitution（Exclude: json body)
   const replaceStringVariables = (text: string) => {
-    return replaceVariable(
-      replaceEditorVariable({
-        text,
-        nodes: runtimeNodes,
-        variables: allVariables
-      }),
-      allVariables
-    );
+    return replaceEditorVariable({
+      text,
+      nodes: runtimeNodes,
+      variables: allVariables
+    });
+  };
+  /* Replace the JSON string to reduce parsing errors
+    1. Replace undefined values with null
+    2. Replace newline strings
+  */
+  const replaceJsonBodyString = (text: string) => {
+    const valToStr = (val: any) => {
+      if (val === undefined) return 'null';
+      if (val === null) return 'null';
+
+      if (typeof val === 'object') return JSON.stringify(val);
+
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val);
+          if (typeof parsed === 'object') {
+            return JSON.stringify(parsed);
+          }
+          return val;
+        } catch (error) {
+          const str = JSON.stringify(val);
+          return str.startsWith('"') && str.endsWith('"') ? str.slice(1, -1) : str;
+        }
+      }
+
+      return String(val);
+    };
+
+    // 1. Replace {{key.key}} variables
+    const regex1 = /\{\{\$([^.]+)\.([^$]+)\$\}\}/g;
+    const matches1 = [...text.matchAll(regex1)];
+    matches1.forEach((match) => {
+      const nodeId = match[1];
+      const id = match[2];
+
+      const variableVal = (() => {
+        if (nodeId === VARIABLE_NODE_ID) {
+          return variables[id];
+        }
+        // Find upstream node input/output
+        const node = runtimeNodes.find((node) => node.nodeId === nodeId);
+        if (!node) return;
+
+        const output = node.outputs.find((output) => output.id === id);
+        if (output) return formatVariableValByType(output.value, output.valueType);
+
+        const input = node.inputs.find((input) => input.key === id);
+        if (input)
+          return getReferenceVariableValue({ value: input.value, nodes: runtimeNodes, variables });
+      })();
+
+      const formatVal = valToStr(variableVal);
+
+      const regex = new RegExp(`\\{\\{\\$(${nodeId}\\.${id})\\$\\}\\}`, 'g');
+      text = text.replace(regex, () => formatVal);
+    });
+
+    // 2. Replace {{key}} variables
+    const regex2 = /{{([^}]+)}}/g;
+    const matches2 = text.match(regex2) || [];
+    const uniqueKeys2 = [...new Set(matches2.map((match) => match.slice(2, -2)))];
+    for (const key of uniqueKeys2) {
+      text = text.replace(new RegExp(`{{(${key})}}`, 'g'), () => valToStr(allVariables[key]));
+    }
+
+    return text.replace(/(".*?")\s*:\s*undefined\b/g, '$1: null');
   };
 
   httpReqUrl = replaceStringVariables(httpReqUrl);
@@ -177,18 +244,14 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
       }
       if (!httpJsonBody) return {};
       if (httpContentType === ContentTypes.json) {
-        httpJsonBody = replaceStringVariables(httpJsonBody);
-        // Json body, parse and return
-        const jsonParse = json5.parse(
-          httpJsonBody.replace(/(".*?")\s*:\s*undefined\b/g, '$1: null')
-        );
-        const removeSignJson = removeUndefinedSign(jsonParse);
-        return removeSignJson;
+        httpJsonBody = replaceJsonBodyString(httpJsonBody);
+        return json5.parse(httpJsonBody);
       }
+
+      // Raw text, xml
       httpJsonBody = replaceStringVariables(httpJsonBody);
       return httpJsonBody.replaceAll(UNDEFINED_SIGN, 'null');
     } catch (error) {
-      console.log(error);
       return Promise.reject(`Invalid JSON body: ${httpJsonBody}`);
     }
   })();
@@ -337,40 +400,40 @@ async function fetchData({
   };
 }
 
-function replaceVariable(text: string, obj: Record<string, any>) {
-  for (const [key, value] of Object.entries(obj)) {
-    if (value === undefined) {
-      text = text.replace(new RegExp(`{{(${key})}}`, 'g'), UNDEFINED_SIGN);
-    } else {
-      const replacement = JSON.stringify(value);
-      const unquotedReplacement =
-        replacement.startsWith('"') && replacement.endsWith('"')
-          ? replacement.slice(1, -1)
-          : replacement;
-      text = text.replace(new RegExp(`{{(${key})}}`, 'g'), () => unquotedReplacement);
-    }
-  }
-  return text || '';
-}
-function removeUndefinedSign(obj: Record<string, any>) {
-  for (const key in obj) {
-    if (obj[key] === UNDEFINED_SIGN) {
-      obj[key] = undefined;
-    } else if (Array.isArray(obj[key])) {
-      obj[key] = obj[key].map((item: any) => {
-        if (item === UNDEFINED_SIGN) {
-          return undefined;
-        } else if (typeof item === 'object') {
-          removeUndefinedSign(item);
-        }
-        return item;
-      });
-    } else if (typeof obj[key] === 'object') {
-      removeUndefinedSign(obj[key]);
-    }
-  }
-  return obj;
-}
+// function replaceVariable(text: string, obj: Record<string, any>) {
+//   for (const [key, value] of Object.entries(obj)) {
+//     if (value === undefined) {
+//       text = text.replace(new RegExp(`{{(${key})}}`, 'g'), UNDEFINED_SIGN);
+//     } else {
+//       const replacement = JSON.stringify(value);
+//       const unquotedReplacement =
+//         replacement.startsWith('"') && replacement.endsWith('"')
+//           ? replacement.slice(1, -1)
+//           : replacement;
+//       text = text.replace(new RegExp(`{{(${key})}}`, 'g'), () => unquotedReplacement);
+//     }
+//   }
+//   return text || '';
+// }
+// function removeUndefinedSign(obj: Record<string, any>) {
+//   for (const key in obj) {
+//     if (obj[key] === UNDEFINED_SIGN) {
+//       obj[key] = undefined;
+//     } else if (Array.isArray(obj[key])) {
+//       obj[key] = obj[key].map((item: any) => {
+//         if (item === UNDEFINED_SIGN) {
+//           return undefined;
+//         } else if (typeof item === 'object') {
+//           removeUndefinedSign(item);
+//         }
+//         return item;
+//       });
+//     } else if (typeof obj[key] === 'object') {
+//       removeUndefinedSign(obj[key]);
+//     }
+//   }
+//   return obj;
+// }
 
 // Replace some special response from system plugin
 async function replaceSystemPluginResponse({

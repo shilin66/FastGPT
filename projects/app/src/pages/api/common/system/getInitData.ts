@@ -1,55 +1,77 @@
 import type { NextApiResponse } from 'next';
 import { ApiRequestProps } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
+import { InitDateResponse } from '@/global/common/api/systemRes';
+import { SystemModelItemType } from '@fastgpt/service/core/ai/type';
+import { authCert } from '@fastgpt/service/support/permission/auth/common';
 
-async function handler(req: ApiRequestProps<{}, { bufferId?: string }>, res: NextApiResponse) {
+async function handler(
+  req: ApiRequestProps<{}, { bufferId?: string }>,
+  res: NextApiResponse
+): Promise<InitDateResponse> {
   const { bufferId } = req.query;
 
-  // If bufferId is the same as the current bufferId, return directly
-  if (bufferId && global.systemInitBufferId && global.systemInitBufferId === bufferId) {
+  const activeModelList = global.systemActiveModelList.map((model) => ({
+    ...model,
+    customCQPrompt: undefined,
+    customExtractPrompt: undefined,
+    defaultSystemChatPrompt: undefined,
+    fieldMap: undefined,
+    defaultConfig: undefined,
+    weight: undefined,
+    dbConfig: undefined,
+    queryConfig: undefined,
+    requestUrl: undefined,
+    requestAuth: undefined
+  })) as SystemModelItemType[];
+
+  try {
+    await authCert({ req, authToken: true });
+    // If bufferId is the same as the current bufferId, return directly
+    if (bufferId && global.systemInitBufferId && global.systemInitBufferId === bufferId) {
+      return {
+        bufferId: global.systemInitBufferId,
+        systemVersion: global.systemVersion
+      };
+    }
+
     return {
-      bufferId: global.systemInitBufferId
+      bufferId: global.systemInitBufferId,
+      feConfigs: {
+        ...global.feConfigs,
+        oauth: {
+          ...global.feConfigs.oauth,
+          github: global.feConfigs.oauth?.github
+            ? {
+                ...global.feConfigs?.oauth?.github,
+                clientSecret: '******'
+              }
+            : undefined,
+          microsoft: global.feConfigs.oauth?.microsoft
+            ? {
+                ...global.feConfigs?.oauth?.microsoft,
+                clientSecret: '******'
+              }
+            : undefined
+        }
+      },
+      subPlans: global.subPlans,
+      systemVersion: global.systemVersion,
+      activeModelList,
+      defaultModels: global.systemDefaultModel
+    };
+  } catch (error) {
+    const unAuthBufferId = global.systemInitBufferId ? `unAuth_${global.systemInitBufferId}` : '';
+    if (bufferId && unAuthBufferId === bufferId) {
+      return {
+        bufferId: unAuthBufferId
+      };
+    }
+    return {
+      bufferId: unAuthBufferId,
+      feConfigs: global.feConfigs
     };
   }
-
-  return {
-    bufferId: global.systemInitBufferId,
-    feConfigs: {
-      ...global.feConfigs,
-      oauth: {
-        ...global.feConfigs.oauth,
-        github: global.feConfigs.oauth?.github
-          ? {
-              ...global.feConfigs?.oauth?.github,
-              clientSecret: '******'
-            }
-          : undefined,
-        microsoft: global.feConfigs.oauth?.microsoft
-          ? {
-              ...global.feConfigs?.oauth?.microsoft,
-              clientSecret: '******'
-            }
-          : undefined
-      }
-    },
-    subPlans: global.subPlans,
-    llmModels: global.llmModels.map((model) => ({
-      ...model,
-      customCQPrompt: '',
-      customExtractPrompt: '',
-      defaultSystemChatPrompt: ''
-    })),
-    vectorModels: global.vectorModels,
-    reRankModels:
-      global.reRankModels?.map((item) => ({
-        ...item,
-        requestUrl: '',
-        requestAuth: ''
-      })) || [],
-    whisperModel: global.whisperModel,
-    audioSpeechModels: global.audioSpeechModels,
-    systemVersion: global.systemVersion || '0.0.0'
-  };
 }
 
 export default NextAPI(handler);

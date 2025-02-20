@@ -44,6 +44,7 @@ export type TeamMemberSchema = {
   name: string;
   role: `${TeamMemberRoleEnum}`;
   status: `${TeamMemberStatusEnum}`;
+  avatar: string;
   defaultTeam: boolean;
 };
 
@@ -55,10 +56,11 @@ export type TeamMemberWithTeamAndUserSchema = TeamMemberSchema & {
 export type TeamTmbItemType = {
   userId: string;
   teamId: string;
+  teamAvatar?: string;
   teamName: string;
   memberName: string;
   avatar: string;
-  balance: number;
+  balance?: number;
   tmbId: string;
   teamDomain: string;
   defaultTeam: boolean;

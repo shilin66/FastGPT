@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   Box,
   Flex,
@@ -9,8 +9,7 @@ import {
   Link,
   Progress,
   Grid,
-  BoxProps,
-  FlexProps
+  BoxProps
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { UserUpdateParams } from '@/types/user';
@@ -20,7 +19,6 @@ import type { UserType } from '@fastgpt/global/support/user/type.d';
 import { useQuery } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useSelectFile } from '@/web/common/file/hooks/useSelectFile';
-import { compressImgFileAndUpload } from '@/web/common/file/controller';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useTranslation } from 'next-i18next';
 import Avatar from '@fastgpt/web/components/common/Avatar';
@@ -29,7 +27,6 @@ import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { formatStorePrice2Read } from '@fastgpt/global/support/wallet/usage/tools';
 import { putUpdateMemberName } from '@/web/support/user/team/api';
 import { getDocPath } from '@/web/common/system/doc';
-import { MongoImageTypeEnum } from '@fastgpt/global/common/file/image/constants';
 import {
   StandardSubLevelEnum,
   standardSubLevelMap
@@ -41,16 +38,21 @@ import StandardPlanContentList from '@/components/support/wallet/StandardPlanCon
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
-import AccountContainer from '../components/AccountContainer';
+import AccountContainer from '@/pageComponents/account/AccountContainer';
 import { serviceSideProps } from '@fastgpt/web/common/system/nextjs';
 import { useRouter } from 'next/router';
-import TeamSelector from '../components/TeamSelector';
-import ConfluenceAccountModal from '@/pages/account/info/components/ConfluenceAccountModal';
+import TeamSelector from '@/pageComponents/account/TeamSelector';
+import ConfluenceAccountModal from '@/pageComponents/account/info/ConfluenceAccountModal';
 
-const StandDetailModal = dynamic(() => import('./components/standardDetailModal'), { ssr: false });
-const ConversionModal = dynamic(() => import('./components/ConversionModal'));
-const UpdatePswModal = dynamic(() => import('./components/UpdatePswModal'));
-// const UpdateNotification = dynamic(() => import('./components/UpdateNotificationModal'));
+const StandDetailModal = dynamic(
+  () => import('@/pageComponents/account/info/standardDetailModal'),
+  { ssr: false }
+);
+const ConversionModal = dynamic(() => import('@/pageComponents/account/info/ConversionModal'));
+const UpdatePswModal = dynamic(() => import('@/pageComponents/account/info/UpdatePswModal'));
+// const UpdateNotification = dynamic(
+//   () => import('@/components/support/user/inform/UpdateNotificationModal')
+// );
 const CommunityModal = dynamic(() => import('@/components/CommunityModal'));
 
 const ModelPriceModal = dynamic(() =>
@@ -132,7 +134,11 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
   //   onClose: onCloseUpdateNotification,
   //   onOpen: onOpenUpdateNotification
   // } = useDisclosure();
-  const { File, onOpen: onOpenSelectFile } = useSelectFile({
+  const {
+    File,
+    onOpen: onOpenSelectFile,
+    onSelectImage
+  } = useSelectFile({
     fileType: '.jpg,.png',
     multiple: false
   });
@@ -153,38 +159,13 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
     [reset, t, toast, updateUserInfo]
   );
 
-  const onSelectFile = useCallback(
-    async (e: File[]) => {
-      const file = e[0];
-      if (!file || !userInfo) return;
-      try {
-        const src = await compressImgFileAndUpload({
-          type: MongoImageTypeEnum.userAvatar,
-          file,
-          maxW: 300,
-          maxH: 300
-        });
-
-        onclickSave({
-          ...userInfo,
-          avatar: src
-        });
-      } catch (err: any) {
-        toast({
-          title: typeof err === 'string' ? err : t('account_info:avatar_selection_exception'),
-          status: 'warning'
-        });
-      }
-    },
-    [onclickSave, t, toast, userInfo]
-  );
-
   const labelStyles: BoxProps = {
     flex: '0 0 80px',
     fontSize: 'sm',
     color: 'myGray.900'
   };
 
+  const isSyncMember = feConfigs.register_method?.includes('sync');
   return (
     <Box>
       {/* user info */}
@@ -250,6 +231,7 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
             <Box flex={1}>{userInfo?.team?.memberName || 'Member'}</Box>
             {/*<Input*/}
             {/*  flex={'1 0 0'}*/}
+            {/*  disabled={isSyncMember}*/}
             {/*  defaultValue={userInfo?.team?.memberName || 'Member'}*/}
             {/*  title={t('account_info:click_modify_nickname')}*/}
             {/*  borderColor={'transparent'}*/}
@@ -332,7 +314,21 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
       )}
       {isOpenUpdatePsw && <UpdatePswModal onClose={onCloseUpdatePsw} />}
       {/*{isOpenUpdateNotification && <UpdateNotification onClose={onCloseUpdateNotification} />}*/}
-      <File onSelect={onSelectFile} />
+      <File
+        onSelect={(e) =>
+          onSelectImage(e, {
+            maxW: 300,
+            maxH: 300,
+            callback: (src) => {
+              if (!userInfo) return;
+              onclickSave({
+                ...userInfo,
+                avatar: src
+              });
+            }
+          })
+        }
+      />
     </Box>
   );
 };
@@ -602,6 +598,7 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
   const { feConfigs } = useSystemStore();
   const { t } = useTranslation();
   const { isPc } = useSystem();
+
   const { userInfo, updateUserInfo } = useUserStore();
   const theme = useTheme();
   const { toast } = useToast();
@@ -628,7 +625,6 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
     },
     [reset, t, toast, updateUserInfo]
   );
-
   return (
     <Box>
       <Grid gridGap={4} mt={3}>

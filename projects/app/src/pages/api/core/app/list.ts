@@ -15,8 +15,10 @@ import { AppDefaultPermissionVal } from '@fastgpt/global/support/permission/app/
 import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { replaceRegChars } from '@fastgpt/global/common/string/tools';
-import { getGroupPer } from '@fastgpt/service/support/permission/controller';
+import { concatPer } from '@fastgpt/service/support/permission/controller';
 import { getGroupsByTmbId } from '@fastgpt/service/support/permission/memberGroup/controllers';
+import { getOrgIdSetWithParentByTmbId } from '@fastgpt/service/support/permission/org/controllers';
+import { addSourceMember } from '@fastgpt/service/support/user/utils';
 
 export type ListAppBody = {
   parentId?: ParentIdType;
@@ -25,7 +27,7 @@ export type ListAppBody = {
   searchKey?: string;
 };
 
-/* 
+/*
   获取 APP 列表权限
   1. 校验 folder 权限和获取 team 权限（owner 单独处理）
   2. 获取 team 下所有 app 权限。获取我的所有组。并计算出我所有的app权限。
@@ -60,7 +62,7 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
   ]);
 
   // Get team all app permissions
-  const [perList, myGroupMap] = await Promise.all([
+  const [perList, myGroupMap, myOrgSet] = await Promise.all([
     MongoResourcePermission.find({
       resourceType: PerResourceTypeEnum.app,
       teamId,
@@ -77,11 +79,18 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
         map.set(String(item._id), 1);
       });
       return map;
+    }),
+    getOrgIdSetWithParentByTmbId({
+      teamId,
+      tmbId
     })
   ]);
   // Get my permissions
   const myPerList = perList.filter(
-    (item) => String(item.tmbId) === String(tmbId) || myGroupMap.has(String(item.groupId))
+    (item) =>
+      String(item.tmbId) === String(tmbId) ||
+      myGroupMap.has(String(item.groupId)) ||
+      myOrgSet.has(String(item.orgId))
   );
 
   const findAppsQuery = (() => {
@@ -151,9 +160,11 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
           const tmbPer = myPerList.find(
             (item) => String(item.resourceId) === appId && !!item.tmbId
           )?.permission;
-          const groupPer = getGroupPer(
+          const groupPer = concatPer(
             myPerList
-              .filter((item) => String(item.resourceId) === appId && !!item.groupId)
+              .filter(
+                (item) => String(item.resourceId) === appId && (!!item.groupId || !!item.orgId)
+              )
               .map((item) => item.permission)
           );
 
@@ -186,24 +197,14 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
       return {
         ...app,
         permission: Per,
-        privateApp
+        private: privateApp
       };
     })
     .filter((app) => app.permission.hasReadPer);
 
-  return formatApps.map((app) => ({
-    _id: app._id,
-    tmbId: app.tmbId,
-    avatar: app.avatar,
-    type: app.type,
-    name: app.name,
-    intro: app.intro,
-    updateTime: app.updateTime,
-    permission: app.permission,
-    pluginData: app.pluginData,
-    inheritPermission: app.inheritPermission ?? true,
-    private: app.privateApp
-  }));
+  return addSourceMember({
+    list: formatApps
+  });
 }
 
 export default NextAPI(handler);

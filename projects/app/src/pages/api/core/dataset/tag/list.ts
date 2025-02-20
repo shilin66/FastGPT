@@ -4,6 +4,7 @@ import { PaginationProps } from '@fastgpt/web/common/fetch/type';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { ApiRequestProps } from '@fastgpt/service/type/next';
 import { authDataset } from '@fastgpt/service/support/permission/dataset/auth';
+import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';
 
 async function handler(
   req: ApiRequestProps<
@@ -14,10 +15,11 @@ async function handler(
     }>
   >
 ) {
-  const { datasetId, offset, pageSize, searchText } = req.body as PaginationProps<{
+  const { datasetId, searchText } = req.body as PaginationProps<{
     datasetId: string;
     searchText?: string;
   }>;
+  const { offset, pageSize } = parsePaginationRequest(req);
   await authDataset({ req, datasetId, authToken: true, per: ReadPermissionVal });
   const params = {
     datasetId,

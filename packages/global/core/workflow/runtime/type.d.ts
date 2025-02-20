@@ -41,6 +41,10 @@ export type ChatDispatchProps = {
     teamId: string;
     tmbId: string; // App tmbId
   };
+  runningUserInfo: {
+    teamId: string;
+    tmbId: string;
+  };
   uid: string; // Who run this workflow
 
   chatId?: string;
@@ -119,6 +123,7 @@ export type DispatchNodeResponseType = {
   temperature?: number;
   maxToken?: number;
   quoteList?: SearchDataResponseItemType[];
+  reasoningText?: string;
   historyPreview?: {
     obj: `${ChatRoleEnum}`;
     value: string;
@@ -129,9 +134,17 @@ export type DispatchNodeResponseType = {
   limit?: number;
   searchMode?: `${DatasetSearchModeEnum}`;
   searchUsingReRank?: boolean;
-  extensionModel?: string;
-  extensionResult?: string;
-  extensionTokens?: number;
+  queryExtensionResult?: {
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    query: string;
+  };
+  deepSearchResult?: {
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+  };
 
   // dataset concat
   concatLength?: number;
@@ -194,6 +207,11 @@ export type DispatchNodeResponseType = {
 
   // tool params
   toolParamsResult?: Record<string, any>;
+
+  // abandon
+  extensionModel?: string;
+  extensionResult?: string;
+  extensionTokens?: number;
 };
 
 export type DispatchNodeResultType<T = {}> = {
@@ -216,6 +234,11 @@ export type AIChatNodeProps = {
   [NodeInputKeyEnum.aiChatMaxToken]?: number;
   [NodeInputKeyEnum.aiChatIsResponseText]: boolean;
   [NodeInputKeyEnum.aiChatVision]?: boolean;
+  [NodeInputKeyEnum.aiChatReasoning]?: boolean;
+  [NodeInputKeyEnum.aiChatTopP]?: number;
+  [NodeInputKeyEnum.aiChatStopSign]?: string;
+  [NodeInputKeyEnum.aiChatResponseFormat]?: string;
+  [NodeInputKeyEnum.aiChatJsonSchema]?: string;
 
   [NodeInputKeyEnum.aiChatQuoteRole]?: AiChatQuoteRoleType;
   [NodeInputKeyEnum.aiChatQuoteTemplate]?: string;

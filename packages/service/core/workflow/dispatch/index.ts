@@ -204,6 +204,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     { inputs = [] }: RuntimeNodeItemType,
     {
       answerText = '',
+      reasoningText,
       responseData,
       nodeDispatchUsages,
       toolResponses,
@@ -213,6 +214,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     }: Omit<
       DispatchNodeResultType<{
         [NodeOutputKeyEnum.answerText]?: string;
+        [NodeOutputKeyEnum.reasoningText]?: string;
         [DispatchNodeResponseKeyEnum.nodeResponse]?: ChatHistoryItemResType;
       }>,
       'nodeResponse'
@@ -239,17 +241,27 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     // Histories store
     if (assistantResponses) {
       chatAssistantResponse = chatAssistantResponse.concat(assistantResponses);
-    } else if (answerText) {
-      // save assistant text response
-      const isResponseAnswerText =
-        inputs.find((item) => item.key === NodeInputKeyEnum.aiChatIsResponseText)?.value ?? true;
-      if (isResponseAnswerText) {
+    } else {
+      if (reasoningText) {
         chatAssistantResponse.push({
-          type: ChatItemValueTypeEnum.text,
-          text: {
-            content: answerText
+          type: ChatItemValueTypeEnum.reasoning,
+          reasoning: {
+            content: reasoningText
           }
         });
+      }
+      if (answerText) {
+        // save assistant text response
+        const isResponseAnswerText =
+          inputs.find((item) => item.key === NodeInputKeyEnum.aiChatIsResponseText)?.value ?? true;
+        if (isResponseAnswerText) {
+          chatAssistantResponse.push({
+            type: ChatItemValueTypeEnum.text,
+            text: {
+              content: answerText
+            }
+          });
+        }
       }
     }
 
@@ -487,16 +499,16 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       if (input.key === dynamicInput?.key) return;
 
       // Skip some special key
-      if (input.key === NodeInputKeyEnum.childrenNodeIdList) {
+      if (
+        [NodeInputKeyEnum.childrenNodeIdList, NodeInputKeyEnum.httpJsonBody].includes(
+          input.key as any
+        )
+      ) {
         params[input.key] = input.value;
-
         return;
       }
 
-      // replace {{xx}} variables
-      // let value = replaceVariable(input.value, variables);
-
-      // replace {{$xx.xx$}} variables
+      // replace {{$xx.xx$}} and {{xx}} variables
       let value = replaceEditorVariable({
         text: input.value,
         nodes: runtimeNodes,
@@ -604,6 +616,11 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
         ...variables,
         ...dispatchRes[DispatchNodeResponseKeyEnum.newVariables]
       };
+    }
+
+    // Error
+    if (dispatchRes?.responseData?.error) {
+      addLog.warn('workflow error', dispatchRes.responseData.error);
     }
 
     return {
