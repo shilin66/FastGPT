@@ -36,7 +36,10 @@ const Team = () => {
   const { t } = useTranslation();
   const { userInfo } = useUserStore();
 
-  const { setEditTeamData, isLoading, teamSize } = useContextSelector(TeamContext, (v) => v);
+  const { setEditTeamData, isLoading, teamSize, refetchMembers } = useContextSelector(
+    TeamContext,
+    (v) => v
+  );
 
   const Tabs = useMemo(
     () => (
@@ -99,7 +102,7 @@ const Team = () => {
               />
             </Flex>
             <Flex align={'center'} ml={6}>
-              <TeamSelector height={'28px'} />
+              <TeamSelector height={'28px'} onChange={refetchMembers} />
             </Flex>
             {userInfo?.team?.role === TeamMemberRoleEnum.owner && (
               <Flex align={'center'} justify={'center'} ml={2} p={'0.44rem'}>
@@ -115,7 +118,8 @@ const Team = () => {
                     setEditTeamData({
                       id: userInfo.team.teamId,
                       name: userInfo.team.teamName,
-                      avatar: userInfo.team.avatar
+                      avatar: userInfo.team.avatar,
+                      notificationAccount: userInfo.team.notificationAccount
                     });
                   }}
                 />
