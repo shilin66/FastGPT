@@ -65,6 +65,7 @@ const UserSchema = new Schema({
   },
   fastgpt_sem: Object,
   sourceDomain: String,
+  contact: String,
 
   /** @deprecated */
   avatar: String
