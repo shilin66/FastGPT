@@ -235,7 +235,7 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
                   <Th borderLeftRadius="6px" bgColor="myGray.100">
                     {t('account_team:user_name')}
                   </Th>
-                  <Th bgColor="myGray.100">{t('account_team:contact')}</Th>
+                  {/*<Th bgColor="myGray.100">{t('account_team:contact')}</Th>*/}
                   <Th bgColor="myGray.100">{t('account_team:org')}</Th>
                   <Th bgColor="myGray.100">{t('account_team:join_update_time')}</Th>
                   <Th borderRightRadius="6px" bgColor="myGray.100">
@@ -265,7 +265,7 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
                           </Box>
                         </HStack>
                       </Td>
-                      <Td maxW={'300px'}>{member.contact || '-'}</Td>
+                      {/*<Td maxW={'300px'}>{member.contact || '-'}</Td>*/}
                       <Td maxWidth="300px">
                         {(() => {
                           const memberOrgs = orgs.filter((org) =>

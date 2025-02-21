@@ -117,6 +117,6 @@ export const GetSearchUserGroupOrg = (
     orgs?: boolean;
     groups?: boolean;
   }
-) => GET<SearchResult>('/proApi/support/user/search', { searchKey, ...options });
+) => GET<SearchResult>('/support/user/search', { searchKey, ...options });
 
 export const ExportMembers = () => GET<{ csv: string }>('/proApi/support/user/team/member/export');

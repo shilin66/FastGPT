@@ -43,7 +43,7 @@ export const delRemoveMember = (tmbId: string) =>
 export const updateInviteResult = (data: UpdateInviteProps) =>
   PUT('/support/user/team/member/updateInvite', data);
 export const updateStatus = (data: UpdateStatusProps) =>
-  PUT('/proApi/support/user/team/member/updateStatus', data);
+  PUT('/support/user/team/member/updateStatus', data);
 export const delLeaveTeam = () => DELETE('/support/user/team/member/leave');
 
 /* -------------- team collaborator -------------------- */
