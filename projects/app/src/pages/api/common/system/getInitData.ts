@@ -26,7 +26,7 @@ async function handler(
   })) as SystemModelItemType[];
 
   try {
-    await authCert({ req, authToken: true });
+    await authCert({ req, authToken: true, authApiKey: true });
     // If bufferId is the same as the current bufferId, return directly
     if (bufferId && global.systemInitBufferId && global.systemInitBufferId === bufferId) {
       return {
@@ -64,7 +64,24 @@ async function handler(
     const referer = req.headers.referer;
     if (referer?.includes('/price')) {
       return {
-        feConfigs: global.feConfigs,
+        feConfigs: {
+          ...global.feConfigs,
+          oauth: {
+            ...global.feConfigs.oauth,
+            github: global.feConfigs.oauth?.github
+              ? {
+                  ...global.feConfigs?.oauth?.github,
+                  clientSecret: '******'
+                }
+              : undefined,
+            microsoft: global.feConfigs.oauth?.microsoft
+              ? {
+                  ...global.feConfigs?.oauth?.microsoft,
+                  clientSecret: '******'
+                }
+              : undefined
+          }
+        },
         subPlans: global.subPlans,
         activeModelList
       };
@@ -79,7 +96,24 @@ async function handler(
 
     return {
       bufferId: unAuthBufferId,
-      feConfigs: global.feConfigs
+      feConfigs: {
+        ...global.feConfigs,
+        oauth: {
+          ...global.feConfigs.oauth,
+          github: global.feConfigs.oauth?.github
+            ? {
+                ...global.feConfigs?.oauth?.github,
+                clientSecret: '******'
+              }
+            : undefined,
+          microsoft: global.feConfigs.oauth?.microsoft
+            ? {
+                ...global.feConfigs?.oauth?.microsoft,
+                clientSecret: '******'
+              }
+            : undefined
+        }
+      }
     };
   }
 }
