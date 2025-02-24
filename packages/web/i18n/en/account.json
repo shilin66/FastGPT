@@ -48,6 +48,7 @@
   "model.max_temperature": "Max temperature",
   "model.model_id": "Model ID",
   "model.model_id_tip": "The unique identifier of the model, that is, the value of the actual request to the service provider model, needs to correspond to the model in the OneAPI channel.",
+  "model.ai_search": "AI Search",
   "model.normalization": "Normalization processing",
   "model.normalization_tip": "If the Embedding API does not normalize vector values, the switch can be enabled and the system will normalize.\n\nUnnormalized APIs, which are represented by the vector search score greater than 1.",
   "model.output_price": "Output price",
