@@ -117,12 +117,12 @@ ${quotedContent}
     const latex = source
       .replace(/\\\(.*?\\\)/g, (match) => `$${match.slice(2, -2)}$`)
       .replace(/\\\[.*?\\\]/gs, (match) => `\n$$\n${match.slice(2, -2)}\n$$\n`);
-    const think = converterThinkTags(latex);
-    if (showAnimation || forbidZhFormat) return think;
+    // const think = converterThinkTags(latex);
+    if (showAnimation || forbidZhFormat) return latex;
 
     // 保护 URL 格式：https://, http://, /api/xxx
     const urlPlaceholders: string[] = [];
-    const textWithProtectedUrls = think.replace(
+    const textWithProtectedUrls = latex.replace(
       /https?:\/\/(?:(?:[\w-]+\.)+[a-zA-Z]{2,6}|localhost)(?::\d{2,5})?(?:\/[\w\-./?%&=@]*)?/g,
       (match) => {
         urlPlaceholders.push(match);

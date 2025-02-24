@@ -50,9 +50,7 @@ const StandDetailModal = dynamic(
 );
 const ConversionModal = dynamic(() => import('@/pageComponents/account/info/ConversionModal'));
 const UpdatePswModal = dynamic(() => import('@/pageComponents/account/info/UpdatePswModal'));
-// const UpdateNotification = dynamic(
-//   () => import('@/components/support/user/inform/UpdateNotificationModal')
-// );
+// const UpdateContact = dynamic(() => import('@/components/support/user/inform/UpdateContactModal'));
 const CommunityModal = dynamic(() => import('@/components/CommunityModal'));
 
 const ModelPriceModal = dynamic(() =>
@@ -111,7 +109,7 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
   const theme = useTheme();
   const { feConfigs } = useSystemStore();
   const { t } = useTranslation();
-  const { userInfo, updateUserInfo, teamPlanStatus } = useUserStore();
+  const { userInfo, updateUserInfo, teamPlanStatus, initUserInfo } = useUserStore();
   const { reset } = useForm<UserUpdateParams>({
     defaultValues: userInfo as UserType
   });
@@ -130,9 +128,9 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
     onOpen: onOpenUpdatePsw
   } = useDisclosure();
   // const {
-  //   isOpen: isOpenUpdateNotification,
-  //   onClose: onCloseUpdateNotification,
-  //   onOpen: onOpenUpdateNotification
+  //   isOpen: isOpenUpdateContact,
+  //   onClose: onCloseUpdateContact,
+  //   onOpen: onOpenUpdateContact
   // } = useDisclosure();
   const {
     File,
@@ -262,32 +260,21 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
         )}
         {/*{feConfigs?.isPlus && (*/}
         {/*  <Flex mt={6} alignItems={'center'}>*/}
-        {/*    <Box {...labelStyles}>{t('account_info:notification_receiving')}:&nbsp;</Box>*/}
-        {/*    <Box*/}
-        {/*      flex={1}*/}
-        {/*      {...(!userInfo?.team.notificationAccount && userInfo?.permission.isOwner*/}
-        {/*        ? { color: 'red.600' }*/}
-        {/*        : {})}*/}
-        {/*    >*/}
-        {/*      {userInfo?.team.notificationAccount*/}
-        {/*        ? userInfo?.team.notificationAccount*/}
-        {/*        : userInfo?.permission.isOwner*/}
-        {/*          ? t('account_info:please_bind_notification_receiving_path')*/}
-        {/*          : t('account_info:reminder_create_bound_notification_account')}*/}
+        {/*    <Box {...labelStyles}>{t('account_info:contact')}:&nbsp;</Box>*/}
+        {/*    <Box flex={1} {...(!userInfo?.contact ? { color: 'red.600' } : {})}>*/}
+        {/*      {userInfo?.contact ? userInfo?.contact : t('account_info:please_bind_contact')}*/}
         {/*    </Box>*/}
 
-        {/*    {userInfo?.permission.isOwner && (*/}
-        {/*      <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdateNotification}>*/}
-        {/*        {t('account_info:change')}*/}
-        {/*      </Button>*/}
-        {/*    )}*/}
+        {/*    <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdateContact}>*/}
+        {/*      {t('account_info:change')}*/}
+        {/*    </Button>*/}
         {/*  </Flex>*/}
         {/*)}*/}
         {feConfigs.isPlus && (
           <Flex mt={6} alignItems={'center'}>
             <Box {...labelStyles}>{t('account_info:user_team_team_name')}:&nbsp;</Box>
             <Flex flex={'1 0 0'} w={0} align={'center'}>
-              <TeamSelector height={'28px'} w={'100%'} showManage />
+              <TeamSelector height={'28px'} w={'100%'} showManage onChange={initUserInfo} />
             </Flex>
           </Flex>
         )}
@@ -313,7 +300,7 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
         <ConversionModal onClose={onCloseConversionModal} onOpenContact={onOpenContact} />
       )}
       {isOpenUpdatePsw && <UpdatePswModal onClose={onCloseUpdatePsw} />}
-      {/*{isOpenUpdateNotification && <UpdateNotification onClose={onCloseUpdateNotification} />}*/}
+      {/*{isOpenUpdateContact && <UpdateContact onClose={onCloseUpdateContact} mode="contact" />}*/}
       <File
         onSelect={(e) =>
           onSelectImage(e, {
