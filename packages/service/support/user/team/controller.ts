@@ -413,13 +413,15 @@ export async function getTeamMembers(
           teamDomain: tmb.team.teamDomain,
           role: tmb.role,
           status: tmb.status,
+          createTime: tmb.createTime,
+          updateTime: tmb.updateTime,
           permission: new TeamPermission({
             per: permData.permission ?? TeamDefaultPermissionVal,
             isOwner: tmb.role === TeamMemberRoleEnum.owner
           })
         };
       })
-      .filter((member) => member !== undefined) as TeamMemberItemType[]
+      .filter((member) => member !== undefined) as unknown as TeamMemberItemType[]
   };
 }
 

@@ -51,7 +51,8 @@ export async function getUserDetail({
     confluenceAccount: user.confluenceAccount,
     team: tmb,
     notificationAccount: tmb.notificationAccount,
-    permission: tmb.permission
+    permission: tmb.permission,
+    contact: user.contact
   };
 }
 
