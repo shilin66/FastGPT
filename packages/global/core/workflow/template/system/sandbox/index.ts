@@ -66,7 +66,7 @@ export const CodeNode: FlowNodeTemplateType = {
     },
     {
       key: NodeInputKeyEnum.codeType,
-      renderTypeList: [FlowNodeInputTypeEnum.hidden],
+      renderTypeList: [FlowNodeInputTypeEnum.custom],
       label: '',
       value: 'js'
     },

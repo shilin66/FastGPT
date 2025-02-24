@@ -119,4 +119,16 @@ export type SystemEnvType = {
 
   oneapiUrl?: string;
   chatApiKey?: string;
+
+  difySandBoxUrl?: string;
+  difySandBoxApiKey?: string;
+  sandBoxType?: {
+    ['js']: SandBoxTypeEnum.fastgpt;
+    ['python3']: SandBoxTypeEnum.dify;
+  };
 };
+
+export enum SandBoxTypeEnum {
+  dify = 'dify',
+  fastgpt = 'fastgpt'
+}
