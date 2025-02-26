@@ -65,6 +65,20 @@ export const filterGPTMessageByMaxContext = async ({
     chats.unshift(assistant);
     chats.unshift(user);
 
+    if (chatPrompts.length === 1) {
+      const lastChat = chatPrompts.pop();
+      if (!lastChat) {
+        break;
+      }
+      const tokens = await countGptMessagesTokens([lastChat]);
+      maxContext -= tokens;
+      /* 整体 tokens 超出范围，截断  */
+      if (maxContext < 0) {
+        break;
+      }
+      chats.unshift(lastChat);
+    }
+
     if (chatPrompts.length === 0) {
       break;
     }

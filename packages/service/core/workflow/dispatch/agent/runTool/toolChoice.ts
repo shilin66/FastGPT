@@ -269,10 +269,13 @@ export const runToolWithToolChoice = async (
     })
   ]);
   const { canStream, toolList } = (() => {
+    if (toolModel.defaultConfig?.stream !== undefined && !toolModel.defaultConfig.stream) {
+      return { canStream: false, toolList: tools };
+    }
     if (toolModel.toolChoiceStream === undefined || toolModel.toolChoiceStream)
       return { canStream: true, toolList: tools };
     if (assistantResponses && assistantResponses.length > 0) {
-      return { canStream: true, toolList: [] };
+      return { canStream: true, toolList: tools };
     }
     return { canStream: false, toolList: tools };
   })();
@@ -461,14 +464,16 @@ export const runToolWithToolChoice = async (
         ? [
             {
               role: ChatCompletionRequestMessageRoleEnum.Assistant as 'assistant',
-              content: answer
+              content: answer,
+              tool_calls: toolCalls
             }
           ]
-        : []),
-      {
-        role: ChatCompletionRequestMessageRoleEnum.Assistant,
-        tool_calls: toolCalls
-      }
+        : [
+            {
+              role: ChatCompletionRequestMessageRoleEnum.Assistant as 'assistant',
+              tool_calls: toolCalls
+            }
+          ])
     ];
 
     /* 
