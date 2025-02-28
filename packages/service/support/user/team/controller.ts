@@ -50,7 +50,7 @@ import { MongoDataset } from '../../../core/dataset/schema';
 import { MongoApp } from '../../../core/app/schema';
 import { updateMemberGroup } from '../../permission/memberGroup/controllers';
 import { GroupMemberRole } from '@fastgpt/global/support/permission/memberGroup/constant';
-import { getAIApi, openaiBaseUrl } from '../../../core/ai/config';
+import { getAIApi } from '../../../core/ai/config';
 import { createRootOrg } from '../../permission/org/controllers';
 import { refreshSourceAvatar } from '../../../common/file/image/controller';
 import { PaginationResponse } from '../../../../web/common/fetch/type';
@@ -197,7 +197,7 @@ export async function updateTeam({
   // auth openai key
   if (openaiAccount?.key) {
     console.log('auth user openai key', openaiAccount?.key);
-    const baseUrl = openaiAccount?.baseUrl || openaiBaseUrl;
+    const baseUrl = openaiAccount?.baseUrl || 'https://api.openai.com/v1';
     openaiAccount.baseUrl = baseUrl;
 
     const ai = getAIApi({
