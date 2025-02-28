@@ -41,6 +41,7 @@ export type FastGPTConfigFileType = {
 };
 
 export type FastGPTFeConfigsType = {
+  show_workorder?: boolean;
   show_emptyChat?: boolean;
   register_method?: ['email' | 'phone' | 'sync'];
   login_method?: ['email' | 'phone']; // Attention: login method is diffrent with oauth
@@ -53,6 +54,7 @@ export type FastGPTFeConfigsType = {
   show_promotion?: boolean;
   show_team_chat?: boolean;
   show_compliance_copywriting?: boolean;
+  show_aiproxy?: boolean;
   concatMd?: string;
 
   confluenceUrl?: string;
