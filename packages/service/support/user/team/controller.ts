@@ -352,7 +352,7 @@ export async function createTeam(
 export async function listUserTeam(status: string, userId: string): Promise<TeamTmbItemType[]> {
   const tmbList = (await MongoTeamMember.find({ status, userId }).populate(
     'team'
-  )) as TeamMemberWithTeamAndUserSchema[];
+  )) as unknown as TeamMemberWithTeamAndUserSchema[];
 
   // teams 转成 TeamTmbItemType 数据
   return tmbList.map((tmb) => ({
@@ -381,7 +381,7 @@ export async function getTeamMembers(
     .populate('user')
     .skip(offset)
     .limit(pageSize)
-    .lean()) as TeamMemberWithTeamAndUserSchema[];
+    .lean()) as unknown as TeamMemberWithTeamAndUserSchema[];
   const tmbIds = tmbUserList.map((tmb) => tmb._id.toString());
   const permissionMap = new Map<string, { permission?: number }>();
   await Promise.all(
@@ -538,7 +538,7 @@ export async function inviteTeamMember({
     const existTeamMembers = (await MongoTeamMember.find({
       teamId,
       userId: { $in: userIds }
-    }).populate('user')) as TeamMemberWithTeamAndUserSchema[];
+    }).populate('user')) as unknown as TeamMemberWithTeamAndUserSchema[];
 
     // get exist team member usernames
     existTeamMemberUsernames = existTeamMembers.map((member) => member.user.username);

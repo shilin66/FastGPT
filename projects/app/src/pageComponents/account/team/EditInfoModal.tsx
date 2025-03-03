@@ -124,38 +124,38 @@ function EditModal({
             })}
           />
         </Flex>
-        <Box color={'myGray.800'} fontWeight={'bold'} mt={4}>
-          {t('account_team:notification_recieve')}
-        </Box>
-        <HStack w="full" justifyContent={'space-between'}>
-          {(() => {
-            return notificationAccount ? (
-              <Box width="full">{notificationAccount}</Box>
-            ) : (
-              <HStack
-                px="3"
-                py="1"
-                color="red.600"
-                bgColor="red.50"
-                borderRadius="md"
-                fontSize={'sm'}
-                width={'fit-content'}
-              >
-                <Icon name="common/info" w="1rem" />
-                <Box width="fit-content">{t('account_info:please_bind_contact')}</Box>
-              </HStack>
-            );
-          })()}
-          <Button
-            variant={'whiteBase'}
-            leftIcon={<Icon name="common/setting" w="1rem" />}
-            onClick={() => {
-              onOpenContact();
-            }}
-          >
-            {t('common:common.Setting')}
-          </Button>
-        </HStack>
+        {/*<Box color={'myGray.800'} fontWeight={'bold'} mt={4}>*/}
+        {/*  {t('account_team:notification_recieve')}*/}
+        {/*</Box>*/}
+        {/*<HStack w="full" justifyContent={'space-between'}>*/}
+        {/*  {(() => {*/}
+        {/*    return notificationAccount ? (*/}
+        {/*      <Box width="full">{notificationAccount}</Box>*/}
+        {/*    ) : (*/}
+        {/*      <HStack*/}
+        {/*        px="3"*/}
+        {/*        py="1"*/}
+        {/*        color="red.600"*/}
+        {/*        bgColor="red.50"*/}
+        {/*        borderRadius="md"*/}
+        {/*        fontSize={'sm'}*/}
+        {/*        width={'fit-content'}*/}
+        {/*      >*/}
+        {/*        <Icon name="common/info" w="1rem" />*/}
+        {/*        <Box width="fit-content">{t('account_info:please_bind_contact')}</Box>*/}
+        {/*      </HStack>*/}
+        {/*    );*/}
+        {/*  })()}*/}
+        {/*  <Button*/}
+        {/*    variant={'whiteBase'}*/}
+        {/*    leftIcon={<Icon name="common/setting" w="1rem" />}*/}
+        {/*    onClick={() => {*/}
+        {/*      onOpenContact();*/}
+        {/*    }}*/}
+        {/*  >*/}
+        {/*    {t('common:common.Setting')}*/}
+        {/*  </Button>*/}
+        {/*</HStack>*/}
       </ModalBody>
 
       <ModalFooter>
