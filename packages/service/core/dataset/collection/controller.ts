@@ -228,7 +228,13 @@ export const delCollectionRelatedSource = async ({
   collections,
   session
 }: {
-  collections: DatasetCollectionSchemaType[];
+  collections: {
+    teamId: string;
+    fileId?: string;
+    metadata?: {
+      relatedImgId?: string;
+    };
+  }[];
   session: ClientSession;
 }) => {
   if (collections.length === 0) return;
@@ -260,11 +266,13 @@ export const delCollectionRelatedSource = async ({
 export async function delCollection({
   collections,
   session,
-  delRelatedSource
+  delImg = true,
+  delFile = true
 }: {
   collections: DatasetCollectionSchemaType[];
   session: ClientSession;
-  delRelatedSource: boolean;
+  delImg: boolean;
+  delFile: boolean;
 }) {
   if (collections.length === 0) return;
 
@@ -278,68 +286,32 @@ export async function delCollection({
   // Delete training data
   await MongoDatasetTraining.deleteMany({
     teamId,
-    datasetIds: { $in: datasetIds },
+    datasetId: { $in: datasetIds },
     collectionId: { $in: collectionIds }
   });
 
-  /* file and imgs */
-  if (delRelatedSource) {
-    await delCollectionRelatedSource({ collections, session });
+  if (delImg) {
+    await delImgByRelatedId({
+      teamId,
+      relateIds: collections.map((item) => item?.metadata?.relatedImgId || '').filter(Boolean),
+      session
+    });
+  }
+  if (delFile) {
+    await delFileByFileIdList({
+      bucketName: BucketNameEnum.dataset,
+      fileIdList: collections.map((item) => item?.fileId || '').filter(Boolean)
+    });
   }
 
   // Delete dataset_datas
   await MongoDatasetData.deleteMany(
-    { teamId, datasetIds: { $in: datasetIds }, collectionId: { $in: collectionIds } },
+    { teamId, datasetId: { $in: datasetIds }, collectionId: { $in: collectionIds } },
     { session }
   );
   // Delete dataset_data_texts
   await MongoDatasetDataText.deleteMany(
-    { teamId, datasetIds: { $in: datasetIds }, collectionId: { $in: collectionIds } },
-    { session }
-  );
-
-  // delete collections
-  await MongoDatasetCollection.deleteMany(
-    {
-      teamId,
-      _id: { $in: collectionIds }
-    },
-    { session }
-  );
-
-  // no session delete: delete files, vector data
-  await deleteDatasetDataVector({ teamId, datasetIds, collectionIds });
-}
-
-/**
- * delete delOnlyCollection
- */
-export async function delOnlyCollection({
-  collections,
-  session
-}: {
-  collections: DatasetCollectionSchemaType[];
-  session: ClientSession;
-}) {
-  if (collections.length === 0) return;
-
-  const teamId = collections[0].teamId;
-
-  if (!teamId) return Promise.reject('teamId is not exist');
-
-  const datasetIds = Array.from(new Set(collections.map((item) => String(item.datasetId))));
-  const collectionIds = collections.map((item) => String(item._id));
-
-  // delete training data
-  await MongoDatasetTraining.deleteMany({
-    teamId,
-    datasetIds: { $in: datasetIds },
-    collectionId: { $in: collectionIds }
-  });
-
-  // delete dataset.datas
-  await MongoDatasetData.deleteMany(
-    { teamId, datasetIds: { $in: datasetIds }, collectionId: { $in: collectionIds } },
+    { teamId, datasetId: { $in: datasetIds }, collectionId: { $in: collectionIds } },
     { session }
   );
 
