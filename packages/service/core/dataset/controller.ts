@@ -9,6 +9,7 @@ import { deleteDatasetDataVector } from '../../common/vectorStore/controller';
 import { MongoDatasetCollectionTags } from './tag/schema';
 import { MongoDatasetDataText } from './data/dataTextSchema';
 import { DatasetErrEnum } from '@fastgpt/global/common/error/code/dataset';
+import { retryFn } from '@fastgpt/global/common/system/utils';
 
 /* ============= dataset ========== */
 /* find all datasetId by top datasetId */
@@ -79,49 +80,45 @@ export async function delDatasetRelevantData({
 
   const datasetIds = datasets.map((item) => item._id);
 
-  // delete training data
-  await MongoDatasetTraining.deleteMany({
-    teamId,
-    datasetId: { $in: datasetIds }
-  });
-
   // Get _id, teamId, fileId, metadata.relatedImgId for all collections
   const collections = await MongoDatasetCollection.find(
     {
       teamId,
       datasetId: { $in: datasetIds }
     },
-    '_id teamId datasetId fileId metadata',
-    { session }
+    '_id teamId datasetId fileId metadata'
   ).lean();
 
-  // Delete Image and file
-  await delCollectionRelatedSource({ collections, session });
+  await retryFn(async () => {
+    await Promise.all([
+      // delete training data
+      MongoDatasetTraining.deleteMany({
+        teamId,
+        datasetId: { $in: datasetIds }
+      }),
+      //Delete dataset_data_texts
+      MongoDatasetDataText.deleteMany({
+        teamId,
+        datasetId: { $in: datasetIds }
+      }),
+      //delete dataset_datas
+      MongoDatasetData.deleteMany({ teamId, datasetId: { $in: datasetIds } }),
+      // Delete Image and file
+      delCollectionRelatedSource({ collections }),
+      // Delete vector data
+      deleteDatasetDataVector({ teamId, datasetIds }),
+
+      // delete tags
+      await MongoDatasetCollectionTags.deleteMany({
+        teamId,
+        datasetId: { $in: datasetIds }
+      })
+    ]);
+  });
 
   // delete collections
   await MongoDatasetCollection.deleteMany({
     teamId,
     datasetId: { $in: datasetIds }
   }).session(session);
-
-  // No session delete:
-  // Delete dataset_data_texts
-  await MongoDatasetDataText.deleteMany({
-    teamId,
-    datasetId: { $in: datasetIds }
-  });
-  // delete dataset_datas
-  await MongoDatasetData.deleteMany({ teamId, datasetId: { $in: datasetIds } });
-
-  // Delete vector data
-  // delete tags
-  await MongoDatasetCollectionTags.deleteMany(
-    {
-      teamId,
-      datasetId: { $in: datasetIds }
-    },
-    { session }
-  );
-  // no session delete: delete files, vector data
-  await deleteDatasetDataVector({ teamId, datasetIds });
 }
