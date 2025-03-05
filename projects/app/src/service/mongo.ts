@@ -38,7 +38,7 @@ export async function initRootUser(retry = 3): Promise<any> {
               loginType: 'password'
             }
           ],
-          { session }
+          { session, ordered: true }
         );
         rootId = _id;
       }

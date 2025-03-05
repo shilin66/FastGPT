@@ -160,7 +160,7 @@ export const createOrGetCollectionTags = async ({
       datasetId,
       tag: tagContent
     })),
-    { session }
+    { session, ordered: true }
   );
 
   return [...existingTags.map((tag) => tag._id), ...newTags.map((tag) => tag._id)];
