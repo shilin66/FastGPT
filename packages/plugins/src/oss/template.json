@@ -1,0 +1,405 @@
+{
+  "author": "collin",
+  "version": "4823",
+  "name": "OssAuth",
+  "avatar": "core/workflow/template/oss",
+  "intro": "Oss2.0和3.0 认证",
+  "showStatus": true,
+  "weight": 10,
+
+  "isTool": true,
+  "templateType": "tools",
+
+  "workflow": {
+    "nodes": [
+      {
+        "nodeId": "pluginInput",
+        "name": "workflow:template.plugin_start",
+        "intro": "workflow:intro_plugin_input",
+        "avatar": "core/workflow/template/workflowStart",
+        "flowNodeType": "pluginInput",
+        "showStatus": false,
+        "position": {
+          "x": 588.9382380418084,
+          "y": -123.05298493910118
+        },
+        "version": "481",
+        "inputs": [
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "username",
+            "label": "username",
+            "description": "",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": true
+          },
+          {
+            "renderTypeList": [
+              "input",
+              "reference"
+            ],
+            "selectedTypeIndex": 0,
+            "valueType": "string",
+            "canEdit": true,
+            "key": "password",
+            "label": "password",
+            "description": "",
+            "defaultValue": "",
+            "list": [
+              {
+                "label": "",
+                "value": ""
+              }
+            ],
+            "maxFiles": 5,
+            "canSelectFile": true,
+            "canSelectImg": true,
+            "required": true
+          }
+        ],
+        "outputs": [
+          {
+            "id": "username",
+            "valueType": "string",
+            "key": "username",
+            "label": "username",
+            "type": "hidden"
+          },
+          {
+            "id": "password",
+            "valueType": "string",
+            "key": "password",
+            "label": "password",
+            "type": "hidden"
+          }
+        ]
+      },
+      {
+        "nodeId": "pluginOutput",
+        "name": "common:core.module.template.self_output",
+        "intro": "workflow:intro_custom_plugin_output",
+        "avatar": "core/workflow/template/pluginOutput",
+        "flowNodeType": "pluginOutput",
+        "showStatus": false,
+        "position": {
+          "x": 2086.898716938291,
+          "y": -62.85801116401046
+        },
+        "version": "481",
+        "inputs": [
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "object",
+            "canEdit": true,
+            "key": "result",
+            "label": "result",
+            "isToolOutput": true,
+            "description": "",
+            "required": true,
+            "value": [
+              "b2RErFqfukig",
+              "tbdH4YsQgBLM"
+            ]
+          }
+        ],
+        "outputs": []
+      },
+      {
+        "nodeId": "pluginConfig",
+        "name": "common:core.module.template.system_config",
+        "intro": "",
+        "avatar": "core/workflow/template/systemConfig",
+        "flowNodeType": "pluginConfig",
+        "position": {
+          "x": 184.66337662472682,
+          "y": -216.05298493910115
+        },
+        "version": "4811",
+        "inputs": [],
+        "outputs": []
+      },
+      {
+        "nodeId": "b2RErFqfukig",
+        "name": "HTTP 请求",
+        "intro": "可以发出一个 HTTP 请求，实现更为复杂的操作（联网搜索、数据库查询等）",
+        "avatar": "core/workflow/template/httpRequest",
+        "flowNodeType": "httpRequest468",
+        "showStatus": true,
+        "position": {
+          "x": 1246.9383238697797,
+          "y": -475.0529849391012
+        },
+        "version": "481",
+        "inputs": [
+          {
+            "key": "system_addInputParam",
+            "renderTypeList": [
+              "addInputParam"
+            ],
+            "valueType": "dynamic",
+            "label": "",
+            "required": false,
+            "description": "接收前方节点的输出值作为变量，这些变量可以被 HTTP 请求参数使用。",
+            "customInputConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectDataset",
+                "selectApp"
+              ],
+              "showDescription": false,
+              "showDefaultValue": true
+            },
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpMethod",
+            "renderTypeList": [
+              "custom"
+            ],
+            "valueType": "string",
+            "label": "",
+            "value": "POST",
+            "required": true,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpTimeout",
+            "renderTypeList": [
+              "custom"
+            ],
+            "valueType": "number",
+            "label": "",
+            "value": 30,
+            "min": 5,
+            "max": 600,
+            "required": true,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpReqUrl",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "string",
+            "label": "",
+            "description": "新的 HTTP 请求地址。如果出现两个“请求地址”，可以删除该模块重新加入，会拉取最新的模块配置。",
+            "placeholder": "https://api.ai.com/getInventory",
+            "required": false,
+            "value": "oss",
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpHeader",
+            "renderTypeList": [
+              "custom"
+            ],
+            "valueType": "any",
+            "value": [],
+            "label": "",
+            "description": "自定义请求头，请严格填入 JSON 字符串。\n1. 确保最后一个属性没有逗号\n2. 确保 key 包含双引号\n例如：{\"Authorization\":\"Bearer xxx\"}",
+            "placeholder": "common:core.module.input.description.Http Request Header",
+            "required": false,
+            "valueDesc": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpParams",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "any",
+            "value": [],
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpJsonBody",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "any",
+            "value": "{\n\t\"username\": \"{{$pluginInput.username$}}\",\n\t\"password\": \"{{$pluginInput.password$}}\"\n}",
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpFormBody",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "any",
+            "value": [],
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          },
+          {
+            "key": "system_httpContentType",
+            "renderTypeList": [
+              "hidden"
+            ],
+            "valueType": "string",
+            "value": "json",
+            "label": "",
+            "required": false,
+            "valueDesc": "",
+            "description": "",
+            "debugLabel": "",
+            "toolDescription": ""
+          }
+        ],
+        "outputs": [
+          {
+            "id": "system_addOutputParam",
+            "key": "system_addOutputParam",
+            "type": "dynamic",
+            "valueType": "dynamic",
+            "label": "输出字段提取",
+            "customFieldConfig": {
+              "selectValueTypeList": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "arrayString",
+                "arrayNumber",
+                "arrayBoolean",
+                "arrayObject",
+                "arrayAny",
+                "any",
+                "chatHistory",
+                "datasetQuote",
+                "dynamic",
+                "selectDataset",
+                "selectApp"
+              ],
+              "showDescription": false,
+              "showDefaultValue": false
+            },
+            "description": "可以通过 JSONPath 语法来提取响应值中的指定字段",
+            "valueDesc": ""
+          },
+          {
+            "id": "error",
+            "key": "error",
+            "label": "请求错误",
+            "description": "HTTP请求错误信息，成功时返回空",
+            "valueType": "object",
+            "type": "static",
+            "valueDesc": ""
+          },
+          {
+            "id": "httpRawResponse",
+            "key": "httpRawResponse",
+            "required": true,
+            "label": "原始响应",
+            "description": "HTTP请求的原始响应。只能接受字符串或JSON类型响应数据。",
+            "valueType": "any",
+            "type": "static",
+            "valueDesc": ""
+          },
+          {
+            "id": "tbdH4YsQgBLM",
+            "valueType": "object",
+            "type": "dynamic",
+            "key": "result",
+            "label": "result"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "pluginInput",
+        "target": "b2RErFqfukig",
+        "sourceHandle": "pluginInput-source-right",
+        "targetHandle": "b2RErFqfukig-target-left"
+      },
+      {
+        "source": "b2RErFqfukig",
+        "target": "pluginOutput",
+        "sourceHandle": "b2RErFqfukig-source-right",
+        "targetHandle": "pluginOutput-target-left"
+      }
+    ],
+    "chatConfig": {
+      "welcomeText": "",
+      "variables": [],
+      "questionGuide": {
+        "open": false,
+        "model": "gpt-4o-mini",
+        "customPrompt": ""
+      },
+      "ttsConfig": {
+        "type": "web"
+      },
+      "whisperConfig": {
+        "open": false,
+        "autoSend": false,
+        "autoTTSResponse": false
+      },
+      "chatInputGuide": {
+        "open": false,
+        "textList": [],
+        "customUrl": ""
+      },
+      "instruction": "",
+      "autoExecute": {
+        "open": false,
+        "defaultPrompt": ""
+      },
+      "_id": "67c96bffd2fb6532025512e9"
+    }
+  }
+}

@@ -11,6 +11,7 @@ import { checkTimerLock } from '@fastgpt/service/common/system/timerLock/utils';
 import { TimerIdEnum } from '@fastgpt/service/common/system/timerLock/constants';
 import { addHours } from 'date-fns';
 import { getScheduleTriggerApp } from '@/service/core/app/utils';
+import { localCacheManager } from '@fastgpt/service/support/globalCache/cache';
 
 // Try to run train every minute
 const setTrainingQueueCron = () => {
@@ -90,10 +91,25 @@ const scheduleSyncConfluenceDatasetCron = () => {
   });
 };
 
+const clearGlobalCacheCron = () => {
+  setCron('0 */1 * * *', async () => {
+    // setCron('*/10 * * * * *', async () => {
+    // clear global cache
+    console.log(
+      `>>>>>>>>>>>>>>>>>>>> start clear global cache, size: ${localCacheManager.getSize()}`
+    );
+    localCacheManager.startCleanup();
+    console.log(
+      `<<<<<<<<<<<<<<<<<<<< end clear global cache, size: ${localCacheManager.getSize()}`
+    );
+  });
+};
+
 export const startCron = () => {
   setTrainingQueueCron();
   setClearTmpUploadFilesCron();
   clearInvalidDataCron();
+  clearGlobalCacheCron();
   scheduleTriggerAppCron();
   scheduleSyncConfluenceDatasetCron();
 };
