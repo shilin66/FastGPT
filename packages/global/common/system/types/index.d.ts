@@ -99,6 +99,8 @@ export type FastGPTFeConfigsType = {
   lafEnv?: string;
   navbarItems?: NavbarItemType[];
   externalProviderWorkflowVariables?: ExternalProviderWorkflowVarType[];
+  oss3Url?: string;
+  oss2Url?: string;
 };
 
 export type GithubType = {

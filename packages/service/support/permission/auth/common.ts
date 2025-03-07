@@ -15,7 +15,9 @@ export const authCert = async (props: AuthModeType) => {
 
 /* auth the request from local service */
 export const authRequestFromLocal = ({ req }: { req: ApiRequestProps }) => {
-  if (req.headers.host !== SERVICE_LOCAL_HOST) {
+  if (
+    ![SERVICE_LOCAL_HOST, 'localhost:3000', '127.0.0.1:3000'].includes(req.headers.host as string)
+  ) {
     return Promise.reject('Invalid request');
   }
 };

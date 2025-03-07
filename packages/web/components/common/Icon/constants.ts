@@ -279,6 +279,7 @@ export const iconPaths = {
   'core/workflow/template/duckduckgo': () =>
     import('./icons/core/workflow/template/duckduckgo.svg'),
   'core/workflow/template/firecrawl': () => import('./icons/core/workflow/template/firecrawl.svg'),
+  'core/workflow/template/oss': () => import('./icons/core/workflow/template/oss.svg'),
   'core/workflow/template/extractJson': () =>
     import('./icons/core/workflow/template/extractJson.svg'),
   'core/workflow/template/fetchUrl': () => import('./icons/core/workflow/template/fetchUrl.svg'),
