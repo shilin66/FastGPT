@@ -1,6 +1,5 @@
 import axios from 'axios';
 import Cookie from 'cookie';
-import { SERVICE_LOCAL_HOST } from '@fastgpt/service/common/system/tools';
 import { FastGPTFeConfigsType } from '@fastgpt/global/common/system/types';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 
@@ -68,24 +67,21 @@ const main = async ({ username, password }: Props): Response => {
     const token = loginResponse.data.data.token;
 
     // 获取 cookie 并解析
-    const cookieResponse = await axios.get(`${feConfigs.oss2Url}/zenlayer_web_new/index`, {
-      params: { jwt: token },
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 10000
-    });
+    const zenlayerWebNew = await getCookie(`${feConfigs.oss2Url}/zenlayer_web_new/index`, token);
 
-    const cookieHeaders = cookieResponse.headers['set-cookie'] || [];
-    const cookieString = cookieHeaders.join('; ');
-    const parsedCookie = Cookie.parse(cookieString);
-    const jSessionId = parsedCookie.JSESSIONID;
+    const zenlayerWeb = await getCookie(`${feConfigs.oss2Url}/zenlayer_web/index`, token);
 
     try {
       await axios.post(
         `http://localhost:3000/api/local/setCache`,
         {
           cacheKey,
-          cacheValue: { token, cookie: `JSESSIONID=${jSessionId}; lang=en` },
-          ttl: 1000 * 60 * 60 * 12
+          cacheValue: {
+            token,
+            zenlayerWeb: `JSESSIONID=${zenlayerWeb}; lang=en`,
+            zenlayerWebNew: `JSESSIONID=${zenlayerWebNew}; lang=en`
+          },
+          ttl: 1000 * 60 * 60 * 6
         },
         {
           headers: { 'Content-Type': 'application/json' },
@@ -96,7 +92,13 @@ const main = async ({ username, password }: Props): Response => {
       console.error('Error setting cache:', cacheError);
     }
 
-    return { result: { token, cookie: `JSESSIONID=${jSessionId}; lang=en` } };
+    return {
+      result: {
+        token,
+        zenlayerWeb: `JSESSIONID=${zenlayerWeb}; lang=en`,
+        zenlayerWebNew: `JSESSIONID=${zenlayerWebNew}; lang=en`
+      }
+    };
   } catch (error) {
     console.error('Login Oss failed:', error);
     return {
@@ -105,6 +107,20 @@ const main = async ({ username, password }: Props): Response => {
       }
     };
   }
+};
+
+const getCookie = async (url: string, token: string) => {
+  // 获取 cookie 并解析
+  const cookieResponse = await axios.get(url, {
+    params: { jwt: token },
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 10000
+  });
+
+  const cookieHeaders = cookieResponse.headers['set-cookie'] || [];
+  const cookieString = cookieHeaders.join('; ');
+  const parsedCookie = Cookie.parse(cookieString);
+  return parsedCookie.JSESSIONID;
 };
 
 export default main;
