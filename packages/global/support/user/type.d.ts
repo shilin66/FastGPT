@@ -34,7 +34,6 @@ export type UserType = {
   promotionRate: UserModelSchema['promotionRate'];
   confluenceAccount: UserModelSchema['confluenceAccount'];
   team: TeamTmbItemType;
-  standardInfo?: standardInfoType;
   notificationAccount?: string;
   permission: TeamPermission;
   contact?: string;

@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@mendable/firecrawl-js": "^1.15.7",
+    "@mendable/firecrawl-js": "^1.19.0",
+    "@types/cookie": "^0.5.4",
     "@types/pg": "^8.6.6",
     "axios": "^1.5.1",
     "cheerio": "1.0.0-rc.12",
+    "cookie": "0.5.0",
     "duck-duck-scrape": "^2.2.5",
     "echarts": "5.4.1",
     "expr-eval": "^2.0.2",

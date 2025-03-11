@@ -41,6 +41,7 @@ export type FastGPTConfigFileType = {
 };
 
 export type FastGPTFeConfigsType = {
+  show_workorder?: boolean;
   show_emptyChat?: boolean;
   register_method?: ['email' | 'phone' | 'sync'];
   login_method?: ['email' | 'phone']; // Attention: login method is diffrent with oauth
@@ -53,6 +54,7 @@ export type FastGPTFeConfigsType = {
   show_promotion?: boolean;
   show_team_chat?: boolean;
   show_compliance_copywriting?: boolean;
+  show_aiproxy?: boolean;
   concatMd?: string;
 
   confluenceUrl?: string;
@@ -97,6 +99,8 @@ export type FastGPTFeConfigsType = {
   lafEnv?: string;
   navbarItems?: NavbarItemType[];
   externalProviderWorkflowVariables?: ExternalProviderWorkflowVarType[];
+  oss3Url?: string;
+  oss2Url?: string;
 };
 
 export type GithubType = {
@@ -119,4 +123,16 @@ export type SystemEnvType = {
 
   oneapiUrl?: string;
   chatApiKey?: string;
+
+  difySandBoxUrl?: string;
+  difySandBoxApiKey?: string;
+  sandBoxType?: {
+    ['js']: SandBoxTypeEnum.fastgpt;
+    ['python3']: SandBoxTypeEnum.dify;
+  };
 };
+
+export enum SandBoxTypeEnum {
+  dify = 'dify',
+  fastgpt = 'fastgpt'
+}

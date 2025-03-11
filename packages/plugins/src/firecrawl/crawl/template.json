@@ -35,8 +35,8 @@
             "canEdit": true,
             "key": "apiKey",
             "label": "apiKey",
-            "description": "firecrawl  的apiKey",
-            "defaultValue": "",
+            "description": "apiKey。如果使用私有部署的服务，无需填写",
+            "defaultValue": " ",
             "list": [
               {
                 "label": "",
@@ -46,8 +46,7 @@
             "maxFiles": 5,
             "canSelectFile": true,
             "canSelectImg": true,
-            "required": false,
-            "toolDescription": "firecrawl  的apiKey"
+            "required": false
           },
           {
             "renderTypeList": [
@@ -59,8 +58,8 @@
             "canEdit": true,
             "key": "apiUrl",
             "label": "apiUrl",
-            "description": "apiUrl地址。\n如果使用官方云服务，无需填写。",
-            "defaultValue": "",
+            "description": "apiUrl地址。不填写，则使用官方云服务。默认使用私有部署服务",
+            "defaultValue": "http://192.254.90.4:3008",
             "list": [
               {
                 "label": "",
@@ -70,8 +69,7 @@
             "maxFiles": 5,
             "canSelectFile": true,
             "canSelectImg": true,
-            "required": false,
-            "toolDescription": "apiUrl地址。\n如果使用官方云服务，无需填写。"
+            "required": false
           },
           {
             "renderTypeList": [
