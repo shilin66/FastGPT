@@ -3,7 +3,7 @@
   "version": "4823",
   "name": "OssAuth",
   "avatar": "core/workflow/template/oss",
-  "intro": "Oss认证\n- token用于oss3.0的api调用, header添加 Authorization: Bearer {token}\n- cookie用于oss2.0的api调用, 添加到cookie中",
+  "intro": "Oss认证\n- token用于oss3.0的api调用, header添加 Authorization: Bearer {token}\n- zenlayerWeb用于oss2.0 /zenlayer_web的api调用, 添加到cookie中\n- zenlayerWebNew用于oss2.0 /zenlayer_web_new的api调用, 添加到cookie中",
   "showStatus": true,
   "weight": 10,
 
@@ -97,8 +97,8 @@
         "flowNodeType": "pluginOutput",
         "showStatus": false,
         "position": {
-          "x": 2086.898716938291,
-          "y": -61.66303738891975
+          "x": 2101.9196773271706,
+          "y": -75.68260041854069
         },
         "version": "481",
         "inputs": [
@@ -124,10 +124,10 @@
             ],
             "valueType": "string",
             "canEdit": true,
-            "key": "cookie",
-            "label": "cookie",
+            "key": "zenlayerWeb",
+            "label": "zenlayerWeb",
             "isToolOutput": true,
-            "description": "调用oss2.0的cookie",
+            "description": "调用/zenlayer_web 的cookie",
             "required": true,
             "value": [
               "b2RErFqfukig",
@@ -149,6 +149,22 @@
               "b2RErFqfukig",
               "pgzjEJEhfKJR"
             ]
+          },
+          {
+            "renderTypeList": [
+              "reference"
+            ],
+            "valueType": "string",
+            "canEdit": true,
+            "key": "zenlayerWebNew",
+            "label": "zenlayerWebNew",
+            "isToolOutput": true,
+            "description": "调用/zenlayer_web_new 的cookie",
+            "required": true,
+            "value": [
+              "b2RErFqfukig",
+              "koxo3J3igARO"
+            ]
           }
         ],
         "outputs": []
@@ -160,8 +176,8 @@
         "avatar": "core/workflow/template/systemConfig",
         "flowNodeType": "pluginConfig",
         "position": {
-          "x": 158.37395357273107,
-          "y": -216.05298493910115
+          "x": 78.58700061661528,
+          "y": -169.38631827243452
         },
         "version": "4811",
         "inputs": [],
@@ -175,8 +191,8 @@
         "flowNodeType": "httpRequest468",
         "showStatus": true,
         "position": {
-          "x": 1316.3565026764968,
-          "y": -497.3191932355954
+          "x": 1302.3369396468759,
+          "y": -493.31360379856085
         },
         "version": "481",
         "inputs": [
@@ -390,8 +406,8 @@
             "id": "l34bR7ZZoHIn",
             "valueType": "string",
             "type": "dynamic",
-            "key": "result.cookie",
-            "label": "result.cookie"
+            "key": "result.zenlayerWeb",
+            "label": "result.zenlayerWeb"
           },
           {
             "id": "pgzjEJEhfKJR",
@@ -399,6 +415,13 @@
             "type": "dynamic",
             "key": "result.errMsg",
             "label": "result.errMsg"
+          },
+          {
+            "id": "koxo3J3igARO",
+            "valueType": "string",
+            "type": "dynamic",
+            "key": "result.zenlayerWebNew",
+            "label": "result.zenlayerWebNew"
           }
         ]
       }
@@ -438,7 +461,7 @@
         "textList": [],
         "customUrl": ""
       },
-      "instruction": "插件返回token和cookie两个字段\n- token用于oss3.control.zenlayer.com的api调用\n-  cookie用于control.zenlayer.com的api调用",
+      "instruction": "Oss认证\n- token用于oss3.0的api调用, header添加 Authorization: Bearer {token}\n- zenlayerWeb用于oss2.0 /zenlayer_web的api调用, 添加到cookie中\n- zenlayerWebNew用于oss2.0 /zenlayer_web_new的api调用, 添加到cookie中",
       "autoExecute": {
         "open": false,
         "defaultPrompt": ""
