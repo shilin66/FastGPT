@@ -89,7 +89,8 @@ export async function initSystemConfig() {
     feConfigs: {
       ...fileRes?.feConfigs,
       ...defaultFeConfigs,
-      ...(dbConfig.feConfigs || {})
+      ...(dbConfig.feConfigs || {}),
+      show_aiproxy: !!process.env.AIPROXY_API_ENDPOINT
     },
     systemEnv: {
       ...fileRes.systemEnv,

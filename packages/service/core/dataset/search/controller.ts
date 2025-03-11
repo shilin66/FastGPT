@@ -210,6 +210,7 @@ export async function searchDatasetData(
       forbidCollectionIdList: collections.map((item) => String(item._id))
     };
   };
+
   /* 
     Collection metadata filter
     标签过滤：
@@ -217,6 +218,63 @@ export async function searchDatasetData(
     2. and 标签和 null 不能共存，否则返回空数组
   */
   const filterCollectionByMetadata = async (): Promise<string[] | undefined> => {
+    const getAllCollectionIds = async ({
+      parentCollectionIds
+    }: {
+      parentCollectionIds?: string[];
+    }): Promise<string[] | undefined> => {
+      if (!parentCollectionIds) return;
+      if (parentCollectionIds.length === 0) {
+        return [];
+      }
+
+      const collections = await MongoDatasetCollection.find(
+        {
+          teamId,
+          datasetId: { $in: datasetIds },
+          _id: { $in: parentCollectionIds }
+        },
+        '_id type',
+        {
+          ...readFromSecondary
+        }
+      ).lean();
+
+      const resultIds = new Set<string>();
+      collections.forEach((item) => {
+        if (item.type !== 'folder') {
+          resultIds.add(String(item._id));
+        }
+      });
+
+      const folderIds = collections
+        .filter((item) => item.type === 'folder')
+        .map((item) => String(item._id));
+
+      // Get all child collection ids
+      if (folderIds.length) {
+        const childCollections = await MongoDatasetCollection.find(
+          {
+            teamId,
+            datasetId: { $in: datasetIds },
+            parentId: { $in: folderIds }
+          },
+          '_id type',
+          {
+            ...readFromSecondary
+          }
+        ).lean();
+
+        const childIds = await getAllCollectionIds({
+          parentCollectionIds: childCollections.map((item) => String(item._id))
+        });
+
+        childIds?.forEach((id) => resultIds.add(id));
+      }
+
+      return Array.from(resultIds);
+    };
+
     if (!collectionFilterMatch || !global.feConfigs.isPlus) return;
 
     let tagCollectionIdList: string[] | undefined = undefined;
@@ -336,13 +394,19 @@ export async function searchDatasetData(
       }
 
       // Concat tag and time
-      if (tagCollectionIdList && createTimeCollectionIdList) {
-        return tagCollectionIdList.filter((id) => createTimeCollectionIdList!.includes(id));
-      } else if (tagCollectionIdList) {
-        return tagCollectionIdList;
-      } else if (createTimeCollectionIdList) {
-        return createTimeCollectionIdList;
-      }
+      const collectionIds = (() => {
+        if (tagCollectionIdList && createTimeCollectionIdList) {
+          return tagCollectionIdList.filter((id) =>
+            (createTimeCollectionIdList as string[]).includes(id)
+          );
+        }
+
+        return tagCollectionIdList || createTimeCollectionIdList;
+      })();
+
+      return await getAllCollectionIds({
+        parentCollectionIds: collectionIds
+      });
     } catch (error) {}
   };
   const embeddingRecall = async ({

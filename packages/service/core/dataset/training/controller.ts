@@ -240,7 +240,7 @@ export const trainConfluenceCollection = async ({
 }) => {
   const tmb = (await MongoTeamMember.findById(dataset.tmbId)
     .populate('user')
-    .lean()) as TeamMemberWithTeamAndUserSchema;
+    .lean()) as unknown as TeamMemberWithTeamAndUserSchema;
   if (!tmb) {
     throw new Error("The dataset's owner is not found");
   }
@@ -397,7 +397,8 @@ export const trainConfluenceCollection = async ({
             // delete old collection
             await delCollection({
               collections: [pageConfluence[page.id]],
-              delRelatedSource: true,
+              delImg: true,
+              delFile: true,
               session
             });
           }
@@ -435,7 +436,8 @@ export const trainConfluenceCollection = async ({
     await mongoSessionRun((session) =>
       delCollection({
         collections: collectionsToDelete.map((id) => pageConfluence[id]),
-        delRelatedSource: true,
+        delImg: true,
+        delFile: true,
         session
       })
     );

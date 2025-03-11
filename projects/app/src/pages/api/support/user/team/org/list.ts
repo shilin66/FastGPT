@@ -16,7 +16,9 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
     throw new Error('user not found');
   }
 
-  const orgList = (await MongoOrgModel.find({ teamId }).populate('members').lean()) as OrgType[];
+  const orgList = (await MongoOrgModel.find({ teamId })
+    .populate('members')
+    .lean()) as unknown as OrgType[];
 
   if (!orgList || orgList.length === 0) {
     const team = await MongoTeam.findById(teamId).lean();
@@ -32,7 +34,11 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
     });
     orgList.push({
       ...org.toObject(),
-      members: []
+      members: [],
+      avatar: '',
+      permission: new TeamPermission({
+        per: TeamDefaultPermissionVal
+      })
     });
   }
 
@@ -46,6 +52,7 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
 
   orgList.forEach((org) => {
     const permission = orgPerList.find((per) => per.orgId === org._id);
+
     org.permission = new TeamPermission({
       per: permission?.permission || TeamDefaultPermissionVal
     });

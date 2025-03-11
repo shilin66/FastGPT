@@ -624,7 +624,7 @@ const NodeIntro = React.memo(function NodeIntro({
     return (
       <>
         <Flex alignItems={'center'}>
-          <Box fontSize={'sm'} color={'myGray.500'} flex={'1 0 0'}>
+          <Box fontSize={'sm'} color={'myGray.500'} flex={'1 0 0'} whiteSpace={'pre-line'}>
             {t(intro as any) || t('app:node_not_intro')}
           </Box>
           {NodeIsTool && (

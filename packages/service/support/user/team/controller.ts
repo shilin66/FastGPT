@@ -50,7 +50,7 @@ import { MongoDataset } from '../../../core/dataset/schema';
 import { MongoApp } from '../../../core/app/schema';
 import { updateMemberGroup } from '../../permission/memberGroup/controllers';
 import { GroupMemberRole } from '@fastgpt/global/support/permission/memberGroup/constant';
-import { getAIApi, openaiBaseUrl } from '../../../core/ai/config';
+import { getAIApi } from '../../../core/ai/config';
 import { createRootOrg } from '../../permission/org/controllers';
 import { refreshSourceAvatar } from '../../../common/file/image/controller';
 import { PaginationResponse } from '../../../../web/common/fetch/type';
@@ -197,7 +197,7 @@ export async function updateTeam({
   // auth openai key
   if (openaiAccount?.key) {
     console.log('auth user openai key', openaiAccount?.key);
-    const baseUrl = openaiAccount?.baseUrl || openaiBaseUrl;
+    const baseUrl = openaiAccount?.baseUrl || 'https://api.openai.com/v1';
     openaiAccount.baseUrl = baseUrl;
 
     const ai = getAIApi({
@@ -352,7 +352,7 @@ export async function createTeam(
 export async function listUserTeam(status: string, userId: string): Promise<TeamTmbItemType[]> {
   const tmbList = (await MongoTeamMember.find({ status, userId }).populate(
     'team'
-  )) as TeamMemberWithTeamAndUserSchema[];
+  )) as unknown as TeamMemberWithTeamAndUserSchema[];
 
   // teams 转成 TeamTmbItemType 数据
   return tmbList.map((tmb) => ({
@@ -381,7 +381,7 @@ export async function getTeamMembers(
     .populate('user')
     .skip(offset)
     .limit(pageSize)
-    .lean()) as TeamMemberWithTeamAndUserSchema[];
+    .lean()) as unknown as TeamMemberWithTeamAndUserSchema[];
   const tmbIds = tmbUserList.map((tmb) => tmb._id.toString());
   const permissionMap = new Map<string, { permission?: number }>();
   await Promise.all(
@@ -538,7 +538,7 @@ export async function inviteTeamMember({
     const existTeamMembers = (await MongoTeamMember.find({
       teamId,
       userId: { $in: userIds }
-    }).populate('user')) as TeamMemberWithTeamAndUserSchema[];
+    }).populate('user')) as unknown as TeamMemberWithTeamAndUserSchema[];
 
     // get exist team member usernames
     existTeamMemberUsernames = existTeamMembers.map((member) => member.user.username);

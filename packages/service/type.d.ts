@@ -19,4 +19,5 @@ declare global {
   var subPlans: SubPlanType | undefined;
 
   var workerPoll: Record<WorkerNameEnum, WorkerPool>;
+  var localCache: Map<string, { data: string; expires: number }>;
 }
