@@ -85,7 +85,7 @@ const main = async ({ username, password }: Props): Response => {
         {
           cacheKey,
           cacheValue: { token, cookie: `JSESSIONID=${jSessionId}; lang=en` },
-          ttl: 60 * 60 * 12
+          ttl: 1000 * 60 * 60 * 12
         },
         {
           headers: { 'Content-Type': 'application/json' },
