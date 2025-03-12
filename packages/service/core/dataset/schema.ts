@@ -69,6 +69,7 @@ const DatasetSchema = new Schema({
     required: true,
     default: 'gpt-4o-mini'
   },
+  vlmModel: String,
   intro: {
     type: String,
     default: ''

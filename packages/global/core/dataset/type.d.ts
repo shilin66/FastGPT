@@ -2,6 +2,7 @@ import type { LLMModelItemType, EmbeddingModelItemType } from '../../core/ai/mod
 import { PermissionTypeEnum } from '../../support/permission/constant';
 import { PushDatasetDataChunkProps } from './api';
 import {
+  DatasetCollectionDataProcessModeEnum,
   DatasetCollectionTypeEnum,
   DatasetStatusEnum,
   DatasetTypeEnum,
@@ -12,6 +13,7 @@ import { DatasetPermission } from '../../support/permission/dataset/controller';
 import { Permission } from '../../support/permission/controller';
 import { APIFileServer, FeishuServer, YuqueServer } from './apiDataset';
 import { SourceMemberType } from 'support/user/type';
+import { DatasetDataIndexTypeEnum } from './data/constants';
 import { ImportProcessWayEnum } from '../../../../projects/app/src/web/core/dataset/constants';
 
 export type DatasetSchemaType = {
@@ -24,11 +26,14 @@ export type DatasetSchemaType = {
 
   avatar: string;
   name: string;
-  vectorModel: string;
-  agentModel: string;
   intro: string;
   type: `${DatasetTypeEnum}`;
   status: `${DatasetStatusEnum}`;
+
+  vectorModel: string;
+  agentModel: string;
+  vlmModel?: string;
+
   websiteConfig?: {
     url: string;
     selector: string;
@@ -64,25 +69,21 @@ export type DatasetCollectionSchemaType = {
   parentId?: string;
   name: string;
   type: DatasetCollectionTypeEnum;
-  createTime: Date;
-  updateTime: Date;
-  forbid?: boolean;
-
-  trainingType: TrainingModeEnum;
-  chunkSize: number;
-  chunkSplitter?: string;
-  qaPrompt?: string;
-  ocrParse?: boolean;
-
   tags?: string[];
 
+  createTime: Date;
+  updateTime: Date;
+
+  // Status
+  forbid?: boolean;
+  nextSyncTime?: Date;
+
+  // Collection metadata
   fileId?: string; // local file id
   rawLink?: string; // link url
   externalFileId?: string; //external file id
   apiFileId?: string; // api file id
   externalFileUrl?: string; // external import url
-
-  nextSyncTime?: Date;
 
   rawTextLength?: number;
   hashRawText?: string;
@@ -98,6 +99,16 @@ export type DatasetCollectionSchemaType = {
 
     [key: string]: any;
   };
+
+  // Parse settings
+  customPdfParse?: boolean;
+  // Chunk settings
+  autoIndexes?: boolean;
+  imageIndex?: boolean;
+  trainingType: DatasetCollectionDataProcessModeEnum;
+  chunkSize: number;
+  chunkSplitter?: string;
+  qaPrompt?: string;
 };
 
 export type DatasetCollectionTagsSchemaType = {
@@ -108,7 +119,7 @@ export type DatasetCollectionTagsSchemaType = {
 };
 
 export type DatasetDataIndexItemType = {
-  defaultIndex: boolean;
+  type: `${DatasetDataIndexTypeEnum}`;
   dataId: string; // pg data id
   text: string;
 };
@@ -159,6 +170,7 @@ export type DatasetTrainingSchemaType = {
   chunkIndex: number;
   weight: number;
   indexes: Omit<DatasetDataIndexItemType, 'dataId'>[];
+  retryCount: number;
 };
 
 export type CollectionWithDatasetType = DatasetCollectionSchemaType & {
@@ -187,9 +199,10 @@ export type DatasetListItemType = {
   sourceMember?: SourceMemberType;
 };
 
-export type DatasetItemType = Omit<DatasetSchemaType, 'vectorModel' | 'agentModel'> & {
+export type DatasetItemType = Omit<DatasetSchemaType, 'vectorModel' | 'agentModel' | 'vlmModel'> & {
   vectorModel: EmbeddingModelItemType;
   agentModel: LLMModelItemType;
+  vlmModel?: LLMModelItemType;
   permission: DatasetPermission;
 };
 

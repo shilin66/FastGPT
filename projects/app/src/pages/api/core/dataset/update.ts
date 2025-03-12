@@ -56,6 +56,7 @@ async function handler(
     avatar,
     intro,
     agentModel,
+    vlmModel,
     websiteConfig,
     confluenceConfig,
     externalReadUrl,
@@ -110,7 +111,7 @@ async function handler(
   updateTraining({
     teamId: dataset.teamId,
     datasetId: id,
-    agentModel: agentModel?.model
+    agentModel
   });
 
   const onUpdate = async (session: ClientSession) => {
@@ -120,7 +121,8 @@ async function handler(
         ...parseParentIdInMongo(parentId),
         ...(name && { name }),
         ...(avatar && { avatar }),
-        ...(agentModel && { agentModel: agentModel.model }),
+        ...(agentModel && { agentModel }),
+        ...(vlmModel && { vlmModel }),
         ...(websiteConfig && { websiteConfig }),
         ...(confluenceConfig && { confluenceConfig }),
         ...(status && { status }),
@@ -215,7 +217,7 @@ const updateTraining = async ({
       $set: {
         model: agentModel,
         retryCount: 5,
-        lockTime: new Date()
+        lockTime: new Date('2000/1/1')
       }
     }
   );
