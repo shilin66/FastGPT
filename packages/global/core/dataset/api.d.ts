@@ -1,5 +1,5 @@
 import { DatasetDataIndexItemType, DatasetSchemaType } from './type';
-import { TrainingModeEnum, DatasetCollectionTypeEnum } from './constants';
+import { DatasetCollectionTypeEnum, DatasetCollectionDataProcessModeEnum } from './constants';
 import type { LLMModelItemType } from '../ai/model.d';
 import { ParentIdType } from 'common/parentFolder/type';
 
@@ -10,8 +10,10 @@ export type DatasetUpdateBody = {
   name?: string;
   avatar?: string;
   intro?: string;
-  agentModel?: LLMModelItemType;
   status?: DatasetSchemaType['status'];
+
+  agentModel?: string;
+  vlmModel?: string;
 
   websiteConfig?: DatasetSchemaType['websiteConfig'];
   confluenceConfig?: DatasetSchemaType['confluenceConfig'];
@@ -28,7 +30,10 @@ export type DatasetUpdateBody = {
 /* ================= collection ===================== */
 export type DatasetCollectionChunkMetadataType = {
   parentId?: string;
-  trainingType?: TrainingModeEnum;
+  customPdfParse?: boolean;
+  trainingType?: DatasetCollectionDataProcessModeEnum;
+  imageIndex?: boolean;
+  autoIndexes?: boolean;
   chunkSize?: number;
   chunkSplitter?: string;
   qaPrompt?: string;
@@ -136,9 +141,15 @@ export type PostConfluenceSyncParams = {
 export type PushDatasetDataProps = {
   collectionId: string;
   data: PushDatasetDataChunkProps[];
-  trainingMode: TrainingModeEnum;
+  trainingType?: DatasetCollectionDataProcessModeEnum;
+  autoIndexes?: boolean;
+  imageIndex?: boolean;
   prompt?: string;
+
   billId?: string;
+
+  // Abandon
+  trainingMode?: DatasetCollectionDataProcessModeEnum;
 };
 export type PushDatasetDataResponse = {
   insertLen: number;

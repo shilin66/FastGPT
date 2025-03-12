@@ -43,10 +43,14 @@ export type FastGPTConfigFileType = {
 export type FastGPTFeConfigsType = {
   show_workorder?: boolean;
   show_emptyChat?: boolean;
+  isPlus?: boolean;
   register_method?: ['email' | 'phone' | 'sync'];
   login_method?: ['email' | 'phone']; // Attention: login method is diffrent with oauth
   find_password_method?: ['email' | 'phone'];
   bind_notification_method?: ['email' | 'phone'];
+  googleClientVerKey?: string;
+
+  show_emptyChat?: boolean;
   show_appStore?: boolean;
   show_git?: boolean;
   show_pay?: boolean;
@@ -57,16 +61,21 @@ export type FastGPTFeConfigsType = {
   show_aiproxy?: boolean;
   concatMd?: string;
 
+  concatMd?: string;
   confluenceUrl?: string;
   docUrl?: string;
   openAPIDocUrl?: string;
   systemPluginCourseUrl?: string;
   appTemplateCourse?: string;
+  customApiDomain?: string;
+  customSharePageDomain?: string;
 
   systemTitle?: string;
   systemDescription?: string;
+  scripts?: { [key: string]: string }[];
+  favicon?: string;
+
   googleClientVerKey?: string;
-  isPlus?: boolean;
   userDefaultTeam?: string;
   sso?: {
     icon?: string;
@@ -89,13 +98,14 @@ export type FastGPTFeConfigsType = {
     exportDatasetLimitMinutes?: number;
     websiteSyncLimitMinuted?: number;
   };
-  scripts?: { [key: string]: string }[];
-  favicon?: string;
-  customApiDomain?: string;
-  customSharePageDomain?: string;
   perplexica_url?: string;
   uploadFileMaxAmount?: number;
   uploadFileMaxSize?: number;
+
+  // Compute by systemEnv.customPdfParse
+  showCustomPdfParse?: boolean;
+  customPdfParsePrice?: number;
+
   lafEnv?: string;
   navbarItems?: NavbarItemType[];
   externalProviderWorkflowVariables?: ExternalProviderWorkflowVarType[];
@@ -118,6 +128,7 @@ export type SystemEnvType = {
   openapiPrefix?: string;
   vectorMaxProcess: number;
   qaMaxProcess: number;
+  vlmMaxProcess: number;
   pgHNSWEfSearch: number;
   tokenWorkers: number; // token count max worker
 
@@ -129,6 +140,14 @@ export type SystemEnvType = {
   sandBoxType?: {
     ['js']: SandBoxTypeEnum.fastgpt;
     ['python3']: SandBoxTypeEnum.dify;
+  };
+
+  customPdfParse?: {
+    url?: string;
+    key?: string;
+
+    doc2xKey?: string;
+    price?: number; // n points/1 page
   };
 };
 

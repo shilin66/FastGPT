@@ -3,8 +3,12 @@ import { MongoDatasetCollection } from './schema';
 import { ClientSession } from '../../../common/mongo';
 import { MongoDatasetCollectionTags } from '../tag/schema';
 import { readFromSecondary } from '../../../common/mongo/utils';
-import { CollectionWithDatasetType } from '@fastgpt/global/core/dataset/type';
 import {
+  CollectionWithDatasetType,
+  DatasetCollectionSchemaType
+} from '@fastgpt/global/core/dataset/type';
+import {
+  DatasetCollectionDataProcessModeEnum,
   DatasetCollectionSyncResultEnum,
   DatasetCollectionTypeEnum,
   DatasetSourceReadTypeEnum,
@@ -223,6 +227,7 @@ export const syncCollection = async (collection: CollectionWithDatasetType) => {
   })();
   const rawText = await readDatasetSourceRawText({
     teamId: collection.teamId,
+    tmbId: collection.tmbId,
     ...sourceReadType
   });
 
@@ -282,6 +287,27 @@ export const syncCollection = async (collection: CollectionWithDatasetType) => {
   });
 
   return DatasetCollectionSyncResultEnum.success;
+};
+
+/*
+  QA: 独立进程
+  Chunk: Image Index -> Auto index -> chunk index
+*/
+export const getTrainingModeByCollection = (collection: {
+  trainingType: DatasetCollectionSchemaType['trainingType'];
+  autoIndexes?: DatasetCollectionSchemaType['autoIndexes'];
+  imageIndex?: DatasetCollectionSchemaType['imageIndex'];
+}) => {
+  if (collection.trainingType === DatasetCollectionDataProcessModeEnum.qa) {
+    return TrainingModeEnum.qa;
+  }
+  if (collection.imageIndex && global.feConfigs?.isPlus) {
+    return TrainingModeEnum.image;
+  }
+  if (collection.autoIndexes && global.feConfigs?.isPlus) {
+    return TrainingModeEnum.auto;
+  }
+  return TrainingModeEnum.chunk;
 };
 
 export const getConfluenceCollection = async ({
