@@ -20,8 +20,10 @@ import { useUserStore } from '@/web/support/user/useUserStore';
 import NextLink from 'next/link';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import { useContextSelector } from 'use-context-selector';
-import { ImportProcessWayEnum } from '@/web/core/dataset/constants';
-import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
+import {
+  DatasetCollectionDataProcessModeEnum,
+  TrainingModeEnum
+} from '@fastgpt/global/core/dataset/constants';
 import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
@@ -36,8 +38,8 @@ const ConfluenceConfigModal = ({
     pageId: '',
     syncSubPages: false,
     syncSchedule: false,
-    mode: TrainingModeEnum.chunk,
-    way: ImportProcessWayEnum.auto,
+    mode: DatasetCollectionDataProcessModeEnum.chunk,
+    // way: ImportProcessWayEnum.auto,
     chunkSize: 512,
     chunkSplitter: '',
     qaPrompt: ''
@@ -71,34 +73,22 @@ const ConfluenceConfigModal = ({
 
   useEffect(() => {
     if (defaultValue) {
+      debugger;
       const vectorModel = datasetDetail.vectorModel;
       const agentModel = datasetDetail.agentModel;
-      const model = defaultValue.mode || TrainingModeEnum.chunk;
-      const way = defaultValue.way || ImportProcessWayEnum.auto;
-      processParamsForm.setValue('mode', model);
-      processParamsForm.setValue('way', way);
-      if (model === TrainingModeEnum.chunk) {
-        processParamsForm.setValue(
-          'embeddingChunkSize',
-          defaultValue.chunkSize || vectorModel?.defaultToken || 512
-        );
-        if (way === ImportProcessWayEnum.custom) {
-          processParamsForm.setValue('customSplitChar', defaultValue.chunkSplitter || '');
-        }
-      } else {
-        processParamsForm.setValue(
-          'qaChunkSize',
-          defaultValue.chunkSize ||
-            Math.min(agentModel.maxResponse, Math.floor(agentModel.maxContext * 0.7))
-        );
-        if (way === ImportProcessWayEnum.custom) {
-          processParamsForm.setValue(
-            'qaPrompt',
-            defaultValue.qaPrompt || Prompt_AgentQA.description
-          );
-          processParamsForm.setValue('customSplitChar', defaultValue.chunkSplitter || '');
-        }
-      }
+      const mode = defaultValue.mode || TrainingModeEnum.chunk;
+      processParamsForm.setValue('trainingType', mode);
+      processParamsForm.setValue(
+        'embeddingChunkSize',
+        defaultValue.chunkSize || vectorModel?.defaultToken || 512
+      );
+      processParamsForm.setValue(
+        'qaChunkSize',
+        defaultValue.chunkSize ||
+          Math.min(agentModel.maxResponse, Math.floor(agentModel.maxContext * 0.7))
+      );
+      processParamsForm.setValue('qaPrompt', defaultValue.qaPrompt || Prompt_AgentQA.description);
+      processParamsForm.setValue('customSplitChar', defaultValue.chunkSplitter || '');
     }
   }, [datasetDetail.agentModel, datasetDetail.vectorModel, defaultValue, processParamsForm]);
   const pageId = watch('pageId');
@@ -229,27 +219,14 @@ const ConfluenceConfigModal = ({
           <Button
             ml={2}
             onClick={handleSubmit((data) => {
-              data.mode = processParamsForm.getValues('mode');
-              data.way = processParamsForm.getValues('way');
+              data.mode = processParamsForm.getValues('trainingType');
 
-              if (data.way === ImportProcessWayEnum.custom) {
-                data.chunkSplitter = processParamsForm.getValues('customSplitChar');
-              } else {
-                data.chunkSplitter = '';
-              }
-              if (data.mode === TrainingModeEnum.chunk) {
+              data.chunkSplitter = processParamsForm.getValues('customSplitChar');
+              if (data.mode === DatasetCollectionDataProcessModeEnum.chunk) {
                 data.chunkSize = processParamsForm.getValues('embeddingChunkSize');
               } else {
-                if (data.way === ImportProcessWayEnum.custom) {
-                  data.chunkSize = processParamsForm.getValues('qaChunkSize');
-                  data.qaPrompt = processParamsForm.getValues('qaPrompt');
-                } else {
-                  data.chunkSize = Math.min(
-                    datasetDetail.agentModel.maxResponse,
-                    Math.floor(datasetDetail.agentModel.maxContext * 0.7)
-                  );
-                  data.qaPrompt = Prompt_AgentQA.description;
-                }
+                data.chunkSize = processParamsForm.getValues('qaChunkSize');
+                data.qaPrompt = processParamsForm.getValues('qaPrompt');
               }
               if (!data.spaceKey) return;
               openConfirm(
@@ -283,8 +260,8 @@ const DataProcessingModal = ({ onClose }: { onClose: () => void }) => {
       maxW={'800px'}
       maxH={'1200px'}
     >
-      <ModalBody h={'100%'}>
-        <DataProcess showPreviewChunks={false} isModal={true} />
+      <ModalBody h={'100%'} w={'800px'}>
+        <DataProcess isModal={true} />
       </ModalBody>
       <ModalFooter>
         <Button

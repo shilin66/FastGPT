@@ -331,17 +331,6 @@ function DataProcess({ isModal = false }: { isModal?: boolean }) {
               </Button>
             </Flex>
           )}
-          {!isModal && (
-            <Flex mt={5} gap={3} justifyContent={'flex-end'}>
-              <Button
-                onClick={() => {
-                  goToNext();
-                }}
-              >
-                {t('common:common.Next Step')}
-              </Button>
-            </Flex>
-          )}
         </Accordion>
       </Box>
 

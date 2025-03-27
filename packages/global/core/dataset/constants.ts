@@ -161,11 +161,11 @@ export const TrainingTypeMap = {
     tooltip: i18nT('common:core.dataset.import.Chunk Split Tip'),
     openSource: true
   },
-  // [TrainingModeEnum.auto]: {
-  //   label: i18nT('common:core.dataset.training.Auto mode'),
-  //   tooltip: i18nT('common:core.dataset.training.Auto mode Tip'),
-  //   openSource: false
-  // },
+  [TrainingModeEnum.auto]: {
+    label: i18nT('common:core.dataset.training.Auto mode'),
+    tooltip: i18nT('common:core.dataset.training.Auto mode Tip'),
+    openSource: false
+  },
   [TrainingModeEnum.qa]: {
     label: i18nT('common:core.dataset.training.QA mode'),
     tooltip: i18nT('common:core.dataset.import.QA Import Tip'),

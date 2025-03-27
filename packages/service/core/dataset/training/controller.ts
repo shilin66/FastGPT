@@ -4,6 +4,7 @@ import type {
   PushDatasetDataResponse
 } from '@fastgpt/global/core/dataset/api.d';
 import {
+  DatasetCollectionDataProcessModeEnum,
   DatasetCollectionTypeEnum,
   DatasetStatusEnum,
   TrainingModeEnum
@@ -340,7 +341,8 @@ export const trainConfluenceCollection = async ({
                   teamId,
                   tmbId,
                   type: DatasetCollectionTypeEnum.link,
-                  trainingType: dataset.confluenceConfig?.mode || TrainingModeEnum.chunk,
+                  trainingType:
+                    dataset.confluenceConfig?.mode || DatasetCollectionDataProcessModeEnum.chunk,
                   chunkSize: dataset.confluenceConfig?.chunkSize || 500,
                   chunkSplitter: dataset.confluenceConfig?.chunkSplitter || '',
                   qaPrompt: dataset.confluenceConfig?.qaPrompt || Prompt_AgentQA.description,
