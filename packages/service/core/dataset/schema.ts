@@ -1,5 +1,6 @@
 import { getMongoModel, Schema } from '../../common/mongo';
 import {
+  DatasetCollectionDataProcessModeEnum,
   DatasetStatusEnum,
   DatasetStatusMap,
   DatasetTypeEnum,
@@ -11,7 +12,6 @@ import {
   TeamMemberCollectionName
 } from '@fastgpt/global/support/user/team/constant';
 import type { DatasetSchemaType } from '@fastgpt/global/core/dataset/type.d';
-import { ImportProcessWayEnum } from '../../../../projects/app/src/web/core/dataset/constants';
 
 export const DatasetCollectionName = 'datasets';
 
@@ -104,12 +104,12 @@ const DatasetSchema = new Schema({
       },
       mode: {
         type: String,
-        enum: TrainingModeEnum
+        enum: DatasetCollectionDataProcessModeEnum
       },
-      way: {
-        type: String,
-        enum: ImportProcessWayEnum
-      },
+      // way: {
+      //   type: String,
+      //   enum: ImportProcessWayEnum
+      // },
       chunkSize: {
         type: Number,
         required: true

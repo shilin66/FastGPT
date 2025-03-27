@@ -3,6 +3,7 @@ import { Dispatch, ReactNode, SetStateAction, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { createContext, useContextSelector } from 'use-context-selector';
 import {
+  DatasetCollectionDataProcessModeEnum,
   DatasetStatusEnum,
   DatasetTypeEnum,
   TrainingModeEnum
@@ -18,7 +19,6 @@ import { usePagination } from '@fastgpt/web/hooks/usePagination';
 import { DatasetCollectionsListItemType } from '@/global/core/dataset/type';
 import { useRouter } from 'next/router';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
-import { ImportProcessWayEnum } from '@/web/core/dataset/constants';
 import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
 import DatasetImportContextProvider from '@/pageComponents/dataset/detail/Import/Context';
 
@@ -225,8 +225,9 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
                   pageId: datasetDetail!.confluenceConfig?.pageId,
                   syncSubPages: datasetDetail!.confluenceConfig?.syncSubPages,
                   syncSchedule: datasetDetail!.confluenceConfig?.syncSchedule,
-                  mode: datasetDetail!.confluenceConfig?.mode ?? TrainingModeEnum.chunk,
-                  way: datasetDetail!.confluenceConfig!?.way ?? ImportProcessWayEnum.auto,
+                  mode:
+                    datasetDetail!.confluenceConfig?.mode ??
+                    DatasetCollectionDataProcessModeEnum.chunk,
                   chunkSize: datasetDetail!.confluenceConfig?.chunkSize ?? 500,
                   chunkSplitter: datasetDetail!.confluenceConfig?.chunkSplitter || '',
                   qaPrompt: datasetDetail!.confluenceConfig?.qaPrompt || Prompt_AgentQA.description

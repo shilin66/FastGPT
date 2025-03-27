@@ -43,8 +43,8 @@ export type DatasetSchemaType = {
     pageId?: string;
     syncSubPages?: boolean;
     syncSchedule?: boolean;
-    mode: TrainingModeEnum;
-    way: ImportProcessWayEnum;
+    mode: DatasetCollectionDataProcessModeEnum;
+    // way: ImportProcessWayEnum;
     chunkSize: number;
     chunkSplitter: string;
     qaPrompt: string;

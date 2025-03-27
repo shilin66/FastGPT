@@ -75,7 +75,6 @@ export type FastGPTFeConfigsType = {
   scripts?: { [key: string]: string }[];
   favicon?: string;
 
-  googleClientVerKey?: string;
   userDefaultTeam?: string;
   sso?: {
     icon?: string;

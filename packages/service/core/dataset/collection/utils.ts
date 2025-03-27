@@ -1,4 +1,3 @@
-import type { DatasetCollectionSchemaType } from '@fastgpt/global/core/dataset/type.d';
 import { MongoDatasetCollection } from './schema';
 import { ClientSession } from '../../../common/mongo';
 import { MongoDatasetCollectionTags } from '../tag/schema';
@@ -22,7 +21,10 @@ import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { createCollectionAndInsertData, delCollection } from './controller';
 import { PushDatasetDataResponse } from '@fastgpt/global/core/dataset/api';
 import { MongoDatasetTraining } from '../training/schema';
-import { splitText2Chunks } from '@fastgpt/global/common/string/textSplitter';
+import { pushDataListToTrainingQueue } from '../training/controller';
+import { createTrainingUsage } from '../../../support/wallet/usage/controller';
+import { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
+import { getEmbeddingModel, getLLMModel, getVlmModel } from '../../ai/model';
 
 /**
  * get all collection by top collectionId
@@ -88,33 +90,49 @@ export const reloadConfluencePageCollectionChunks = async ({
   const chunks = rawText2Chunks({
     rawText,
     chunkLen: collection.chunkSize || 512,
-    overlapRatio: collection.trainingType === TrainingModeEnum.chunk ? 0.2 : 0,
+    overlapRatio: collection.trainingType === DatasetCollectionDataProcessModeEnum.chunk ? 0.2 : 0,
     customReg: collection.chunkSplitter ? [collection.chunkSplitter] : [],
     isQAImport: false
   });
 
-  // insert to training queue
-  const model = await (() => {
-    if (collection.trainingType === TrainingModeEnum.chunk) return collection.dataset.vectorModel;
-    if (collection.trainingType === TrainingModeEnum.qa) return collection.dataset.agentModel;
-    return Promise.reject('Training model error');
-  })();
-
-  const result = await MongoDatasetTraining.insertMany(
-    chunks.map((item, i) => ({
+  // 4. create training bill
+  const traingBillId = await (async () => {
+    // if (billId) return billId;
+    const { billId: newBillId } = await createTrainingUsage({
       teamId: collection.teamId,
       tmbId,
-      datasetId: collection.dataset._id,
-      collectionId: collection._id,
-      mode: collection.trainingType,
-      prompt: collection.qaPrompt,
-      model,
-      q: item.q,
-      a: item.a,
-      chunkIndex: i
+      appName: collection.name,
+      billSource: UsageSourceEnum.training,
+      vectorModel: getEmbeddingModel(collection.dataset.vectorModel)?.name,
+      agentModel: getLLMModel(collection.dataset.agentModel)?.name,
+      vllmModel: getVlmModel(collection.dataset.vlmModel)?.name,
+      session
+    });
+    return newBillId;
+  })();
+
+  // 5. insert to training queue
+  const insertResults = await pushDataListToTrainingQueue({
+    teamId: collection.teamId,
+    tmbId,
+    datasetId: collection.dataset._id,
+    collectionId: collection._id,
+    agentModel: collection.dataset.agentModel,
+    vectorModel: collection.dataset.vectorModel,
+    vlmModel: collection.dataset.vlmModel,
+    mode: getTrainingModeByCollection({
+      trainingType: collection.trainingType || DatasetCollectionDataProcessModeEnum.chunk,
+      autoIndexes: collection.autoIndexes,
+      imageIndex: collection.imageIndex
+    }),
+    prompt: collection.qaPrompt,
+    billId: traingBillId,
+    data: chunks.map((item, index) => ({
+      ...item,
+      chunkIndex: index
     })),
-    { session }
-  );
+    session
+  });
 
   // update raw text
   await MongoDatasetCollection.findByIdAndUpdate(
@@ -127,7 +145,7 @@ export const reloadConfluencePageCollectionChunks = async ({
   );
 
   return {
-    insertLen: result.length
+    insertLen: insertResults.insertLen
   };
 };
 export const createOrGetCollectionTags = async ({
