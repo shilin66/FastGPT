@@ -5,12 +5,7 @@ import {
 } from '@fastgpt/global/core/dataset/constants';
 import { recallFromVectorStore } from '../../../common/vectorStore/controller';
 import { getVectorsByText } from '../../ai/embedding';
-import {
-  getEmbeddingModel,
-  getDefaultRerankModel,
-  getLLMModel,
-  getReRankModel
-} from '../../ai/model';
+import { getEmbeddingModel, getDefaultRerankModel, getLLMModel } from '../../ai/model';
 import { MongoDatasetData } from '../data/schema';
 import {
   DatasetDataTextSchemaType,
@@ -21,7 +16,7 @@ import { reRankRecall } from '../../../core/ai/rerank';
 import { countPromptTokens } from '../../../common/string/tiktoken/index';
 import { datasetSearchResultConcat } from '@fastgpt/global/core/dataset/search/utils';
 import { hashStr } from '@fastgpt/global/common/string/tools';
-import { jiebaSplit } from '../../../common/string/jieba';
+import { jiebaSplit } from '../../../common/string/jieba/index';
 import { getCollectionSourceData } from '@fastgpt/global/core/dataset/collection/utils';
 import { Types } from '../../../common/mongo';
 import json5 from 'json5';
@@ -32,6 +27,7 @@ import { ChatItemType } from '@fastgpt/global/core/chat/type';
 import { POST } from '../../../common/api/plusRequest';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { datasetSearchQueryExtension } from './utils';
+import type { RerankModelItemType } from '@fastgpt/global/core/ai/model.d';
 
 export type SearchDatasetDataProps = {
   histories: ChatItemType[];
@@ -44,10 +40,13 @@ export type SearchDatasetDataProps = {
   [NodeInputKeyEnum.datasetSimilarity]?: number; // min distance
   [NodeInputKeyEnum.datasetMaxTokens]: number; // max Token limit
   [NodeInputKeyEnum.datasetSearchMode]?: `${DatasetSearchModeEnum}`;
-  [NodeInputKeyEnum.datasetSearchUsingReRank]?: boolean;
-  [NodeInputKeyEnum.datasetSearchReRankModel]?: string;
+  [NodeInputKeyEnum.datasetSearchEmbeddingWeight]?: number;
 
-  /*
+  [NodeInputKeyEnum.datasetSearchUsingReRank]?: boolean;
+  [NodeInputKeyEnum.datasetSearchRerankModel]?: RerankModelItemType;
+  [NodeInputKeyEnum.datasetSearchRerankWeight]?: number;
+
+  /* 
     {
       tags: {
         $and: ["str1","str2"],
@@ -81,16 +80,16 @@ export type SearchDatasetDataResponse = {
 };
 
 export const datasetDataReRank = async ({
-  reRankModel,
+  rerankModel,
   data,
   query
 }: {
-  reRankModel?: string;
+  rerankModel?: RerankModelItemType;
   data: SearchDataResponseItemType[];
   query: string;
 }): Promise<SearchDataResponseItemType[]> => {
   const results = await reRankRecall({
-    model: getReRankModel(reRankModel),
+    model: rerankModel,
     query,
     documents: data.map((item) => ({
       id: item.id,
@@ -163,8 +162,10 @@ export async function searchDatasetData(
     similarity = 0,
     limit: maxTokens,
     searchMode = DatasetSearchModeEnum.embedding,
+    embeddingWeight = 0.5,
     usingReRank = false,
-    reRankModel = getDefaultRerankModel().model,
+    rerankModel,
+    rerankWeight = 0.5,
     datasetIds = [],
     collectionFilterMatch
   } = props;
@@ -536,7 +537,7 @@ export async function searchDatasetData(
                 $match: {
                   teamId: new Types.ObjectId(teamId),
                   datasetId: new Types.ObjectId(id),
-                  $text: { $search: jiebaSplit({ text: query }) },
+                  $text: { $search: await jiebaSplit({ text: query }) },
                   ...(filterCollectionIdList
                     ? {
                         collectionId: {
@@ -721,7 +722,7 @@ export async function searchDatasetData(
     });
     try {
       return await datasetDataReRank({
-        reRankModel,
+        rerankModel,
         query: reRankQuery,
         data: filterSameDataResults
       });
@@ -732,11 +733,26 @@ export async function searchDatasetData(
   })();
 
   // embedding recall and fullText recall rrf concat
-  const rrfConcatResults = datasetSearchResultConcat([
-    { k: 60, list: embeddingRecallResults },
-    { k: 60, list: fullTextRecallResults },
-    { k: 58, list: reRankResults }
+  const baseK = 120;
+  const embK = Math.round(baseK * (1 - embeddingWeight)); // 搜索结果的 k 值
+  const fullTextK = Math.round(baseK * embeddingWeight); // rerank 结果的 k 值
+
+  const rrfSearchResult = datasetSearchResultConcat([
+    { k: embK, list: embeddingRecallResults },
+    { k: fullTextK, list: fullTextRecallResults }
   ]);
+  const rrfConcatResults = (() => {
+    if (reRankResults.length === 0) return rrfSearchResult;
+    if (rerankWeight === 1) return reRankResults;
+
+    const searchK = Math.round(baseK * rerankWeight); // 搜索结果的 k 值
+    const rerankK = Math.round(baseK * (1 - rerankWeight)); // rerank 结果的 k 值
+
+    return datasetSearchResultConcat([
+      { k: searchK, list: rrfSearchResult },
+      { k: rerankK, list: reRankResults }
+    ]);
+  })();
 
   // remove same q and a data
   set = new Set<string>();

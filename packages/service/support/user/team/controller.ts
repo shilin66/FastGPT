@@ -129,8 +129,7 @@ export async function createDefaultTeam({
 }) {
   // auth default team
   const tmb = await MongoTeamMember.findOne({
-    userId: new Types.ObjectId(userId),
-    defaultTeam: true
+    userId: new Types.ObjectId(userId)
   });
 
   if (!tmb) {
@@ -155,8 +154,7 @@ export async function createDefaultTeam({
           name: 'root',
           role: TeamMemberRoleEnum.owner,
           status: TeamMemberStatusEnum.active,
-          createTime: new Date(),
-          defaultTeam: true
+          createTime: new Date()
         }
       ],
       { session }

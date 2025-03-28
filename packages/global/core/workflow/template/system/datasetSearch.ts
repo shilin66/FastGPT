@@ -65,6 +65,14 @@ export const DatasetSearchModule: FlowNodeTemplateType = {
       value: DatasetSearchModeEnum.embedding
     },
     {
+      key: NodeInputKeyEnum.datasetSearchEmbeddingWeight,
+      renderTypeList: [FlowNodeInputTypeEnum.hidden],
+      label: '',
+      valueType: WorkflowIOValueTypeEnum.number,
+      value: 0.5
+    },
+    // Rerank
+    {
       key: NodeInputKeyEnum.datasetSearchUsingReRank,
       renderTypeList: [FlowNodeInputTypeEnum.hidden],
       label: '',
@@ -72,11 +80,19 @@ export const DatasetSearchModule: FlowNodeTemplateType = {
       value: false
     },
     {
-      key: NodeInputKeyEnum.datasetSearchReRankModel,
+      key: NodeInputKeyEnum.datasetSearchRerankModel,
       renderTypeList: [FlowNodeInputTypeEnum.hidden],
       label: '',
       valueType: WorkflowIOValueTypeEnum.string
     },
+    {
+      key: NodeInputKeyEnum.datasetSearchRerankWeight,
+      renderTypeList: [FlowNodeInputTypeEnum.hidden],
+      label: '',
+      valueType: WorkflowIOValueTypeEnum.number,
+      value: 0.5
+    },
+    // Query Extension
     {
       key: NodeInputKeyEnum.datasetSearchUsingExtensionQuery,
       renderTypeList: [FlowNodeInputTypeEnum.hidden],
@@ -97,6 +113,7 @@ export const DatasetSearchModule: FlowNodeTemplateType = {
       valueType: WorkflowIOValueTypeEnum.string,
       value: ''
     },
+
     {
       key: NodeInputKeyEnum.authTmbId,
       renderTypeList: [FlowNodeInputTypeEnum.hidden],
