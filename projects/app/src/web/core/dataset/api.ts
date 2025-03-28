@@ -1,5 +1,6 @@
 import { GET, POST, PUT, DELETE } from '@/web/common/api/request';
 import type {
+  GetPathProps,
   ParentIdType,
   ParentTreePathItemType
 } from '@fastgpt/global/common/parentFolder/type.d';
@@ -65,19 +66,23 @@ import type {
   listExistIdQuery,
   listExistIdResponse
 } from '@/pages/api/core/dataset/apiDataset/listExistId';
-import { GetQuoteDataResponse } from '@/pages/api/core/dataset/data/getQuoteData';
+import type { GetQuoteDataResponse } from '@/pages/api/core/dataset/data/getQuoteData';
+import type { GetQuotePermissionResponse } from '@/pages/api/core/dataset/data/getPermission';
 
 /* ======================== dataset ======================= */
 export const getDatasets = (data: GetDatasetListBody) =>
   POST<DatasetListItemType[]>(`/core/dataset/list`, data);
 
+export const getDatasetsByAppIdAndDatasetIds = (data: { appId: string; datasetIdList: string[] }) =>
+  POST<DatasetSimpleItemType[]>(`/core/dataset/listByAppIdAndDatasetIds`, data);
 /**
  * get type=dataset list
  */
-export const getAllDataset = () => GET<DatasetSimpleItemType[]>(`/core/dataset/allDataset`);
 
-export const getDatasetPaths = (parentId: ParentIdType) =>
-  GET<ParentTreePathItemType[]>('/core/dataset/paths', { parentId });
+export const getDatasetPaths = (data: GetPathProps) => {
+  if (!data.sourceId) return Promise.resolve([]);
+  return GET<ParentTreePathItemType[]>('/core/dataset/paths', data);
+};
 
 export const getDatasetById = (id: string) => GET<DatasetItemType>(`/core/dataset/detail?id=${id}`);
 
@@ -183,6 +188,9 @@ export const getAllTags = (datasetId: string) =>
 /* get dataset list */
 export const getDatasetDataList = (data: GetDatasetDataListProps) =>
   POST<GetDatasetDataListRes>(`/core/dataset/data/v2/list`, data);
+
+export const getDatasetDataPermission = (id?: string) =>
+  GET<GetQuotePermissionResponse>(`/core/dataset/data/getPermission`, { id });
 
 export const getDatasetDataItemById = (id: string) =>
   GET<DatasetDataItemType>(`/core/dataset/data/detail`, { id });

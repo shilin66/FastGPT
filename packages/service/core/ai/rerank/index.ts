@@ -3,7 +3,7 @@ import { POST } from '../../../common/api/serverRequest';
 import { getReRankModel } from '../model';
 import { getDefaultRerankModel } from '../model';
 import { getAxiosConfig } from '../config';
-import { ReRankModelItemType } from '@fastgpt/global/core/ai/model.d';
+import { RerankModelItemType } from '@fastgpt/global/core/ai/model.d';
 
 type PostReRankResponse = {
   id: string;
@@ -17,11 +17,13 @@ type ReRankCallResult = { id: string; score?: number }[];
 export function reRankRecall({
   model = getDefaultRerankModel(),
   query,
-  documents
+  documents,
+  headers
 }: {
-  model?: ReRankModelItemType;
+  model?: RerankModelItemType;
   query: string;
   documents: { id: string; text: string }[];
+  headers?: Record<string, string>;
 }): Promise<ReRankCallResult> {
   if (!model) {
     return Promise.reject('no rerank model');
@@ -42,7 +44,8 @@ export function reRankRecall({
     },
     {
       headers: {
-        Authorization: model.requestAuth ? `Bearer ${model.requestAuth}` : authorization
+        Authorization: model.requestAuth ? `Bearer ${model.requestAuth}` : authorization,
+        ...headers
       },
       timeout: 30000
     }

@@ -11,9 +11,13 @@ import { defaultNodeVersion, FlowNodeTypeEnum } from '@fastgpt/global/core/workf
 import { FlowNodeTemplateTypeEnum } from '@fastgpt/global/core/workflow/constants';
 import type { GetPreviewNodeQuery } from '@/pages/api/core/app/plugin/getPreviewNode';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
-import { ParentIdType, ParentTreePathItemType } from '@fastgpt/global/common/parentFolder/type';
-import { GetSystemPluginTemplatesBody } from '@/pages/api/core/app/plugin/getSystemPluginTemplates';
-import { PluginGroupSchemaType } from '@fastgpt/service/core/app/plugin/type';
+import type {
+  GetPathProps,
+  ParentIdType,
+  ParentTreePathItemType
+} from '@fastgpt/global/common/parentFolder/type';
+import type { GetSystemPluginTemplatesBody } from '@/pages/api/core/app/plugin/getSystemPluginTemplates';
+import type { PluginGroupSchemaType } from '@fastgpt/service/core/app/plugin/type';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { defaultGroup } from '@fastgpt/web/core/workflow/constants';
 
@@ -51,9 +55,9 @@ export const getPluginGroups = () => {
   return Promise.resolve([defaultGroup]);
 };
 
-export const getSystemPluginPaths = (parentId: ParentIdType) => {
-  if (!parentId) return Promise.resolve<ParentTreePathItemType[]>([]);
-  return GET<ParentTreePathItemType[]>('/core/app/plugin/path', { parentId });
+export const getSystemPluginPaths = (data: GetPathProps) => {
+  if (!data.sourceId) return Promise.resolve<ParentTreePathItemType[]>([]);
+  return GET<ParentTreePathItemType[]>('/core/app/plugin/path', data);
 };
 
 export const getPreviewPluginNode = (data: GetPreviewNodeQuery) =>

@@ -6,7 +6,7 @@ import { formatModelChars2Points } from '../../../../support/wallet/usage/utils'
 import type { SelectedDatasetType } from '@fastgpt/global/core/workflow/api.d';
 import type { SearchDataResponseItemType } from '@fastgpt/global/core/dataset/type';
 import type { ModuleDispatchProps } from '@fastgpt/global/core/workflow/runtime/type';
-import { getReRankModel, getEmbeddingModel } from '../../../ai/model';
+import { getEmbeddingModel, getRerankModel } from '../../../ai/model';
 import { deepRagSearch, defaultSearchDatasetData } from '../../../dataset/search/controller';
 import { NodeInputKeyEnum, NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
@@ -22,13 +22,17 @@ type DatasetSearchProps = ModuleDispatchProps<{
   [NodeInputKeyEnum.datasetSelectList]: SelectedDatasetType;
   [NodeInputKeyEnum.datasetSimilarity]: number;
   [NodeInputKeyEnum.datasetMaxTokens]: number;
-  [NodeInputKeyEnum.datasetSearchMode]: `${DatasetSearchModeEnum}`;
   [NodeInputKeyEnum.userChatInput]?: string;
-  [NodeInputKeyEnum.datasetSearchUsingReRank]: boolean;
-  [NodeInputKeyEnum.datasetSearchReRankModel]: string;
-  [NodeInputKeyEnum.collectionFilterMatch]: string;
+  [NodeInputKeyEnum.datasetSearchMode]: `${DatasetSearchModeEnum}`;
+  [NodeInputKeyEnum.datasetSearchEmbeddingWeight]?: number;
 
+  [NodeInputKeyEnum.datasetSearchUsingReRank]: boolean;
+  [NodeInputKeyEnum.datasetSearchRerankModel]?: string;
+  [NodeInputKeyEnum.datasetSearchRerankWeight]?: number;
+
+  [NodeInputKeyEnum.collectionFilterMatch]: string;
   [NodeInputKeyEnum.authTmbId]?: boolean;
+
   [NodeInputKeyEnum.datasetSearchUsingExtensionQuery]: boolean;
   [NodeInputKeyEnum.datasetSearchExtensionModel]: string;
   [NodeInputKeyEnum.datasetSearchExtensionBg]: string;
@@ -54,12 +58,14 @@ export async function dispatchDatasetSearch(
       datasets = [],
       similarity,
       limit = 1500,
-      usingReRank,
-      reRankModel,
-      searchMode,
       userChatInput = '',
       authTmbId = false,
       collectionFilterMatch,
+      searchMode,
+      embeddingWeight,
+      usingReRank,
+      rerankModel,
+      rerankWeight,
 
       datasetSearchUsingExtensionQuery,
       datasetSearchExtensionModel,
@@ -113,8 +119,6 @@ export async function dispatchDatasetSearch(
     (await MongoDataset.findById(datasets[0].datasetId, 'vectorModel').lean())?.vectorModel
   );
 
-  const usedReRankModel = getReRankModel(reRankModel);
-
   // start search
   const searchData = {
     histories,
@@ -126,8 +130,10 @@ export async function dispatchDatasetSearch(
     limit,
     datasetIds,
     searchMode,
+    embeddingWeight,
     usingReRank: usingReRank && (await checkTeamReRankPermission(teamId)),
-    reRankModel: usedReRankModel.model,
+    rerankModel: getRerankModel(rerankModel),
+    rerankWeight,
     collectionFilterMatch
   };
   const {
@@ -224,6 +230,9 @@ export async function dispatchDatasetSearch(
     similarity: usingSimilarityFilter ? similarity : undefined,
     limit,
     searchMode,
+    embeddingWeight: searchMode === DatasetSearchModeEnum.mixedRecall ? embeddingWeight : undefined,
+    rerankModel: usingReRank ? getRerankModel(rerankModel)?.name : undefined,
+    rerankWeight: usingReRank ? rerankWeight : undefined,
     searchUsingReRank: searchUsingReRank,
     quoteList: searchRes,
     queryExtensionResult,
