@@ -81,7 +81,7 @@ const main = async ({ username, password }: Props): Response => {
             zenlayerWeb: `JSESSIONID=${zenlayerWeb}; lang=en`,
             zenlayerWebNew: `JSESSIONID=${zenlayerWebNew}; lang=en`
           },
-          ttl: 1000 * 60 * 60 * 6
+          ttl: 1000 * 60 * 60 * 2
         },
         {
           headers: { 'Content-Type': 'application/json' },
