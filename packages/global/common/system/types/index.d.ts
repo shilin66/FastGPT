@@ -87,11 +87,6 @@ export type FastGPTFeConfigsType = {
     google?: string;
     wechat?: string;
     microsoft?: MicrosoftType;
-    dingtalk?: string;
-    wecom?: {
-      corpid?: string;
-      agentid?: string;
-    };
   };
   limit?: {
     exportDatasetLimitMinutes?: number;
@@ -128,7 +123,7 @@ export type SystemEnvType = {
   vectorMaxProcess: number;
   qaMaxProcess: number;
   vlmMaxProcess: number;
-  pgHNSWEfSearch: number;
+  hnswEfSearch: number;
   tokenWorkers: number; // token count max worker
 
   oneapiUrl?: string;

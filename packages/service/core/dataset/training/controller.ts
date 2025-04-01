@@ -17,6 +17,10 @@ import { getCollectionWithDataset } from '../controller';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { PushDataToTrainingQueueProps } from '@fastgpt/global/core/dataset/training/type';
 import { i18nT } from '../../../../web/i18n/utils';
+import {
+  getLLMDefaultChunkSize,
+  getLLMMaxChunkSize
+} from '../../../../global/core/dataset/training/utils';
 import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoTeamMember } from '../../../support/user/team/teamMemberSchema';
 import { TeamMemberWithTeamAndUserSchema } from '@fastgpt/global/support/user/team/type';
@@ -82,6 +86,7 @@ export async function pushDataListToTrainingQueue({
   prompt,
   billId,
   mode = TrainingModeEnum.chunk,
+  indexSize,
   session
 }: PushDataToTrainingQueueProps): Promise<PushDatasetDataResponse> {
   const getImageChunkMode = (data: PushDatasetDataChunkProps, mode: TrainingModeEnum) => {
@@ -95,38 +100,41 @@ export async function pushDataListToTrainingQueue({
     }
     return mode;
   };
+
+  const vectorModelData = getEmbeddingModel(vectorModel);
+  if (!vectorModelData) {
+    return Promise.reject(i18nT('common:error_embedding_not_config'));
+  }
+  const agentModelData = getLLMModel(agentModel);
+  if (!agentModelData) {
+    return Promise.reject(i18nT('common:error_llm_not_config'));
+  }
+  if (mode === TrainingModeEnum.chunk || mode === TrainingModeEnum.auto) {
+    prompt = undefined;
+  }
+
   const { model, maxToken, weight } = await (async () => {
     if (mode === TrainingModeEnum.chunk) {
-      const vectorModelData = getEmbeddingModel(vectorModel);
-      if (!vectorModelData) {
-        return Promise.reject(i18nT('common:error_embedding_not_config'));
-      }
       return {
-        maxToken: vectorModelData.maxToken * 1.5,
+        maxToken: getLLMMaxChunkSize(agentModelData),
         model: vectorModelData.model,
         weight: vectorModelData.weight
       };
     }
-
     if (mode === TrainingModeEnum.qa || mode === TrainingModeEnum.auto) {
-      const agentModelData = getLLMModel(agentModel);
-      if (!agentModelData) {
-        return Promise.reject(i18nT('common:error_llm_not_config'));
-      }
       return {
-        maxToken: agentModelData.maxContext * 0.8,
+        maxToken: getLLMMaxChunkSize(agentModelData),
         model: agentModelData.model,
         weight: 0
       };
     }
-
     if (mode === TrainingModeEnum.image) {
       const vllmModelData = getVlmModel(vlmModel);
       if (!vllmModelData) {
         return Promise.reject(i18nT('common:error_vlm_not_config'));
       }
       return {
-        maxToken: vllmModelData.maxContext * 0.8,
+        maxToken: getLLMMaxChunkSize(vllmModelData),
         model: vllmModelData.model,
         weight: 0
       };
@@ -134,10 +142,6 @@ export async function pushDataListToTrainingQueue({
 
     return Promise.reject(`Training mode "${mode}" is inValid`);
   })();
-  // Filter redundant params
-  if (mode === TrainingModeEnum.chunk || mode === TrainingModeEnum.auto) {
-    prompt = undefined;
-  }
 
   // filter repeat or equal content
   const set = new Set();
@@ -170,13 +174,13 @@ export async function pushDataListToTrainingQueue({
 
     const text = item.q + item.a;
 
+    // Oversize llm tokens
     if (text.length > maxToken) {
       filterResult.overToken.push(item);
       return;
     }
 
     if (set.has(text)) {
-      console.log('repeat', item);
       filterResult.repeat.push(item);
     } else {
       filterResult.success.push(item);
@@ -209,6 +213,7 @@ export async function pushDataListToTrainingQueue({
           q: item.q,
           a: item.a,
           chunkIndex: item.chunkIndex ?? 0,
+          indexSize,
           weight: weight ?? 0,
           indexes: item.indexes,
           retryCount: 5
