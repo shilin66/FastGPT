@@ -54,19 +54,19 @@ export const delLeaveTeam = () => DELETE('/support/user/team/member/leave');
 /* -------------- team invitaionlink -------------------- */
 
 export const postCreateInvitationLink = (data: InvitationLinkCreateType) =>
-  POST<string>(`/proApi/support/user/team/invitationLink/create`, data);
+  POST<string>(`/support/user/team/invitationLink/create`, data);
 
 export const getInvitationLinkList = () =>
-  GET<InvitationType[]>(`/proApi/support/user/team/invitationLink/list`);
+  GET<InvitationType[]>(`/support/user/team/invitationLink/list`);
 
 export const postAcceptInvitationLink = (linkId: string) =>
-  POST<string>(`/proApi/support/user/team/invitationLink/accept`, { linkId });
+  POST<string>(`/support/user/team/invitationLink/accept`, { linkId });
 
 export const getInvitationInfo = (linkId: string) =>
-  GET<InvitationInfoType>(`/proApi/support/user/team/invitationLink/info`, { linkId });
+  GET<InvitationInfoType>(`/support/user/team/invitationLink/info`, { linkId });
 
 export const putUpdateInvitationInfo = (data: InvitationLinkUpdateType) =>
-  PUT('/proApi/support/user/team/invitationLink/update', data);
+  PUT('/support/user/team/invitationLink/update', data);
 
 /* -------------- team collaborator -------------------- */
 export const getTeamClbs = () =>

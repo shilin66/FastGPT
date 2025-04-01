@@ -1,6 +1,5 @@
 import { addLog } from '../../../common/system/log';
 import { POST } from '../../../common/api/serverRequest';
-import { getReRankModel } from '../model';
 import { getDefaultRerankModel } from '../model';
 import { getAxiosConfig } from '../config';
 import { RerankModelItemType } from '@fastgpt/global/core/ai/model.d';
