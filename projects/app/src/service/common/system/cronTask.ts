@@ -14,6 +14,7 @@ import { MongoDatasetDataText } from '@fastgpt/service/core/dataset/data/dataTex
 import { MongoDatasetData } from '@fastgpt/service/core/dataset/data/schema';
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
 import { addDays } from 'date-fns';
+import { MongoInvitationLink } from '@fastgpt/service/support/user/team/invitationLink/schema';
 
 /* 
   check dataset.files data. If there is no match in dataset.collections, delete it
@@ -206,4 +207,21 @@ export async function checkInvalidVector(start: Date, end: Date) {
   }
 
   addLog.info(`Clear invalid vector finish, remove ${deletedVectorAmount} data`);
+}
+
+export async function checkExpiredInvitationLink() {
+  await MongoInvitationLink.updateMany(
+    {
+      expires: { $lte: new Date() },
+      forbidden: false
+    },
+    {
+      $set: {
+        forbidden: true
+      }
+    }
+  );
+  await MongoInvitationLink.deleteMany({
+    expires: { $lte: addDays(new Date(), -30) }
+  });
 }

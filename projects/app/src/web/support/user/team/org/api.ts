@@ -14,14 +14,14 @@ export const getOrgList = (params: {
   orgId: string;
   withPermission?: boolean;
   searchKey?: string;
-}) => POST<OrgListItemType[]>(`/proApi/support/user/team/org/list`, params);
+}) => POST<OrgListItemType[]>(`/support/user/team/org/list`, params);
 
 export const postCreateOrg = (data: postCreateOrgData) =>
   POST('/support/user/team/org/create', data);
 
 export const deleteOrg = (orgId: string) => DELETE('/support/user/team/org/delete', { orgId });
 
-export const putMoveOrg = (data: putMoveOrgType) => PUT('/proApi/support/user/team/org/move', data);
+export const putMoveOrg = (data: putMoveOrgType) => PUT('/support/user/team/org/move', data);
 
 export const putUpdateOrg = (data: putUpdateOrgData) => PUT('/support/user/team/org/update', data);
 

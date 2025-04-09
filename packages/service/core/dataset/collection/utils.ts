@@ -24,6 +24,7 @@ import { pushDataListToTrainingQueue } from '../training/controller';
 import { createTrainingUsage } from '../../../support/wallet/usage/controller';
 import { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
 import { getEmbeddingModel, getLLMModel, getVlmModel } from '../../ai/model';
+import { getLLMMaxChunkSize } from '@fastgpt/global/core/dataset/training/utils';
 
 /**
  * get all collection by top collectionId
@@ -88,7 +89,8 @@ export const reloadConfluencePageCollectionChunks = async ({
   // split data
   const chunks = rawText2Chunks({
     rawText,
-    chunkLen: collection.chunkSize || 512,
+    chunkSize: collection.chunkSize || 512,
+    maxSize: getLLMMaxChunkSize(getLLMModel(collection.dataset.agentModel)),
     overlapRatio: collection.trainingType === DatasetCollectionDataProcessModeEnum.chunk ? 0.2 : 0,
     customReg: collection.chunkSplitter ? [collection.chunkSplitter] : [],
     isQAImport: false

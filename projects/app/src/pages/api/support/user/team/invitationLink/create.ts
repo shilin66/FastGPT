@@ -29,7 +29,7 @@ async function handler(req: ApiRequestProps<InvitationLinkCreateType>, res: ApiR
   });
 
   const domain = req.headers.host;
-  return `https://${domain}/account/team?invitelinkid=${invitationLink._id}`;
+  return `https://${domain}/account/team?invitelinkid=${invitationLink.linkId}`;
 }
 
 export default NextAPI(handler);

@@ -93,3 +93,28 @@ export async function createRootOrg({
     { session, ordered: true }
   );
 }
+
+export const listOrgPathByTeamId = async (teamId: string) => {
+  const orgs = await MongoOrgModel.find({ teamId }).lean();
+  // 将 org中path 字段为 /pathIdA/pathIdB 的数据，转换为 /pathNameA/pathNameB 的形式, 并且返回record类型 key是orgId, value是转换后的pathname
+  return orgs.reduce(
+    (acc, cur) => {
+      if (cur.path.startsWith('/')) {
+        const pathArr = cur.path.split('/');
+        const pathNameArr = pathArr.map((pathId) => {
+          const org = orgs.find((org) => org.pathId === pathId);
+          return org?.name || pathId;
+        });
+        acc[cur._id.toString()] = pathNameArr.join('/') + `/${cur.name}`;
+      } else {
+        acc[cur._id.toString()] = `/${cur.name}`;
+      }
+      return acc;
+    },
+    {} as Record<string, string>
+  );
+};
+
+export const getRootOrgByTeamId = async (teamId: string) => {
+  return MongoOrgModel.findOne({ teamId, path: '' }).lean();
+};

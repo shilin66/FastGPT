@@ -43,9 +43,8 @@ export const getTeamMembers = (
     orgId?: string;
     groupId?: string;
   }>
-) => POST<PaginationResponse<TeamMemberItemType>>(`/proApi/support/user/team/member/list`, props);
-export const getTeamMemberCount = () =>
-  GET<{ count: number }>(`/proApi/support/user/team/member/count`);
+) => POST<PaginationResponse<TeamMemberItemType>>(`/support/user/team/member/list`, props);
+export const getTeamMemberCount = () => GET<{ count: number }>(`/support/user/team/member/count`);
 
 // export const postInviteTeamMember = (data: InviteMemberProps) =>
 //   POST<InviteMemberResponse>(`/proApi/support/user/team/member/invite`, data);

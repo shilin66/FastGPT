@@ -3,6 +3,7 @@ import { connectionMongo, getMongoModel } from '../../../common/mongo';
 import { MemberGroupCollectionName } from './memberGroupSchema';
 import { GroupMemberSchemaType } from '@fastgpt/global/support/permission/memberGroup/type';
 import { GroupMemberRole } from '@fastgpt/global/support/permission/memberGroup/constant';
+
 const { Schema } = connectionMongo;
 
 export const GroupMemberCollectionName = 'team_group_members';
@@ -24,6 +25,13 @@ export const GroupMemberSchema = new Schema({
     required: true,
     default: GroupMemberRole.member
   }
+});
+
+GroupMemberSchema.virtual('tmb', {
+  ref: TeamMemberCollectionName,
+  localField: 'tmbId',
+  foreignField: '_id',
+  justOne: true
 });
 
 GroupMemberSchema.virtual('group', {

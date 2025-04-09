@@ -200,7 +200,7 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
           <Box {...labelStyles}>{t('account_info:user_account')}&nbsp;</Box>
           <Box flex={1}>{userInfo?.username}</Box>
         </Flex>
-        {feConfigs?.isPlus && (
+        {feConfigs?.isPlus && userInfo?.loginType === 'password' && (
           <Flex mt={4} alignItems={'center'}>
             <Box {...labelStyles}>{t('account_info:password')}&nbsp;</Box>
             <Box flex={1}>*****</Box>
@@ -209,18 +209,18 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
             </Button>
           </Flex>
         )}
-        {feConfigs?.isPlus && (
-          <Flex mt={4} alignItems={'center'}>
-            <Box {...labelStyles}>{t('common:contact_way')}&nbsp;</Box>
-            <Box flex={1} {...(!userInfo?.contact ? { color: 'red.600' } : {})}>
-              {userInfo?.contact ? userInfo?.contact : t('account_info:please_bind_contact')}
-            </Box>
+        {/*{feConfigs?.isPlus && (*/}
+        {/*  <Flex mt={4} alignItems={'center'}>*/}
+        {/*    <Box {...labelStyles}>{t('common:contact_way')}&nbsp;</Box>*/}
+        {/*    <Box flex={1} {...(!userInfo?.contact ? { color: 'red.600' } : {})}>*/}
+        {/*      {userInfo?.contact ? userInfo?.contact : t('account_info:please_bind_contact')}*/}
+        {/*    </Box>*/}
 
-            <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdateContact}>
-              {t('account_info:change')}
-            </Button>
-          </Flex>
-        )}
+        {/*    <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdateContact}>*/}
+        {/*      {t('account_info:change')}*/}
+        {/*    </Button>*/}
+        {/*  </Flex>*/}
+        {/*)}*/}
 
         <MyDivider my={6} />
 
@@ -309,19 +309,19 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
             {/*/>*/}
           </Flex>
         )}
-        <Flex alignItems={'center'} mt={6}>
-          <Box {...labelStyles}>{t('account_info:user_account')}:&nbsp;</Box>
-          <Box flex={1}>{userInfo?.username}</Box>
-        </Flex>
-        {feConfigs?.isPlus && userInfo?.loginType === 'password' && (
-          <Flex mt={6} alignItems={'center'}>
-            <Box {...labelStyles}>{t('account_info:password')}:&nbsp;</Box>
-            <Box flex={1}>*****</Box>
-            <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdatePsw}>
-              {t('account_info:change')}
-            </Button>
-          </Flex>
-        )}
+        {/*<Flex alignItems={'center'} mt={6}>*/}
+        {/*  <Box {...labelStyles}>{t('account_info:user_account')}:&nbsp;</Box>*/}
+        {/*  <Box flex={1}>{userInfo?.username}</Box>*/}
+        {/*</Flex>*/}
+        {/*{feConfigs?.isPlus && userInfo?.loginType === 'password' && (*/}
+        {/*  <Flex mt={6} alignItems={'center'}>*/}
+        {/*    <Box {...labelStyles}>{t('account_info:password')}:&nbsp;</Box>*/}
+        {/*    <Box flex={1}>*****</Box>*/}
+        {/*    <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdatePsw}>*/}
+        {/*      {t('account_info:change')}*/}
+        {/*    </Button>*/}
+        {/*  </Flex>*/}
+        {/*)}*/}
         {/*{feConfigs?.isPlus && (userInfo?.team?.balance ?? 0) > 0 && (*/}
         {/*  <Box mt={4} whiteSpace={'nowrap'}>*/}
         {/*    <Flex alignItems={'center'}>*/}

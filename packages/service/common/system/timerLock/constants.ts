@@ -6,7 +6,8 @@ export enum TimerIdEnum {
   updateStandardPlan = 'updateStandardPlan',
   scheduleTriggerApp = 'scheduleTriggerApp',
   scheduleSyncConfluenceDataset = 'scheduleSyncConfluenceDataset',
-  notification = 'notification'
+  notification = 'notification',
+  scheduleSyncConfluenceDatasetCron = 'scheduleSyncConfluenceDatasetCron'
 }
 
 export enum LockNotificationEnum {

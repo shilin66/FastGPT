@@ -15,14 +15,14 @@ import { OAuthEnum } from '@fastgpt/global/support/user/constant';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await connectToDatabase();
-    const { code, callbackUrl, type } = req.body as OauthLoginProps;
+    const { props, callbackUrl, type } = req.body as OauthLoginProps;
     let username;
     switch (type) {
       case OAuthEnum.github:
-        username = await authByGithub(code, callbackUrl);
+        username = await authByGithub(props.code, callbackUrl);
         break;
       case OAuthEnum.microsoft:
-        username = await authByMicrosoft(code, callbackUrl);
+        username = await authByMicrosoft(props.code, callbackUrl);
         break;
       default:
         throw new Error('未配置登录方式');

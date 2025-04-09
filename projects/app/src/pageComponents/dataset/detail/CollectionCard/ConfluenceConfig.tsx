@@ -88,7 +88,7 @@ const ConfluenceConfigModal = ({
           Math.min(agentModel.maxResponse, Math.floor(agentModel.maxContext * 0.7))
       );
       processParamsForm.setValue('qaPrompt', defaultValue.qaPrompt || Prompt_AgentQA.description);
-      processParamsForm.setValue('customSplitChar', defaultValue.chunkSplitter || '');
+      processParamsForm.setValue('chunkSplitter', defaultValue.chunkSplitter || '');
     }
   }, [datasetDetail.agentModel, datasetDetail.vectorModel, defaultValue, processParamsForm]);
   const pageId = watch('pageId');
@@ -221,7 +221,7 @@ const ConfluenceConfigModal = ({
             onClick={handleSubmit((data) => {
               data.mode = processParamsForm.getValues('trainingType');
 
-              data.chunkSplitter = processParamsForm.getValues('customSplitChar');
+              data.chunkSplitter = processParamsForm.getValues('chunkSplitter');
               if (data.mode === DatasetCollectionDataProcessModeEnum.chunk) {
                 data.chunkSize = processParamsForm.getValues('embeddingChunkSize');
               } else {

@@ -1,11 +1,14 @@
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
-import { putMoveOrgType, putUpdateOrgData } from '@fastgpt/global/support/user/team/org/api';
+import { putMoveOrgType } from '@fastgpt/global/support/user/team/org/api';
 import { MongoOrgModel } from '@fastgpt/service/support/permission/org/orgSchema';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
-import { getOrgAndChildren } from '@fastgpt/service/support/permission/org/controllers';
+import {
+  getOrgAndChildren,
+  getRootOrgByTeamId
+} from '@fastgpt/service/support/permission/org/controllers';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
 
 async function handler(req: ApiRequestProps<putMoveOrgType>, res: ApiResponseType<any>) {
@@ -14,7 +17,10 @@ async function handler(req: ApiRequestProps<putMoveOrgType>, res: ApiResponseTyp
   const { teamId } = await authUserPer({ req, authToken: true, per: ManagePermissionVal });
   await mongoSessionRun(async (session) => {
     const { org, children } = await getOrgAndChildren({ orgId, teamId, session });
-    const targetOrg = await MongoOrgModel.findById(targetOrgId, undefined, { session }).lean();
+    const targetOrg =
+      targetOrgId === ''
+        ? await getRootOrgByTeamId(teamId)
+        : await MongoOrgModel.findById(targetOrgId, undefined, { session }).lean();
 
     if (!org || !targetOrg) {
       return Promise.reject(TeamErrEnum.orgNotExist);

@@ -10,7 +10,7 @@ import type {
 } from '@fastgpt/global/support/user/team/group/api';
 
 export const getGroupList = <T extends boolean>(data: GetGroupListBody) =>
-  POST<MemberGroupListItemType<T>[]>('/proApi/support/user/team/group/list', data).then((res) => {
+  POST<MemberGroupListItemType<T>[]>('/support/user/team/group/list', data).then((res) => {
     console.log(res);
     return res;
   });

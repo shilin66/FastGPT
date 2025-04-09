@@ -5,7 +5,8 @@ import {
   checkInvalidDatasetFiles,
   checkInvalidDatasetData,
   checkInvalidVector,
-  removeExpiredChatFiles
+  removeExpiredChatFiles,
+  checkExpiredInvitationLink
 } from './cronTask';
 import { checkTimerLock } from '@fastgpt/service/common/system/timerLock/utils';
 import { TimerIdEnum } from '@fastgpt/service/common/system/timerLock/constants';
@@ -78,6 +79,20 @@ const scheduleTriggerAppCron = () => {
   });
 };
 
+const scheduleClearInvitationLinkCron = () => {
+  setCron('0 0 * * *', async () => {
+    if (
+      await checkTimerLock({
+        timerId: TimerIdEnum.scheduleSyncConfluenceDatasetCron,
+        lockMinuted: 59
+      })
+    ) {
+      // clear expired invitation link
+      checkExpiredInvitationLink();
+    }
+  });
+};
+
 const scheduleSyncConfluenceDatasetCron = () => {
   setCron('0 */1 * * *', async () => {
     if (
@@ -112,4 +127,5 @@ export const startCron = () => {
   clearGlobalCacheCron();
   scheduleTriggerAppCron();
   scheduleSyncConfluenceDatasetCron();
+  scheduleClearInvitationLinkCron();
 };

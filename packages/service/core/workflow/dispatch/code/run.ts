@@ -9,7 +9,7 @@ import { SandBoxTypeEnum } from '@fastgpt/global/common/system/types/index.d';
 import { transformerNodejs, transformerPython3 } from './difySandBoxUtil';
 
 type RunCodeType = ModuleDispatchProps<{
-  [NodeInputKeyEnum.codeType]: string;
+  [NodeInputKeyEnum.codeType]: 'python3' | 'js';
   [NodeInputKeyEnum.code]: string;
   [NodeInputKeyEnum.addInputParam]: Record<string, any>;
 }>;
@@ -56,11 +56,11 @@ const callDifySandBox = async (
   let runCode: string;
   let language: string;
   switch (codeType) {
-    case 'python3':
+    case SandboxCodeTypeEnum.py:
       runCode = transformerPython3(code, variables);
       language = 'python3';
       break;
-    case 'js':
+    case SandboxCodeTypeEnum.js:
       runCode = transformerNodejs(code, variables);
       language = 'nodejs';
       break;
