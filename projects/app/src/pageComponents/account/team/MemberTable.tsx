@@ -125,8 +125,9 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
   });
   const { runAsync: onLeaveTeam } = useRequest2(delLeaveTeam, {
     onSuccess() {
-      const defaultTeam = myTeams[0];
-      onSwitchTeam(defaultTeam.teamId);
+      const defaultTeamName = feConfigs?.userDefaultTeam;
+      const defaultTeamId = myTeams.find((team) => team.teamName === defaultTeamName)?.teamId;
+      onSwitchTeam(defaultTeamId || '');
     },
     errorToast: t('account_team:user_team_leave_team_failed')
   });
@@ -315,21 +316,22 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
                       {userInfo?.team.permission.hasManagePer &&
                         member.role !== TeamMemberRoleEnum.owner &&
                         member.tmbId !== userInfo?.team.tmbId &&
-                        (member.status === TeamMemberStatusEnum.active ? (
+                        (member.status === TeamMemberStatusEnum.active ||
+                        member.status === TeamMemberStatusEnum.leave ? (
                           <>
-                            <Icon
-                              mr={2}
-                              name={'edit'}
-                              cursor={'pointer'}
-                              w="1rem"
-                              p="1"
-                              borderRadius="sm"
-                              _hover={{
-                                color: 'blue.600',
-                                bgColor: 'myGray.100'
-                              }}
-                              onClick={() => handleEditMemberName(member.tmbId, member.memberName)}
-                            />
+                            {/*<Icon*/}
+                            {/*  mr={2}*/}
+                            {/*  name={'edit'}*/}
+                            {/*  cursor={'pointer'}*/}
+                            {/*  w="1rem"*/}
+                            {/*  p="1"*/}
+                            {/*  borderRadius="sm"*/}
+                            {/*  _hover={{*/}
+                            {/*    color: 'blue.600',*/}
+                            {/*    bgColor: 'myGray.100'*/}
+                            {/*  }}*/}
+                            {/*  onClick={() => handleEditMemberName(member.tmbId, member.memberName)}*/}
+                            {/*/>*/}
                             <Icon
                               name={'common/trash'}
                               cursor={'pointer'}

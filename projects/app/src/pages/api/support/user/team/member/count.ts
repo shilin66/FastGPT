@@ -3,24 +3,18 @@ import { NextAPI } from '@/service/middleware/entry';
 import type { NextApiRequest } from 'next';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
-import { getTeamMembers } from '@fastgpt/service/support/user/team/controller';
-import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';
+import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
-  const { pageSize = 20, offset } = parsePaginationRequest(req);
-  const { status, withPermission, withOrgs, searchKey, orgId, groupId } = req.body;
   const { teamId } = await authUserPer({ req, authToken: true, per: ReadPermissionVal });
-  return await getTeamMembers(
-    teamId,
-    pageSize,
-    offset,
-    status,
-    withPermission,
-    withOrgs,
-    searchKey,
-    orgId,
-    groupId
-  );
+
+  const count = await MongoTeamMember.countDocuments({
+    teamId
+  });
+
+  return {
+    count
+  };
 }
 
 export default NextAPI(handler);

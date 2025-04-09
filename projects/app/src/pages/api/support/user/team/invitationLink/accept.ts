@@ -1,6 +1,5 @@
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
-import { MongoInvitationLink } from '@fastgpt/service/support/user/team/invitationLink/schema';
 import { parseHeaderCert } from '@fastgpt/service/support/permission/controller';
 import { MongoUser } from '@fastgpt/service/support/user/schema';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
@@ -8,6 +7,7 @@ import { UserErrEnum } from '@fastgpt/global/common/error/code/user';
 import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
 import { TeamMemberStatusEnum } from '@fastgpt/global/support/user/team/constant';
 import { MongoTeam } from '@fastgpt/service/support/user/team/teamSchema';
+import { MongoInvitationLink } from '@fastgpt/service/support/user/team/invitationLink/schema';
 
 async function handler(req: ApiRequestProps<{ linkId: string }>, res: ApiResponseType<any>) {
   const { linkId } = req.body;
@@ -15,7 +15,7 @@ async function handler(req: ApiRequestProps<{ linkId: string }>, res: ApiRespons
   const { userId } = await parseHeaderCert({ req, authToken: true });
 
   // get link
-  const linkInfo = await MongoInvitationLink.findById(linkId).lean();
+  const linkInfo = await MongoInvitationLink.findOne({ linkId }).lean();
   if (!linkInfo) {
     return Promise.reject(TeamErrEnum.invitationLinkInvalid);
   }
@@ -58,7 +58,7 @@ async function handler(req: ApiRequestProps<{ linkId: string }>, res: ApiRespons
   // update invitation link
   await MongoInvitationLink.updateOne(
     {
-      _id: linkId
+      linkId
     },
     {
       $set: {

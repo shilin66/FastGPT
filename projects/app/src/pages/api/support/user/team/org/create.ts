@@ -7,11 +7,11 @@ import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 
 async function handler(req: ApiRequestProps<postCreateOrgData>, res: ApiResponseType<any>) {
-  const { name, avatar, parentId, description } = req.body as postCreateOrgData;
+  const { name, avatar, orgId, description } = req.body as postCreateOrgData;
 
   const { teamId } = await authUserPer({ req, authToken: true, per: ManagePermissionVal });
 
-  const parentOrg = await MongoOrgModel.findById(parentId).lean();
+  const parentOrg = await MongoOrgModel.findById(orgId).lean();
   if (!parentOrg) {
     return Promise.reject(TeamErrEnum.orgParentNotExist);
   }

@@ -124,7 +124,7 @@ function DataProcess({ isModal = false }: { isModal?: boolean }) {
     }
   }, [trainingType, setValue]);
 
-  const showFileParseSetting = feConfigs?.showCustomPdfParse;
+  const showFileParseSetting = feConfigs?.showCustomPdfParse && !isModal;
   const showQAPromptInput = trainingType === DatasetCollectionDataProcessModeEnum.qa;
 
   return (
