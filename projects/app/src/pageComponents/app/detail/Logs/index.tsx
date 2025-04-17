@@ -179,6 +179,7 @@ const Logs = () => {
         <Table variant={'simple'} fontSize={'sm'}>
           <Thead>
             <Tr>
+              <Th>Chat Id</Th>
               <Th>{t('common:core.app.logs.Source And Time')}</Th>
               <Th>{t('app:logs_chat_user')}</Th>
               <Th>{t('app:logs_title')}</Th>
@@ -202,6 +203,7 @@ const Logs = () => {
                 title={t('common:core.view_chat_detail')}
                 onClick={() => setDetailLogsId(item.id)}
               >
+                <Td>{item.id}</Td>
                 <Td>
                   {/* @ts-ignore */}
                   <Box>{item.sourceName || t(ChatSourceMap[item.source]?.name) || item.source}</Box>
