@@ -6,6 +6,8 @@ import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/sch
 import { MongoDataset } from '@fastgpt/service/core/dataset/schema';
 import { delay } from '@fastgpt/global/common/system/utils';
 import { trainConfluenceCollection } from '@fastgpt/service/core/dataset/training/controller';
+import { generateAuto } from '@/service/events/generateAuto';
+import { generateImage } from '@/service/events/generateImage';
 
 export const createDatasetTrainingMongoWatch = () => {
   const changeStream = MongoDatasetTraining.watch();
@@ -19,6 +21,8 @@ export const createDatasetTrainingMongoWatch = () => {
           generateQA();
         } else if (mode === TrainingModeEnum.chunk) {
           generateVector();
+        } else if (mode === TrainingModeEnum.auto) {
+          generateAuto();
         }
       }
     } catch (error) {}
@@ -30,6 +34,8 @@ export const startTrainingQueue = (fast?: boolean) => {
   for (let i = 0; i < (fast ? max : 1); i++) {
     generateQA();
     generateVector();
+    generateAuto();
+    generateImage();
   }
 };
 
