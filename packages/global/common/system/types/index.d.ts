@@ -105,6 +105,8 @@ export type FastGPTFeConfigsType = {
   externalProviderWorkflowVariables?: ExternalProviderWorkflowVarType[];
   oss3Url?: string;
   oss2Url?: string;
+  autoIndexPrompt?: string;
+  imageIndexPrompt?: string;
 };
 
 export type GithubType = {
