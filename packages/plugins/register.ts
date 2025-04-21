@@ -30,6 +30,7 @@ const packagePluginList = [
   'Doc2X',
   'Doc2X/PDF2text',
   'searchXNG',
+  'smtpEmail',
   'firecrawl',
   'firecrawl/scrape',
   'firecrawl/batchScrape',

@@ -7,7 +7,8 @@ import {
   ChatCompletionToolMessageParam,
   ChatCompletionMessageParam,
   ChatCompletionTool,
-  ChatCompletionAssistantMessageParam
+  ChatCompletionAssistantMessageParam,
+  CompletionFinishReason
 } from '@fastgpt/global/core/ai/type';
 import { NextApiResponse } from 'next';
 import { responseWriteController } from '../../../../../common/response';
@@ -295,7 +296,7 @@ export const runToolWithToolChoice = async (
     },
     toolModel
   );
-  // console.log(JSON.stringify(requestMessages, null, 2), '==requestBody');
+  // console.log(JSON.stringify(filterMessages, null, 2), '==requestMessages');
   /* Run llm */
   const {
     response: aiResponse,
@@ -311,7 +312,7 @@ export const runToolWithToolChoice = async (
     }
   });
 
-  const { answer, toolCalls } = await (async () => {
+  const { answer, toolCalls, finish_reason } = await (async () => {
     if (res && isStreamResponse) {
       return streamResponse({
         res,
@@ -321,6 +322,7 @@ export const runToolWithToolChoice = async (
       });
     } else {
       const result = aiResponse as ChatCompletion;
+      const finish_reason = result.choices?.[0]?.finish_reason as CompletionFinishReason;
       const calls = result.choices?.[0]?.message?.tool_calls || [];
       const answer = result.choices?.[0]?.message?.content || '';
 
@@ -363,7 +365,8 @@ export const runToolWithToolChoice = async (
       });
       return {
         answer,
-        toolCalls: toolCalls
+        toolCalls: toolCalls,
+        finish_reason
       };
     }
   })();
@@ -464,16 +467,14 @@ export const runToolWithToolChoice = async (
         ? [
             {
               role: ChatCompletionRequestMessageRoleEnum.Assistant as 'assistant',
-              content: answer,
-              tool_calls: toolCalls
+              content: answer
             }
           ]
-        : [
-            {
-              role: ChatCompletionRequestMessageRoleEnum.Assistant as 'assistant',
-              tool_calls: toolCalls
-            }
-          ])
+        : []),
+      {
+        role: ChatCompletionRequestMessageRoleEnum.Assistant,
+        tool_calls: toolCalls
+      }
     ];
 
     /* 
@@ -564,8 +565,9 @@ export const runToolWithToolChoice = async (
         toolNodeOutputTokens,
         completeMessages,
         assistantResponses: toolNodeAssistants,
+        toolWorkflowInteractiveResponse,
         runTimes,
-        toolWorkflowInteractiveResponse
+        finish_reason
       };
     }
 
@@ -580,7 +582,8 @@ export const runToolWithToolChoice = async (
         toolNodeInputTokens,
         toolNodeOutputTokens,
         assistantResponses: toolNodeAssistants,
-        runTimes
+        runTimes,
+        finish_reason
       }
     );
   } else {
@@ -603,7 +606,8 @@ export const runToolWithToolChoice = async (
 
       completeMessages,
       assistantResponses: [...assistantResponses, ...toolNodeAssistant.value],
-      runTimes: (response?.runTimes || 0) + 1
+      runTimes: (response?.runTimes || 0) + 1,
+      finish_reason
     };
   }
 };
@@ -627,14 +631,18 @@ async function streamResponse({
   let textAnswer = '';
   let callingTool: { name: string; arguments: string } | null = null;
   let toolCalls: ChatCompletionMessageToolCall[] = [];
+  let finishReason: CompletionFinishReason = null;
 
   for await (const part of stream) {
     if (res.closed) {
       stream.controller?.abort();
+      finishReason = 'close';
       break;
     }
 
     const responseChoice = part.choices?.[0]?.delta;
+    const finish_reason = part.choices?.[0]?.finish_reason as CompletionFinishReason;
+    finishReason = finishReason || finish_reason;
 
     if (responseChoice?.content) {
       const content = responseChoice.content || '';
@@ -723,5 +731,5 @@ async function streamResponse({
   toolCalls.forEach((tool) => {
     if (tool.function.arguments === '') tool.function.arguments = '{}';
   });
-  return { answer: textAnswer, toolCalls };
+  return { answer: textAnswer, toolCalls, finish_reason: finishReason };
 }

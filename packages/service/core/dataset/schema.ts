@@ -1,5 +1,7 @@
 import { getMongoModel, Schema } from '../../common/mongo';
 import {
+  ChunkSettingModeEnum,
+  DataChunkSplitModeEnum,
   DatasetCollectionDataProcessModeEnum,
   DatasetStatusEnum,
   DatasetStatusMap,
@@ -14,6 +16,28 @@ import {
 import type { DatasetSchemaType } from '@fastgpt/global/core/dataset/type.d';
 
 export const DatasetCollectionName = 'datasets';
+
+export const ChunkSettings = {
+  imageIndex: Boolean,
+  autoIndexes: Boolean,
+  trainingType: {
+    type: String,
+    enum: Object.values(DatasetCollectionDataProcessModeEnum)
+  },
+  chunkSettingMode: {
+    type: String,
+    enum: Object.values(ChunkSettingModeEnum)
+  },
+  chunkSplitMode: {
+    type: String,
+    enum: Object.values(DataChunkSplitModeEnum)
+  },
+  chunkSize: Number,
+  chunkSplitter: String,
+
+  indexSize: Number,
+  qaPrompt: String
+};
 
 const DatasetSchema = new Schema({
   parentId: {
@@ -41,11 +65,6 @@ const DatasetSchema = new Schema({
     enum: Object.keys(DatasetTypeMap),
     required: true,
     default: DatasetTypeEnum.dataset
-  },
-  status: {
-    type: String,
-    enum: Object.keys(DatasetStatusMap),
-    default: DatasetStatusEnum.active
   },
   avatar: {
     type: String,
@@ -85,6 +104,9 @@ const DatasetSchema = new Schema({
         default: 'body'
       }
     }
+  },
+  chunkSettings: {
+    type: ChunkSettings
   },
   confluenceConfig: {
     type: {
@@ -136,9 +158,8 @@ const DatasetSchema = new Schema({
     type: Object
   },
 
-  autoSync: Boolean,
-
   // abandoned
+  autoSync: Boolean,
   externalReadUrl: {
     type: String
   },
