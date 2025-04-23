@@ -124,14 +124,16 @@ const DatasetSchema = new Schema({
         type: Boolean,
         default: false
       },
+
+      // abandon
       mode: {
         type: String,
         enum: DatasetCollectionDataProcessModeEnum
       },
-      // way: {
-      //   type: String,
-      //   enum: ImportProcessWayEnum
-      // },
+      way: {
+        type: String,
+        enum: Object.values(ChunkSettingModeEnum)
+      },
       chunkSize: {
         type: Number,
         required: true
@@ -159,6 +161,11 @@ const DatasetSchema = new Schema({
   },
 
   // abandoned
+  status: {
+    type: String,
+    enum: Object.keys(DatasetStatusMap),
+    default: DatasetStatusEnum.active
+  },
   autoSync: Boolean,
   externalReadUrl: {
     type: String

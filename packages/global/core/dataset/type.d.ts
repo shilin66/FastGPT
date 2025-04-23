@@ -60,11 +60,13 @@ export type DatasetSchemaType = {
     pageId?: string;
     syncSubPages?: boolean;
     syncSchedule?: boolean;
-    mode: DatasetCollectionDataProcessModeEnum;
-    // way: ImportProcessWayEnum;
-    chunkSize: number;
-    chunkSplitter: string;
-    qaPrompt: string;
+
+    // abandon
+    mode?: DatasetCollectionDataProcessModeEnum;
+    way?: ChunkSettingModeEnum;
+    chunkSize?: number;
+    chunkSplitter?: string;
+    qaPrompt?: string;
   };
   inheritPermission: boolean;
   apiServer?: APIFileServer;
@@ -75,6 +77,7 @@ export type DatasetSchemaType = {
   autoSync?: boolean;
   externalReadUrl?: string;
   defaultPermission?: number;
+  status?: `${DatasetStatusEnum}`;
 };
 
 export type DatasetCollectionSchemaType = {

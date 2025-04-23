@@ -1,0 +1,9 @@
+curl --location --request POST 'https://zenai.zenlayer.win/api/admin/initv491' \
+--header 'rootkey: root_zenlayer' \
+--header 'Content-Type: application/json'
+
+
+
+curl --location --request POST 'http://localhost:3000/api/admin/initv496' \
+--header 'rootkey: root_zenlayer' \
+--header 'Content-Type: application/json'

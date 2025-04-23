@@ -36,7 +36,7 @@ async function handler(req: ApiRequestProps<Query>): Promise<DatasetItemType> {
     }
 
     return {
-      status: DatasetStatusEnum.active,
+      status: dataset.status ? dataset.status : DatasetStatusEnum.active,
       errorMsg: undefined
     };
   })();

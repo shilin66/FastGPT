@@ -351,29 +351,61 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
               {datasetDetail?.confluenceConfig?.spaceKey ? (
                 <Flex alignItems={'center'}>
                   {datasetDetail.status === DatasetStatusEnum.active && (
-                    <Button onClick={onOpenConfluenceModal}>{t('common:common.Config')}</Button>
+                    <HStack gap={2}>
+                      <Button
+                        onClick={onOpenConfluenceModal}
+                        leftIcon={<Icon name="change" w={'1rem'} />}
+                      >
+                        {t('dataset:params_config')}
+                      </Button>
+                      {/*{!hasTrainingData && (*/}
+                      {/*  <Button*/}
+                      {/*    variant={'whitePrimary'}*/}
+                      {/*    onClick={openWebSyncConfirm}*/}
+                      {/*    leftIcon={<Icon name="common/confirm/restoreTip" w={'1rem'} />}*/}
+                      {/*  >*/}
+                      {/*    {t('dataset:immediate_sync')}*/}
+                      {/*  </Button>*/}
+                      {/*)}*/}
+                    </HStack>
                   )}
                   {datasetDetail.status === DatasetStatusEnum.syncing && (
-                    <Flex
-                      ml={3}
-                      alignItems={'center'}
+                    <MyTag
+                      colorSchema="purple"
+                      showDot
                       px={3}
-                      py={1}
-                      borderRadius="md"
-                      border={theme.borders.base}
+                      h={'36px'}
+                      DotStyles={{
+                        w: '8px',
+                        h: '8px',
+                        animation: 'zoomStopIcon 0.5s infinite alternate'
+                      }}
                     >
-                      <Box
-                        animation={'zoomStopIcon 0.5s infinite alternate'}
-                        bg={'myGray.700'}
-                        w="8px"
-                        h="8px"
-                        borderRadius={'50%'}
-                        mt={'1px'}
-                      ></Box>
-                      <Box ml={2} color={'myGray.600'}>
-                        {t('common:core.dataset.status.syncing')}
-                      </Box>
-                    </Flex>
+                      {t('common:core.dataset.status.syncing')}
+                    </MyTag>
+                  )}
+                  {datasetDetail.status === DatasetStatusEnum.waiting && (
+                    <MyTag
+                      colorSchema="gray"
+                      showDot
+                      px={3}
+                      h={'36px'}
+                      DotStyles={{
+                        w: '8px',
+                        h: '8px',
+                        animation: 'zoomStopIcon 0.5s infinite alternate'
+                      }}
+                    >
+                      {t('common:core.dataset.status.waiting')}
+                    </MyTag>
+                  )}
+                  {datasetDetail.status === DatasetStatusEnum.error && (
+                    <MyTag colorSchema="red" showDot px={3} h={'36px'}>
+                      <HStack spacing={1}>
+                        <Box>{t('dataset:status_error')}</Box>
+                        <QuestionTip color={'red.500'} label={datasetDetail.errorMsg} />
+                      </HStack>
+                    </MyTag>
                   )}
                 </Flex>
               ) : (

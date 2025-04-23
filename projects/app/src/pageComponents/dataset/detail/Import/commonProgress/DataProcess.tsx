@@ -21,7 +21,7 @@ import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import { shadowLight } from '@fastgpt/web/styles/theme';
 import CollectionChunkForm from '../../Form/CollectionChunkForm';
 
-function DataProcess({ isModal = false }: { isModal?: boolean }) {
+function DataProcess() {
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
 
@@ -41,7 +41,7 @@ function DataProcess({ isModal = false }: { isModal?: boolean }) {
     );
   }, []);
 
-  const showFileParseSetting = feConfigs?.showCustomPdfParse && !isModal;
+  const showFileParseSetting = feConfigs?.showCustomPdfParse;
 
   return (
     <>
@@ -100,17 +100,15 @@ function DataProcess({ isModal = false }: { isModal?: boolean }) {
             </AccordionPanel>
           </AccordionItem>
 
-          {!isModal && (
-            <Flex mt={5} gap={3} justifyContent={'flex-end'}>
-              <Button
-                onClick={() => {
-                  goToNext();
-                }}
-              >
-                {t('common:common.Next Step')}
-              </Button>
-            </Flex>
-          )}
+          <Flex mt={5} gap={3} justifyContent={'flex-end'}>
+            <Button
+              onClick={() => {
+                goToNext();
+              }}
+            >
+              {t('common:common.Next Step')}
+            </Button>
+          </Flex>
         </Accordion>
       </Box>
     </>

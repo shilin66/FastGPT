@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { jsonRes } from '@fastgpt/service/common/response';
-import { connectToDatabase } from '@/service/mongo';
+// import { connectToDatabase } from '@/service/mongo';
 import {
   createUserWithDefaultTeamAndPermission,
   getUserDetail
@@ -14,7 +14,7 @@ import { OAuthEnum } from '@fastgpt/global/support/user/constant';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    await connectToDatabase();
+    // await connectToDatabase();
     const { props, callbackUrl, type } = req.body as OauthLoginProps;
     let username;
     switch (type) {

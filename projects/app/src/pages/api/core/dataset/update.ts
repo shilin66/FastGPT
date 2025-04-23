@@ -71,6 +71,7 @@ async function handler(
     yuqueServer,
     feishuServer,
     autoSync,
+    status,
     chunkSettings
   } = req.body;
 
@@ -180,6 +181,7 @@ async function handler(
           'feishuServer.folderToken': feishuServer.folderToken
         }),
         ...(isMove && { inheritPermission: true }),
+        ...(status !== undefined && { status }),
         ...(typeof autoSync === 'boolean' && { autoSync })
       },
       { session }

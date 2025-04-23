@@ -9,7 +9,7 @@ import {
   DatasetStatusEnum,
   TrainingModeEnum
 } from '@fastgpt/global/core/dataset/constants';
-import { simpleText } from '@fastgpt/global/common/string/tools';
+import { getNanoid, simpleText } from '@fastgpt/global/common/string/tools';
 import { ClientSession } from '../../../common/mongo';
 import { getLLMModel, getEmbeddingModel, getVlmModel } from '../../ai/model';
 import { addLog } from '../../../common/system/log';
@@ -17,10 +17,7 @@ import { getCollectionWithDataset } from '../controller';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { PushDataToTrainingQueueProps } from '@fastgpt/global/core/dataset/training/type';
 import { i18nT } from '../../../../web/i18n/utils';
-import {
-  getLLMDefaultChunkSize,
-  getLLMMaxChunkSize
-} from '../../../../global/core/dataset/training/utils';
+import { getLLMMaxChunkSize } from '../../../../global/core/dataset/training/utils';
 import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoTeamMember } from '../../../support/user/team/teamMemberSchema';
 import { TeamMemberWithTeamAndUserSchema } from '@fastgpt/global/support/user/team/type';
@@ -328,16 +325,19 @@ export const trainConfluenceCollection = async ({
           const adf = page.body.atlas_doc_format;
           const markdown = adf2md(parseADF(adf.value));
 
+          const imgId = getNanoid(16);
           // 创建或更新集合
           const createOrUpdateCollection = async () => {
             const col = pageConfluence[page.id];
             if (
               !col ||
               page.version.number !== col.confluence?.pageVersion ||
-              dataset.confluenceConfig?.mode !== col.trainingType ||
-              dataset.confluenceConfig?.chunkSize !== col.chunkSize ||
-              dataset.confluenceConfig?.chunkSplitter !== col.chunkSplitter ||
-              dataset.confluenceConfig?.qaPrompt !== col.qaPrompt
+              dataset.chunkSettings?.autoIndexes !== col.autoIndexes ||
+              dataset.chunkSettings?.imageIndex !== col.imageIndex ||
+              dataset.chunkSettings?.trainingType !== col.trainingType ||
+              dataset.chunkSettings?.chunkSize !== col.chunkSize ||
+              dataset.chunkSettings?.chunkSplitter !== col.chunkSplitter ||
+              dataset.chunkSettings?.qaPrompt !== col.qaPrompt
             ) {
               return {
                 collection: await createOneCollection({
@@ -347,10 +347,14 @@ export const trainConfluenceCollection = async ({
                   tmbId,
                   type: DatasetCollectionTypeEnum.link,
                   trainingType:
-                    dataset.confluenceConfig?.mode || DatasetCollectionDataProcessModeEnum.chunk,
-                  chunkSize: dataset.confluenceConfig?.chunkSize || 500,
-                  chunkSplitter: dataset.confluenceConfig?.chunkSplitter || '',
-                  qaPrompt: dataset.confluenceConfig?.qaPrompt || Prompt_AgentQA.description,
+                    dataset.chunkSettings?.trainingType ||
+                    DatasetCollectionDataProcessModeEnum.chunk,
+                  imageIndex: dataset.chunkSettings?.imageIndex || false,
+                  autoIndexes: dataset.chunkSettings?.autoIndexes || false,
+                  chunkSize: dataset.chunkSettings?.chunkSize || 500,
+                  indexSize: dataset.chunkSettings?.indexSize || 512,
+                  chunkSplitter: dataset.chunkSettings?.chunkSplitter || '',
+                  qaPrompt: dataset.chunkSettings?.qaPrompt || Prompt_AgentQA.description,
                   rawLink: pageLink,
                   confluence: {
                     pageId: page.id,
@@ -359,7 +363,7 @@ export const trainConfluenceCollection = async ({
                     pageVersion: page.version.number
                   },
                   metadata: {
-                    relatedImgId: `${datasetId}-${page.id}`
+                    relatedImgId: `${datasetId}-${page.id}-${imgId}`
                   },
                   session // 确保所有操作都在同一个 session 中
                 }),
@@ -390,7 +394,7 @@ export const trainConfluenceCollection = async ({
                   base64Img: imgBase64,
                   teamId,
                   metadata: {
-                    relatedId: `${datasetId}-${page.id}`,
+                    relatedId: `${datasetId}-${page.id}-${imgId}`,
                     mime: mime
                   }
                 });

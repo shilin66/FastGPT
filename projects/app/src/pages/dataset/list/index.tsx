@@ -161,12 +161,12 @@ const Dataset = () => {
                           description: t('dataset:common_dataset_desc'),
                           onClick: () => onSelectDatasetType(DatasetTypeEnum.dataset)
                         },
-                        // {
-                        //   icon: 'core/dataset/externalDatasetColor',
-                        //   label: t('dataset:api_file'),
-                        //   description: t('dataset:external_file_dataset_desc'),
-                        //   onClick: () => onSelectDatasetType(DatasetTypeEnum.apiDataset)
-                        // },
+                        {
+                          icon: 'core/dataset/externalDatasetColor',
+                          label: t('dataset:api_file'),
+                          description: t('dataset:external_file_dataset_desc'),
+                          onClick: () => onSelectDatasetType(DatasetTypeEnum.apiDataset)
+                        },
                         // {
                         //   icon: 'core/dataset/websiteDatasetColor',
                         //   label: t('dataset:website_dataset'),
