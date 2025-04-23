@@ -3,9 +3,9 @@ import {
   DatasetCollectionTypeEnum,
   DatasetCollectionDataProcessModeEnum,
   ChunkSettingModeEnum,
-  DataChunkSplitModeEnum
+  DataChunkSplitModeEnum,
+  DatasetStatusEnum
 } from './constants';
-import type { LLMModelItemType } from '../ai/model.d';
 import { ParentIdType } from 'common/parentFolder/type';
 
 /* ================= dataset ===================== */
@@ -30,6 +30,7 @@ export type DatasetUpdateBody = {
 
   // sync schedule
   autoSync?: boolean;
+  status?: DatasetStatusEnum;
 };
 
 /* ================= collection ===================== */

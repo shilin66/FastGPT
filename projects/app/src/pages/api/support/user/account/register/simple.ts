@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { jsonRes } from '@fastgpt/service/common/response';
 import { MongoUser } from '@fastgpt/service/support/user/schema';
-import { connectToDatabase } from '@/service/mongo';
+// import { connectToDatabase } from '@/service/mongo';
 import { MongoTeam } from '@fastgpt/service/support/user/team/teamSchema';
 import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
 import {
@@ -15,7 +15,7 @@ import { PermissionList, PerResourceTypeEnum } from '@fastgpt/global/support/per
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   try {
-    await connectToDatabase();
+    // await connectToDatabase();
     const { username, password } = req.body as { username: string; password: string };
     if (!username || !password) {
       throw new Error('params error');

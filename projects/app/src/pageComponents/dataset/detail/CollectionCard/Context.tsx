@@ -2,14 +2,8 @@ import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
 import { Dispatch, ReactNode, SetStateAction, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { createContext, useContextSelector } from 'use-context-selector';
-import {
-  DatasetCollectionDataProcessModeEnum,
-  DatasetStatusEnum,
-  DatasetTypeEnum,
-  TrainingModeEnum
-} from '@fastgpt/global/core/dataset/constants';
+import { DatasetStatusEnum, DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
 import { useRequest, useRequest2 } from '@fastgpt/web/hooks/useRequest';
-import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { useDisclosure } from '@chakra-ui/react';
 import { checkTeamWebSyncLimit } from '@/web/support/user/team/api';
 import { getDatasetCollections, postConfluenceSync, postWebsiteSync } from '@/web/core/dataset/api';
@@ -19,8 +13,7 @@ import { DatasetCollectionsListItemType } from '@/global/core/dataset/type';
 import { useRouter } from 'next/router';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import { WebsiteConfigFormType } from './WebsiteConfig';
-import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
-import DatasetImportContextProvider from '@/pageComponents/dataset/detail/Import/Context';
+import { ConfluenceConfigFormType } from '@/pageComponents/dataset/detail/CollectionCard/ConfluenceConfig';
 
 const WebSiteConfigModal = dynamic(() => import('./WebsiteConfig'));
 const ConfluenceConfigModal = dynamic(() => import('./ConfluenceConfig'));
@@ -129,12 +122,13 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
     onClose: onCloseConfluenceModal
   } = useDisclosure();
   const { mutate: onUpdateDatasetConfluenceConfig } = useRequest({
-    mutationFn: async (confluenceConfig: DatasetSchemaType['confluenceConfig']) => {
+    mutationFn: async (confluenceConfig: ConfluenceConfigFormType) => {
       onCloseConfluenceModal();
       // await checkTeamWebSyncLimit();
       await updateDataset({
         id: datasetId,
-        confluenceConfig,
+        confluenceConfig: confluenceConfig.confluenceConfig,
+        chunkSettings: confluenceConfig.chunkSettings,
         status: DatasetStatusEnum.syncing
       });
       // const billId = await postCreateTrainingUsage({
@@ -148,7 +142,7 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
     onError: async (e) => {
       await updateDataset({
         id: datasetId,
-        status: DatasetStatusEnum.active
+        status: DatasetStatusEnum.error
       });
     },
     errorToast: t('common:common.Update Failed')
@@ -213,24 +207,10 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
       {datasetDetail.type === DatasetTypeEnum.confluenceDataset && (
         <>
           {isOpenConfluenceModal && (
-            <DatasetImportContextProvider>
-              <ConfluenceConfigModal
-                onClose={onCloseConfluenceModal}
-                onSuccess={onUpdateDatasetConfluenceConfig}
-                defaultValue={{
-                  spaceKey: datasetDetail!.confluenceConfig?.spaceKey ?? '',
-                  pageId: datasetDetail!.confluenceConfig?.pageId,
-                  syncSubPages: datasetDetail!.confluenceConfig?.syncSubPages,
-                  syncSchedule: datasetDetail!.confluenceConfig?.syncSchedule,
-                  mode:
-                    datasetDetail!.confluenceConfig?.mode ??
-                    DatasetCollectionDataProcessModeEnum.chunk,
-                  chunkSize: datasetDetail!.confluenceConfig?.chunkSize ?? 500,
-                  chunkSplitter: datasetDetail!.confluenceConfig?.chunkSplitter || '',
-                  qaPrompt: datasetDetail!.confluenceConfig?.qaPrompt || Prompt_AgentQA.description
-                }}
-              />
-            </DatasetImportContextProvider>
+            <ConfluenceConfigModal
+              onClose={onCloseConfluenceModal}
+              onSuccess={onUpdateDatasetConfluenceConfig}
+            />
           )}
           <ConfirmConfluenceSyncModal />
         </>

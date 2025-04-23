@@ -16,9 +16,9 @@ export async function authOpenApiKey({ apikey }: { apikey: string }) {
     }
 
     // auth limit
-    await global.authOpenApiHandler({
-      openApi
-    });
+    // await global.authOpenApiHandler({
+    //   openApi
+    // });
 
     updateApiKeyUsedTime(openApi._id);
 
