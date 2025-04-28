@@ -14,6 +14,8 @@ import { TeamMemberRoleEnum } from '@fastgpt/global/support/user/team/constant';
 import { TeamContext, TeamModalContextProvider } from '@/pageComponents/account/team/context';
 import dynamic from 'next/dynamic';
 import { defaultForm } from '@/pageComponents/account/team/EditInfoModal';
+import { useSystemStore } from '@/web/common/system/useSystemStore';
+import { useToast } from '@fastgpt/web/hooks/useToast';
 
 const MemberTable = dynamic(() => import('@/pageComponents/account/team/MemberTable'));
 const PermissionManage = dynamic(
@@ -49,7 +51,19 @@ const Team = () => {
   const { teamTab = TeamTabEnum.member } = router.query as { teamTab: `${TeamTabEnum}` };
 
   const { t } = useTranslation();
-  const { userInfo } = useUserStore();
+  const { userInfo, teamPlanStatus } = useUserStore();
+  const standardPlan = teamPlanStatus?.standard;
+  const level = standardPlan?.currentSubLevel;
+  const { subPlans } = useSystemStore();
+  const planContent = useMemo(() => {
+    const plan = level !== undefined ? subPlans?.standard?.[level] : undefined;
+
+    if (!plan) return;
+    return {
+      permissionTeamOperationLog: plan.permissionTeamOperationLog
+    };
+  }, [subPlans?.standard, level]);
+  const { toast } = useToast();
 
   const { setEditTeamData, teamSize } = useContextSelector(TeamContext, (v) => v);
 
@@ -66,6 +80,13 @@ const Team = () => {
         px={'1rem'}
         value={teamTab}
         onChange={(e) => {
+          if (e === TeamTabEnum.operationLog && !planContent?.permissionTeamOperationLog) {
+            toast({
+              status: 'warning',
+              title: t('common:not_permission')
+            });
+            return;
+          }
           router.replace({
             query: {
               ...router.query,

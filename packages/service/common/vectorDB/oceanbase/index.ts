@@ -1,8 +1,8 @@
 /* oceanbase vector crud */
 import { DatasetVectorTableName } from '../constants';
 import { delay } from '@fastgpt/global/common/system/utils';
-import { ObClient } from './index';
-import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+import { ObClient } from './controller';
+import { RowDataPacket } from 'mysql2/promise';
 import {
   DelDatasetVectorCtrlProps,
   EmbeddingRecallCtrlProps,

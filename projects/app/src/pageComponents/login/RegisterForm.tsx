@@ -12,6 +12,13 @@ import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useTranslation } from 'next-i18next';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
+import {
+  getBdVId,
+  getFastGPTSem,
+  getInviterId,
+  getSourceDomain,
+  removeFastGPTSem
+} from '@/web/support/marketing/utils';
 
 interface Props {
   loginSuccess: (e: ResLogin) => void;
@@ -50,7 +57,17 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
           username,
           password
         })
+        // await postRegister({
+        //   username,
+        //   code,
+        //   password,
+        //   inviterId: getInviterId(),
+        //   bd_vid: getBdVId(),
+        //   fastgpt_sem: getFastGPTSem(),
+        //   sourceDomain: getSourceDomain()
+        // })
       );
+      removeFastGPTSem();
 
       toast({
         status: 'success',

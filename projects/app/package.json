@@ -1,6 +1,6 @@
 {
   "name": "app",
-  "version": "4.9.6",
+  "version": "4.9.7",
   "private": false,
   "scripts": {
     "dev": "next dev",
@@ -16,6 +16,7 @@
     "@chakra-ui/react": "2.10.7",
     "@chakra-ui/styled-system": "2.9.1",
     "@chakra-ui/system": "2.6.1",
+    "@dagrejs/dagre": "^1.1.4",
     "@emotion/react": "11.11.1",
     "@emotion/styled": "11.11.0",
     "@fastgpt/global": "workspace:*",
@@ -25,7 +26,7 @@
     "@fastgpt/web": "workspace:*",
     "@fortaine/fetch-event-source": "^3.0.6",
     "@monaco-editor/react": "^4.6.0",
-    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@modelcontextprotocol/sdk": "^1.10.2",
     "@node-rs/jieba": "2.0.1",
     "@tanstack/react-query": "^4.24.10",
     "ahooks": "^3.7.11",

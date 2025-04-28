@@ -14,7 +14,10 @@ import { NextApiResponse } from 'next';
 import { responseWriteController } from '../../../../../common/response';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { textAdaptGptResponse } from '@fastgpt/global/core/workflow/runtime/utils';
-import { ChatCompletionRequestMessageRoleEnum } from '@fastgpt/global/core/ai/constants';
+import {
+  ChatCompletionRequestMessageRoleEnum,
+  getLLMDefaultUsage
+} from '@fastgpt/global/core/ai/constants';
 import { dispatchWorkFlow } from '../../index';
 import { DispatchToolModuleProps, RunToolResponse, ToolNodeItemType } from './type.d';
 import json5 from 'json5';
@@ -312,19 +315,38 @@ export const runToolWithToolChoice = async (
     }
   });
 
-  const { answer, toolCalls, finish_reason } = await (async () => {
-    if (res && isStreamResponse) {
-      return streamResponse({
+  let { answer, toolCalls, finish_reason, inputTokens, outputTokens } = await (async () => {
+    if (isStreamResponse) {
+      if (!res || res.closed) {
+        return {
+          answer: '',
+          toolCalls: [],
+          finish_reason: 'close' as const,
+          inputTokens: 0,
+          outputTokens: 0
+        };
+      }
+
+      const result = await streamResponse({
         res,
         workflowStreamResponse,
         toolNodes,
         stream: aiResponse
       });
+
+      return {
+        answer: result.answer,
+        toolCalls: result.toolCalls,
+        finish_reason: result.finish_reason,
+        inputTokens: result.usage.prompt_tokens,
+        outputTokens: result.usage.completion_tokens
+      };
     } else {
       const result = aiResponse as ChatCompletion;
       const finish_reason = result.choices?.[0]?.finish_reason as CompletionFinishReason;
       const calls = result.choices?.[0]?.message?.tool_calls || [];
       const answer = result.choices?.[0]?.message?.content || '';
+      const usage = result.usage;
 
       // 加上name和avatar
       const toolCalls = calls.map((tool) => {
@@ -366,7 +388,9 @@ export const runToolWithToolChoice = async (
       return {
         answer,
         toolCalls: toolCalls,
-        finish_reason
+        finish_reason,
+        inputTokens: usage?.prompt_tokens,
+        outputTokens: usage?.completion_tokens
       };
     }
   })();
@@ -460,7 +484,7 @@ export const runToolWithToolChoice = async (
     ? response.dispatchFlowResponse.concat(flatToolsResponseData)
     : flatToolsResponseData;
 
-  if (toolCalls.length > 0 && !res?.closed) {
+  if (toolCalls.length > 0) {
     // Run the tool, combine its results, and perform another round of AI calls
     const assistantToolMsgParams: ChatCompletionAssistantMessageParam[] = [
       ...(answer
@@ -488,8 +512,8 @@ export const runToolWithToolChoice = async (
     ] as ChatCompletionMessageParam[];
 
     // Only toolCall tokens are counted here, Tool response tokens count towards the next reply
-    const inputTokens = await countGptMessagesTokens(requestMessages, tools);
-    const outputTokens = await countGptMessagesTokens(assistantToolMsgParams);
+    inputTokens = inputTokens || (await countGptMessagesTokens(requestMessages, tools));
+    outputTokens = outputTokens || (await countGptMessagesTokens(assistantToolMsgParams));
 
     /* 
       ...
@@ -593,8 +617,8 @@ export const runToolWithToolChoice = async (
       content: answer
     };
     const completeMessages = filterMessages.concat(gptAssistantResponse);
-    const inputTokens = await countGptMessagesTokens(requestMessages, tools);
-    const outputTokens = await countGptMessagesTokens([gptAssistantResponse]);
+    inputTokens = inputTokens || (await countGptMessagesTokens(requestMessages, tools));
+    outputTokens = outputTokens || (await countGptMessagesTokens([gptAssistantResponse]));
 
     // concat tool assistant
     const toolNodeAssistant = GPTMessages2Chats([gptAssistantResponse])[0] as AIChatItemType;
@@ -632,8 +656,10 @@ async function streamResponse({
   let callingTool: { name: string; arguments: string } | null = null;
   let toolCalls: ChatCompletionMessageToolCall[] = [];
   let finishReason: CompletionFinishReason = null;
+  let usage = getLLMDefaultUsage();
 
   for await (const part of stream) {
+    usage = part.usage || usage;
     if (res.closed) {
       stream.controller?.abort();
       finishReason = 'close';
@@ -657,6 +683,7 @@ async function streamResponse({
       });
     }
     if (responseChoice?.tool_calls?.[0]) {
+      // @ts-ignore
       const toolCall: ChatCompletionMessageToolCall = responseChoice.tool_calls[0];
       // In a stream response, only one tool is returned at a time.  If have id, description is executing a tool
       if (toolCall.id || callingTool) {
@@ -731,5 +758,5 @@ async function streamResponse({
   toolCalls.forEach((tool) => {
     if (tool.function.arguments === '') tool.function.arguments = '{}';
   });
-  return { answer: textAnswer, toolCalls, finish_reason: finishReason };
+  return { answer: textAnswer, toolCalls, finish_reason: finishReason, usage };
 }
