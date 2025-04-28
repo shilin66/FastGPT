@@ -102,6 +102,9 @@ export const getTeamPlanStatus = () =>
   GET<FeTeamPlanStatusType>(`/support/user/team/plan/getTeamPlanStatus`, { maxQuantity: 1 });
 export const getTeamPlans = () => GET<TeamSubSchema[]>(`/support/user/team/plan/getTeamPlans`);
 
+export const redeemCoupon = (couponCode: string) =>
+  GET(`/proApi/support/wallet/coupon/redeem`, { key: couponCode });
+
 export const getTeamInvoiceHeader = () =>
   GET<TeamInvoiceHeaderType>(`/proApi/support/user/team/invoiceAccount/getTeamInvoiceHeader`);
 

@@ -60,6 +60,7 @@ export type FastGPTFeConfigsType = {
   show_team_chat?: boolean;
   show_compliance_copywriting?: boolean;
   show_aiproxy?: boolean;
+  show_coupon?: boolean;
   concatMd?: string;
 
   concatMd?: string;
@@ -104,6 +105,12 @@ export type FastGPTFeConfigsType = {
   lafEnv?: string;
   navbarItems?: NavbarItemType[];
   externalProviderWorkflowVariables?: ExternalProviderWorkflowVarType[];
+
+  payConfig?: {
+    wx?: boolean;
+    alipay?: boolean;
+    bank?: boolean;
+  };
   oss3Url?: string;
   oss2Url?: string;
   autoIndexPrompt?: string;

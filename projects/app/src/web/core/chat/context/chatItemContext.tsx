@@ -15,6 +15,7 @@ type ContextProps = {
   showRouteToAppDetail: boolean;
   showRouteToDatasetDetail: boolean;
   isShowReadRawSource: boolean;
+  isResponseDetail: boolean;
   // isShowFullText: boolean;
   showNodeStatus: boolean;
 };
@@ -41,6 +42,7 @@ export type GetQuoteDataBasicProps = {
 };
 // 获取单个集合引用
 export type GetCollectionQuoteDataProps = GetQuoteDataBasicProps & {
+  quoteId?: string;
   collectionId: string;
   sourceId: string;
   sourceName: string;
@@ -114,6 +116,7 @@ const ChatItemContextProvider = ({
   showRouteToAppDetail,
   showRouteToDatasetDetail,
   isShowReadRawSource,
+  isResponseDetail,
   // isShowFullText,
   showNodeStatus
 }: {
@@ -176,6 +179,7 @@ const ChatItemContextProvider = ({
       showRouteToAppDetail,
       showRouteToDatasetDetail,
       isShowReadRawSource,
+      isResponseDetail,
       // isShowFullText,
       showNodeStatus,
 
@@ -194,6 +198,7 @@ const ChatItemContextProvider = ({
     showRouteToAppDetail,
     showRouteToDatasetDetail,
     isShowReadRawSource,
+    isResponseDetail,
     // isShowFullText,
     showNodeStatus,
     quoteData,

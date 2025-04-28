@@ -38,11 +38,14 @@ const McpKeySchema = new Schema({
           ref: AppCollectionName,
           required: true
         },
+        appName: String,
         toolName: {
-          type: String
+          type: String,
+          required: true
         },
         description: {
-          type: String
+          type: String,
+          required: true
         }
       }
     ],

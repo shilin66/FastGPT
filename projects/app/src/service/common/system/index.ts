@@ -41,8 +41,9 @@ export const readConfigData = async (name: string) => {
       }
       return `data/${name}`;
     }
-    // production path
-    return `/app/data/${name}`;
+    // Fallback to default production path
+    const envPath = process.env.CONFIG_JSON_PATH || '/app/data';
+    return `${envPath}/${name}`;
   })();
 
   const content = await fs.promises.readFile(filename, 'utf-8');
@@ -54,6 +55,7 @@ export const readConfigData = async (name: string) => {
 export function initGlobalVariables() {
   function initPlusRequest() {
     global.textCensorHandler = function textCensorHandler({ text }: { text: string }) {
+      if (!isProVersion()) return Promise.resolve({ code: 200 });
       return POST<{ code: number; message?: string }>('/common/censor/check', { text });
     };
 
@@ -131,7 +133,8 @@ export async function initSystemConfig() {
       ...fileRes?.feConfigs,
       ...defaultFeConfigs,
       ...(dbConfig.feConfigs || {}),
-      show_aiproxy: !!process.env.AIPROXY_API_ENDPOINT
+      show_aiproxy: !!process.env.AIPROXY_API_ENDPOINT,
+      show_coupon: process.env.SHOW_COUPON === 'true'
     },
     systemEnv: {
       ...fileRes.systemEnv,
