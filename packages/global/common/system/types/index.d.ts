@@ -115,6 +115,7 @@ export type FastGPTFeConfigsType = {
   oss2Url?: string;
   autoIndexPrompt?: string;
   imageIndexPrompt?: string;
+  markdownIframeSandbox?: string;
 };
 
 export type GithubType = {

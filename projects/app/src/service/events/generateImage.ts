@@ -12,6 +12,7 @@ import { pushDataListToTrainingQueueByCollectionId } from '@fastgpt/service/core
 import { loadRequestMessages } from '@fastgpt/service/core/chat/utils';
 import {
   llmCompletionsBodyFormat,
+  llmResponseToAnswerText,
   llmStreamResponseToAnswerText
 } from '@fastgpt/service/core/ai/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
@@ -186,14 +187,14 @@ export async function generateImage(): Promise<any> {
           modelData
         )
       });
-      const answer = await llmStreamResponseToAnswerText(chatResponse);
+      const { text: answer, usage } = await llmResponseToAnswerText(chatResponse);
 
       const indexList = extractData(answer);
 
       addLog.info(`[ImageIndex  Queue] Finish`, {
         time: Date.now() - startTime,
         imageIndexLength: indexList?.length,
-        usage: chatResponse.usage
+        usage
       });
 
       indexList.forEach((item) => {
