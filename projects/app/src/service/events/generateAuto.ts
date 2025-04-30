@@ -15,6 +15,7 @@ import { pushDataListToTrainingQueueByCollectionId } from '@fastgpt/service/core
 import { loadRequestMessages } from '@fastgpt/service/core/chat/utils';
 import {
   llmCompletionsBodyFormat,
+  llmResponseToAnswerText,
   llmStreamResponseToAnswerText
 } from '@fastgpt/service/core/ai/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
@@ -133,7 +134,7 @@ export async function generateAuto(): Promise<any> {
         modelData
       )
     });
-    const answer = await llmStreamResponseToAnswerText(chatResponse);
+    const { text: answer, usage } = await llmResponseToAnswerText(chatResponse);
 
     const { summary, questionIndex } = extractData(answer);
 
@@ -141,7 +142,7 @@ export async function generateAuto(): Promise<any> {
       time: Date.now() - startTime,
       summaryLength: summary?.length,
       questionIndexLength: questionIndex?.length,
-      usage: chatResponse.usage
+      usage
     });
 
     const newData: PushDatasetDataChunkProps = {
