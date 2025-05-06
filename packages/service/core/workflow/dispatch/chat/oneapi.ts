@@ -144,6 +144,9 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
     model: modelConstantsData,
     maxToken
   });
+  if (modelConstantsData.model.toLowerCase().startsWith('qwen3') && !aiChatReasoning) {
+    systemPrompt = `enable_thinking=false\n${systemPrompt}`;
+  }
 
   const [{ filterMessages }] = await Promise.all([
     getChatMessages({
@@ -192,6 +195,13 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
     },
     modelConstantsData
   );
+  if (modelConstantsData.model.toLowerCase().startsWith('qwen3')) {
+    if (!aiChatReasoning) {
+      requestBody.top_p = 0.8;
+    } else {
+      requestBody.top_p = 0.95;
+    }
+  }
   // console.log(JSON.stringify(requestBody, null, 2), '===');
   const { response, isStreamResponse, getEmptyResponseTip } = await createChatCompletion({
     body: requestBody,
