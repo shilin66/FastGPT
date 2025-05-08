@@ -75,6 +75,7 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
     res,
     requestOrigin,
     stream = false,
+    parseQuote = true,
     externalProvider,
     histories,
     node: { name, version },
@@ -161,7 +162,8 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       userChatInput,
       systemPrompt,
       userFiles,
-      documentQuoteText
+      documentQuoteText,
+      parseQuote
     }),
     // Censor = true and system key, will check content
     (() => {
@@ -460,7 +462,8 @@ async function getChatMessages({
   systemPrompt,
   userChatInput,
   userFiles,
-  documentQuoteText
+  documentQuoteText,
+  parseQuote = true
 }: {
   model: LLMModelItemType;
   maxTokens?: number;
@@ -477,13 +480,16 @@ async function getChatMessages({
 
   userFiles: UserChatItemValueItemType['file'][];
   documentQuoteText?: string; // document quote
+  parseQuote?: boolean;
 }) {
   // Dataset prompt ====>
   // User role or prompt include question
   const quoteRole =
     aiChatQuoteRole === 'user' || datasetQuotePrompt.includes('{{question}}') ? 'user' : 'system';
 
-  const datasetQuotePromptTemplate = datasetQuotePrompt || getQuotePrompt(version, quoteRole);
+  const defaultQuotePrompt = getQuotePrompt(version, quoteRole, parseQuote);
+
+  const datasetQuotePromptTemplate = datasetQuotePrompt || defaultQuotePrompt;
 
   // Reset user input, add dataset quote to user input
   const replaceInputValue =
