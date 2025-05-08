@@ -13,11 +13,7 @@ import { addMinutes } from 'date-fns';
 import { countGptMessagesTokens, countPromptTokens } from '@fastgpt/service/common/string/tiktoken';
 import { pushDataListToTrainingQueueByCollectionId } from '@fastgpt/service/core/dataset/training/controller';
 import { loadRequestMessages } from '@fastgpt/service/core/chat/utils';
-import {
-  llmCompletionsBodyFormat,
-  llmResponseToAnswerText,
-  llmStreamResponseToAnswerText
-} from '@fastgpt/service/core/ai/utils';
+import { llmCompletionsBodyFormat, formatLLMResponse } from '@fastgpt/service/core/ai/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 
 const reduceQueue = () => {
@@ -134,7 +130,7 @@ export async function generateAuto(): Promise<any> {
         modelData
       )
     });
-    const { text: answer, usage } = await llmResponseToAnswerText(chatResponse);
+    const { text: answer, usage } = await formatLLMResponse(chatResponse);
 
     const { summary, questionIndex } = extractData(answer);
 
