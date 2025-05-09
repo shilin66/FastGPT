@@ -154,7 +154,7 @@ const Layout = ({ children }: { children: JSX.Element }) => {
       {feConfigs?.isPlus && (
         <>
           {notSufficientModalType && <NotSufficientModal type={notSufficientModalType} />}
-          {/*{!!userInfo && <SystemMsgModal />}*/}
+          {!!userInfo && <SystemMsgModal />}
           {/*{showUpdateNotification && (*/}
           {/*  <UpdateContact onClose={() => setIsUpdateNotification(false)} mode="contact" />*/}
           {/*)}*/}

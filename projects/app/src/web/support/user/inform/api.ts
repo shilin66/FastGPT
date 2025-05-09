@@ -14,4 +14,7 @@ export const getUnreadCount = () =>
 export const readInform = (id: string) => GET(`/proApi/support/user/inform/read`, { id });
 
 export const getSystemMsgModalData = () =>
-  GET<SystemMsgModalValueType>(`/proApi/support/user/inform/getSystemMsgModal`);
+  GET<SystemMsgModalValueType>(`/support/user/inform/getSystemMsgModal`);
+
+export const updateSystemMsgModalData = (updateMsg: SystemMsgModalValueType) =>
+  POST<SystemMsgModalValueType>(`/support/user/inform/updateSystemMsg`, updateMsg);

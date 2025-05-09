@@ -1,4 +1,4 @@
 export type SystemMsgModalValueType = {
-  id: string;
+  id?: string;
   content: string;
 };
