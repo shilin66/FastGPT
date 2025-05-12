@@ -74,8 +74,8 @@ const Team = () => {
           { label: t('account_team:member'), value: TeamTabEnum.member },
           { label: t('account_team:org'), value: TeamTabEnum.org },
           { label: t('account_team:group'), value: TeamTabEnum.group },
-          { label: t('account_team:permission'), value: TeamTabEnum.permission },
-          { label: t('account_team:operation_log'), value: TeamTabEnum.operationLog }
+          { label: t('account_team:permission'), value: TeamTabEnum.permission }
+          // { label: t('account_team:operation_log'), value: TeamTabEnum.operationLog }
         ]}
         px={'1rem'}
         value={teamTab}
@@ -188,7 +188,7 @@ const Team = () => {
           {teamTab === TeamTabEnum.org && <OrgManage Tabs={Tabs} />}
           {teamTab === TeamTabEnum.group && <GroupManage Tabs={Tabs} />}
           {teamTab === TeamTabEnum.permission && <PermissionManage Tabs={Tabs} />}
-          {teamTab === TeamTabEnum.operationLog && <OperationLogTable Tabs={Tabs} />}
+          {/*{teamTab === TeamTabEnum.operationLog && <OperationLogTable Tabs={Tabs} />}*/}
         </Box>
       </Flex>
       {invitelinkid && <HandleInviteModal invitelinkid={invitelinkid} />}

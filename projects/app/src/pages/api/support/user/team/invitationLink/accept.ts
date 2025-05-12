@@ -15,11 +15,12 @@ async function handler(req: ApiRequestProps<{ linkId: string }>, res: ApiRespons
   const { userId } = await parseHeaderCert({ req, authToken: true });
 
   // get link
-  const linkInfo = await MongoInvitationLink.findOne({ linkId }).lean();
+  const linkInfo = await MongoInvitationLink.findOne({ linkId, forbidden: false }).lean();
   if (!linkInfo) {
     return Promise.reject(TeamErrEnum.invitationLinkInvalid);
   }
-
+  const usedTimesLimit = linkInfo.usedTimesLimit ?? 0;
+  const isLimited = usedTimesLimit > 0 ? usedTimesLimit <= linkInfo.members.length + 1 : false;
   // check if user in team
   await MongoTeamMember.findOne({
     userId,
@@ -62,7 +63,8 @@ async function handler(req: ApiRequestProps<{ linkId: string }>, res: ApiRespons
     },
     {
       $set: {
-        members: [...linkInfo.members, tmbId]
+        members: [...linkInfo.members, tmbId],
+        forbidden: isLimited
       }
     }
   );
