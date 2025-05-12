@@ -699,7 +699,7 @@ export async function inviteTeamMember({
   };
 }
 
-export async function switchTeam(newTeamId: string, userId: string, currentTeamId: string) {
+export async function switchTeam(newTeamId: string, userId: string) {
   const teamMember = await MongoTeamMember.findOne({
     teamId: newTeamId,
     userId

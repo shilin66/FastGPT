@@ -12,7 +12,7 @@ function Invite({ invitelinkid }: { invitelinkid: string }) {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const { onSwitchTeam } = useContextSelector(TeamContext, (v) => v);
+  const { onSwitchTeam, refetchTeams } = useContextSelector(TeamContext, (v) => v);
 
   const onClose = () => {
     router.push('/account/team');
@@ -29,7 +29,8 @@ function Invite({ invitelinkid }: { invitelinkid: string }) {
       manual: true,
       successToast: t('common:common.Success'),
       onSuccess: async () => {
-        onSwitchTeam(invitationInfo!.teamId);
+        // onSwitchTeam(invitationInfo!.teamId);
+        refetchTeams();
         onClose();
       }
     }
