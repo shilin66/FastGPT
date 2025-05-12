@@ -4,17 +4,17 @@ import { putMoveOrgType } from '@fastgpt/global/support/user/team/org/api';
 import { MongoOrgModel } from '@fastgpt/service/support/permission/org/orgSchema';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
-import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 import {
   getOrgAndChildren,
   getRootOrgByTeamId
 } from '@fastgpt/service/support/permission/org/controllers';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
+import { TeamManagePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 
 async function handler(req: ApiRequestProps<putMoveOrgType>, res: ApiResponseType<any>) {
   const { orgId, targetOrgId } = req.body;
 
-  const { teamId } = await authUserPer({ req, authToken: true, per: ManagePermissionVal });
+  const { teamId } = await authUserPer({ req, authToken: true, per: TeamManagePermissionVal });
   await mongoSessionRun(async (session) => {
     const { org, children } = await getOrgAndChildren({ orgId, teamId, session });
     const targetOrg =

@@ -1,12 +1,12 @@
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
-import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { MongoInvitationLink } from '@fastgpt/service/support/user/team/invitationLink/schema';
 import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
+import { TeamManagePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 
 async function handler(req: ApiRequestProps, res: ApiResponseType<any>) {
-  const { teamId } = await authUserPer({ req, authToken: true, per: ManagePermissionVal });
+  const { teamId } = await authUserPer({ req, authToken: true, per: TeamManagePermissionVal });
 
   // list all
   const linkList = await MongoInvitationLink.find({ teamId }).lean();

@@ -2,17 +2,17 @@ import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import type { NextApiRequest } from 'next';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
-import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { getOrgAndChildren } from '@fastgpt/service/support/permission/org/controllers';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import { MongoOrgMemberModel } from '@fastgpt/service/support/permission/org/orgMemberSchema';
 import { MongoOrgModel } from '@fastgpt/service/support/permission/org/orgSchema';
+import { TeamManagePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
   const { orgId } = req.query as { orgId: string };
 
-  const { teamId } = await authUserPer({ req, authToken: true, per: ManagePermissionVal });
+  const { teamId } = await authUserPer({ req, authToken: true, per: TeamManagePermissionVal });
 
   await mongoSessionRun(async (session) => {
     const { org, children } = await getOrgAndChildren({ orgId, teamId, session });

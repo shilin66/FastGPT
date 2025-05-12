@@ -1,6 +1,5 @@
 import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
-import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import type { NextApiRequest } from 'next';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { MongoOrgModel } from '@fastgpt/service/support/permission/org/orgSchema';
@@ -10,7 +9,10 @@ import {
 } from '@fastgpt/global/support/user/team/org/type';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
-import { TeamDefaultPermissionVal } from '@fastgpt/global/support/permission/user/constant';
+import {
+  TeamDefaultPermissionVal,
+  TeamReadPermissionVal
+} from '@fastgpt/global/support/permission/user/constant';
 import { MongoTeam } from '@fastgpt/service/support/user/team/teamSchema';
 import {
   getChildrenByOrg,
@@ -19,7 +21,11 @@ import {
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
   const { withPermission, searchKey, orgId } = req.body;
-  const { userId, teamId } = await authUserPer({ req, authToken: true, per: ReadPermissionVal });
+  const { userId, teamId } = await authUserPer({
+    req,
+    authToken: true,
+    per: TeamReadPermissionVal
+  });
   if (!userId) {
     throw new Error('user not found');
   }

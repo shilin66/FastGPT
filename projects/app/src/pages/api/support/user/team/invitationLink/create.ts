@@ -2,13 +2,13 @@ import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/nex
 import { NextAPI } from '@/service/middleware/entry';
 import type { InvitationLinkCreateType } from '@fastgpt/service/support/user/team/invitationLink/type';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
-import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { MongoInvitationLink } from '@fastgpt/service/support/user/team/invitationLink/schema';
+import { TeamManagePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 
 async function handler(req: ApiRequestProps<InvitationLinkCreateType>, res: ApiResponseType<any>) {
   const { description, expires, usedTimesLimit } = req.body;
 
-  const { teamId } = await authUserPer({ req, authToken: true, per: ManagePermissionVal });
+  const { teamId } = await authUserPer({ req, authToken: true, per: TeamManagePermissionVal });
 
   // expires 为 '30m' | '7d' | '1y'
   const expiresDate =
