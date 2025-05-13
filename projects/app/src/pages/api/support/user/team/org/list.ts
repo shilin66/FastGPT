@@ -14,10 +14,9 @@ import {
   TeamReadPermissionVal
 } from '@fastgpt/global/support/permission/user/constant';
 import { MongoTeam } from '@fastgpt/service/support/user/team/teamSchema';
-import {
-  getChildrenByOrg,
-  getRootOrgByTeamId
-} from '@fastgpt/service/support/permission/org/controllers';
+import { getRootOrgByTeamId } from '@fastgpt/service/support/permission/org/controllers';
+import { MongoOrgMemberModel } from '@fastgpt/service/support/permission/org/orgMemberSchema';
+import { Types } from '@fastgpt/service/common/mongo';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
   const { withPermission, searchKey, orgId } = req.body;
@@ -54,25 +53,64 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
       });
       return [];
     } else {
-      orgList = (await getChildrenByOrg({
-        org: rootOrg,
-        teamId
-      })) as unknown as OrgListItemType[];
+      orgList = (await MongoOrgModel.find({
+        teamId,
+        path: `/${rootOrg.pathId}`
+      }).lean()) as unknown as OrgListItemType[];
     }
   } else if (orgId) {
     const org = (await MongoOrgModel.findById(orgId).lean()) as unknown as OrgSchemaType;
     if (!org) {
       return Promise.reject('orgId is not exist!');
     }
-    orgList = (await getChildrenByOrg({
-      org,
-      teamId
-    })) as unknown as OrgListItemType[];
+    orgList = (await MongoOrgModel.find({
+      teamId,
+      path: `${org.path}/${org.pathId}`
+    }).lean()) as unknown as OrgListItemType[];
   }
-
-  // 统计一个每个org下子部门的个数
+  // 统计每个 org下面的成员数
+  const orgMemberCount = await MongoOrgMemberModel.aggregate([
+    {
+      $match: {
+        teamId: new Types.ObjectId(teamId),
+        orgId: {
+          $in: orgList.map((org) => new Types.ObjectId(org._id))
+        }
+      }
+    },
+    {
+      $group: {
+        _id: '$orgId',
+        count: {
+          $sum: 1
+        }
+      }
+    }
+  ]);
+  // 统计每个org下面的子部门数
+  const orgChildCount = await MongoOrgModel.aggregate([
+    {
+      $match: {
+        teamId: new Types.ObjectId(teamId),
+        path: {
+          $regex: `^${orgList.map((org) => org.path + `/${org.pathId}`).join('|')}`,
+          $options: 'i'
+        }
+      }
+    },
+    {
+      $group: {
+        _id: '$path',
+        count: {
+          $sum: 1
+        }
+      }
+    }
+  ]);
   orgList.forEach((org) => {
-    org.total = orgList.filter((o) => o.path === org.path + `/${org.pathId}`).length;
+    org.total =
+      (orgChildCount.find((per) => per._id.toString() === `${org.path}/${org.pathId}`)?.count ||
+        0) + (orgMemberCount.find((per) => per._id.toString() === org._id.toString())?.count || 0);
   });
 
   if (withPermission) {

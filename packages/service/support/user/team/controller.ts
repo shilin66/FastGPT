@@ -406,6 +406,8 @@ export async function getTeamMembers(
     return { tmbIds, tmbIdRoleMap };
   };
 
+  let tmbIdGroupRole: Record<string, string> = {};
+
   const tmbIdsCondition = await (async () => {
     if (orgId === '') {
       const rootOrg = await getRootOrgByTeamId(teamId);
@@ -414,7 +416,8 @@ export async function getTeamMembers(
       return { _id: { $in: await getTmbIdsByOrgId(orgId) } };
     }
     if (groupId) {
-      const { tmbIds } = await getTmbIdsByGroupId();
+      const { tmbIds, tmbIdRoleMap } = await getTmbIdsByGroupId();
+      tmbIdGroupRole = tmbIdRoleMap;
       return { _id: { $in: tmbIds } };
     }
     return {};
@@ -527,7 +530,8 @@ export async function getTeamMembers(
                 isOwner: tmb.role === TeamMemberRoleEnum.owner
               })
             : undefined,
-          orgs: withOrgs ? orgPathData[tmbId] || [] : undefined
+          orgs: withOrgs ? orgPathData[tmbId] || [] : undefined,
+          groupRole: groupId ? tmbIdGroupRole[tmbId] : undefined
         };
       })
       .filter((member) => member !== undefined) as unknown as TeamMemberItemType[]
