@@ -229,7 +229,7 @@ const toolChoice = async (props: ActionProps) => {
   const { response } = await createChatCompletion({
     body: llmCompletionsBodyFormat(
       {
-        stream: true,
+        stream: extractModel.toolChoiceStream || false,
         model: extractModel.model,
         temperature: 0.01,
         messages: filterMessages,
