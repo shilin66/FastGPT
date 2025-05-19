@@ -1,20 +1,23 @@
 import { MongoDatasetTraining } from './schema';
 import type {
   PushDatasetDataChunkProps,
-  PushDatasetDataProps,
   PushDatasetDataResponse
 } from '@fastgpt/global/core/dataset/api.d';
 import {
+  DatasetCollectionDataProcessModeEnum,
   DatasetCollectionTypeEnum,
   DatasetStatusEnum,
   TrainingModeEnum
 } from '@fastgpt/global/core/dataset/constants';
-import { simpleText } from '@fastgpt/global/common/string/tools';
+import { getNanoid, simpleText } from '@fastgpt/global/common/string/tools';
 import { ClientSession } from '../../../common/mongo';
-import { getLLMModel, getEmbeddingModel } from '../../ai/model';
+import { getLLMModel, getEmbeddingModel, getVlmModel } from '../../ai/model';
 import { addLog } from '../../../common/system/log';
 import { getCollectionWithDataset } from '../controller';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
+import { PushDataToTrainingQueueProps } from '@fastgpt/global/core/dataset/training/type';
+import { i18nT } from '../../../../web/i18n/utils';
+import { getLLMMaxChunkSize } from '../../../../global/core/dataset/training/utils';
 import { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoTeamMember } from '../../../support/user/team/teamMemberSchema';
 import { TeamMemberWithTeamAndUserSchema } from '@fastgpt/global/support/user/team/type';
@@ -54,20 +57,17 @@ export const lockTrainingDataByTeamId = async (teamId: string): Promise<any> => 
 export const pushDataListToTrainingQueueByCollectionId = async ({
   collectionId,
   ...props
-}: {
-  teamId: string;
-  tmbId: string;
-  session?: ClientSession;
-} & PushDatasetDataProps) => {
+}: Omit<PushDataToTrainingQueueProps, 'datasetId' | 'agentModel' | 'vectorModel' | 'vlmModel'>) => {
   const {
-    dataset: { _id: datasetId, agentModel, vectorModel }
+    dataset: { _id: datasetId, agentModel, vectorModel, vlmModel }
   } = await getCollectionWithDataset(collectionId);
   return pushDataListToTrainingQueue({
     ...props,
     datasetId,
     collectionId,
+    vectorModel,
     agentModel,
-    vectorModel
+    vlmModel
   });
 };
 
@@ -78,47 +78,66 @@ export async function pushDataListToTrainingQueue({
   collectionId,
   agentModel,
   vectorModel,
+  vlmModel,
   data,
   prompt,
   billId,
-  trainingMode = TrainingModeEnum.chunk,
+  mode = TrainingModeEnum.chunk,
+  indexSize,
   session
-}: {
-  teamId: string;
-  tmbId: string;
-  datasetId: string;
-  agentModel: string;
-  vectorModel: string;
-  session?: ClientSession;
-} & PushDatasetDataProps): Promise<PushDatasetDataResponse> {
-  const { model, maxToken, weight } = await (async () => {
-    const agentModelData = getLLMModel(agentModel);
-    if (!agentModelData) {
-      return Promise.reject(`File model ${agentModel} is inValid`);
+}: PushDataToTrainingQueueProps): Promise<PushDatasetDataResponse> {
+  const getImageChunkMode = (data: PushDatasetDataChunkProps, mode: TrainingModeEnum) => {
+    if (mode !== TrainingModeEnum.image) return mode;
+    // 检查内容中，是否包含 ![](xxx) 的图片格式
+    const text = data.q + data.a || '';
+    const regex = /!\[\]\((.*?)\)/g;
+    const match = text.match(regex);
+    if (match) {
+      return TrainingModeEnum.image;
     }
-    const vectorModelData = getEmbeddingModel(vectorModel);
-    if (!vectorModelData) {
-      return Promise.reject(`Vector model ${vectorModel} is inValid`);
-    }
+    return mode;
+  };
 
-    if (trainingMode === TrainingModeEnum.chunk) {
+  const vectorModelData = getEmbeddingModel(vectorModel);
+  if (!vectorModelData) {
+    return Promise.reject(i18nT('common:error_embedding_not_config'));
+  }
+  const agentModelData = getLLMModel(agentModel);
+  if (!agentModelData) {
+    return Promise.reject(i18nT('common:error_llm_not_config'));
+  }
+  if (mode === TrainingModeEnum.chunk || mode === TrainingModeEnum.auto) {
+    prompt = undefined;
+  }
+
+  const { model, maxToken, weight } = await (async () => {
+    if (mode === TrainingModeEnum.chunk) {
       return {
-        maxToken: vectorModelData.maxToken * 1.5,
+        maxToken: getLLMMaxChunkSize(agentModelData),
         model: vectorModelData.model,
         weight: vectorModelData.weight
       };
     }
-
-    // if (trainingMode === TrainingModeEnum.qa || trainingMode === TrainingModeEnum.auto) {
-    if (trainingMode === TrainingModeEnum.qa) {
+    if (mode === TrainingModeEnum.qa || mode === TrainingModeEnum.auto) {
       return {
-        maxToken: agentModelData.maxContext * 0.8,
+        maxToken: getLLMMaxChunkSize(agentModelData),
         model: agentModelData.model,
         weight: 0
       };
     }
+    if (mode === TrainingModeEnum.image) {
+      const vllmModelData = getVlmModel(vlmModel);
+      if (!vllmModelData) {
+        return Promise.reject(i18nT('common:error_vlm_not_config'));
+      }
+      return {
+        maxToken: getLLMMaxChunkSize(vllmModelData),
+        model: vllmModelData.model,
+        weight: 0
+      };
+    }
 
-    return Promise.reject(`Training mode "${trainingMode}" is inValid`);
+    return Promise.reject(`Training mode "${mode}" is inValid`);
   })();
 
   // filter repeat or equal content
@@ -152,13 +171,13 @@ export async function pushDataListToTrainingQueue({
 
     const text = item.q + item.a;
 
+    // Oversize llm tokens
     if (text.length > maxToken) {
       filterResult.overToken.push(item);
       return;
     }
 
     if (set.has(text)) {
-      console.log('repeat', item);
       filterResult.repeat.push(item);
     } else {
       filterResult.success.push(item);
@@ -185,12 +204,13 @@ export async function pushDataListToTrainingQueue({
           datasetId,
           collectionId,
           billId,
-          mode: trainingMode,
+          mode: getImageChunkMode(item, mode),
           prompt,
           model,
           q: item.q,
           a: item.a,
           chunkIndex: item.chunkIndex ?? 0,
+          indexSize,
           weight: weight ?? 0,
           indexes: item.indexes,
           retryCount: 5
@@ -305,16 +325,19 @@ export const trainConfluenceCollection = async ({
           const adf = page.body.atlas_doc_format;
           const markdown = adf2md(parseADF(adf.value));
 
+          const imgId = getNanoid(16);
           // 创建或更新集合
           const createOrUpdateCollection = async () => {
             const col = pageConfluence[page.id];
             if (
               !col ||
               page.version.number !== col.confluence?.pageVersion ||
-              dataset.confluenceConfig?.mode !== col.trainingType ||
-              dataset.confluenceConfig?.chunkSize !== col.chunkSize ||
-              dataset.confluenceConfig?.chunkSplitter !== col.chunkSplitter ||
-              dataset.confluenceConfig?.qaPrompt !== col.qaPrompt
+              dataset.chunkSettings?.autoIndexes !== col.autoIndexes ||
+              dataset.chunkSettings?.imageIndex !== col.imageIndex ||
+              dataset.chunkSettings?.trainingType !== col.trainingType ||
+              dataset.chunkSettings?.chunkSize !== col.chunkSize ||
+              dataset.chunkSettings?.chunkSplitter !== col.chunkSplitter ||
+              dataset.chunkSettings?.qaPrompt !== col.qaPrompt
             ) {
               return {
                 collection: await createOneCollection({
@@ -323,10 +346,15 @@ export const trainConfluenceCollection = async ({
                   teamId,
                   tmbId,
                   type: DatasetCollectionTypeEnum.link,
-                  trainingType: dataset.confluenceConfig?.mode || TrainingModeEnum.chunk,
-                  chunkSize: dataset.confluenceConfig?.chunkSize || 500,
-                  chunkSplitter: dataset.confluenceConfig?.chunkSplitter || '',
-                  qaPrompt: dataset.confluenceConfig?.qaPrompt || Prompt_AgentQA.description,
+                  trainingType:
+                    dataset.chunkSettings?.trainingType ||
+                    DatasetCollectionDataProcessModeEnum.chunk,
+                  imageIndex: dataset.chunkSettings?.imageIndex || false,
+                  autoIndexes: dataset.chunkSettings?.autoIndexes || false,
+                  chunkSize: dataset.chunkSettings?.chunkSize || 500,
+                  indexSize: dataset.chunkSettings?.indexSize || 512,
+                  chunkSplitter: dataset.chunkSettings?.chunkSplitter || '',
+                  qaPrompt: dataset.chunkSettings?.qaPrompt || Prompt_AgentQA.description,
                   rawLink: pageLink,
                   confluence: {
                     pageId: page.id,
@@ -335,7 +363,7 @@ export const trainConfluenceCollection = async ({
                     pageVersion: page.version.number
                   },
                   metadata: {
-                    relatedImgId: `${datasetId}-${page.id}`
+                    relatedImgId: `${datasetId}-${page.id}-${imgId}`
                   },
                   session // 确保所有操作都在同一个 session 中
                 }),
@@ -366,7 +394,7 @@ export const trainConfluenceCollection = async ({
                   base64Img: imgBase64,
                   teamId,
                   metadata: {
-                    relatedId: `${datasetId}-${page.id}`,
+                    relatedId: `${datasetId}-${page.id}-${imgId}`,
                     mime: mime
                   }
                 });

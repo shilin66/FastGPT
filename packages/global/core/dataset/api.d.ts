@@ -1,6 +1,11 @@
 import { DatasetDataIndexItemType, DatasetSchemaType } from './type';
-import { TrainingModeEnum, DatasetCollectionTypeEnum } from './constants';
-import type { LLMModelItemType } from '../ai/model.d';
+import {
+  DatasetCollectionTypeEnum,
+  DatasetCollectionDataProcessModeEnum,
+  ChunkSettingModeEnum,
+  DataChunkSplitModeEnum,
+  DatasetStatusEnum
+} from './constants';
 import { ParentIdType } from 'common/parentFolder/type';
 
 /* ================= dataset ===================== */
@@ -10,8 +15,9 @@ export type DatasetUpdateBody = {
   name?: string;
   avatar?: string;
   intro?: string;
-  agentModel?: LLMModelItemType;
-  status?: DatasetSchemaType['status'];
+
+  agentModel?: string;
+  vlmModel?: string;
 
   websiteConfig?: DatasetSchemaType['websiteConfig'];
   confluenceConfig?: DatasetSchemaType['confluenceConfig'];
@@ -20,16 +26,27 @@ export type DatasetUpdateBody = {
   apiServer?: DatasetSchemaType['apiServer'];
   yuqueServer?: DatasetSchemaType['yuqueServer'];
   feishuServer?: DatasetSchemaType['feishuServer'];
+  chunkSettings?: DatasetSchemaType['chunkSettings'];
 
   // sync schedule
   autoSync?: boolean;
+  status?: DatasetStatusEnum;
 };
 
 /* ================= collection ===================== */
 export type DatasetCollectionChunkMetadataType = {
   parentId?: string;
-  trainingType?: TrainingModeEnum;
+  customPdfParse?: boolean;
+  trainingType?: DatasetCollectionDataProcessModeEnum;
+  imageIndex?: boolean;
+  autoIndexes?: boolean;
+
+  chunkSettingMode?: ChunkSettingModeEnum;
+  chunkSplitMode?: DataChunkSplitModeEnum;
+
   chunkSize?: number;
+  indexSize?: number;
+
   chunkSplitter?: string;
   qaPrompt?: string;
   metadata?: Record<string, any>;
@@ -126,7 +143,6 @@ export type PushDatasetDataChunkProps = {
 
 export type PostWebsiteSyncParams = {
   datasetId: string;
-  billId: string;
 };
 
 export type PostConfluenceSyncParams = {
@@ -136,9 +152,15 @@ export type PostConfluenceSyncParams = {
 export type PushDatasetDataProps = {
   collectionId: string;
   data: PushDatasetDataChunkProps[];
-  trainingMode: TrainingModeEnum;
+  trainingType?: DatasetCollectionDataProcessModeEnum;
+  autoIndexes?: boolean;
+  imageIndex?: boolean;
   prompt?: string;
+
   billId?: string;
+
+  // Abandon
+  trainingMode?: DatasetCollectionDataProcessModeEnum;
 };
 export type PushDatasetDataResponse = {
   insertLen: number;

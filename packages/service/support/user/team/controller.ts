@@ -30,10 +30,7 @@ import {
   PerResourceTypeEnum
 } from '@fastgpt/global/support/permission/constant';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
-import {
-  TeamDefaultPermissionVal,
-  TeamReadPermissionVal
-} from '@fastgpt/global/support/permission/user/constant';
+import { TeamDefaultPermissionVal } from '@fastgpt/global/support/permission/user/constant';
 import { MongoMemberGroupModel } from '../../permission/memberGroup/memberGroupSchema';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { DefaultGroupName } from '@fastgpt/global/support/user/team/group/constant';
@@ -48,10 +45,13 @@ import {
 import { MongoGroupMemberModel } from '../../permission/memberGroup/groupMemberSchema';
 import { MongoDataset } from '../../../core/dataset/schema';
 import { MongoApp } from '../../../core/app/schema';
-import { updateMemberGroup } from '../../permission/memberGroup/controllers';
 import { GroupMemberRole } from '@fastgpt/global/support/permission/memberGroup/constant';
 import { getAIApi } from '../../../core/ai/config';
-import { createRootOrg } from '../../permission/org/controllers';
+import {
+  createRootOrg,
+  getRootOrgByTeamId,
+  listOrgPathByTeamId
+} from '../../permission/org/controllers';
 import { refreshSourceAvatar } from '../../../common/file/image/controller';
 import { PaginationResponse } from '../../../../web/common/fetch/type';
 import {
@@ -60,6 +60,7 @@ import {
   UpdateClbPermissionProps
 } from '@fastgpt/global/support/permission/collaborator';
 import { MongoOrgModel } from '../../permission/org/orgSchema';
+import { MongoOrgMemberModel } from '../../permission/org/orgMemberSchema';
 
 async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemType> {
   const tmb = await MongoTeamMember.findOne(match).populate<{ team: TeamSchema }>('team').lean();
@@ -85,7 +86,6 @@ async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemTyp
     teamDomain: tmb.team?.teamDomain,
     role: tmb.role,
     status: tmb.status,
-    defaultTeam: tmb.defaultTeam,
     permission: new TeamPermission({
       per: Per ?? TeamDefaultPermissionVal,
       isOwner: tmb.role === TeamMemberRoleEnum.owner
@@ -97,6 +97,14 @@ async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemTyp
     externalWorkflowVariables: tmb.team.externalWorkflowVariables
   };
 }
+
+export const getTeamOwner = async (teamId: string) => {
+  const tmb = await MongoTeamMember.findOne({
+    teamId,
+    role: TeamMemberRoleEnum.owner
+  }).lean();
+  return tmb;
+};
 
 export async function getTmbInfoByTmbId({ tmbId }: { tmbId: string }) {
   if (!tmbId) {
@@ -113,8 +121,7 @@ export async function getUserDefaultTeam({ userId }: { userId: string }) {
     return Promise.reject('tmbId or userId is required');
   }
   return getTeamMember({
-    userId: new Types.ObjectId(userId),
-    defaultTeam: true
+    userId: new Types.ObjectId(userId)
   });
 }
 
@@ -131,8 +138,7 @@ export async function createDefaultTeam({
 }) {
   // auth default team
   const tmb = await MongoTeamMember.findOne({
-    userId: new Types.ObjectId(userId),
-    defaultTeam: true
+    userId: new Types.ObjectId(userId)
   });
 
   if (!tmb) {
@@ -157,8 +163,7 @@ export async function createDefaultTeam({
           name: 'root',
           role: TeamMemberRoleEnum.owner,
           status: TeamMemberStatusEnum.active,
-          createTime: new Date(),
-          defaultTeam: true
+          createTime: new Date()
         }
       ],
       { session }
@@ -372,28 +377,134 @@ export async function listUserTeam(status: string, userId: string): Promise<Team
 export async function getTeamMembers(
   teamId: string,
   pageSize: number,
-  offset: number
+  offset: number,
+  status?: 'active' | 'inactive',
+  withPermission?: boolean,
+  withOrgs?: boolean,
+  searchKey?: string,
+  orgId?: string,
+  groupId?: string
 ): Promise<PaginationResponse<TeamMemberItemType>> {
-  const total = await MongoTeamMember.countDocuments({ teamId });
+  const getTmbIdsByOrgId = async (orgId: string): Promise<string[]> => {
+    const orgMembers = await MongoOrgMemberModel.find({ orgId }, 'tmbId').lean();
+    return orgMembers.map((member) => member.tmbId);
+  };
 
-  const tmbUserList = (await MongoTeamMember.find({ teamId })
-    .populate('team')
-    .populate('user')
-    .skip(offset)
-    .limit(pageSize)
-    .lean()) as unknown as TeamMemberWithTeamAndUserSchema[];
+  const getTmbIdsByGroupId = async () => {
+    const groupMembers = await MongoGroupMemberModel.find({ groupId }, 'tmbId role').lean();
+
+    // 单次遍历提取数据和构建映射
+    const [tmbIds, tmbIdRoleMap] = groupMembers.reduce(
+      (acc, member) => {
+        acc[0].push(member.tmbId);
+        acc[1][member.tmbId] = member.role;
+        return acc;
+      },
+      [[], {}] as [string[], Record<string, string>]
+    );
+
+    return { tmbIds, tmbIdRoleMap };
+  };
+
+  let tmbIdGroupRole: Record<string, string> = {};
+
+  const tmbIdsCondition = await (async () => {
+    if (orgId === '') {
+      const rootOrg = await getRootOrgByTeamId(teamId);
+      return { _id: rootOrg ? { $in: await getTmbIdsByOrgId(rootOrg._id) } : {} };
+    } else if (orgId) {
+      return { _id: { $in: await getTmbIdsByOrgId(orgId) } };
+    }
+    if (groupId) {
+      const { tmbIds, tmbIdRoleMap } = await getTmbIdsByGroupId();
+      tmbIdGroupRole = tmbIdRoleMap;
+      return { _id: { $in: tmbIds } };
+    }
+    return {};
+  })();
+
+  const statusCondition = (() => {
+    if (status === 'active') return { status: notLeaveStatus };
+    if (status === 'inactive') return { status: TeamMemberStatusEnum.leave };
+    return {};
+  })();
+  const searchCondition = (() => {
+    if (!searchKey) return {};
+    return {
+      $or: [{ name: { $regex: searchKey, $options: 'i' } }]
+    };
+  })();
+  // 构建查询条件
+  const baseCondition = {
+    teamId,
+    ...statusCondition,
+    ...tmbIdsCondition,
+    ...searchCondition
+  };
+
+  // 统一查询条件
+  const [total, tmbUserList] = (await Promise.all([
+    MongoTeamMember.countDocuments(baseCondition),
+    MongoTeamMember.find(baseCondition)
+      .populate('team')
+      .populate('user')
+      .skip(offset)
+      .limit(pageSize)
+      .lean()
+  ])) as unknown as [number, TeamMemberWithTeamAndUserSchema[]];
   const tmbIds = tmbUserList.map((tmb) => tmb._id.toString());
-  const permissionMap = new Map<string, { permission?: number }>();
-  await Promise.all(
-    tmbIds.map(async (tmbId) => {
-      const permissionDoc = await MongoResourcePermission.findOne({
-        tmbId,
-        teamId,
-        resourceType: PerResourceTypeEnum.team
-      });
-      permissionMap.set(tmbId, permissionDoc ? { permission: permissionDoc.permission } : {});
-    })
-  );
+  const getPermissionData = async (
+    tmbIds: string[],
+    teamId: string
+  ): Promise<
+    Record<
+      string,
+      {
+        permission?: number;
+      }
+    >
+  > => {
+    if (tmbIds.length === 0) return {};
+
+    const permissions = await MongoResourcePermission.find({
+      tmbId: { $in: tmbIds },
+      teamId,
+      resourceType: PerResourceTypeEnum.team
+    }).lean();
+
+    return permissions.reduce(
+      (acc, perm) => {
+        if (perm.tmbId && perm.permission !== undefined) {
+          acc[perm.tmbId] = { permission: perm.permission };
+        }
+        return acc;
+      },
+      {} as Record<string, { permission?: number }>
+    );
+  };
+  const getOrgPathData = async (tmbIds: string[]) => {
+    const orgMembers = await MongoOrgMemberModel.find({ tmbId: { $in: tmbIds } }).lean();
+    const orgPaths = await listOrgPathByTeamId(teamId);
+
+    // 构建 tmbIdPaths 数据
+    const tmbIdPaths: Record<string, string[]> = {};
+
+    for (const orgMember of orgMembers) {
+      const orgId = orgMember.orgId;
+      const path = orgPaths[orgId];
+      tmbIdPaths[orgMember.tmbId] = tmbIdPaths[orgMember.tmbId] || [];
+      tmbIdPaths[orgMember.tmbId].push(path);
+    }
+    return tmbIdPaths;
+  };
+
+  // 并行处理关联数据
+  const [permissionData, orgPathData] = await Promise.all([
+    withPermission
+      ? getPermissionData(tmbIds, teamId)
+      : Promise.resolve({} as Record<string, { permission?: number }>),
+    withOrgs ? getOrgPathData(tmbIds) : Promise.resolve({} as Record<string, string[]>)
+  ]);
   return {
     total,
     list: tmbUserList
@@ -402,23 +513,25 @@ export async function getTeamMembers(
           console.warn(`Incomplete team member data encountered: ${JSON.stringify(tmb)}`);
           return;
         }
-        const permData = permissionMap.get(tmb._id.valueOf()) || {};
+        const tmbId = tmb._id.toString();
         return {
           userId: tmb.user._id,
           teamId: tmb.team._id,
           memberName: tmb.name,
           avatar: tmb.avatar,
-          balance: tmb.team.balance,
           tmbId: tmb._id,
-          teamDomain: tmb.team.teamDomain,
           role: tmb.role,
           status: tmb.status,
           createTime: tmb.createTime,
           updateTime: tmb.updateTime,
-          permission: new TeamPermission({
-            per: permData.permission ?? TeamDefaultPermissionVal,
-            isOwner: tmb.role === TeamMemberRoleEnum.owner
-          })
+          permission: withPermission
+            ? new TeamPermission({
+                per: (permissionData[tmbId]?.permission ?? TeamDefaultPermissionVal) as number,
+                isOwner: tmb.role === TeamMemberRoleEnum.owner
+              })
+            : undefined,
+          orgs: withOrgs ? orgPathData[tmbId] || [] : undefined,
+          groupRole: groupId ? tmbIdGroupRole[tmbId] : undefined
         };
       })
       .filter((member) => member !== undefined) as unknown as TeamMemberItemType[]
@@ -451,8 +564,8 @@ async function changeResourceOwner(teamId: string, userId: string) {
   // 查询ownerId 对应的tmbId
   const { _id: ownerTmbId } = (await MongoTeamMember.findOne({
     teamId,
-    userId: ownerId,
-    role: TeamMemberRoleEnum.owner
+    userId: ownerId
+    // role: TeamMemberRoleEnum.owner
   }).lean()) as TeamMemberSchema;
 
   const { _id: leaveTmbId } = (await MongoTeamMember.findOne({
@@ -468,26 +581,25 @@ async function changeResourceOwner(teamId: string, userId: string) {
     }
   );
 
-  const groups = await MongoMemberGroupModel.find({
+  const ownerGroups = await MongoGroupMemberModel.find({
     tmbId: leaveTmbId,
     role: GroupMemberRole.owner
   }).lean();
   // 转移mongo group 的所有者
   await Promise.all(
-    groups.map(async (group) => {
-      await updateMemberGroup({
-        groupId: group._id,
-        memberList: [
-          {
-            role: GroupMemberRole.member,
-            tmbId: leaveTmbId
-          },
-          {
-            role: GroupMemberRole.owner,
+    ownerGroups.map(async (group) => {
+      await MongoGroupMemberModel.updateOne(
+        {
+          groupId: group.groupId,
+          role: GroupMemberRole.owner,
+          tmbId: leaveTmbId
+        },
+        {
+          $set: {
             tmbId: ownerTmbId
           }
-        ]
-      });
+        }
+      );
     })
   );
   // 修改app的tmbId 为 ownerTmbId
@@ -557,7 +669,7 @@ export async function inviteTeamMember({
         teamId,
         userId: userMap.get(username),
         name: username.replaceAll('@zenlayer.com', ''),
-        status: TeamMemberStatusEnum.waiting,
+        // status: TeamMemberStatusEnum.waiting,
         createTime: new Date(),
         defaultTeam: false
       }))
@@ -591,7 +703,7 @@ export async function inviteTeamMember({
   };
 }
 
-export async function switchTeam(newTeamId: string, userId: string, currentTeamId: string) {
+export async function switchTeam(newTeamId: string, userId: string) {
   const teamMember = await MongoTeamMember.findOne({
     teamId: newTeamId,
     userId

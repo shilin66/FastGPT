@@ -11,7 +11,7 @@ import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/type.d'
 import {
   getWorkflowEntryNodeIds,
   getMaxHistoryLimitFromNodes,
-  initWorkflowEdgeStatus,
+  storeEdges2RuntimeEdges,
   storeNodes2RuntimeNodes,
   textAdaptGptResponse,
   getLastInteractiveValue
@@ -30,6 +30,7 @@ import {
   concatHistories,
   filterPublicNodeResponseData,
   getChatTitleFromChatMessage,
+  removeAIResponseCite,
   removeEmptyUserInput
 } from '@fastgpt/global/core/chat/utils';
 import { updateApiKeyUsage } from '@fastgpt/service/support/openapi/tools';
@@ -74,6 +75,7 @@ export type Props = ChatCompletionCreateParams &
     responseChatItemId?: string;
     stream?: boolean;
     detail?: boolean;
+    retainDatasetCite?: boolean;
     variables: Record<string, any>; // Global variables or plugin inputs
   };
 
@@ -93,14 +95,6 @@ type AuthResponseType = {
 };
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.on('close', () => {
-    res.end();
-  });
-  res.on('error', () => {
-    console.log('error: ', 'request error');
-    res.end();
-  });
-
   let {
     chatId,
     appId,
@@ -114,6 +108,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     stream = false,
     detail = false,
+    retainDatasetCite = false,
     messages = [],
     variables = {},
     responseChatItemId = getNanoid(),
@@ -139,7 +134,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Computed start hook params
     const startHookText = (() => {
       // Chat
-      const userQuestion = chatMessages[chatMessages.length - 1] as UserChatItemType | undefined;
+      const userQuestion = chatMessages[chatMessages.length - 1] as UserChatItemType;
       if (userQuestion) return chatValue2RuntimePrompt(userQuestion.value).text;
 
       // plugin
@@ -193,6 +188,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         chatId
       });
     })();
+    retainDatasetCite = retainDatasetCite && !!responseDetail;
     const isPlugin = app.type === AppTypeEnum.plugin;
 
     // Check message type
@@ -245,16 +241,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // Get chat histories
     const newHistories = concatHistories(histories, chatMessages);
+    const interactive = getLastInteractiveValue(newHistories) || undefined;
 
     // Get runtimeNodes
-    let runtimeNodes = storeNodes2RuntimeNodes(nodes, getWorkflowEntryNodeIds(nodes, newHistories));
+    let runtimeNodes = storeNodes2RuntimeNodes(nodes, getWorkflowEntryNodeIds(nodes, interactive));
     if (isPlugin) {
       // Assign values to runtimeNodes using variables
       runtimeNodes = updatePluginInputByVariables(runtimeNodes, variables);
       // Plugin runtime does not need global variables(It has been injected into the pluginInputNode)
       variables = {};
     }
-    runtimeNodes = rewriteNodeOutputByHistories(newHistories, runtimeNodes);
+    runtimeNodes = rewriteNodeOutputByHistories(runtimeNodes, interactive);
 
     const workflowResponseWrite = getWorkflowResponseWrite({
       res,
@@ -265,41 +262,44 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
 
     /* start flow controller */
-    const { flowResponses, flowUsages, assistantResponses, newVariables } = await (async () => {
-      if (app.version === 'v2') {
-        return dispatchWorkFlow({
-          res,
-          requestOrigin: req.headers.origin,
-          mode: 'chat',
-          timezone,
-          externalProvider,
+    const { flowResponses, flowUsages, assistantResponses, newVariables, durationSeconds } =
+      await (async () => {
+        if (app.version === 'v2') {
+          return dispatchWorkFlow({
+            res,
+            requestOrigin: req.headers.origin,
+            mode: 'chat',
+            timezone,
+            externalProvider,
 
-          runningAppInfo: {
-            id: String(app._id),
-            teamId: String(app.teamId),
-            tmbId: String(app.tmbId)
-          },
-          runningUserInfo: {
-            teamId,
-            tmbId
-          },
-          uid: String(outLinkUserId || tmbId),
+            runningAppInfo: {
+              id: String(app._id),
+              teamId: String(app.teamId),
+              tmbId: String(app.tmbId)
+            },
+            runningUserInfo: {
+              teamId,
+              tmbId
+            },
+            uid: String(outLinkUserId || tmbId),
 
-          chatId,
-          responseChatItemId,
-          runtimeNodes,
-          runtimeEdges: initWorkflowEdgeStatus(edges, newHistories),
-          variables,
-          query: removeEmptyUserInput(userQuestion.value),
-          chatConfig,
-          histories: newHistories,
-          stream,
-          maxRunTimes: WORKFLOW_MAX_RUN_TIMES,
-          workflowStreamResponse: workflowResponseWrite
-        });
-      }
-      return Promise.reject('您的工作流版本过低，请重新发布一次');
-    })();
+            chatId,
+            responseChatItemId,
+            runtimeNodes,
+            runtimeEdges: storeEdges2RuntimeEdges(edges, interactive),
+            variables,
+            query: removeEmptyUserInput(userQuestion.value),
+            lastInteractive: interactive,
+            chatConfig,
+            histories: newHistories,
+            stream,
+            retainDatasetCite,
+            maxRunTimes: WORKFLOW_MAX_RUN_TIMES,
+            workflowStreamResponse: workflowResponseWrite
+          });
+        }
+        return Promise.reject('您的工作流版本过低，请重新发布一次');
+      })();
 
     // save chat
     const isOwnerUse = !shareId && !spaceTeamId && String(tmbId) === String(app.tmbId);
@@ -337,7 +337,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         appId: app._id,
         userInteractiveVal,
         aiResponse,
-        newVariables
+        newVariables,
+        durationSeconds
       });
     } else {
       await saveChat({
@@ -358,7 +359,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         metadata: {
           originIp,
           ...metadata
-        }
+        },
+        durationSeconds
       });
     }
 
@@ -406,17 +408,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         return assistantResponses;
       })();
+      const formatResponseContent = removeAIResponseCite(responseContent, retainDatasetCite);
       const error = flowResponses[flowResponses.length - 1]?.error;
 
       res.json({
         ...(detail ? { responseData: feResponseData, newVariables } : {}),
         error,
-        id: chatId || '',
+        id: saveChatId,
         model: '',
         usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 1 },
         choices: [
           {
-            message: { role: 'assistant', content: responseContent },
+            message: { role: 'assistant', content: formatResponseContent },
             finish_reason: 'stop',
             index: 0
           }

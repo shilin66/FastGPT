@@ -6,7 +6,8 @@ data:
         "openapiPrefix": "fastgpt",
         "vectorMaxProcess": 15,
         "qaMaxProcess": 15,
-        "pgHNSWEfSearch": 100
+        "vlmMaxProcess": 15,
+        "hnswEfSearch": 100
       },
       "llmModels": [
         {

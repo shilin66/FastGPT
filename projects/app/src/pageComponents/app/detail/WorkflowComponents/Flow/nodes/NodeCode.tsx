@@ -15,9 +15,12 @@ import RenderOutput from './render/RenderOutput';
 import CodeEditor from '@fastgpt/web/components/common/Textarea/CodeEditor';
 import { Box, Flex } from '@chakra-ui/react';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
+import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import {
   JS_TEMPLATE,
-  PYTHON_TEMPLATE
+  PY_TEMPLATE,
+  SandboxCodeTypeEnum,
+  SNADBOX_CODE_TEMPLATE
 } from '@fastgpt/global/core/workflow/template/system/sandbox/constants';
 import MySelect from '@fastgpt/web/components/common/MySelect';
 
@@ -25,128 +28,111 @@ const NodeCode = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
   const { t } = useTranslation();
   const { nodeId, inputs, outputs } = data;
 
+  const codeType = inputs.find(
+    (item) => item.key === NodeInputKeyEnum.codeType
+  ) as FlowNodeInputItemType;
+
   const splitToolInputs = useContextSelector(WorkflowContext, (ctx) => ctx.splitToolInputs);
   const onChangeNode = useContextSelector(WorkflowContext, (ctx) => ctx.onChangeNode);
 
-  const { ConfirmModal, openConfirm } = useConfirm({
+  // 重置模板确认
+  const { ConfirmModal: ResetTemplateConfirm, openConfirm: openResetTemplateConfirm } = useConfirm({
     content: t('workflow:code.Reset template confirm')
+  });
+
+  // 切换语言确认
+  const { ConfirmModal: SwitchLangConfirm, openConfirm: openSwitchLangConfirm } = useConfirm({
+    content: t('workflow:code.Switch language confirm')
   });
 
   const CustomComponent = useMemo(() => {
     return {
-      [NodeInputKeyEnum.codeType]: (item: FlowNodeInputItemType) => {
+      [NodeInputKeyEnum.code]: (item: FlowNodeInputItemType) => {
         return (
-          <Flex mt={-3} alignItems={'flex-end'}>
-            <Box flex={'1'}>
-              <MySelect
-                size={'xs'}
-                w={'110px'}
-                fontSize={'xs'}
-                value={item.value}
+          <Box mt={-4}>
+            <Flex mb={2} alignItems={'center'} className="nodrag">
+              <MySelect<SandboxCodeTypeEnum>
+                fontSize="xs"
+                size="sm"
                 list={[
-                  { label: 'Python3', value: 'python3' },
-                  { label: 'Javascript', value: 'js' }
+                  { label: 'JavaScript', value: SandboxCodeTypeEnum.js },
+                  { label: 'Python 3', value: SandboxCodeTypeEnum.py }
                 ]}
-                onchange={(e: string) => {
-                  // 更新代码类型
+                value={codeType?.value}
+                onChange={(newLang) => {
+                  console.log(newLang);
+                  openSwitchLangConfirm(() => {
+                    onChangeNode({
+                      nodeId,
+                      type: 'updateInput',
+                      key: NodeInputKeyEnum.codeType,
+                      value: { ...codeType, value: newLang }
+                    });
+
+                    onChangeNode({
+                      nodeId,
+                      type: 'updateInput',
+                      key: item.key,
+                      value: {
+                        ...item,
+                        value: SNADBOX_CODE_TEMPLATE[newLang]
+                      }
+                    });
+                  })();
+                }}
+              />
+              {codeType.value === 'py' && (
+                <QuestionTip ml={2} label={t('workflow:support_code_language')} />
+              )}
+              <Box
+                cursor={'pointer'}
+                color={'primary.500'}
+                fontSize={'xs'}
+                ml="auto"
+                mr={2}
+                onClick={openResetTemplateConfirm(() => {
                   onChangeNode({
                     nodeId,
                     type: 'updateInput',
                     key: item.key,
                     value: {
                       ...item,
-                      value: e
+                      value: codeType.value === 'js' ? JS_TEMPLATE : PY_TEMPLATE
                     }
                   });
-
-                  // 获取代码输入项
-                  const codeInput = inputs.find((input) => input.key === NodeInputKeyEnum.code);
-                  if (!codeInput) return;
-
-                  // 如果当前代码为空，应用新模板
-                  if (codeInput) {
-                    const template = e === 'js' ? JS_TEMPLATE : PYTHON_TEMPLATE;
-                    onChangeNode({
-                      nodeId,
-                      type: 'updateInput',
-                      key: NodeInputKeyEnum.code,
-                      value: {
-                        ...codeInput,
-                        value: template
-                      }
-                    });
-                  }
-                }}
-              />
-            </Box>
-            <Box
-              cursor={'pointer'}
-              color={'primary.500'}
-              fontSize={'xs'}
-              onClick={openConfirm(() => {
-                // 获取当前语言和对应模板
-                const currentLang = item.value || 'js';
-                const template = currentLang === 'js' ? JS_TEMPLATE : PYTHON_TEMPLATE;
-
-                const codeInput = inputs.find((input) => input.key === NodeInputKeyEnum.code);
-                if (!codeInput) return;
-
-                onChangeNode({
-                  nodeId,
-                  type: 'updateInput',
-                  key: NodeInputKeyEnum.code,
-                  value: {
-                    ...codeInput,
-                    value: template
-                  }
-                });
-              })}
-            >
-              {t('workflow:code.Reset template')}
-            </Box>
-          </Flex>
-        );
-      },
-      [NodeInputKeyEnum.code]: (item: FlowNodeInputItemType) => {
-        // 获取当前编程语言类型
-        const codeTypeInput = inputs.find((input) => input.key === NodeInputKeyEnum.codeType);
-        const language = codeTypeInput?.value === 'python3' ? 'python' : 'typescript';
-
-        return (
-          <Box mt={-3}>
+                })}
+              >
+                {t('workflow:code.Reset template')}
+              </Box>
+            </Flex>
             <CodeEditor
               bg={'white'}
               borderRadius={'sm'}
               value={item.value}
-              language={language}
               onChange={(e) => {
                 onChangeNode({
                   nodeId,
                   type: 'updateInput',
                   key: item.key,
-                  value: {
-                    ...item,
-                    value: e
-                  }
+                  value: { ...item, value: e }
                 });
               }}
+              language={codeType.value}
             />
           </Box>
         );
       }
     };
-  }, [nodeId, onChangeNode, openConfirm, t, inputs]);
+  }, [codeType, nodeId, onChangeNode, openResetTemplateConfirm, openSwitchLangConfirm, t]);
 
   const { isTool, commonInputs } = splitToolInputs(inputs, nodeId);
 
   return (
     <NodeCard minW={'400px'} selected={selected} {...data}>
       {isTool && (
-        <>
-          <Container>
-            <RenderToolInput nodeId={nodeId} inputs={inputs} />
-          </Container>
-        </>
+        <Container>
+          <RenderToolInput nodeId={nodeId} inputs={inputs} />
+        </Container>
       )}
       <Container>
         <IOTitle text={t('common:common.Input')} mb={-1} />
@@ -160,7 +146,8 @@ const NodeCode = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
         <IOTitle text={t('common:common.Output')} />
         <RenderOutput nodeId={nodeId} flowOutputList={outputs} />
       </Container>
-      <ConfirmModal />
+      <ResetTemplateConfirm />
+      <SwitchLangConfirm />
     </NodeCard>
   );
 };

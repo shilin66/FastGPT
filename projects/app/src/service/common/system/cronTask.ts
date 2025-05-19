@@ -8,12 +8,13 @@ import { addLog } from '@fastgpt/service/common/system/log';
 import {
   deleteDatasetDataVector,
   getVectorDataByTime
-} from '@fastgpt/service/common/vectorStore/controller';
+} from '@fastgpt/service/common/vectorDB/controller';
 import { MongoDatasetCollection } from '@fastgpt/service/core/dataset/collection/schema';
 import { MongoDatasetDataText } from '@fastgpt/service/core/dataset/data/dataTextSchema';
 import { MongoDatasetData } from '@fastgpt/service/core/dataset/data/schema';
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
 import { addDays } from 'date-fns';
+import { MongoInvitationLink } from '@fastgpt/service/support/user/team/invitationLink/schema';
 
 /* 
   check dataset.files data. If there is no match in dataset.collections, delete it
@@ -71,8 +72,10 @@ export async function checkInvalidDatasetFiles(start: Date, end: Date) {
 export const removeExpiredChatFiles = async () => {
   let deleteFileAmount = 0;
   const collection = getGFSCollection(BucketNameEnum.chat);
+
+  const expireTime = Number(process.env.CHAT_FILE_EXPIRE_TIME || 7);
   const where = {
-    uploadDate: { $lte: addDays(new Date(), -7) }
+    uploadDate: { $lte: addDays(new Date(), -expireTime) }
   };
 
   // get all file _id
@@ -206,4 +209,21 @@ export async function checkInvalidVector(start: Date, end: Date) {
   }
 
   addLog.info(`Clear invalid vector finish, remove ${deletedVectorAmount} data`);
+}
+
+export async function checkExpiredInvitationLink() {
+  await MongoInvitationLink.updateMany(
+    {
+      expires: { $lte: new Date() },
+      forbidden: false
+    },
+    {
+      $set: {
+        forbidden: true
+      }
+    }
+  );
+  await MongoInvitationLink.deleteMany({
+    expires: { $lte: addDays(new Date(), -30) }
+  });
 }

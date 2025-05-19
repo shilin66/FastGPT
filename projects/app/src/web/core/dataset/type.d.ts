@@ -1,6 +1,6 @@
 import type { PushDatasetDataChunkProps } from '@fastgpt/global/core/dataset/api';
 import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
-import { ImportProcessWayEnum } from './constants';
+import { ChunkSettingModeEnum } from '@fastgpt/global/core/dataset/constants';
 import { UseFormReturn } from 'react-hook-form';
 import { APIFileItem } from '@fastgpt/global/core/dataset/apiDataset';
 
@@ -41,10 +41,10 @@ export type ImportSourceParamsType = UseFormReturn<
   {
     chunkSize: number;
     chunkOverlapRatio: number;
-    customSplitChar: string;
+    chunkSplitter: string;
     prompt: string;
     mode: TrainingModeEnum;
-    way: ImportProcessWayEnum;
+    way: ChunkSettingModeEnum;
   },
   any
 >;

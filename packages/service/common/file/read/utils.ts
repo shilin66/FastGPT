@@ -1,18 +1,21 @@
 import { uploadMongoImg } from '../image/controller';
 import FormData from 'form-data';
-
 import { WorkerNameEnum, runWorker } from '../../../worker/utils';
 import fs from 'fs';
 import type { ReadFileResponse } from '../../../worker/readFile/type';
 import axios from 'axios';
 import { addLog } from '../../system/log';
-import { batchRun } from '@fastgpt/global/common/fn/utils';
-import { matchMdImgTextAndUpload } from '@fastgpt/global/common/string/markdown';
+import { batchRun } from '@fastgpt/global/common/system/utils';
+import { matchMdImg } from '@fastgpt/global/common/string/markdown';
+import { createPdfParseUsage } from '../../../support/wallet/usage/controller';
+import { useDoc2xServer } from '../../../thirdProvider/doc2x';
 
 export type readRawTextByLocalFileParams = {
   teamId: string;
+  tmbId: string;
   path: string;
   encoding: string;
+  customPdfParse?: boolean;
   metadata?: Record<string, any>;
 };
 export const readRawTextByLocalFile = async (params: readRawTextByLocalFileParams) => {
@@ -22,46 +25,51 @@ export const readRawTextByLocalFile = async (params: readRawTextByLocalFileParam
 
   const buffer = await fs.promises.readFile(path);
 
-  const { rawText } = await readRawContentByFileBuffer({
+  return readRawContentByFileBuffer({
     extension,
     isQAImport: false,
+    customPdfParse: params.customPdfParse,
     teamId: params.teamId,
+    tmbId: params.tmbId,
     encoding: params.encoding,
     buffer,
     metadata: params.metadata
   });
-
-  return {
-    rawText
-  };
 };
 
 export const readRawContentByFileBuffer = async ({
-  extension,
-  isQAImport,
   teamId,
+  tmbId,
+
+  extension,
   buffer,
   encoding,
-  metadata
+  metadata,
+  customPdfParse = false,
+  isQAImport = false
 }: {
-  isQAImport?: boolean;
-  extension: string;
   teamId: string;
+  tmbId: string;
+
+  extension: string;
   buffer: Buffer;
   encoding: string;
   metadata?: Record<string, any>;
-}) => {
-  // Custom read file service
-  const customReadfileUrl = process.env.CUSTOM_READ_FILE_URL;
-  const customReadFileExtension = process.env.CUSTOM_READ_FILE_EXTENSION || '';
-  const ocrParse = process.env.CUSTOM_READ_FILE_OCR || 'false';
-  const readFileFromCustomService = async (): Promise<ReadFileResponse | undefined> => {
-    if (
-      !customReadfileUrl ||
-      !customReadFileExtension ||
-      !customReadFileExtension.includes(extension)
-    )
-      return;
+
+  customPdfParse?: boolean;
+  isQAImport: boolean;
+}): Promise<ReadFileResponse> => {
+  const systemParse = () =>
+    runWorker<ReadFileResponse>(WorkerNameEnum.readFile, {
+      extension,
+      encoding,
+      buffer,
+      teamId
+    });
+  const parsePdfFromCustomService = async (): Promise<ReadFileResponse> => {
+    const url = global.systemEnv.customPdfParse?.url;
+    const token = global.systemEnv.customPdfParse?.key;
+    if (!url) return systemParse();
 
     const start = Date.now();
     addLog.info('Parsing files from an external service');
@@ -70,27 +78,32 @@ export const readRawContentByFileBuffer = async ({
     data.append('file', buffer, {
       filename: `file.${extension}`
     });
-    data.append('extension', extension);
-    data.append('ocr', ocrParse);
     const { data: response } = await axios.post<{
-      success: boolean;
-      message: string;
-      data: {
-        page: number;
-        markdown: string;
-        duration: number;
-      };
-    }>(customReadfileUrl, data, {
+      pages: number;
+      markdown: string;
+      error?: Object | string;
+    }>(url, data, {
       timeout: 600000,
       headers: {
-        ...data.getHeaders()
+        ...data.getHeaders(),
+        Authorization: token ? `Bearer ${token}` : undefined
       }
     });
 
+    if (response.error) {
+      return Promise.reject(response.error);
+    }
+
     addLog.info(`Custom file parsing is complete, time: ${Date.now() - start}ms`);
 
-    const rawText = response.data.markdown;
-    const { text, imageList } = matchMdImgTextAndUpload(rawText);
+    const rawText = response.markdown;
+    const { text, imageList } = matchMdImg(rawText);
+
+    createPdfParseUsage({
+      teamId,
+      tmbId,
+      pages: response.pages
+    });
 
     return {
       rawText: text,
@@ -98,15 +111,45 @@ export const readRawContentByFileBuffer = async ({
       imageList
     };
   };
+  // Doc2x api
+  const parsePdfFromDoc2x = async (): Promise<ReadFileResponse> => {
+    const doc2xKey = global.systemEnv.customPdfParse?.doc2xKey;
+    if (!doc2xKey) return systemParse();
 
-  let { rawText, formatText, imageList } =
-    (await readFileFromCustomService()) ||
-    (await runWorker<ReadFileResponse>(WorkerNameEnum.readFile, {
-      extension,
-      encoding,
-      buffer,
-      teamId
-    }));
+    const { pages, text, imageList } = await useDoc2xServer({ apiKey: doc2xKey }).parsePDF(buffer);
+
+    createPdfParseUsage({
+      teamId,
+      tmbId,
+      pages
+    });
+
+    return {
+      rawText: text,
+      formatText: text,
+      imageList
+    };
+  };
+  // Custom read file service
+  const pdfParseFn = async (): Promise<ReadFileResponse> => {
+    if (!customPdfParse) return systemParse();
+    if (global.systemEnv.customPdfParse?.url) return parsePdfFromCustomService();
+    if (global.systemEnv.customPdfParse?.doc2xKey) return parsePdfFromDoc2x();
+
+    return systemParse();
+  };
+
+  const start = Date.now();
+  addLog.debug(`Start parse file`, { extension });
+
+  let { rawText, formatText, imageList } = await (async () => {
+    if (extension === 'pdf') {
+      return await pdfParseFn();
+    }
+    return await systemParse();
+  })();
+
+  addLog.debug(`Parse file success, time: ${Date.now() - start}ms. Uploading file image.`);
 
   // markdown data format
   if (imageList) {
@@ -116,14 +159,14 @@ export const readRawContentByFileBuffer = async ({
           return await uploadMongoImg({
             base64Img: `data:${item.mime};base64,${item.base64}`,
             teamId,
-            // expiredTime: addHours(new Date(), 1),
             metadata: {
               ...metadata,
               mime: item.mime
             }
           });
         } catch (error) {
-          return '';
+          addLog.warn('Upload file image error', { error });
+          return 'Upload load image error';
         }
       })();
       rawText = rawText.replace(item.uuid, src);
@@ -142,5 +185,7 @@ export const readRawContentByFileBuffer = async ({
     }
   }
 
-  return { rawText };
+  addLog.debug(`Upload file image success, time: ${Date.now() - start}ms`);
+
+  return { rawText, formatText, imageList };
 };

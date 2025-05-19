@@ -9,29 +9,26 @@ import {
   Td,
   Tbody,
   Progress,
-  IconButton
+  IconButton,
+  Box
 } from '@chakra-ui/react';
 import { ImportSourceItemType } from '@/web/core/dataset/type.d';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useTranslation } from 'next-i18next';
-import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
-import dynamic from 'next/dynamic';
 import { useI18n } from '@/web/context/I18n';
-
-const PreviewRawText = dynamic(() => import('./PreviewRawText'));
+import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
+import MyTag from '@fastgpt/web/components/common/Tag/index';
+import { QuestionOutlineIcon } from '@chakra-ui/icons';
 
 export const RenderUploadFiles = ({
   files,
-  setFiles,
-  showPreviewContent
+  setFiles
 }: {
   files: ImportSourceItemType[];
   setFiles: React.Dispatch<React.SetStateAction<ImportSourceItemType[]>>;
-  showPreviewContent?: boolean;
 }) => {
   const { t } = useTranslation();
   const { fileT } = useI18n();
-  const [previewFile, setPreviewFile] = useState<ImportSourceItemType>();
 
   return files.length > 0 ? (
     <>
@@ -63,39 +60,36 @@ export const RenderUploadFiles = ({
                   </Flex>
                 </Td>
                 <Td>
-                  <Flex alignItems={'center'} fontSize={'xs'}>
-                    <Progress
-                      value={item.uploadedFileRate}
-                      h={'6px'}
-                      w={'100%'}
-                      maxW={'210px'}
-                      size="sm"
-                      borderRadius={'20px'}
-                      colorScheme={(item.uploadedFileRate || 0) >= 100 ? 'green' : 'blue'}
-                      bg="myGray.200"
-                      hasStripe
-                      isAnimated
-                      mr={2}
-                    />
-                    {`${item.uploadedFileRate}%`}
-                  </Flex>
+                  {item.errorMsg ? (
+                    <MyTooltip label={item.errorMsg}>
+                      <MyTag colorSchema={'red'}>
+                        <Box mr={1}>{t('common:common.Error')}</Box>
+                        <MyIcon name={'help'} w={'0.9rem'} color={'red.500'} />
+                      </MyTag>
+                    </MyTooltip>
+                  ) : (
+                    <Flex alignItems={'center'} fontSize={'xs'}>
+                      <Progress
+                        value={item.uploadedFileRate}
+                        h={'6px'}
+                        w={'100%'}
+                        maxW={'210px'}
+                        size="sm"
+                        borderRadius={'20px'}
+                        colorScheme={(item.uploadedFileRate || 0) >= 100 ? 'green' : 'blue'}
+                        bg="myGray.200"
+                        hasStripe
+                        isAnimated
+                        mr={2}
+                      />
+                      {`${item.uploadedFileRate}%`}
+                    </Flex>
+                  )}
                 </Td>
                 <Td>{item.sourceSize}</Td>
                 <Td>
                   {!item.isUploading && (
                     <Flex alignItems={'center'} gap={4}>
-                      {showPreviewContent && (
-                        <MyTooltip label={t('common:core.dataset.import.Preview raw text')}>
-                          <IconButton
-                            variant={'whitePrimary'}
-                            size={'sm'}
-                            icon={<MyIcon name={'common/viewLight'} w={'18px'} />}
-                            aria-label={''}
-                            onClick={() => setPreviewFile(item)}
-                          />
-                        </MyTooltip>
-                      )}
-
                       <IconButton
                         variant={'grayDanger'}
                         size={'sm'}
@@ -113,9 +107,6 @@ export const RenderUploadFiles = ({
           </Tbody>
         </Table>
       </TableContainer>
-      {!!previewFile && (
-        <PreviewRawText previewSource={previewFile} onClose={() => setPreviewFile(undefined)} />
-      )}
     </>
   ) : null;
 };

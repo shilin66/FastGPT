@@ -1,19 +1,19 @@
 import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
-import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import type { NextApiRequest } from 'next';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
 import { replaceRegChars } from '@fastgpt/global/common/string/tools';
 import { MongoOrgModel } from '@fastgpt/service/support/permission/org/orgSchema';
 import { MongoMemberGroupModel } from '@fastgpt/service/support/permission/memberGroup/memberGroupSchema';
+import { TeamReadPermissionVal } from '@fastgpt/global/support/permission/user/constant';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
   const searchKey = req.query.searchKey as string;
   const members = req.query.members === 'true';
   const orgs = req.query.orgs === 'true';
   const groups = req.query.groups === 'true';
-  const { teamId } = await authUserPer({ req, authToken: true, per: ReadPermissionVal });
+  const { teamId } = await authUserPer({ req, authToken: true, per: TeamReadPermissionVal });
 
   if (members) {
     return { members: await searchMember(searchKey, teamId) };

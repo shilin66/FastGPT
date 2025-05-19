@@ -9,10 +9,9 @@ import type {
 } from '@fastgpt/global/core/ai/type.d';
 import axios from 'axios';
 import { ChatCompletionRequestMessageRoleEnum } from '@fastgpt/global/core/ai/constants';
-import { getFileContentTypeFromHeader, guessBase64ImageType } from '../../common/file/utils';
-import { serverRequestBaseUrl } from '../../common/api/serverRequest';
 import { i18nT } from '../../../web/i18n/utils';
 import { addLog } from '../../common/system/log';
+import { addEndpointToImageUrl, getImageBase64 } from '../../common/file/image/utils';
 
 export const filterGPTMessageByMaxContext = async ({
   messages = [],
@@ -37,50 +36,44 @@ export const filterGPTMessageByMaxContext = async ({
   const systemPrompts: ChatCompletionMessageParam[] = messages.slice(0, chatStartIndex);
   const chatPrompts: ChatCompletionMessageParam[] = messages.slice(chatStartIndex);
 
+  if (chatPrompts.length === 0) {
+    return systemPrompts;
+  }
+
   // reduce token of systemPrompt
   maxContext -= await countGptMessagesTokens(systemPrompts);
 
+  /* 截取时候保证一轮内容的完整性
+    1. user - assistant - user
+    2. user - assistant - tool
+    3. user - assistant - tool - tool - tool
+    3. user - assistant - tool - assistant - tool
+    4. user - assistant - assistant - tool - tool
+  */
   // Save the last chat prompt(question)
-  const question = chatPrompts.pop();
-  if (!question) {
-    return systemPrompts;
-  }
-  const chats: ChatCompletionMessageParam[] = [question];
+  let chats: ChatCompletionMessageParam[] = [];
+  let tmpChats: ChatCompletionMessageParam[] = [];
 
-  // 从后往前截取对话内容, 每次需要截取2个
-  while (1) {
-    const assistant = chatPrompts.pop();
-    const user = chatPrompts.pop();
-    if (!assistant || !user) {
+  // 从后往前截取对话内容, 每次到 user 则认为是一组完整信息
+  while (chatPrompts.length > 0) {
+    const lastMessage = chatPrompts.pop();
+    if (!lastMessage) {
       break;
     }
 
-    const tokens = await countGptMessagesTokens([assistant, user]);
-    maxContext -= tokens;
-    /* 整体 tokens 超出范围，截断  */
-    if (maxContext < 0) {
-      break;
-    }
-
-    chats.unshift(assistant);
-    chats.unshift(user);
-
-    if (chatPrompts.length === 1) {
-      const lastChat = chatPrompts.pop();
-      if (!lastChat) {
-        break;
-      }
-      const tokens = await countGptMessagesTokens([lastChat]);
+    // 遇到 user，说明到了一轮完整信息，可以开始判断是否需要保留
+    if (lastMessage.role === ChatCompletionRequestMessageRoleEnum.User) {
+      const tokens = await countGptMessagesTokens([lastMessage, ...tmpChats]);
       maxContext -= tokens;
-      /* 整体 tokens 超出范围，截断  */
+      // 该轮信息整体 tokens 超出范围，这段数据不要了
       if (maxContext < 0) {
         break;
       }
-      chats.unshift(lastChat);
-    }
 
-    if (chatPrompts.length === 0) {
-      break;
+      chats = [lastMessage, ...tmpChats].concat(chats);
+      tmpChats = [];
+    } else {
+      tmpChats.unshift(lastMessage);
     }
   }
 
@@ -102,26 +95,17 @@ export const loadRequestMessages = async ({
   useVision?: boolean;
   origin?: string;
 }) => {
-  const replaceLinkUrl = (text: string) => {
-    const baseURL = process.env.FE_DOMAIN;
-    if (!baseURL) return text;
-    // 匹配 /api/system/img/xxx.xx 的图片链接，并追加 baseURL
-    return text.replace(
-      /(?<!https?:\/\/[^\s]*)(?:\/api\/system\/img\/[^\s.]*\.[^\s]*)/g,
-      (match) => `${baseURL}${match}`
-    );
-  };
   const parseSystemMessage = (
     content: string | ChatCompletionContentPartText[]
   ): string | ChatCompletionContentPartText[] | undefined => {
     if (typeof content === 'string') {
       if (!content) return;
-      return replaceLinkUrl(content);
+      return addEndpointToImageUrl(content);
     }
 
     const arrayContent = content
       .filter((item) => item.text)
-      .map((item) => ({ ...item, text: replaceLinkUrl(item.text) }));
+      .map((item) => ({ ...item, text: addEndpointToImageUrl(item.text) }));
     if (arrayContent.length === 0) return;
     return arrayContent;
   };
@@ -180,25 +164,13 @@ export const loadRequestMessages = async ({
             try {
               // If imgUrl is a local path, load image from local, and set url to base64
               if (imgUrl.startsWith('/') || process.env.MULTIPLE_DATA_TO_BASE64 === 'true') {
-                addLog.debug('Load image from local server', {
-                  baseUrl: serverRequestBaseUrl,
-                  requestUrl: imgUrl
-                });
-                const response = await axios.get(imgUrl, {
-                  baseURL: serverRequestBaseUrl,
-                  responseType: 'arraybuffer',
-                  proxy: false
-                });
-                const base64 = Buffer.from(response.data, 'binary').toString('base64');
-                const imageType =
-                  getFileContentTypeFromHeader(response.headers['content-type']) ||
-                  guessBase64ImageType(base64);
+                const { completeBase64: base64 } = await getImageBase64(imgUrl);
 
                 return {
                   ...item,
                   image_url: {
                     ...item.image_url,
-                    url: `data:${imageType};base64,${base64}`
+                    url: base64
                   }
                 };
               }
@@ -237,7 +209,8 @@ export const loadRequestMessages = async ({
       await Promise.all(
         content.map(async (item) => {
           if (item.type === 'text') {
-            if (item.text) return parseStringWithImages(item.text);
+            // If it is array, not need to parse image
+            if (item.text) return item;
             return;
           }
           if (item.type === 'file_url') return; // LLM not support file_url

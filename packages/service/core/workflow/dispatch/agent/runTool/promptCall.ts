@@ -1,16 +1,18 @@
 import { createChatCompletion } from '../../../../ai/config';
 import { filterGPTMessageByMaxContext, loadRequestMessages } from '../../../../chat/utils';
 import {
-  ChatCompletion,
   StreamChatType,
   ChatCompletionMessageParam,
-  ChatCompletionAssistantMessageParam
+  CompletionFinishReason
 } from '@fastgpt/global/core/ai/type';
 import { NextApiResponse } from 'next';
 import { responseWriteController } from '../../../../../common/response';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { textAdaptGptResponse } from '@fastgpt/global/core/workflow/runtime/utils';
-import { ChatCompletionRequestMessageRoleEnum } from '@fastgpt/global/core/ai/constants';
+import {
+  ChatCompletionRequestMessageRoleEnum,
+  getLLMDefaultUsage
+} from '@fastgpt/global/core/ai/constants';
 import { dispatchWorkFlow } from '../../index';
 import { DispatchToolModuleProps, RunToolResponse, ToolNodeItemType } from './type.d';
 import json5 from 'json5';
@@ -24,7 +26,13 @@ import {
 import { AIChatItemType } from '@fastgpt/global/core/chat/type';
 import { GPTMessages2Chats } from '@fastgpt/global/core/chat/adapt';
 import { formatToolResponse, initToolCallEdges, initToolNodes } from './utils';
-import { computedMaxToken, llmCompletionsBodyFormat } from '../../../../ai/utils';
+import {
+  computedMaxToken,
+  llmCompletionsBodyFormat,
+  removeDatasetCiteText,
+  parseReasoningContent,
+  parseLLMStreamResponse
+} from '../../../../ai/utils';
 import { WorkflowResponseType } from '../../type';
 import { toolValueTypeList } from '@fastgpt/global/core/workflow/constants';
 import { WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
@@ -53,11 +61,13 @@ export const runToolWithPromptCall = async (
     runtimeEdges,
     externalProvider,
     stream,
+    retainDatasetCite = true,
     workflowStreamResponse,
     params: {
       temperature,
       maxToken,
       aiChatVision,
+      aiChatReasoning,
       aiChatTopP,
       aiChatStopSign,
       aiChatResponseFormat,
@@ -216,7 +226,7 @@ export const runToolWithPromptCall = async (
   const [requestMessages] = await Promise.all([
     loadRequestMessages({
       messages: filterMessages,
-      useVision: toolModel.vision && aiChatVision,
+      useVision: aiChatVision,
       origin: requestOrigin
     })
   ]);
@@ -251,22 +261,71 @@ export const runToolWithPromptCall = async (
     }
   });
 
-  const answer = await (async () => {
-    if (res && isStreamResponse) {
-      const { answer } = await streamResponse({
+  let { answer, reasoning, finish_reason, inputTokens, outputTokens } = await (async () => {
+    if (isStreamResponse) {
+      if (!res || res.closed) {
+        return {
+          answer: '',
+          reasoning: '',
+          finish_reason: 'close' as const,
+          inputTokens: 0,
+          outputTokens: 0
+        };
+      }
+      const { answer, reasoning, finish_reason, usage } = await streamResponse({
         res,
         toolNodes,
         stream: aiResponse,
-        workflowStreamResponse
+        workflowStreamResponse,
+        aiChatReasoning,
+        retainDatasetCite
       });
 
-      return answer;
+      return {
+        answer,
+        reasoning,
+        finish_reason,
+        inputTokens: usage.prompt_tokens,
+        outputTokens: usage.completion_tokens
+      };
     } else {
-      const result = aiResponse as ChatCompletion;
+      const finish_reason = aiResponse.choices?.[0]?.finish_reason as CompletionFinishReason;
+      const content = aiResponse.choices?.[0]?.message?.content || '';
+      // @ts-ignore
+      const reasoningContent: string = aiResponse.choices?.[0]?.message?.reasoning_content || '';
+      const usage = aiResponse.usage;
 
-      return result.choices?.[0]?.message?.content || '';
+      // API already parse reasoning content
+      if (reasoningContent || !aiChatReasoning) {
+        return {
+          answer: content,
+          reasoning: reasoningContent,
+          finish_reason,
+          inputTokens: usage?.prompt_tokens,
+          outputTokens: usage?.completion_tokens
+        };
+      }
+
+      const [think, answer] = parseReasoningContent(content);
+      return {
+        answer,
+        reasoning: think,
+        finish_reason,
+        inputTokens: usage?.prompt_tokens,
+        outputTokens: usage?.completion_tokens
+      };
     }
   })();
+
+  if (stream && !isStreamResponse && aiChatReasoning && reasoning) {
+    workflowStreamResponse?.({
+      event: SseResponseEventEnum.fastAnswer,
+      data: textAdaptGptResponse({
+        reasoning_content: removeDatasetCiteText(reasoning, retainDatasetCite)
+      })
+    });
+  }
+
   const { answer: replaceAnswer, toolJson } = parseAnswer(answer);
   if (!answer && !toolJson) {
     return Promise.reject(getEmptyResponseTip());
@@ -288,19 +347,24 @@ export const runToolWithPromptCall = async (
       workflowStreamResponse?.({
         event: SseResponseEventEnum.fastAnswer,
         data: textAdaptGptResponse({
-          text: replaceAnswer
+          text: removeDatasetCiteText(replaceAnswer, retainDatasetCite)
         })
       });
     }
 
     // No tool is invoked, indicating that the process is over
-    const gptAssistantResponse: ChatCompletionAssistantMessageParam = {
+    const gptAssistantResponse: ChatCompletionMessageParam = {
       role: ChatCompletionRequestMessageRoleEnum.Assistant,
-      content: replaceAnswer
+      content: replaceAnswer,
+      reasoning_text: reasoning
     };
-    const completeMessages = filterMessages.concat(gptAssistantResponse);
-    const inputTokens = await countGptMessagesTokens(requestMessages);
-    const outputTokens = await countGptMessagesTokens([gptAssistantResponse]);
+    const completeMessages = filterMessages.concat({
+      ...gptAssistantResponse,
+      reasoning_text: undefined
+    });
+
+    inputTokens = inputTokens || (await countGptMessagesTokens(requestMessages));
+    outputTokens = outputTokens || (await countGptMessagesTokens([gptAssistantResponse]));
 
     // concat tool assistant
     const toolNodeAssistant = GPTMessages2Chats([gptAssistantResponse])[0] as AIChatItemType;
@@ -379,14 +443,15 @@ export const runToolWithPromptCall = async (
   })();
 
   // 合并工具调用的结果，使用 functionCall 格式存储。
-  const assistantToolMsgParams: ChatCompletionAssistantMessageParam = {
+  const assistantToolMsgParams: ChatCompletionMessageParam = {
     role: ChatCompletionRequestMessageRoleEnum.Assistant,
-    function_call: toolJson
+    function_call: toolJson,
+    reasoning_text: reasoning
   };
 
   // Only toolCall tokens are counted here, Tool response tokens count towards the next reply
-  const inputTokens = await countGptMessagesTokens(requestMessages);
-  const outputTokens = await countGptMessagesTokens([assistantToolMsgParams]);
+  inputTokens = inputTokens || (await countGptMessagesTokens(requestMessages));
+  outputTokens = outputTokens || (await countGptMessagesTokens([assistantToolMsgParams]));
 
   /* 
     ...
@@ -494,7 +559,8 @@ ANSWER: `;
       toolNodeInputTokens,
       toolNodeOutputTokens,
       assistantResponses: toolNodeAssistants,
-      runTimes
+      runTimes,
+      finish_reason
     }
   );
 };
@@ -502,12 +568,16 @@ ANSWER: `;
 async function streamResponse({
   res,
   stream,
-  workflowStreamResponse
+  workflowStreamResponse,
+  aiChatReasoning,
+  retainDatasetCite
 }: {
   res: NextApiResponse;
   toolNodes: ToolNodeItemType[];
   stream: StreamChatType;
   workflowStreamResponse?: WorkflowResponseType;
+  aiChatReasoning?: boolean;
+  retainDatasetCite?: boolean;
 }) {
   const write = responseWriteController({
     res,
@@ -515,48 +585,66 @@ async function streamResponse({
   });
 
   let startResponseWrite = false;
-  let textAnswer = '';
-  let thinkProcessed = false;
+  let answer = '';
+  let reasoning = '';
+  let finish_reason: CompletionFinishReason = null;
+  let usage = getLLMDefaultUsage();
+
+  const { parsePart } = parseLLMStreamResponse();
 
   for await (const part of stream) {
+    usage = part.usage || usage;
     if (res.closed) {
       stream.controller?.abort();
+      finish_reason = 'close';
       break;
     }
 
-    const responseChoice = part.choices?.[0]?.delta;
-    // console.log(responseChoice, '---===');
+    const { reasoningContent, content, responseContent, finishReason } = parsePart({
+      part,
+      parseThinkTag: aiChatReasoning,
+      retainDatasetCite
+    });
+    finish_reason = finish_reason || finishReason;
+    answer += content;
+    reasoning += reasoningContent;
 
-    if (responseChoice?.content) {
-      const content = responseChoice?.content || '';
-      textAnswer += content;
+    // Reasoning response
+    if (aiChatReasoning && reasoningContent) {
+      workflowStreamResponse?.({
+        write,
+        event: SseResponseEventEnum.answer,
+        data: textAdaptGptResponse({
+          reasoning_content: reasoningContent
+        })
+      });
+    }
 
+    if (content) {
       if (startResponseWrite) {
-        workflowStreamResponse?.({
-          write,
-          event: SseResponseEventEnum.answer,
-          data: textAdaptGptResponse({
-            text: content
-          })
-        });
-      } else if (textAnswer.length >= 3) {
-        textAnswer = textAnswer.trim();
-        // 处理 think 标签
-        const thinkTagReg = /^<think>.*?<\/think>/s;
-        if (!thinkProcessed && thinkTagReg.test(textAnswer)) {
-          textAnswer = textAnswer.replace(thinkTagReg, '').trim();
-          thinkProcessed = true;
-        }
-        if (textAnswer.startsWith('0:')) {
-          startResponseWrite = true;
-          // find first : index
-          const firstIndex = textAnswer.indexOf(':');
-          textAnswer = textAnswer.substring(firstIndex + 1).trim();
+        if (responseContent) {
           workflowStreamResponse?.({
             write,
             event: SseResponseEventEnum.answer,
             data: textAdaptGptResponse({
-              text: textAnswer
+              text: responseContent
+            })
+          });
+        }
+      } else if (answer.length >= 3) {
+        answer = answer.trimStart();
+        if (/0(:|：)/.test(answer)) {
+          startResponseWrite = true;
+
+          // find first : index
+          const firstIndex =
+            answer.indexOf('0:') !== -1 ? answer.indexOf('0:') : answer.indexOf('0：');
+          answer = answer.substring(firstIndex + 2).trim();
+          workflowStreamResponse?.({
+            write,
+            event: SseResponseEventEnum.answer,
+            data: textAdaptGptResponse({
+              text: answer
             })
           });
         }
@@ -564,7 +652,7 @@ async function streamResponse({
     }
   }
 
-  return { answer: textAnswer.trim() };
+  return { answer, reasoning, finish_reason, usage };
 }
 
 const parseAnswer = (
@@ -574,14 +662,8 @@ const parseAnswer = (
   toolJson?: FunctionCallCompletion;
 } => {
   str = str.trim();
-  // 处理 think 标签
-  const thinkTagReg = /^<think>.*?<\/think>/s;
-  if (thinkTagReg.test(str)) {
-    str = str.replace(thinkTagReg, '').trim();
-  }
   // 首先，使用正则表达式提取TOOL_ID和TOOL_ARGUMENTS
-  const prefixReg = /^1(:|：)/;
-  const answerPrefixReg = /^0(:|：)/;
+  const prefixReg = /1(:|：)/;
 
   if (prefixReg.test(str)) {
     const toolString = sliceJsonStr(str);
@@ -597,13 +679,21 @@ const parseAnswer = (
         }
       };
     } catch (error) {
-      return {
-        answer: ERROR_TEXT
-      };
+      if (/^1(:|：)/.test(str)) {
+        return {
+          answer: ERROR_TEXT
+        };
+      } else {
+        return {
+          answer: str
+        };
+      }
     }
   } else {
+    const firstIndex = str.indexOf('0:') !== -1 ? str.indexOf('0:') : str.indexOf('0：');
+    const answer = str.substring(firstIndex + 2).trim();
     return {
-      answer: str.replace(answerPrefixReg, '')
+      answer
     };
   }
 };

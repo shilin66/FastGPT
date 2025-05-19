@@ -48,9 +48,10 @@ function List() {
     onDelDataset,
     onUpdateDataset,
     myDatasets,
-    folderDetail
+    folderDetail,
+    setSearchKey
   } = useContextSelector(DatasetsContext, (v) => v);
-  const [editPerDatasetIndex, setEditPerDatasetIndex] = useState<number>();
+  const [editPerDatasetId, setEditPerDatasetId] = useState<string>();
   const router = useRouter();
   const { parentId = null } = router.query as { parentId?: string | null };
   const parentDataset = useMemo(
@@ -81,8 +82,8 @@ function List() {
   });
 
   const editPerDataset = useMemo(
-    () => (editPerDatasetIndex !== undefined ? myDatasets[editPerDatasetIndex] : undefined),
-    [editPerDatasetIndex, myDatasets]
+    () => myDatasets.find((item) => String(item._id) === String(editPerDatasetId)),
+    [editPerDatasetId, myDatasets]
   );
 
   const { mutate: exportDataset } = useRequest({
@@ -201,6 +202,7 @@ function List() {
                   }}
                   onClick={() => {
                     if (dataset.type === DatasetTypeEnum.folder) {
+                      setSearchKey('');
                       router.push({
                         pathname: '/dataset/list',
                         query: {
@@ -239,8 +241,8 @@ function List() {
                   <Box
                     flex={1}
                     className={'textEllipsis3'}
+                    whiteSpace={'pre-wrap'}
                     py={3}
-                    wordBreak={'break-all'}
                     fontSize={'xs'}
                     color={'myGray.500'}
                   >
@@ -344,7 +346,7 @@ function List() {
                                         {
                                           icon: 'key',
                                           label: t('common:permission.Permission'),
-                                          onClick: () => setEditPerDatasetIndex(index)
+                                          onClick: () => setEditPerDatasetId(dataset._id)
                                         }
                                       ]
                                     : [])
@@ -447,7 +449,7 @@ function List() {
               }),
             refreshDeps: [editPerDataset._id, editPerDataset.inheritPermission]
           }}
-          onClose={() => setEditPerDatasetIndex(undefined)}
+          onClose={() => setEditPerDatasetId(undefined)}
         />
       )}
       <ConfirmModal />

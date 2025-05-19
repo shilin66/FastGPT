@@ -36,8 +36,9 @@ import JsonEditor from '@fastgpt/web/components/common/Textarea/JsonEditor';
 import MyMenu from '@fastgpt/web/components/common/MyMenu';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
-import { Prompt_CQJson, Prompt_ExtractJson } from '@fastgpt/global/core/ai/prompt/agent';
 import MyModal from '@fastgpt/web/components/common/MyModal';
+import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
+import { getCQPrompt, getExtractJsonPrompt } from '@fastgpt/global/core/ai/prompt/agent';
 
 export const AddModelButton = ({
   onCreate,
@@ -126,14 +127,23 @@ export const ModelEditModal = ({
   );
 
   const priceUnit = useMemo(() => {
-    if (isLLMModel || isEmbeddingModel) return '/ 1k Tokens';
+    if (isLLMModel || isEmbeddingModel || isRerankModel) return '/ 1k Tokens';
     if (isTTSModel) return `/ 1k ${t('common:unit.character')}`;
     if (isSTTModel) return `/ 60 ${t('common:unit.seconds')}`;
     return '';
-  }, [isLLMModel, isEmbeddingModel, isTTSModel, t, isSTTModel]);
+  }, [isLLMModel, isEmbeddingModel, isTTSModel, t, isSTTModel, isRerankModel]);
 
   const { runAsync: updateModel, loading: updatingModel } = useRequest2(
     async (data: SystemModelItemType) => {
+      for (const key in data) {
+        // @ts-ignore
+        const val = data[key];
+        if (val === null || val === undefined || Number.isNaN(val)) {
+          // @ts-ignore
+          data[key] = '';
+        }
+      }
+
       return putSystemModel({
         model: data.model,
         metadata: data
@@ -204,7 +214,7 @@ export const ModelEditModal = ({
                   <Td textAlign={'right'}>
                     <MySelect
                       value={provider}
-                      onchange={(value) => setValue('provider', value)}
+                      onChange={(value) => setValue('provider', value)}
                       list={providerList.current}
                       {...InputStyles}
                     />
@@ -295,7 +305,16 @@ export const ModelEditModal = ({
                 {isLLMModel && (
                   <>
                     <Tr>
-                      <Td>{t('common:core.ai.Max context')}</Td>
+                      <Td>
+                        <FormLabel
+                          required
+                          color={'myGray.600'}
+                          fontSize={'md'}
+                          fontWeight={'normal'}
+                        >
+                          {t('common:core.ai.Max context')}
+                        </FormLabel>
+                      </Td>
                       <Td textAlign={'right'}>
                         <Flex justifyContent={'flex-end'}>
                           <MyNumberInput
@@ -308,7 +327,16 @@ export const ModelEditModal = ({
                       </Td>
                     </Tr>
                     <Tr>
-                      <Td>{t('account:model.max_quote')}</Td>
+                      <Td>
+                        <FormLabel
+                          required
+                          color={'myGray.600'}
+                          fontSize={'md'}
+                          fontWeight={'normal'}
+                        >
+                          {t('account:model.max_quote')}
+                        </FormLabel>
+                      </Td>
                       <Td textAlign={'right'}>
                         <Flex justifyContent={'flex-end'}>
                           <MyNumberInput
@@ -321,20 +349,36 @@ export const ModelEditModal = ({
                       </Td>
                     </Tr>
                     <Tr>
-                      <Td>{t('common:core.chat.response.module maxToken')}</Td>
+                      <Td>
+                        <HStack spacing={1}>
+                          <Box>{t('common:core.chat.response.module maxToken')}</Box>
+                          <QuestionTip label={t('account_model:maxToken_tip')} />
+                        </HStack>
+                      </Td>
                       <Td textAlign={'right'}>
                         <Flex justifyContent={'flex-end'}>
-                          <MyNumberInput register={register} name="maxResponse" {...InputStyles} />
+                          <MyNumberInput
+                            min={2000}
+                            register={register}
+                            name="maxResponse"
+                            {...InputStyles}
+                          />
                         </Flex>
                       </Td>
                     </Tr>
                     <Tr>
-                      <Td>{t('account:model.max_temperature')}</Td>
+                      <Td>
+                        <HStack spacing={1}>
+                          <Box>{t('account:model.max_temperature')}</Box>
+                          <QuestionTip label={t('account_model:max_temperature_tip')} />
+                        </HStack>
+                      </Td>
                       <Td textAlign={'right'}>
                         <Flex justifyContent={'flex-end'}>
                           <MyNumberInput
                             register={register}
                             name="maxTemperature"
+                            min={0}
                             step={0.1}
                             {...InputStyles}
                           />
@@ -447,7 +491,7 @@ export const ModelEditModal = ({
                             value={JSON.stringify(getValues('defaultConfig'), null, 2)}
                             onChange={(e) => {
                               if (!e) {
-                                setValue('defaultConfig', {});
+                                setValue('defaultConfig', undefined);
                                 return;
                               }
                               try {
@@ -566,32 +610,6 @@ export const ModelEditModal = ({
                   <Tr>
                     <Td>
                       <HStack spacing={1}>
-                        <Box>{t('account:model.function_call')}</Box>
-                        <QuestionTip label={t('account:model.function_call_tip')} />
-                      </HStack>
-                    </Td>
-                    <Td textAlign={'right'}>
-                      <Flex justifyContent={'flex-end'}>
-                        <Switch {...register('functionCall')} />
-                      </Flex>
-                    </Td>
-                  </Tr>
-                  <Tr>
-                    <Td>
-                      <HStack spacing={1}>
-                        <Box>{t('account:model.function_call_stream')}</Box>
-                        <QuestionTip label={t('account:model.function_call_stream_tip')} />
-                      </HStack>
-                    </Td>
-                    <Td textAlign={'right'}>
-                      <Flex justifyContent={'flex-end'}>
-                        <Switch {...register('functionCallStream')} />
-                      </Flex>
-                    </Td>
-                  </Tr>
-                  <Tr>
-                    <Td>
-                      <HStack spacing={1}>
                         <Box>{t('account:model.vision')}</Box>
                         <QuestionTip label={t('account:model.vision_tip')} />
                       </HStack>
@@ -678,7 +696,9 @@ export const ModelEditModal = ({
                       <HStack spacing={1}>
                         <Box>{t('account:model.custom_cq_prompt')}</Box>
                         <QuestionTip
-                          label={t('account:model.custom_cq_prompt_tip', { prompt: Prompt_CQJson })}
+                          label={t('account:model.custom_cq_prompt_tip', {
+                            prompt: getCQPrompt()
+                          })}
                         />
                       </HStack>
                     </Td>
@@ -692,7 +712,7 @@ export const ModelEditModal = ({
                         <Box>{t('account:model.custom_extract_prompt')}</Box>
                         <QuestionTip
                           label={t('account:model.custom_extract_prompt_tip', {
-                            prompt: Prompt_ExtractJson
+                            prompt: getExtractJsonPrompt()
                           })}
                         />
                       </HStack>
@@ -713,12 +733,13 @@ export const ModelEditModal = ({
                         value={JSON.stringify(getValues('defaultConfig'), null, 2)}
                         resize
                         onChange={(e) => {
+                          console.log(e, '===');
                           if (!e) {
-                            setValue('defaultConfig', {});
+                            setValue('defaultConfig', undefined);
                             return;
                           }
                           try {
-                            setValue('defaultConfig', JSON.parse(e));
+                            setValue('defaultConfig', JSON.parse(e.trim()));
                           } catch (error) {
                             console.error(error);
                           }
