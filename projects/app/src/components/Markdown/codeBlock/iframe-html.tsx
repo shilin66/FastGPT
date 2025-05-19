@@ -18,6 +18,7 @@ import { useMarkdownWidth } from '../hooks';
 import type { IconNameType } from '@fastgpt/web/components/common/Icon/type.d';
 import { codeLight } from './CodeLight';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
+import { useSystemStore } from '@/web/common/system/useSystemStore';
 
 const StyledButton = ({
   label,
@@ -100,6 +101,7 @@ const IframeHtmlCodeBlock = ({
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const { width, Ref } = useMarkdownWidth();
+  const { feConfigs } = useSystemStore();
   const isMobile = width <= 420;
 
   const codeBoxName = useMemo(() => {
@@ -114,7 +116,7 @@ const IframeHtmlCodeBlock = ({
     () => (
       <iframe
         srcDoc={String(children)}
-        sandbox=""
+        sandbox={`${feConfigs.markdownIframeSandbox}`}
         referrerPolicy="no-referrer"
         style={{
           width: '100%',

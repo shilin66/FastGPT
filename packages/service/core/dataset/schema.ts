@@ -1,5 +1,8 @@
 import { getMongoModel, Schema } from '../../common/mongo';
 import {
+  ChunkSettingModeEnum,
+  DataChunkSplitModeEnum,
+  DatasetCollectionDataProcessModeEnum,
   DatasetStatusEnum,
   DatasetStatusMap,
   DatasetTypeEnum,
@@ -11,9 +14,30 @@ import {
   TeamMemberCollectionName
 } from '@fastgpt/global/support/user/team/constant';
 import type { DatasetSchemaType } from '@fastgpt/global/core/dataset/type.d';
-import { ImportProcessWayEnum } from '../../../../projects/app/src/web/core/dataset/constants';
 
 export const DatasetCollectionName = 'datasets';
+
+export const ChunkSettings = {
+  imageIndex: Boolean,
+  autoIndexes: Boolean,
+  trainingType: {
+    type: String,
+    enum: Object.values(DatasetCollectionDataProcessModeEnum)
+  },
+  chunkSettingMode: {
+    type: String,
+    enum: Object.values(ChunkSettingModeEnum)
+  },
+  chunkSplitMode: {
+    type: String,
+    enum: Object.values(DataChunkSplitModeEnum)
+  },
+  chunkSize: Number,
+  chunkSplitter: String,
+
+  indexSize: Number,
+  qaPrompt: String
+};
 
 const DatasetSchema = new Schema({
   parentId: {
@@ -42,11 +66,6 @@ const DatasetSchema = new Schema({
     required: true,
     default: DatasetTypeEnum.dataset
   },
-  status: {
-    type: String,
-    enum: Object.keys(DatasetStatusMap),
-    default: DatasetStatusEnum.active
-  },
   avatar: {
     type: String,
     default: '/icon/logo.svg'
@@ -69,6 +88,7 @@ const DatasetSchema = new Schema({
     required: true,
     default: 'gpt-4o-mini'
   },
+  vlmModel: String,
   intro: {
     type: String,
     default: ''
@@ -84,6 +104,9 @@ const DatasetSchema = new Schema({
         default: 'body'
       }
     }
+  },
+  chunkSettings: {
+    type: ChunkSettings
   },
   confluenceConfig: {
     type: {
@@ -101,13 +124,15 @@ const DatasetSchema = new Schema({
         type: Boolean,
         default: false
       },
+
+      // abandon
       mode: {
         type: String,
-        enum: TrainingModeEnum
+        enum: DatasetCollectionDataProcessModeEnum
       },
       way: {
         type: String,
-        enum: ImportProcessWayEnum
+        enum: Object.values(ChunkSettingModeEnum)
       },
       chunkSize: {
         type: Number,
@@ -135,9 +160,13 @@ const DatasetSchema = new Schema({
     type: Object
   },
 
-  autoSync: Boolean,
-
   // abandoned
+  status: {
+    type: String,
+    enum: Object.keys(DatasetStatusMap),
+    default: DatasetStatusEnum.active
+  },
+  autoSync: Boolean,
   externalReadUrl: {
     type: String
   },

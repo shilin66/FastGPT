@@ -1,5 +1,5 @@
 import {
-  MemberGroupListType,
+  MemberGroupListItemType,
   MemberGroupSchemaType
 } from '@fastgpt/global/support/permission/memberGroup/type';
 import { MongoGroupMemberModel } from './groupMemberSchema';
@@ -7,12 +7,17 @@ import { parseHeaderCert } from '../controller';
 import { MongoMemberGroupModel } from './memberGroupSchema';
 import { DefaultGroupName } from '@fastgpt/global/support/user/team/group/constant';
 import { ClientSession } from 'mongoose';
-import { GroupMemberRole } from '@fastgpt/global/support/permission/memberGroup/constant';
+import {
+  GroupMemberRole,
+  memberGroupPermissionList
+} from '@fastgpt/global/support/permission/memberGroup/constant';
 import { AuthModeType, AuthResponseType } from '../type';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
 import { getTmbInfoByTmbId } from '../../user/team/controller';
 import { MongoResourcePermission } from '../schema';
+import { TeamMemberSchema } from '@fastgpt/global/support/user/team/type';
+import { Permission } from '@fastgpt/global/support/permission/controller';
 
 /**
  * Get the default group of a team
@@ -150,38 +155,75 @@ export const createMemberGroup = async (data: {
   );
 };
 
-export const listMemberGroup = async (teamId: string, tmbId: string) => {
-  let memberGroupList: MemberGroupListType = [];
-  const groupList = await MongoMemberGroupModel.find({ teamId }).lean();
-  // 获取groupIds
-  const groupIdList = groupList.map((group) => group._id);
-  // 根据groupId获取成员列表
-  const memberList = await MongoGroupMemberModel.find({ groupId: { $in: groupIdList } }).lean();
-  const groupMemberMap: { [key: string]: any } = {};
-  // 将memberList 添加到groupMemberMap中
-  memberList.map((member) => {
-    groupMemberMap[member.groupId] = groupMemberMap[member.groupId] || [];
-    groupMemberMap[member.groupId].push(member);
-  });
-
-  // 获取group的权限列表
-  const permissionList = await MongoResourcePermission.find({
-    groupId: { $in: groupIdList },
-    resourceType: 'team'
+export const listMemberGroup = async (
+  teamId: string,
+  tmbId: string,
+  searchKey?: string,
+  withMember?: boolean
+) => {
+  const groupList = await MongoMemberGroupModel.find({
+    teamId,
+    name: { $regex: searchKey || '' }
   }).lean();
+  if (!withMember) {
+    return groupList as unknown as MemberGroupListItemType<false>[];
+  }
+  // 获取groupIds
+  const groupIdList = groupList.map((group) => group._id.toString());
+
+  // 根据groupId获取成员列表
+  const groupMemberList = await MongoGroupMemberModel.find({ groupId: { $in: groupIdList } })
+    .populate<{ tmb: TeamMemberSchema }>({
+      path: 'tmb',
+      select: 'name avatar'
+    })
+    .lean();
+  const groupMemberMap: { [key: string]: any } = {};
+  const groupOwnerMap: { [key: string]: any } = {};
   const groupPermissionMap: { [key: string]: any } = {};
-  permissionList.map((permission) => {
-    if (permission.groupId) {
-      groupPermissionMap[permission.groupId] = permission.permission;
+  // 将memberList 添加到groupMemberMap中
+  groupMemberList.map((member) => {
+    groupMemberMap[member.groupId] = groupMemberMap[member.groupId] || [];
+    groupMemberMap[member.groupId].push({
+      tmbId: member.tmbId,
+      name: member.tmb?.name,
+      avatar: member.tmb?.avatar
+    });
+    if (member.role === GroupMemberRole.owner) {
+      groupOwnerMap[member.groupId] = {
+        tmbId: member.tmbId,
+        name: member.tmb?.name,
+        avatar: member.tmb?.avatar
+      };
+    }
+    console.log('groupMemberMap', groupMemberMap);
+    if (member.tmbId.toString() === tmbId) {
+      if (member.role === GroupMemberRole.owner) {
+        groupPermissionMap[member.groupId] = new Permission({
+          isOwner: true
+        });
+      } else if (member.role === GroupMemberRole.admin) {
+        groupPermissionMap[member.groupId] = new Permission({
+          per: memberGroupPermissionList.manage.value
+        });
+      } else {
+        groupPermissionMap[member.groupId] = new Permission({
+          per: memberGroupPermissionList.read.value
+        });
+      }
     }
   });
+
+  const memberGroupList: MemberGroupListItemType<true>[] = [] as MemberGroupListItemType<true>[];
 
   groupList.map((group) =>
     memberGroupList.push({
       ...group,
       members: groupMemberMap[group._id] || [],
-      permission: new TeamPermission({ per: groupPermissionMap[group._id] })
-    })
+      count: groupMemberMap[group._id]?.length || 0,
+      owner: groupOwnerMap[group._id] || {},
+      permission: groupPermissionMap[group._id]
+    } as unknown as MemberGroupListItemType<true>)
   );
   return memberGroupList;
 };

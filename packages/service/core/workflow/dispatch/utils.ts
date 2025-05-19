@@ -1,12 +1,10 @@
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 import type { ChatItemType } from '@fastgpt/global/core/chat/type.d';
-import {
-  WorkflowIOValueTypeEnum,
-  NodeOutputKeyEnum
-} from '@fastgpt/global/core/workflow/constants';
+import { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import {
   RuntimeEdgeItemType,
+  RuntimeNodeItemType,
   SystemVariablesType
 } from '@fastgpt/global/core/workflow/runtime/type';
 import { responseWrite } from '../../../common/response';
@@ -14,7 +12,8 @@ import { NextApiResponse } from 'next';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { SearchDataResponseItemType } from '@fastgpt/global/core/dataset/type';
-import json5 from 'json5';
+import { getMCPToolRuntimeNode } from '@fastgpt/global/core/app/mcpTools/utils';
+import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 
 export const getWorkflowResponseWrite = ({
   res,
@@ -32,30 +31,22 @@ export const getWorkflowResponseWrite = ({
   return ({
     write,
     event,
-    data,
-    stream
+    data
   }: {
     write?: (text: string) => void;
     event: SseResponseEventEnum;
     data: Record<string, any>;
-    stream?: boolean; // Focus set stream response
   }) => {
-    const useStreamResponse = stream ?? streamResponse;
+    const useStreamResponse = streamResponse;
 
     if (!res || res.closed || !useStreamResponse) return;
 
     // Forbid show detail
-    const detailEvent: Record<string, 1> = {
-      [SseResponseEventEnum.error]: 1,
-      [SseResponseEventEnum.flowNodeStatus]: 1,
-      [SseResponseEventEnum.flowResponses]: 1,
-      [SseResponseEventEnum.interactive]: 1,
-      [SseResponseEventEnum.toolCall]: 1,
-      [SseResponseEventEnum.toolParams]: 1,
-      [SseResponseEventEnum.toolResponse]: 1,
-      [SseResponseEventEnum.updateVariables]: 1
+    const notDetailEvent: Record<string, 1> = {
+      [SseResponseEventEnum.answer]: 1,
+      [SseResponseEventEnum.fastAnswer]: 1
     };
-    if (!detail && detailEvent[event]) return;
+    if (!detail && !notDetailEvent[event]) return;
 
     // Forbid show running status
     const statusEvent: Record<string, 1> = {
@@ -101,40 +92,6 @@ export const getHistories = (history?: ChatItemType[] | number, histories: ChatI
   })();
 
   return [...systemHistories, ...filterHistories];
-};
-
-/* value type format */
-export const valueTypeFormat = (value: any, type?: WorkflowIOValueTypeEnum) => {
-  if (value === undefined) return;
-
-  if (type === 'string') {
-    if (typeof value !== 'object') return String(value);
-    return JSON.stringify(value);
-  }
-  if (type === 'number') return Number(value);
-  if (type === 'boolean') {
-    if (typeof value === 'string') return value === 'true';
-    return Boolean(value);
-  }
-  try {
-    if (
-      type &&
-      [
-        WorkflowIOValueTypeEnum.object,
-        WorkflowIOValueTypeEnum.chatHistory,
-        WorkflowIOValueTypeEnum.datasetQuote,
-        WorkflowIOValueTypeEnum.selectApp,
-        WorkflowIOValueTypeEnum.selectDataset
-      ].includes(type) &&
-      typeof value !== 'object'
-    ) {
-      return json5.parse(value);
-    }
-  } catch (error) {
-    return value;
-  }
-
-  return value;
 };
 
 export const checkQuoteQAValue = (quoteQA?: SearchDataResponseItemType[]) => {
@@ -188,4 +145,54 @@ export const formatHttpError = (error: any) => {
     code: error?.code,
     status: error?.status
   };
+};
+
+export const rewriteRuntimeWorkFlow = (
+  nodes: RuntimeNodeItemType[],
+  edges: RuntimeEdgeItemType[]
+) => {
+  const toolSetNodes = nodes.filter((node) => node.flowNodeType === FlowNodeTypeEnum.toolSet);
+
+  if (toolSetNodes.length === 0) {
+    return;
+  }
+
+  const nodeIdsToRemove = new Set<string>();
+
+  for (const toolSetNode of toolSetNodes) {
+    nodeIdsToRemove.add(toolSetNode.nodeId);
+    const toolList =
+      toolSetNode.inputs.find((input) => input.key === 'toolSetData')?.value?.toolList || [];
+    const url = toolSetNode.inputs.find((input) => input.key === 'toolSetData')?.value?.url;
+
+    const incomingEdges = edges.filter((edge) => edge.target === toolSetNode.nodeId);
+
+    for (const tool of toolList) {
+      const newToolNode = getMCPToolRuntimeNode({ avatar: toolSetNode.avatar, tool, url });
+
+      nodes.push({ ...newToolNode, name: `${toolSetNode.name} / ${tool.name}` });
+
+      for (const inEdge of incomingEdges) {
+        edges.push({
+          source: inEdge.source,
+          target: newToolNode.nodeId,
+          sourceHandle: inEdge.sourceHandle,
+          targetHandle: 'selectedTools',
+          status: inEdge.status
+        });
+      }
+    }
+  }
+
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    if (nodeIdsToRemove.has(nodes[i].nodeId)) {
+      nodes.splice(i, 1);
+    }
+  }
+
+  for (let i = edges.length - 1; i >= 0; i--) {
+    if (nodeIdsToRemove.has(edges[i].target)) {
+      edges.splice(i, 1);
+    }
+  }
 };

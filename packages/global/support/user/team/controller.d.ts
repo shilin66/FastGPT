@@ -10,7 +10,6 @@ export type AuthTeamRoleProps = {
 export type CreateTeamProps = {
   name: string;
   avatar?: string;
-  defaultTeam?: boolean;
   memberName?: string;
   memberAvatar?: string;
   notificationAccount?: string;
@@ -37,11 +36,6 @@ export type InviteMemberProps = {
   usernames: string[];
 };
 export type UpdateInviteProps = {
-  tmbId: string;
-  status: TeamMemberSchema['status'];
-};
-
-export type UpdateStatusProps = {
   tmbId: string;
   status: TeamMemberSchema['status'];
 };

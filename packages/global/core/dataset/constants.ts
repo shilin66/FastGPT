@@ -14,28 +14,28 @@ export enum DatasetTypeEnum {
 export const DatasetTypeMap = {
   [DatasetTypeEnum.folder]: {
     icon: 'common/folderFill',
-    label: 'folder_dataset',
-    collectionLabel: 'common.Folder'
+    label: i18nT('dataset:folder_dataset'),
+    collectionLabel: i18nT('common:Folder')
   },
   [DatasetTypeEnum.dataset]: {
     icon: 'core/dataset/commonDatasetOutline',
-    label: 'common_dataset',
-    collectionLabel: 'common.File'
+    label: i18nT('dataset:common_dataset'),
+    collectionLabel: i18nT('common:common.File')
   },
   [DatasetTypeEnum.websiteDataset]: {
     icon: 'core/dataset/websiteDatasetOutline',
-    label: 'website_dataset',
-    collectionLabel: 'common.Website'
+    label: i18nT('dataset:website_dataset'),
+    collectionLabel: i18nT('common:common.Website')
   },
   [DatasetTypeEnum.externalFile]: {
     icon: 'core/dataset/externalDatasetOutline',
-    label: 'external_file',
-    collectionLabel: 'common.File'
+    label: i18nT('dataset:external_file'),
+    collectionLabel: i18nT('common:common.File')
   },
   [DatasetTypeEnum.apiDataset]: {
     icon: 'core/dataset/externalDatasetOutline',
-    label: 'api_file',
-    collectionLabel: 'common.File'
+    label: i18nT('dataset:api_file'),
+    collectionLabel: i18nT('common:common.File')
   },
   [DatasetTypeEnum.confluenceDataset]: {
     icon: 'core/dataset/confluenceDataset',
@@ -44,19 +44,21 @@ export const DatasetTypeMap = {
   },
   [DatasetTypeEnum.feishu]: {
     icon: 'core/dataset/feishuDatasetOutline',
-    label: 'feishu_dataset',
-    collectionLabel: 'common.File'
+    label: i18nT('dataset:feishu_dataset'),
+    collectionLabel: i18nT('common:common.File')
   },
   [DatasetTypeEnum.yuque]: {
     icon: 'core/dataset/yuqueDatasetOutline',
-    label: 'yuque_dataset',
-    collectionLabel: 'common.File'
+    label: i18nT('dataset:yuque_dataset'),
+    collectionLabel: i18nT('common:common.File')
   }
 };
 
 export enum DatasetStatusEnum {
   active = 'active',
-  syncing = 'syncing'
+  syncing = 'syncing',
+  waiting = 'waiting',
+  error = 'error'
 }
 export const DatasetStatusMap = {
   [DatasetStatusEnum.active]: {
@@ -64,6 +66,12 @@ export const DatasetStatusMap = {
   },
   [DatasetStatusEnum.syncing]: {
     label: i18nT('common:core.dataset.status.syncing')
+  },
+  [DatasetStatusEnum.waiting]: {
+    label: i18nT('common:core.dataset.status.waiting')
+  },
+  [DatasetStatusEnum.error]: {
+    label: i18nT('dataset:status_error')
   }
 };
 
@@ -115,6 +123,36 @@ export const DatasetCollectionSyncResultMap = {
   }
 };
 
+export enum DatasetCollectionDataProcessModeEnum {
+  chunk = 'chunk',
+  qa = 'qa',
+  auto = 'auto' // abandon
+}
+export const DatasetCollectionDataProcessModeMap = {
+  [DatasetCollectionDataProcessModeEnum.chunk]: {
+    label: i18nT('common:core.dataset.training.Chunk mode'),
+    tooltip: i18nT('common:core.dataset.import.Chunk Split Tip')
+  },
+  [DatasetCollectionDataProcessModeEnum.qa]: {
+    label: i18nT('common:core.dataset.training.QA mode'),
+    tooltip: i18nT('common:core.dataset.import.QA Import Tip')
+  },
+  [DatasetCollectionDataProcessModeEnum.auto]: {
+    label: i18nT('common:core.dataset.training.Auto mode'),
+    tooltip: i18nT('common:core.dataset.training.Auto mode Tip')
+  }
+};
+
+export enum ChunkSettingModeEnum {
+  auto = 'auto',
+  custom = 'custom'
+}
+
+export enum DataChunkSplitModeEnum {
+  size = 'size',
+  char = 'char'
+}
+
 /* ------------ data -------------- */
 
 /* ------------ training -------------- */
@@ -130,8 +168,9 @@ export enum ImportDataSourceEnum {
 
 export enum TrainingModeEnum {
   chunk = 'chunk',
-  // auto = 'auto',
-  qa = 'qa'
+  qa = 'qa',
+  auto = 'auto',
+  image = 'image'
 }
 
 export const TrainingTypeMap = {
@@ -140,11 +179,11 @@ export const TrainingTypeMap = {
     tooltip: i18nT('common:core.dataset.import.Chunk Split Tip'),
     openSource: true
   },
-  // [TrainingModeEnum.auto]: {
-  //   label: i18nT('common:core.dataset.training.Auto mode'),
-  //   tooltip: i18nT('common:core.dataset.training.Auto mode Tip'),
-  //   openSource: false
-  // },
+  [TrainingModeEnum.auto]: {
+    label: i18nT('common:core.dataset.training.Auto mode'),
+    tooltip: i18nT('common:core.dataset.training.Auto mode Tip'),
+    openSource: false
+  },
   [TrainingModeEnum.qa]: {
     label: i18nT('common:core.dataset.training.QA mode'),
     tooltip: i18nT('common:core.dataset.import.QA Import Tip'),
@@ -188,7 +227,7 @@ export enum SearchScoreTypeEnum {
 }
 export const SearchScoreTypeMap = {
   [SearchScoreTypeEnum.embedding]: {
-    label: i18nT('common:core.dataset.search.score.embedding'),
+    label: i18nT('common:core.dataset.search.mode.embedding'),
     desc: i18nT('common:core.dataset.search.score.embedding desc'),
     showScore: true
   },

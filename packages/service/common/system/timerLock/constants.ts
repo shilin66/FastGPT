@@ -1,12 +1,13 @@
 export enum TimerIdEnum {
-  checkInValidDatasetFiles = 'checkInValidDatasetFiles',
+  checkExpiredFiles = 'checkExpiredFiles',
   checkInvalidDatasetData = 'checkInvalidDatasetData',
   checkInvalidVector = 'checkInvalidVector',
   clearExpiredSubPlan = 'clearExpiredSubPlan',
   updateStandardPlan = 'updateStandardPlan',
   scheduleTriggerApp = 'scheduleTriggerApp',
   scheduleSyncConfluenceDataset = 'scheduleSyncConfluenceDataset',
-  notification = 'notification'
+  notification = 'notification',
+  scheduleSyncConfluenceDatasetCron = 'scheduleSyncConfluenceDatasetCron'
 }
 
 export enum LockNotificationEnum {

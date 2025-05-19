@@ -10,6 +10,7 @@ import type {
 } from 'openai/resources';
 import { ChatMessageTypeEnum } from './constants';
 import { WorkflowInteractiveResponseType } from '../workflow/template/system/interactive/type';
+import { Stream } from 'openai/streaming';
 export * from 'openai/resources';
 
 // Extension of ChatCompletionMessageParam, Add file url type
@@ -59,6 +60,7 @@ export type ChatCompletionAssistantToolParam = {
   tool_calls: ChatCompletionMessageToolCall[];
 };
 export type ChatCompletionMessageToolCall = ChatCompletionMessageToolCall & {
+  index?: number;
   toolName?: string;
   toolAvatar?: string;
 };
@@ -73,12 +75,22 @@ export type ChatCompletionMessageFunctionCall =
 export type StreamChatType = Stream<openai.Chat.Completions.ChatCompletionChunk>;
 export type UnStreamChatType = openai.Chat.Completions.ChatCompletion;
 
+export type CompletionFinishReason =
+  | 'close'
+  | 'stop'
+  | 'length'
+  | 'tool_calls'
+  | 'content_filter'
+  | 'function_call'
+  | null;
+
 export default openai;
 export * from 'openai';
+export type { Stream };
 
 // Other
 export type PromptTemplateItem = {
   title: string;
   desc: string;
-  value: string;
+  value: Record<string, string>;
 };

@@ -27,7 +27,7 @@ const SystemMsgModal = ({}: {}) => {
 
   const onclickRead = useCallback(() => {
     if (!data) return;
-    setSysMsgReadId(data.id);
+    setSysMsgReadId(data.id || '');
     onClose();
   }, [data, onClose, setSysMsgReadId]);
 

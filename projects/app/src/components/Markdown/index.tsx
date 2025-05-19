@@ -13,6 +13,8 @@ import dynamic from 'next/dynamic';
 
 import { Box } from '@chakra-ui/react';
 import { CodeClassNameEnum, mdTextFormat } from './utils';
+import { useCreation } from 'ahooks';
+import { OutLinkChatAuthProps } from '@fastgpt/global/support/permission/chat';
 import { useTranslation } from 'next-i18next';
 
 const CodeLight = dynamic(() => import('./codeBlock/CodeLight'), { ssr: false });
@@ -33,6 +35,11 @@ type Props = {
   showAnimation?: boolean;
   isDisabled?: boolean;
   forbidZhFormat?: boolean;
+  chatAuthData?: {
+    appId: string;
+    chatId: string;
+    chatItemDataId: string;
+  } & OutLinkChatAuthProps;
 };
 const Markdown = (props: Props) => {
   const source = props.source || '';
@@ -43,75 +50,23 @@ const Markdown = (props: Props) => {
 
   return <Box whiteSpace={'pre-wrap'}>{source}</Box>;
 };
-const MarkdownRender = ({ source = '', showAnimation, isDisabled, forbidZhFormat }: Props) => {
-  const components = useMemo<any>(
-    () => ({
+const MarkdownRender = ({
+  source = '',
+  showAnimation,
+  isDisabled,
+  forbidZhFormat,
+  chatAuthData
+}: Props) => {
+  const components = useCreation(() => {
+    return {
       img: Image,
       pre: RewritePre,
       code: Code,
-      a: A
-    }),
-    []
-  );
+      a: (props: any) => <A {...props} showAnimation={showAnimation} chatAuthData={chatAuthData} />
+    };
+  }, [chatAuthData, showAnimation]);
 
   const { t } = useTranslation();
-  const converterThinkTags = (input: string): string => {
-    const thinkTagReg = /<think>([\s\S]*?)<\/think>/g;
-    if (input.startsWith('<think>')) {
-      if (!thinkTagReg.test(input)) {
-        const quotedContent = input
-          .trim()
-          .split('\n')
-          .map((line: string) => `> ${line.trim()}`)
-          .join('\n');
-        return `
-<details open>
-<summary style="
-  padding: 6px;
-  color: #595959;
-  font-size: 15px;
-  border-radius: 4px;
-  width: 150px;
-  background: white;
-">
-  🤔️ ${t('core.chat.response.thinking')}
-</summary>
-
-${quotedContent}
-
-</details>
-`;
-      } else {
-        return input.replace(/<think>([\s\S]*?)<\/think>/g, (_, content) => {
-          const quotedContent = content
-            .trim()
-            .split('\n')
-            .map((line: string) => `> ${line}`)
-            .join('\n');
-
-          return `
-<details>
-<summary style="
-  padding: 6px;
-  color: #595959;
-  font-size: 15px;
-  border-radius: 6px;
-  width: 150px;
-  background: white;
-">
-   🤔️ ${t('core.chat.response.think process')}
-</summary>
-
-${quotedContent}
-
-</details>
-`;
-        });
-      }
-    } else {
-      return input;
-    }
-  };
 
   const formatSource = useMemo(() => {
     if (showAnimation || forbidZhFormat) return source;
@@ -146,7 +101,7 @@ export default React.memo(Markdown);
 function Code(e: any) {
   const { className, codeBlock, children } = e;
   const match = /language-(\w+)/.exec(className || '');
-  const codeType = match?.[1];
+  const codeType = match?.[1]?.toLowerCase();
 
   const strChildren = String(children);
 
@@ -157,7 +112,7 @@ function Code(e: any) {
     if (codeType === CodeClassNameEnum.guide) {
       return <ChatGuide text={strChildren} />;
     }
-    if (codeType === CodeClassNameEnum.questionGuide) {
+    if (codeType === CodeClassNameEnum.questionguide) {
       return <QuestionGuide text={strChildren} />;
     }
     if (codeType === CodeClassNameEnum.echarts) {
@@ -166,7 +121,7 @@ function Code(e: any) {
     if (codeType === CodeClassNameEnum.iframe) {
       return <IframeCodeBlock code={strChildren} />;
     }
-    if (codeType && codeType.toLowerCase() === CodeClassNameEnum.html) {
+    if (codeType === CodeClassNameEnum.html || codeType === CodeClassNameEnum.svg) {
       return (
         <IframeHtmlCodeBlock className={className} codeBlock={codeBlock} match={match}>
           {children}

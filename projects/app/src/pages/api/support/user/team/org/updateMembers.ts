@@ -4,14 +4,14 @@ import { putUpdateOrgMembersData } from '@fastgpt/global/support/user/team/org/a
 import { MongoOrgModel } from '@fastgpt/service/support/permission/org/orgSchema';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
-import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { MongoOrgMemberModel } from '@fastgpt/service/support/permission/org/orgMemberSchema';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
+import { TeamManagePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 
 async function handler(req: ApiRequestProps<putUpdateOrgMembersData>, res: ApiResponseType<any>) {
   const { orgId, members } = req.body;
 
-  const { teamId } = await authUserPer({ req, authToken: true, per: ManagePermissionVal });
+  const { teamId } = await authUserPer({ req, authToken: true, per: TeamManagePermissionVal });
 
   try {
     await mongoSessionRun(async (session) => {

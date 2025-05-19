@@ -3,7 +3,7 @@ import { NextAPI } from '@/service/middleware/entry';
 import { UpdateTeamProps } from '@fastgpt/global/support/user/team/controller';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { updateTeam } from '@fastgpt/service/support/user/team/controller';
-import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
+import { TeamManagePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 
 export type updateQuery = {};
 
@@ -14,7 +14,7 @@ export type updateResponse = {};
 async function handler(req: ApiRequestProps<updateBody, updateQuery>, res: ApiResponseType<any>) {
   const body = req.body as UpdateTeamProps;
 
-  const { teamId } = await authUserPer({ req, authToken: true, per: ManagePermissionVal });
+  const { teamId } = await authUserPer({ req, authToken: true, per: TeamManagePermissionVal });
 
   await updateTeam({ teamId, ...body });
 }

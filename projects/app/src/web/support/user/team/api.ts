@@ -1,26 +1,28 @@
 import { GET, POST, PUT, DELETE } from '@/web/common/api/request';
-import {
+import type {
   CollaboratorItemType,
   DeletePermissionQuery,
   UpdateClbPermissionProps
 } from '@fastgpt/global/support/permission/collaborator';
-import {
+import type {
   CreateTeamProps,
-  InviteMemberProps,
-  InviteMemberResponse,
   UpdateInviteProps,
-  UpdateStatusProps,
   UpdateTeamProps
 } from '@fastgpt/global/support/user/team/controller.d';
 import type { TeamTagItemType, TeamTagSchema } from '@fastgpt/global/support/user/team/type';
-import {
+import type {
   TeamTmbItemType,
   TeamMemberItemType,
   TeamMemberSchema
 } from '@fastgpt/global/support/user/team/type.d';
-import { FeTeamPlanStatusType, TeamSubSchema } from '@fastgpt/global/support/wallet/sub/type';
-import { TeamInvoiceHeaderType } from '@fastgpt/global/support/user/team/type';
-import { PaginationProps, PaginationResponse } from '@fastgpt/web/common/fetch/type';
+import type { FeTeamPlanStatusType, TeamSubSchema } from '@fastgpt/global/support/wallet/sub/type';
+import type { TeamInvoiceHeaderType } from '@fastgpt/global/support/user/team/type';
+import type { PaginationProps, PaginationResponse } from '@fastgpt/web/common/fetch/type';
+import type {
+  InvitationInfoType,
+  InvitationLinkCreateType,
+  InvitationType
+} from '@fastgpt/service/support/user/team/invitationLink/type';
 
 /* --------------- team  ---------------- */
 export const getTeamList = (status: `${TeamMemberSchema['status']}`) =>
@@ -32,19 +34,48 @@ export const putSwitchTeam = (teamId: string) =>
   PUT<string>(`/support/user/team/switch`, { teamId });
 
 /* --------------- team member ---------------- */
-export const getTeamMembers = (props: PaginationProps<{ withLeaved?: boolean }>) =>
-  GET<PaginationResponse<TeamMemberItemType>>(`/support/user/team/member/list`, props);
-export const postInviteTeamMember = (data: InviteMemberProps) =>
-  POST<InviteMemberResponse>(`/support/user/team/member/invite`, data);
+export const getTeamMembers = (
+  props: PaginationProps<{
+    status?: 'active' | 'inactive';
+    withOrgs?: boolean;
+    withPermission?: boolean;
+    searchKey?: string;
+    orgId?: string;
+    groupId?: string;
+  }>
+) => POST<PaginationResponse<TeamMemberItemType>>(`/support/user/team/member/list`, props);
+export const getTeamMemberCount = () => GET<{ count: number }>(`/support/user/team/member/count`);
+
+// export const postInviteTeamMember = (data: InviteMemberProps) =>
+//   POST<InviteMemberResponse>(`/proApi/support/user/team/member/invite`, data);
+export const putUpdateMemberNameByManager = (tmbId: string, name: string) =>
+  PUT(`/proApi/support/user/team/member/updateNameByManager`, { tmbId, name });
+
 export const putUpdateMemberName = (name: string) =>
   PUT(`/support/user/team/member/updateName`, { name });
 export const delRemoveMember = (tmbId: string) =>
   DELETE(`/support/user/team/member/delete`, { tmbId });
 export const updateInviteResult = (data: UpdateInviteProps) =>
   PUT('/support/user/team/member/updateInvite', data);
-export const updateStatus = (data: UpdateStatusProps) =>
-  PUT('/support/user/team/member/updateStatus', data);
+export const postRestoreMember = (tmbId: string) =>
+  POST('/proApi/support/user/team/member/restore', { tmbId });
 export const delLeaveTeam = () => DELETE('/support/user/team/member/leave');
+
+/* -------------- team invitaionlink -------------------- */
+
+export const postCreateInvitationLink = (data: InvitationLinkCreateType) =>
+  POST<string>(`/support/user/team/invitationLink/create`, data);
+
+export const getInvitationLinkList = () =>
+  GET<InvitationType[]>(`/support/user/team/invitationLink/list`);
+
+export const postAcceptInvitationLink = (linkId: string) =>
+  POST<string>(`/support/user/team/invitationLink/accept`, { linkId });
+
+export const getInvitationInfo = (linkId: string) =>
+  GET<InvitationInfoType>(`/support/user/team/invitationLink/info`, { linkId });
+export const putForbidInvitationLink = (linkId: string) =>
+  PUT<string>(`/support/user/team/invitationLink/forbid`, { linkId });
 
 /* -------------- team collaborator -------------------- */
 export const getTeamClbs = () =>
@@ -70,6 +101,9 @@ export const checkTeamDatasetSizeLimit = (size: number) =>
 export const getTeamPlanStatus = () =>
   GET<FeTeamPlanStatusType>(`/support/user/team/plan/getTeamPlanStatus`, { maxQuantity: 1 });
 export const getTeamPlans = () => GET<TeamSubSchema[]>(`/support/user/team/plan/getTeamPlans`);
+
+export const redeemCoupon = (couponCode: string) =>
+  GET(`/proApi/support/wallet/coupon/redeem`, { key: couponCode });
 
 export const getTeamInvoiceHeader = () =>
   GET<TeamInvoiceHeaderType>(`/proApi/support/user/team/invoiceAccount/getTeamInvoiceHeader`);

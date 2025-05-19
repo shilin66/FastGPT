@@ -1,4 +1,4 @@
-import { serviceSideProps } from '@fastgpt/web/common/system/nextjs';
+import { serviceSideProps } from '@/web/common/i18n/utils';
 import PageContainer from '@/components/PageContainer';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 

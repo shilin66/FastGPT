@@ -18,11 +18,13 @@ import WorkorderButton from './WorkorderButton';
 
 const Navbar = dynamic(() => import('./navbar'));
 const NavbarPhone = dynamic(() => import('./navbarPhone'));
-const UpdateInviteModal = dynamic(() => import('@/components/support/user/team/UpdateInviteModal'));
 const NotSufficientModal = dynamic(() => import('@/components/support/wallet/NotSufficientModal'));
 const SystemMsgModal = dynamic(() => import('@/components/support/user/inform/SystemMsgModal'));
 const ImportantInform = dynamic(() => import('@/components/support/user/inform/ImportantInform'));
 const UpdateContact = dynamic(() => import('@/components/support/user/inform/UpdateContactModal'));
+const ManualCopyModal = dynamic(() =>
+  import('@fastgpt/web/hooks/useCopyData').then((mod) => mod.ManualCopyModal)
+);
 
 const pcUnShowLayoutRoute: Record<string, boolean> = {
   '/': true,
@@ -51,13 +53,13 @@ export const navbarWidth = '64px';
 
 const Layout = ({ children }: { children: JSX.Element }) => {
   const router = useRouter();
+  const { toast } = useToast();
   const { t } = useTranslation();
   const { Loading } = useLoading();
   const { loading, feConfigs, notSufficientModalType, llmModelList, embeddingModelList } =
     useSystemStore();
   const { isPc } = useSystem();
-  const { userInfo, teamPlanStatus, isUpdateNotification, setIsUpdateNotification } =
-    useUserStore();
+  const { userInfo, isUpdateNotification, setIsUpdateNotification } = useUserStore();
   const { setUserDefaultLng } = useI18nLng();
 
   const isChatPage = useMemo(
@@ -87,7 +89,6 @@ const Layout = ({ children }: { children: JSX.Element }) => {
   });
 
   // Check model invalid
-  const { toast } = useToast();
   useDebounceEffect(
     () => {
       if (userInfo?.username === 'root') {
@@ -152,9 +153,8 @@ const Layout = ({ children }: { children: JSX.Element }) => {
       </Box>
       {feConfigs?.isPlus && (
         <>
-          {!!userInfo && <UpdateInviteModal />}
           {notSufficientModalType && <NotSufficientModal type={notSufficientModalType} />}
-          {/*{!!userInfo && <SystemMsgModal />}*/}
+          {!!userInfo && <SystemMsgModal />}
           {/*{showUpdateNotification && (*/}
           {/*  <UpdateContact onClose={() => setIsUpdateNotification(false)} mode="contact" />*/}
           {/*)}*/}
@@ -165,6 +165,7 @@ const Layout = ({ children }: { children: JSX.Element }) => {
         </>
       )}
 
+      <ManualCopyModal />
       <Loading loading={loading} zIndex={999999} />
     </>
   );
