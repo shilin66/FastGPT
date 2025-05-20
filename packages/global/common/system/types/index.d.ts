@@ -154,6 +154,7 @@ export type customPdfParseType = {
   key?: string;
   doc2xKey?: string;
   price?: number;
+  extension?: string;
 };
 
 export enum SandBoxTypeEnum {
