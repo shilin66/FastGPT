@@ -1,6 +1,6 @@
 ---
 title: "多轮翻译机器人"
-description: "如何使用 FastGPT 构建一个多轮翻译机器人，实现连续的对话翻译功能"
+description: "如何使用 ZenMeta 构建一个多轮翻译机器人，实现连续的对话翻译功能"
 icon: "translate"
 draft: false
 toc: true
@@ -19,7 +19,7 @@ weight: 606
 
 项目还通过给大模型限定国家地区，已实现更精确的翻译，如美式英语、英式英语之分；同时提出一些可能能带来更好效果的优化，如对于一些 LLM 未曾训练到的术语（或有多种翻译方式的术语）建立术语表，进一步提升翻译的精确度等等
 
-而这一切都能通过 Fastgpt 工作流轻松实现，本文将手把手教你如何复刻吴恩达老师的 translation-agent
+而这一切都能通过 ZenMeta 工作流轻松实现，本文将手把手教你如何复刻吴恩达老师的 translation-agent
 
 # 单文本块反思翻译
 
@@ -121,7 +121,7 @@ export default async function (ctx: FunctionContext): Promise<IResponse> {
 }
 ```
 
-再回到 Fastgpt，点击“同步参数”，再连线将源文本传入，即可计算 tokens 数量
+再回到 ZenMeta，点击“同步参数”，再连线将源文本传入，即可计算 tokens 数量
 
 ## 计算单文本块大小
 
@@ -216,7 +216,7 @@ export default async function (ctx: FunctionContext): Promise<IResponse>{
 
 长文反思翻译比较关键的一个部分，就是对多个文本块进行循环反思翻译
 
-Fastgpt 提供了工作流线路可以返回去执行的功能，所以我们可以写一个很简单的判断函数，来判断结束或是接着执行
+ZenMeta 提供了工作流线路可以返回去执行的功能，所以我们可以写一个很简单的判断函数，来判断结束或是接着执行
 
 ![](/imgs/translate14.png)
 
@@ -312,4 +312,4 @@ Fastgpt 提供了工作流线路可以返回去执行的功能，所以我们可
 
 出于 LLM 的卓越能力，我们能够通过设置不同的prompt来获取不同的翻译结果，也就是可以很轻松地通过设置特殊的限定词，来实现特定的，更精确的翻译
 
-而对于一些超出 LLM 理解的术语等，也可以利用 Fastgpt 的知识库功能进行相应扩展，进一步完善翻译机器人的功能
+而对于一些超出 LLM 理解的术语等，也可以利用 ZenMeta 的知识库功能进行相应扩展，进一步完善翻译机器人的功能

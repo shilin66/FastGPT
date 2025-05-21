@@ -1,13 +1,13 @@
 ---
 title: "英语作文纠错机器人"
-description: "使用 FastGPT 创建一个用于英语作文纠错的机器人，帮助用户检测并纠正语言错误"
+description: "使用 ZenMeta 创建一个用于英语作文纠错的机器人，帮助用户检测并纠正语言错误"
 icon: "spellcheck"
 draft: false
 toc: true
 weight: 608
 ---
 
-FastGPT 提供了一种基于 LLM Model 搭建应用的简便方式。
+ZenMeta 提供了一种基于 LLM Model 搭建应用的简便方式。
 
 本文通过搭建一个英语作文纠错机器人，介绍一下如何使用 **工作流** 
 
@@ -42,7 +42,7 @@ FastGPT 提供了一种基于 LLM Model 搭建应用的简便方式。
 不要使用 Markdown 语法， 输入 JSON 格式的内容。
 输出的"reason"的内容使用中文。
 直接输出一个列表， 其成员为一个相同类型的对象， 定义如下
-您正在找回 FastGPT 账号
+您正在找回 ZenMeta 账号
 ```
 {
 “raw”: string; // 表示原文
@@ -84,7 +84,7 @@ function main({data}){
 
 上面的代码将 JSON 解析为 Object, 然后拼接成一串 Markdown 语法的字符串。
 
-FastGPT 的指定回复组件可以将 Markdown 解析为 Html 返回。
+ZenMeta 的指定回复组件可以将 Markdown 解析为 Html 返回。
 
 ## 发布
 
@@ -93,5 +93,3 @@ FastGPT 的指定回复组件可以将 Markdown 解析为 Html 返回。
 ![](/imgs/spellcheck5.png)
 
 可以选择通过 URL 访问，或者是直接嵌入你的网页中。
-
-> [点我使用](https://share.fastgpt.in/chat/share?shareId=b4r173wkcjae7wpnexcvmyc3)

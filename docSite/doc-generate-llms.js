@@ -3,13 +3,13 @@ const path = require('path');
 const yaml = require('js-yaml');
 
 // 项目名称和描述
-const projectName = "FastGPT";
-const projectDescription = "FastGPT 文档";
+const projectName = "ZenMeta";
+const projectDescription = "ZenMeta 文档";
 
 // 文档目录，使用相对路径
 const docsDir = path.join(__dirname, './content/zh-cn/docs');
 // 基础 URL
-const baseUrl = "https://doc.fastgpt.cn/docs/";
+const baseUrl = "https://ops.zenlayer.ai/docs/";
 
 // 生成 llms.txt
 let llmsTxtContent = `# ${projectName}\n${projectDescription}\n`;

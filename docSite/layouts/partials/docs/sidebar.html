@@ -5,8 +5,8 @@
         <a href='{{ with .Site.Params.docs.logoLinkURL }}{{ . }}{{ else }}{{ relLangURL "" }}{{ end }}' aria-label="HomePage" alt="HomePage" style="text-transform: unset;">
             {{ with resources.Get "images/logos/logo.svg" }}
                 {{ .Content | safeHTML }}
-                &nbsp;
-                FastGPT
+
+                ZenMeta
             {{ end }}
         </a>
     </div>

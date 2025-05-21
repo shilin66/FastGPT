@@ -1,6 +1,6 @@
 ---
 title: "Google 搜索插件填写说明"
-description: "FastGPT Google 搜索插件配置指南"
+description: "ZenMeta Google 搜索插件配置指南"
 icon: "google_search"
 draft: false
 toc: true

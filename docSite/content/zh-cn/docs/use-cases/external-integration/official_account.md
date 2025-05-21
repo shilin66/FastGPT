@@ -2,7 +2,7 @@
 title: '接入微信公众号教程'
 description: 'FastGPT 接入微信公众号教程'
 icon: 'description'
-draft: false
+draft: true
 toc: true
 weight: 506
 ---

@@ -1,13 +1,13 @@
 ---
 title: '知识库搜索'
-description: 'FastGPT AI 知识库搜索模块介绍'
+description: 'ZenMeta AI 知识库搜索模块介绍'
 icon: 'chat'
 draft: false
 toc: true
 weight: 234
 ---
 
-知识库搜索具体参数说明，以及内部逻辑请移步：[FastGPT知识库搜索方案](/docs/guide/knowledge_base/rag/)
+知识库搜索具体参数说明，以及内部逻辑请移步：[ZenMeta知识库搜索方案](/docs/guide/knowledge_base/rag/)
 
 ## 特点
 

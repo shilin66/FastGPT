@@ -1,6 +1,6 @@
 ---
 title: "代码运行"
-description: "FastGPT 代码运行节点介绍"
+description: "ZenMeta 代码运行节点介绍"
 icon: "input"
 draft: false
 toc: true
@@ -12,11 +12,6 @@ weight: 258
 ## 功能
 
 可用于执行一段简单的 js 代码，用于进行一些复杂的数据处理。代码运行在沙盒中，无法进行网络请求、dom和异步操作。如需复杂操作，需外挂 HTTP 实现。
-
-**注意事项**
-
-- 私有化用户需要部署`fastgpt-sandbox` 镜像，并配置`SANDBOX_URL`环境变量。
-- 沙盒最大运行 10s， 32M 内存限制。
 
 
 ## 变量输入 
@@ -67,7 +62,7 @@ function main({input}){
 
 ![alt text](/imgs/image-1.png)
 
-### strToBase64 字符串转 base64(4.8.11 版本新增)
+### strToBase64 字符串转 base64
 
 可用于将 SVG 图片转换为 base64 格式展示。
 

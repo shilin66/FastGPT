@@ -1,10 +1,10 @@
 ---
 title: "MCP 服务"
-description: "快速了解 FastGPT MCP server"
+description: "快速了解 ZenMeta MCP server"
 icon: "extension"
 draft: false
 toc: true
-weight: 260
+weight: 270
 ---
 
 ## MCP server 介绍
@@ -13,15 +13,15 @@ MCP 协议（Model Context Protocol），是由 Anthropic 在 2024年 11 月初�
 
 MCP 协议主要包含 Client 和 Server 两部分。简单来说，Client 是使用 AI 模型的一方，它通过 MCP Client 可以给模型提供一些调用外部系统的能能力；Server 是提供外部系统调用的一方，也就是实际运行外部系统的一方。
 
-FastGPT MCP Server 功能允许你选择`多个`在 FastGPT 上构建好的应用，以 MCP 协议对外提供调用 FastGPT 应用的能力。
+ZenMeta MCP Server 功能允许你选择`多个`在 ZenMeta 上构建好的应用，以 MCP 协议对外提供调用 ZenMeta 应用的能力。
 
-目前 FastGPT 提供的 MCP server 为 SSE 通信协议，未来将会替换成 `HTTP streamable`。
+目前 ZenMeta 提供的 MCP server 为 SSE 通信协议，未来将会替换成 `HTTP streamable`。
 
-## FastGPT 使用 MCP server
+## ZenMeta 使用 MCP server
 
 ### 1. 创建 MCP server
 
-登录 FastGPT 后，打开`工作台`，点击`MCP server`，即可进入管理页面，这里可以看到你创建的所有 MCP server，以及他们管理的应用数量。
+登录 ZenMeta 后，打开`工作台`，点击`MCP server`，即可进入管理页面，这里可以看到你创建的所有 MCP server，以及他们管理的应用数量。
 
 ![创建 MCP server](/imgs/mcp_server1.png)
 
@@ -33,7 +33,7 @@ FastGPT MCP Server 功能允许你选择`多个`在 FastGPT 上构建好的应�
 
 ### 2. 获取 MCP server 地址
 
-创建好 MCP server 后，可以直接点击`开始使用`，即可获取 MCP server 访问地址。
+创建好 MCP server 后，可以直接点击`开始使用`，即可获取 MCP server 访问地址。支持 SSE 协议的访问地址，以及 HTTP streamable 协议的访问地址。
 
 | | |
 |---|---|
@@ -41,63 +41,5 @@ FastGPT MCP Server 功能允许你选择`多个`在 FastGPT 上构建好的应�
 
 #### 3. 使用 MCP server
 
-可以在支持 MCP 协议的客户端使用这些地址，来调用 FastGPT 应用，例如：`Cursor`、`Cherry Studio`。下面以 Cursor 为例，介绍如何使用 MCP server。
+可以在支持 MCP 协议的客户端使用这些地址，来调用 ZenMeta 应用，例如：`Cursor`、`Cherry Studio`。
 
-打开 Cursor 配置页面，点击 MCP 即可进入 MCP 配置页面，可以点击新建 MCP server 按钮，会跳转到一个 JSON 配置文件，将第二步的`接入脚本`复制到`json 文件`中，保存文件。
-
-此时返回 Cursor 的 MCP 管理页面，即可看到你创建的 MCP server，记得设成`enabled`状态。
-
-| | | |
-|---|---|---|
-| ![](/imgs/mcp_server6.png) | ![](/imgs/mcp_server7.png) | ![](/imgs/mcp_server8.png) |
-
-
-打开 Cursor 的对话框，切换成`Agent`模型，只有这个模型，cursor 才会调用 MCP server。  
-发送一个关于`fastgpt`的问题后，可以看到，cursor 调用了一个 MCP 工具（描述为：查询 fastgpt 知识库），也就是调用 FastGPT 应用去进行处理该问题，并返回了结果。
-
-| | |
-|---|---|
-| ![](/imgs/mcp_server9.png) | ![](/imgs/mcp_server10.png) |
-
-
-## 私有化部署 MCP server 问题
-
-私有化部署版本的 FastGPT，需要升级到`v4.9.6`及以上版本才可使用 MCP server 功能。
-
-### 修改 docker-compose.yml 文件
-
-在`docker-compose.yml`文件中，加入`fastgpt-mcp-server`服务:
-
-```yml
-fastgpt-mcp-server:
-    container_name: fastgpt-mcp-server
-    image: ghcr.io/labring/fastgpt-mcp_server:latest
-    ports:
-      - 3005:3000
-    networks:
-      - fastgpt
-    restart: always
-    environment:
-      - FASTGPT_ENDPOINT=http://fastgpt:3000
-```
-
-### 修改 FastGPT 容器环境变量
-
-修改`config.json`配置文件，增加: `"feconfigs.mcpServerProxyEndpoint": "fastgpt-mcp-server 的访问地址"`， 末尾不要携带/，例如:
-```json
-{
-  "feConfigs": {
-    "lafEnv": "https://laf.dev",
-    "mcpServerProxyEndpoint": "https://mcp.fastgpt.cn" 
-  }
-}
-```
-
-### 重启 FastGPT 容器
-
-因为是修改的挂载文件，可以强制 down 再 up 服务。启动后，既可以在工作台看到 MCP server 服务选项。
-
-```bash
-docker-compose down
-docker-compose up -d
-```

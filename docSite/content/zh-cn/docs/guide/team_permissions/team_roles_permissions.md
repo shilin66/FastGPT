@@ -1,6 +1,6 @@
 ---
 title: "团队&成员组&权限"
-description: "如何管理 FastGPT 团队、成员组及权限设置"
+description: "如何管理 ZenMeta 团队、成员组及权限设置"
 icon: "group"
 draft: false
 toc: true
@@ -11,7 +11,7 @@ weight: 450
 
 ## 权限系统简介
 
-FastGPT
+ZenMeta
 权限系统融合了基于**属性**和基于**角色**的权限管理范式，为团队协作提供精细化的权限控制方案。通过**成员、部门和群组**三种管理模式，您可以灵活配置对团队、应用和知识库等资源的访问权限。
 
 ## 团队
@@ -20,7 +20,7 @@ FastGPT
 
 ## 权限管理
 
-FastGPT 提供三种权限管理维度：
+ZenMeta 提供三种权限管理维度：
 
 **成员权限**：最高优先级，直接赋予个人的权限
 
@@ -33,10 +33,6 @@ FastGPT 提供三种权限管理维度：
 其次检查用户所属部门和群组的权限（取并集）
 
 最终权限为上述结果的组合
-
-鉴权逻辑如下：
-
-![](/imgs/guide/team_permissions/team_roles_permissions/image1.jpeg)
 
 ### 资源权限
 
@@ -134,10 +130,6 @@ FastGPT 提供三种权限管理维度：
 每个资源都有唯一的 Owner，拥有该资源的最高权限。Owner
 可以转移所有权，但转移后原 Owner 将失去对资源的权限。
 
-### Root 权限
-
-Root
-作为系统唯一的超级管理员账号，对所有团队的所有资源拥有完全访问和管理权限。
 
 ## 使用技巧
 
@@ -152,60 +144,3 @@ Root
 ### 2. 批量权限管理
 
 通过创建群组或组织，可以高效管理多用户的权限配置。先将用户添加到群组，再对群组整体授权。
-
-### 开发者参考
-> 以下内容面向开发者，如不涉及二次开发可跳过。
-
-#### 权限设计原理
-
-FastGPT 权限系统参考 Linux 权限设计，采用二进制方式存储权限位。权限位为
-1 表示拥有该权限，为 0 表示无权限。Owner 权限特殊标记为全 1。
-
-#### 权限表
-
-权限信息存储在 MongoDB 的 resource_permissions 集合中，其主要字段包括：
-
-- teamId: 团队标识
-- tmbId/groupId/orgId: 权限主体(三选一)
-- resourceType: 资源类型(team/app/dataset)
-- permission: 权限值(数字)
-- resourceId: 资源ID(团队资源为null)
-
-系统通过这一数据结构实现了灵活而精确的权限控制。
-
-对于这个表的 Schema 定义在 packages/service/support/permission/schema.ts
-文件中。定义如下：
-```typescript
-export const ResourcePermissionSchema = new Schema({
-  teamId: {
-    type: Schema.Types.ObjectId,
-    ref: TeamCollectionName
-  },
-  tmbId: {
-    type: Schema.Types.ObjectId,
-    ref: TeamMemberCollectionName
-  },
-  groupId: {
-    type: Schema.Types.ObjectId,
-    ref: MemberGroupCollectionName
-  },
-  orgId: {
-    type: Schema.Types.ObjectId,
-    ref: OrgCollectionName
-  },
-  resourceType: {
-    type: String,
-    enum: Object.values(PerResourceTypeEnum),
-    required: true
-  },
-  permission: {
-    type: Number,
-    required: true
-  },
-  // Resrouce ID: App or DataSet or any other resource type.
-  // It is null if the resourceType is team.
-  resourceId: {
-    type: Schema.Types.ObjectId
-  }
-});
-```

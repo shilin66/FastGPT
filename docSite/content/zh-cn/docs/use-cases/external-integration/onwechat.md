@@ -2,7 +2,7 @@
 title: "对接 chatgpt-on-wechat"
 description: "FastGPT 对接 chatgpt-on-wechat"
 icon: "chat"
-draft: false
+draft: true
 toc: true
 weight: 509
 ---

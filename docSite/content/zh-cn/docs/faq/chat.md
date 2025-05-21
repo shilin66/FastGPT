@@ -1,6 +1,6 @@
 ---
 title: '聊天框问题'
-description: 'FastGPT 常见聊天框问题'
+description: 'ZenMeta 常见聊天框问题'
 icon: 'quiz'
 draft: false
 toc: true

@@ -1,6 +1,6 @@
 ---
 title: "知识库搜索引用合并"
-description: "FastGPT 知识库搜索引用合并模块介绍"
+description: "ZenMeta 知识库搜索引用合并模块介绍"
 icon: "knowledge_merge"
 draft: false
 toc: true

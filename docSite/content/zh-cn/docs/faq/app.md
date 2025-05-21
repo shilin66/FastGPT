@@ -1,6 +1,6 @@
 ---
 title: '应用使用问题'
-description: 'FastGPT 常见应用使用问题，包括简易应用、工作流和插件'
+description: 'ZenMeta 常见应用使用问题，包括简易应用、工作流和插件'
 icon: 'quiz'
 draft: false
 toc: true
@@ -42,25 +42,17 @@ weight: 908
 | --- | --- |
 | ![](/imgs/image-83.png) | ![](/imgs/image-84.png) |
 
-## 应用在不同来源效果不一致
 
-Q: 应用在调试和正式发布后，效果不一致；在 API 调用时，效果不一致。
-
-A: 通常是由于上下文不一致导致，可以在对话日志中，找到对应的记录，并查看运行详情来进行比对。
-
-| | | |
-| --- | --- | --- |
-| ![](/imgs/image-85.png) | ![](/imgs/image-86.png) | ![](/imgs/image-87.png) |
 在针对知识库的回答要求里有, 要给它配置提示词，不然他就是默认的，默认的里面就有该语法。
 
 ## 工作流操作：一个工作流，以一个问题分类节点开始，根据不同的分类导入到不同的分支，访问相应的知识库和AI对话，AI对话返回内容后，怎么样不进入问题分类节点，而是将问题到知识库搜索，然后把历史记录一起作为背景再次AI查询。
 
 做个判断器，如果是初次开始对话也就是历史记录为0，就走问题分类；不为零直接走知识库和ai。
 
-## 实时对话，设置 fastgpt 定时，比如每隔 3000MS 去拿一次 webhook发送过来的消息到AI页面
+## 实时对话，设置 ZenMeta 定时，比如每隔 3000MS 去拿一次 webhook发送过来的消息到AI页面
 
 定时执行没有这么高频率的去拿信息的，想要实现在企微里面的实时对话的机器人，
-目前通过低代码的工作流构建应该是不行的，只能自己写代码，然后去调用 FastGPT 的 APIKey 回复。企业微信似乎没有提供「自动监听」群聊消息的接口（或是通过 at 机器人这种触发消息推送）。应该只能发消息给应用，接收这个 https://developer.work.weixin.qq.com/document/path/90238 文档中的消息推送实现实时对话。或者是定时去拿群聊消息，通过这个文档所示的接口https://developer.work.weixin.qq.com/document/path/98914，然后用这个接口 https://developer.work.weixin.qq.com/document/path/90248 去推送消息。
+目前通过低代码的工作流构建应该是不行的，只能自己写代码，然后去调用 ZenMeta 的 APIKey 回复。企业微信似乎没有提供「自动监听」群聊消息的接口（或是通过 at 机器人这种触发消息推送）。应该只能发消息给应用，接收这个 https://developer.work.weixin.qq.com/document/path/90238 文档中的消息推送实现实时对话。或者是定时去拿群聊消息，通过这个文档所示的接口https://developer.work.weixin.qq.com/document/path/98914，然后用这个接口 https://developer.work.weixin.qq.com/document/path/90248 去推送消息。
 
 ## 工作流连接数据库
 

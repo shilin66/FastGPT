@@ -1,6 +1,6 @@
 ---
 title: "判断器"
-description: "FastGPT 判断器模块介绍"
+description: "ZenMeta 判断器模块介绍"
 icon: "input"
 draft: false
 toc: true
@@ -24,8 +24,3 @@ weight: 254
 
 
 支持增加更多的判断条件和分支，同编程语言中的`IF`语句逻辑相同。
-
-## 作用
-
-适用场景有：让大模型做判断后输出固定内容，根据大模型回复内容判断是否触发后续模块。
-

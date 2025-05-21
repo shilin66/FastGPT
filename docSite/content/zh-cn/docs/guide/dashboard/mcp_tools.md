@@ -1,13 +1,13 @@
 ---
 title: "MCP 工具集"
-description: "快速了解 MCP 工具接入 FastGPT"
+description: "快速了解 MCP 工具接入 ZenMeta"
 icon: "extension"
 draft: false
 toc: true
-weight: 260
+weight: 272
 ---
 
-FastGPT v4.9.6 版本开始，新增了 MCP 工具集 这种新的应用类型，允许传入一个 MCP 的 SSE URL 来批量创建可被模型轻松调用的 MCP 工具，下面就来看下如何创建 MCP 工具并且让 AI 调用
+ZenMeta v4.9.6 版本开始，新增了 MCP 工具集 这种新的应用类型，允许传入一个 MCP 的 SSE URL 来批量创建可被模型轻松调用的 MCP 工具，下面就来看下如何创建 MCP 工具并且让 AI 调用
 
 ## 创建一个 MCP 工具集
 
@@ -44,7 +44,7 @@ FastGPT v4.9.6 版本开始，新增了 MCP 工具集 这种新的应用类型�
 
 ### 调用工具集
 
-FastGPT 也支持调用整个 MCP 工具集，AI 会自动选取需要的工具执行，
+ZenMeta 也支持调用整个 MCP 工具集，AI 会自动选取需要的工具执行，
 
 点击 MCP 工具集，会添加一个工具集类型的节点，使用工具调用节点连接
 

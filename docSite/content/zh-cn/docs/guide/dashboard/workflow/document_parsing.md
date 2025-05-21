@@ -1,6 +1,6 @@
 ---
 title: "文档解析"
-description: "FastGPT 文档解析模块介绍"
+description: "ZenMeta 文档解析模块介绍"
 icon: "document_analysis"
 draft: false
 toc: true
@@ -12,7 +12,3 @@ weight: 250
 | ![](/imgs/document_analysis1.png) | ![](/imgs/document_analysis2.png) |
 
 开启文件上传后，可使用文档解析组件。
-
-## 功能 
-
-## 作用 

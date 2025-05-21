@@ -15,7 +15,7 @@ https://doc2x.noedgeai.com/
 
 ![](/imgs/doc2x_plugin2.png)
 
-1. # 填写apikey到fastgpt中
+1. # 填写apikey到ZenMeta中
 
 **工作流****中：**
 

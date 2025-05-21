@@ -1,6 +1,6 @@
 ---
 title: "工具调用&终止"
-description: "FastGPT 工具调用模块介绍"
+description: "ZenMeta 工具调用模块介绍"
 icon: "build"
 draft: false
 toc: true
@@ -43,18 +43,12 @@ weight: 236
 
 ### **怎么用**
 
-
-| | |
-| --- | --- |
-| ![](/imgs/flow-tool3.png) | ![](/imgs/flow-tool4.png) |
-</div>
+![](/imgs/flow-tool3.png)
 
 
 高级编排中，拖动工具调用的连接点，可用的工具头部会出现一个菱形，可以将它与工具调用模块底部的菱形相连接。
 
 被连接的工具，会自动分离工具输入与普通的输入，并且可以编辑`介绍`，可以通过调整介绍，使得该工具调用时机更加精确。
-
-关于工具调用，如何调试仍然是一个玄学，所以建议，不要一次性增加太多工具，选择少量工具调优后再进一步尝试。
 
 #### 用途
 
@@ -79,8 +73,3 @@ weight: 236
 自定义变量可以扩展工具的变量输入，即对于一些未被视作工具参数或无法工具调用的节点，可以自定义工具变量，填上对应的参数描述，那么工具调用便会相对应的调用这个节点，进而调用其之后的工作流。
 
 ![](/imgs/flow-tool7.png)
-
-### **相关示例**
-
-- [谷歌搜索](https://doc.fastgpt.in/docs/use-cases/app-cases/google_search/)
-- [发送飞书webhook](https://doc.fastgpt.in/docs/use-cases/app-cases/feishu_webhook/)

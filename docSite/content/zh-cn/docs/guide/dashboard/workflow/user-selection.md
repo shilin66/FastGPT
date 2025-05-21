@@ -1,6 +1,6 @@
 ---
 title: "用户选择"
-description: "FastGPT 用户选择模块的使用说明"
+description: "ZenMeta 用户选择模块的使用说明"
 icon: "user_check"
 draft: false
 toc: true

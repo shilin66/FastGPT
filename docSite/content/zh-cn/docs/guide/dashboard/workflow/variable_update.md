@@ -1,6 +1,6 @@
 ---
 title: "变量更新"
-description: "FastGPT 变量更新模块介绍"
+description: "ZenMeta 变量更新模块介绍"
 icon: "variable_update"
 draft: false
 toc: true

@@ -1,6 +1,6 @@
 ---
 title: "文本拼接"
-description: "FastGPT 文本加工模块介绍"
+description: "ZenMeta 文本加工模块介绍"
 icon: "input"
 draft: false
 toc: true
@@ -26,7 +26,3 @@ weight: 246
 ## 作用
 
 给任意模块输入自定格式文本，或处理 AI 模块系统提示词。
-
-## 示例
-
-- [接入谷歌搜索](/docs/use-cases/app-cases/google_search/)

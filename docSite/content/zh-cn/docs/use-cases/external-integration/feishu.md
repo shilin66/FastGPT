@@ -2,7 +2,7 @@
 title: "接入飞书机器人教程"
 description: "FastGPT 接入飞书机器人教程"
 icon: "chat"
-draft: false
+draft: true
 toc: true
 weight: 504
 ---
