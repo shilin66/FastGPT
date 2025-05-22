@@ -35,6 +35,7 @@ import CollectionChunkForm, {
 import { getLLMDefaultChunkSize } from '@fastgpt/global/core/dataset/training/utils';
 import { useMyStep } from '@fastgpt/web/hooks/useStep';
 import MyDivider from '@fastgpt/web/components/common/MyDivider';
+import { getDocPath } from '@/web/common/system/doc';
 
 export type ConfluenceConfigFormType = {
   confluenceConfig: {
@@ -138,7 +139,7 @@ const ConfluenceConfigModal = ({
             >
               {t('common:core.dataset.confluence.Config Description')}
               <Link
-                href={`${feConfigs.confluenceUrl}/spaces/Monitor/pages/12336791603/Confluence`}
+                href={getDocPath('/docs/guide/knowledge_base/confluence_dataset/')}
                 target="_blank"
                 textDecoration={'underline'}
                 fontWeight={'bold'}
