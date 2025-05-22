@@ -8,6 +8,7 @@ import type { UserType } from '@fastgpt/global/support/user/type.d';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
+import { getDocPath } from '@/web/common/system/doc';
 
 const ConfluenceAccountModal = ({
   defaultData,
@@ -44,7 +45,7 @@ const ConfluenceAccountModal = ({
         <Box fontSize={'sm'} color={'myGray.500'}>
           {t('common:info.confluence_account_notice')}
           <Link
-            href={`${feConfigs.confluenceUrl}/spaces/Monitor/pages/12336791603/Confluence`}
+            href={getDocPath('/docs/guide/knowledge_base/confluence_dataset/')}
             target="_blank"
             textDecoration={'underline'}
             fontWeight={'bold'}
