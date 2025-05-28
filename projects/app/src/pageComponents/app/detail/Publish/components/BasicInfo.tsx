@@ -32,54 +32,54 @@ function BasicInfo({
           })}
         />
       </Flex>
-      <Flex alignItems={'center'}>
-        <FormLabel flex={'0 0 6.25rem'} alignItems={'center'}>
-          QPM
-          <QuestionTip ml={1} label={t('publish:qpm_tips')}></QuestionTip>
-        </FormLabel>
-        <Input
-          max={1000}
-          {...register('limit.QPM', {
-            min: 0,
-            max: 1000,
-            valueAsNumber: true,
-            required: t('publish:qpm_is_empty')
-          })}
-        />
-      </Flex>
-      <Flex alignItems={'center'}>
-        <FormLabel flex={'0 0 6.25rem'} alignItems={'center'}>
-          {t('common:support.outlink.Max usage points')}
-          <QuestionTip
-            ml={1}
-            label={t('common:support.outlink.Max usage points tip')}
-          ></QuestionTip>
-        </FormLabel>
-        <Input
-          {...register('limit.maxUsagePoints', {
-            min: -1,
-            max: 10000000,
-            valueAsNumber: true,
-            required: true
-          })}
-        />
-      </Flex>
-      <Flex alignItems={'center'}>
-        <FormLabel flex={'0 0 6.25rem'} alignItems={'center'}>
-          {t('common:common.Expired Time')}
-        </FormLabel>
-        <Input
-          type="datetime-local"
-          defaultValue={
-            defaultData.limit?.expiredTime
-              ? dayjs(defaultData.limit?.expiredTime).format('YYYY-MM-DDTHH:mm')
-              : ''
-          }
-          onChange={(e) => {
-            setValue('limit.expiredTime', new Date(e.target.value));
-          }}
-        />
-      </Flex>
+      {/*<Flex alignItems={'center'}>*/}
+      {/*  <FormLabel flex={'0 0 6.25rem'} alignItems={'center'}>*/}
+      {/*    QPM*/}
+      {/*    <QuestionTip ml={1} label={t('publish:qpm_tips')}></QuestionTip>*/}
+      {/*  </FormLabel>*/}
+      {/*  <Input*/}
+      {/*    max={1000}*/}
+      {/*    {...register('limit.QPM', {*/}
+      {/*      min: 0,*/}
+      {/*      max: 1000,*/}
+      {/*      valueAsNumber: true,*/}
+      {/*      required: t('publish:qpm_is_empty')*/}
+      {/*    })}*/}
+      {/*  />*/}
+      {/*</Flex>*/}
+      {/*<Flex alignItems={'center'}>*/}
+      {/*  <FormLabel flex={'0 0 6.25rem'} alignItems={'center'}>*/}
+      {/*    {t('common:support.outlink.Max usage points')}*/}
+      {/*    <QuestionTip*/}
+      {/*      ml={1}*/}
+      {/*      label={t('common:support.outlink.Max usage points tip')}*/}
+      {/*    ></QuestionTip>*/}
+      {/*  </FormLabel>*/}
+      {/*  <Input*/}
+      {/*    {...register('limit.maxUsagePoints', {*/}
+      {/*      min: -1,*/}
+      {/*      max: 10000000,*/}
+      {/*      valueAsNumber: true,*/}
+      {/*      required: true*/}
+      {/*    })}*/}
+      {/*  />*/}
+      {/*</Flex>*/}
+      {/*<Flex alignItems={'center'}>*/}
+      {/*  <FormLabel flex={'0 0 6.25rem'} alignItems={'center'}>*/}
+      {/*    {t('common:common.Expired Time')}*/}
+      {/*  </FormLabel>*/}
+      {/*  <Input*/}
+      {/*    type="datetime-local"*/}
+      {/*    defaultValue={*/}
+      {/*      defaultData.limit?.expiredTime*/}
+      {/*        ? dayjs(defaultData.limit?.expiredTime).format('YYYY-MM-DDTHH:mm')*/}
+      {/*        : ''*/}
+      {/*    }*/}
+      {/*    onChange={(e) => {*/}
+      {/*      setValue('limit.expiredTime', new Date(e.target.value));*/}
+      {/*    }}*/}
+      {/*  />*/}
+      {/*</Flex>*/}
     </Flex>
   );
 }

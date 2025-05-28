@@ -41,5 +41,11 @@
   "dingtalk.create_modal_title": "建立釘釘聊天機器人",
   "dingtalk.edit_modal_title": "編輯釘釘聊天機器人",
   "dingtalk.title": "發布至釘釘聊天機器人",
-  "dingtalk.api": "釘釘 API"
+  "dingtalk.api": "釘釘 API",
+  "teams.bot": "Teams 聊天機器人",
+  "teams.bot_desc": "透過 API 直接連結 Teams 聊天機器人",
+  "teams.bot.create_modal_title": "建立 Teams 聊天機器人",
+  "teams.bot.edit_modal_title": "編輯 Teams 聊天機器人",
+  "teams.api": "Teams API",
+  "teams.title": "發布至 Teams 聊天機器人"
 }

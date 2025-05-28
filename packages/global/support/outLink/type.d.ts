@@ -41,11 +41,19 @@ export interface OffiAccountAppType {
   // because we can not reply anything in 15s. Thus, the wechat server will treat this request as a failed request.
 }
 
+export interface TeamsAppType {
+  MicrosoftAppType: 'SingleTenant' | 'MultiTenant';
+  MicrosoftAppId: string;
+  MicrosoftAppPassword: string;
+  MicrosoftAppTenantId?: string;
+}
+
 export type OutlinkAppType =
   | FeishuAppType
   | WecomAppType
   | OffiAccountAppType
   | DingtalkAppType
+  | TeamsAppType
   | undefined;
 
 export type OutLinkSchema<T extends OutlinkAppType = undefined> = {

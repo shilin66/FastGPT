@@ -14,6 +14,7 @@ import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 
 import ChromeExtension from '@/pages/app/detail/components/Publish/ChromeExtension';
+import Teams from '@/pageComponents/app/detail/Publish/Teams';
 const Link = dynamic(() => import('./Link'));
 const API = dynamic(() => import('./API'));
 const FeiShu = dynamic(() => import('./FeiShu'));
@@ -50,18 +51,25 @@ const OutLink = () => {
     //   value: PublishChannelEnum.feishu,
     //   isProFn: true
     // },
+    // {
+    //   icon: 'core/app/publish/lark',
+    //   title: t('publish:feishu_bot'),
+    //   desc: t('publish:feishu_bot_desc'),
+    //   value: PublishChannelEnum.feishu,
+    //   isProFn: true
+    // },
+    // {
+    //   icon: 'common/dingtalkFill',
+    //   title: t('publish:dingtalk.bot'),
+    //   desc: t('publish:dingtalk.bot_desc'),
+    //   value: PublishChannelEnum.dingtalk,
+    //   isProFn: true
+    // },
     {
-      icon: 'core/app/publish/lark',
-      title: t('publish:feishu_bot'),
-      desc: t('publish:feishu_bot_desc'),
-      value: PublishChannelEnum.feishu,
-      isProFn: true
-    },
-    {
-      icon: 'common/dingtalkFill',
-      title: t('publish:dingtalk.bot'),
-      desc: t('publish:dingtalk.bot_desc'),
-      value: PublishChannelEnum.dingtalk,
+      icon: 'common/teamsFill',
+      title: t('publish:teams.bot'),
+      desc: t('publish:teams.bot_desc'),
+      value: PublishChannelEnum.teams,
       isProFn: true
     },
     {
@@ -137,10 +145,11 @@ const OutLink = () => {
           <Link appId={appId} type={PublishChannelEnum.share} />
         )}
         {linkType === PublishChannelEnum.apikey && <API appId={appId} />}
-        {linkType === PublishChannelEnum.feishu && <FeiShu appId={appId} />}
-        {linkType === PublishChannelEnum.dingtalk && <DingTalk appId={appId} />}
+        {/*{linkType === PublishChannelEnum.feishu && <FeiShu appId={appId} />}*/}
+        {/*{linkType === PublishChannelEnum.dingtalk && <DingTalk appId={appId} />}*/}
         {/* {linkType === PublishChannelEnum.wecom && <Wecom appId={appId} />} */}
-        {linkType === PublishChannelEnum.officialAccount && <OffiAccount appId={appId} />}
+        {/*{linkType === PublishChannelEnum.officialAccount && <OffiAccount appId={appId} />}*/}
+        {linkType === PublishChannelEnum.teams && <Teams appId={appId} />}
         {linkType === PublishChannelEnum.chromeExtension && <ChromeExtension />}
       </Flex>
     </Box>
