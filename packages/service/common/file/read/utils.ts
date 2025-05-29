@@ -143,7 +143,8 @@ export const readRawContentByFileBuffer = async ({
   addLog.debug(`Start parse file`, { extension });
 
   let { rawText, formatText, imageList } = await (async () => {
-    if (extension === 'pdf') {
+    const ext = global.systemEnv.customPdfParse?.extension?.split(',');
+    if (extension === 'pdf' || ext?.includes(extension)) {
       return await pdfParseFn();
     }
     return await systemParse();
