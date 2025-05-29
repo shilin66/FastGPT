@@ -1,13 +1,13 @@
 import { Box, Button, Flex } from '@chakra-ui/react';
 import {
-  DraggableProvided,
-  DraggableStateSnapshot
+  type DraggableProvided,
+  type DraggableStateSnapshot
 } from '@fastgpt/web/components/common/DndDrag/index';
 import Container from '../../components/Container';
 import { MinusIcon, SmallAddIcon } from '@chakra-ui/icons';
-import { IfElseListItemType } from '@fastgpt/global/core/workflow/template/system/ifElse/type';
+import { type IfElseListItemType } from '@fastgpt/global/core/workflow/template/system/ifElse/type';
 import MyIcon from '@fastgpt/web/components/common/Icon';
-import { ReferenceItemValueType } from '@fastgpt/global/core/workflow/type/io';
+import { type ReferenceItemValueType } from '@fastgpt/global/core/workflow/type/io';
 import { useTranslation } from 'next-i18next';
 import { ReferSelector, useReference } from '../render/RenderInput/templates/Reference';
 import { WorkflowIOValueTypeEnum } from '@fastgpt/global/core/workflow/constants';
@@ -26,12 +26,11 @@ import { WorkflowContext } from '../../../context';
 import MySelect from '@fastgpt/web/components/common/MySelect';
 import MyInput from '@/components/MyInput';
 import { getElseIFLabel, getHandleId } from '@fastgpt/global/core/workflow/utils';
-import { SourceHandle } from '../render/Handle';
+import { MySourceHandle } from '../render/Handle';
 import { Position, useReactFlow } from 'reactflow';
 import { getRefData } from '@/web/core/workflow/utils';
 import DragIcon from '@fastgpt/web/components/common/DndDrag/DragIcon';
 import { AppContext } from '@/pageComponents/app/detail/context';
-import { useI18n } from '@/web/context/I18n';
 
 const ListItem = ({
   provided,
@@ -262,7 +261,7 @@ const ListItem = ({
           </Button>
         </Container>
         {!snapshot.isDragging && (
-          <SourceHandle
+          <MySourceHandle
             nodeId={nodeId}
             handleId={handleId}
             position={Position.Right}
@@ -418,7 +417,7 @@ const ConditionValueInput = ({
   condition?: VariableConditionEnum;
   onChange: (e: string) => void;
 }) => {
-  const { workflowT } = useI18n();
+  const { t } = useTranslation();
   const nodeList = useContextSelector(WorkflowContext, (v) => v.nodeList);
 
   // get value type
@@ -443,7 +442,7 @@ const ConditionValueInput = ({
           ]}
           onChange={onChange}
           value={value}
-          placeholder={workflowT('ifelse.Select value')}
+          placeholder={t('workflow:ifelse.Select value')}
           isDisabled={
             condition === VariableConditionEnum.isEmpty ||
             condition === VariableConditionEnum.isNotEmpty
@@ -457,7 +456,7 @@ const ConditionValueInput = ({
           placeholder={
             condition === VariableConditionEnum.reg
               ? '/^((+|00)86)?1[3-9]d{9}$/'
-              : workflowT('ifelse.Input value')
+              : t('workflow:ifelse.Input value')
           }
           w={'100%'}
           bg={'white'}
@@ -469,7 +468,7 @@ const ConditionValueInput = ({
         />
       );
     }
-  }, [condition, onChange, value, valueType, workflowT]);
+  }, [condition, onChange, value, valueType, t]);
 
   return Render;
 };

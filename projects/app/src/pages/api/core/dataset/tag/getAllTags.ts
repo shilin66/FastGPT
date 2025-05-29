@@ -1,7 +1,7 @@
 import { NextAPI } from '@/service/middleware/entry';
 import { MongoDatasetCollectionTags } from '@fastgpt/service/core/dataset/tag/schema';
-import { NextApiRequest } from 'next';
-import { DatasetTagType } from '@fastgpt/global/core/dataset/type';
+import type { NextApiRequest } from 'next';
+import type { DatasetTagType } from '@fastgpt/global/core/dataset/type';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { authDataset } from '@fastgpt/service/support/permission/dataset/auth';
 

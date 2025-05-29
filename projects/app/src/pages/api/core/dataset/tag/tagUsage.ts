@@ -1,5 +1,5 @@
 import { NextAPI } from '@/service/middleware/entry';
-import { NextApiRequest } from 'next';
+import type { NextApiRequest } from 'next';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { authDataset } from '@fastgpt/service/support/permission/dataset/auth';
 import { MongoDatasetCollection } from '@fastgpt/service/core/dataset/collection/schema';

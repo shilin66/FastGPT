@@ -1,6 +1,6 @@
 import { TeamCollectionName } from '@fastgpt/global/support/user/team/constant';
 import { connectionMongo, getMongoModel } from '../../../../common/mongo';
-import { InvitationSchemaType } from './type';
+import type { InvitationSchemaType } from './type';
 import { randomUUID } from 'crypto';
 const { Schema } = connectionMongo;
 

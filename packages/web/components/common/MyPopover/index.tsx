@@ -4,9 +4,9 @@ import {
   PopoverTrigger,
   PopoverContent,
   useDisclosure,
-  PlacementWithLogical,
+  type PlacementWithLogical,
   PopoverArrow,
-  PopoverContentProps
+  type PopoverContentProps
 } from '@chakra-ui/react';
 
 interface Props extends PopoverContentProps {
@@ -57,6 +57,7 @@ const MyPopover = ({
       closeDelay={100}
       isLazy
       lazyBehavior="keepMounted"
+      autoFocus={false}
     >
       <PopoverTrigger>{Trigger}</PopoverTrigger>
       <PopoverContent {...props}>

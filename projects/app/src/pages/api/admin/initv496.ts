@@ -1,8 +1,8 @@
 import { NextAPI } from '@/service/middleware/entry';
 import { authCert } from '@fastgpt/service/support/permission/auth/common';
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { MongoDataset } from '@fastgpt/service/core/dataset/schema';
-import { ChunkSettingsType } from '@fastgpt/global/core/dataset/type';
+import type { ChunkSettingsType } from '@fastgpt/global/core/dataset/type';
 import {
   ChunkSettingModeEnum,
   DataChunkSplitModeEnum,

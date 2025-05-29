@@ -1,5 +1,5 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { ScrapeParams } from '@mendable/firecrawl-js/src';
+import type { ScrapeParams } from '@mendable/firecrawl-js/src';
 import { addLog } from '@fastgpt/service/common/system/log';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { filterEmptyObject } from '../clean';

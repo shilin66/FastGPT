@@ -2,7 +2,7 @@ import type { NextApiRequest } from 'next';
 import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { MongoSystemMsg } from '@fastgpt/service/support/user/inform/schema';
-import { SystemMsgModalValueType } from '@fastgpt/service/support/user/inform/type';
+import type { SystemMsgModalValueType } from '@fastgpt/service/support/user/inform/type';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {

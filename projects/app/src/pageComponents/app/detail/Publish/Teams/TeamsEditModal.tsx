@@ -12,7 +12,7 @@ import {
 } from '@chakra-ui/react';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
-import { OutLinkEditType, TeamsAppType } from '@fastgpt/global/support/outLink/type';
+import type { OutLinkEditType, TeamsAppType } from '@fastgpt/global/support/outLink/type';
 import { useTranslation } from 'next-i18next';
 import { useForm } from 'react-hook-form';
 import { createShareChat, updateShareChat } from '@/web/support/outLink/api';
@@ -70,8 +70,8 @@ const TeamsEditModal = ({
         }
       }),
     {
-      errorToast: t('common:common.Create Failed'),
-      successToast: t('common:common.Create Success'),
+      errorToast: t('common:create_failed'),
+      successToast: t('common:create_success'),
       onSuccess: onCreate
     }
   );
@@ -88,8 +88,8 @@ const TeamsEditModal = ({
         }
       }),
     {
-      errorToast: t('common:common.Update Failed'),
-      successToast: t('common:common.Update Success'),
+      errorToast: t('common:update_failed'),
+      successToast: t('common:update_success'),
       onSuccess: onEdit
     }
   );
@@ -121,7 +121,7 @@ const TeamsEditModal = ({
               >
                 <Flex alignItems={'center'}>
                   <MyIcon w={'17px'} h={'17px'} name="book" mr="1" />
-                  {t('common:common.Read document')}
+                  {t('common:read_doc')}
                 </Flex>
               </Link>
             )}
@@ -181,7 +181,7 @@ const TeamsEditModal = ({
 
           <Flex justifyContent={'end'}>
             <Button variant={'whiteBase'} mr={3} onClick={onClose}>
-              {t('common:common.Close')}
+              {t('common:Close')}
             </Button>
             <Button
               isLoading={creating || updating}
@@ -196,7 +196,7 @@ const TeamsEditModal = ({
                 }
               })}
             >
-              {t('common:common.Confirm')}
+              {t('common:Confirm')}
             </Button>
           </Flex>
         </Flex>

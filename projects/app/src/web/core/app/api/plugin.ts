@@ -7,7 +7,7 @@ import type {
 } from '@fastgpt/global/core/workflow/type/node';
 import { getMyApps } from '../api';
 import type { ListAppBody } from '@/pages/api/core/app/list';
-import { defaultNodeVersion, FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
+import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { FlowNodeTemplateTypeEnum } from '@fastgpt/global/core/workflow/constants';
 import type { GetPreviewNodeQuery } from '@/pages/api/core/app/plugin/getPreviewNode';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
@@ -20,10 +20,14 @@ import type { PluginGroupSchemaType } from '@fastgpt/service/core/app/plugin/typ
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { defaultGroup } from '@fastgpt/web/core/workflow/constants';
 import type { createMCPToolsBody } from '@/pages/api/core/app/mcpTools/create';
-import { ToolType } from '@fastgpt/global/core/app/type';
+import { type McpToolConfigType } from '@fastgpt/global/core/app/type';
 import type { updateMCPToolsBody } from '@/pages/api/core/app/mcpTools/update';
 import type { RunMCPToolBody } from '@/pages/api/support/mcp/client/runTool';
 import type { getMCPToolsBody } from '@/pages/api/support/mcp/client/getTools';
+import type {
+  getToolVersionListProps,
+  getToolVersionResponse
+} from '@/pages/api/core/app/plugin/getVersionList';
 
 /* ============ team plugin ============== */
 export const getTeamPlugTemplates = (data?: ListAppBody) =>
@@ -47,7 +51,7 @@ export const getTeamPlugTemplates = (data?: ListAppBody) =>
       name: app.name,
       intro: app.intro,
       showStatus: false,
-      version: app.pluginData?.nodeVersion || defaultNodeVersion,
+      version: app.pluginData?.nodeVersion,
       isTool: true,
       sourceMember: app.sourceMember
     }))
@@ -72,6 +76,9 @@ export const getSystemPluginPaths = (data: GetPathProps) => {
 export const getPreviewPluginNode = (data: GetPreviewNodeQuery) =>
   GET<FlowNodeTemplateType>('/core/app/plugin/getPreviewNode', data);
 
+export const getToolVersionList = (data: getToolVersionListProps) =>
+  POST<getToolVersionResponse>('/core/app/plugin/getVersionList', data);
+
 /* ============ mcp tools ============== */
 export const postCreateMCPTools = (data: createMCPToolsBody) =>
   POST('/core/app/mcpTools/create', data);
@@ -80,7 +87,7 @@ export const postUpdateMCPTools = (data: updateMCPToolsBody) =>
   POST('/core/app/mcpTools/update', data);
 
 export const getMCPTools = (data: getMCPToolsBody) =>
-  POST<ToolType[]>('/support/mcp/client/getTools', data);
+  POST<McpToolConfigType[]>('/support/mcp/client/getTools', data);
 
 export const postRunMCPTool = (data: RunMCPToolBody) => POST('/support/mcp/client/runTool', data);
 

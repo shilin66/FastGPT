@@ -1,4 +1,5 @@
-import { StandSubPlanLevelMapType, SubPlanType } from '../../../support/wallet/sub/type';
+import type { SubPlanType } from '../../../support/wallet/sub/type';
+import { StandSubPlanLevelMapType } from '../../../support/wallet/sub/type';
 import type {
   ChatModelItemType,
   FunctionModelItemType,
@@ -62,6 +63,15 @@ export type FastGPTFeConfigsType = {
   show_aiproxy?: boolean;
   show_coupon?: boolean;
   concatMd?: string;
+
+  show_dataset_feishu?: boolean;
+  show_dataset_yuque?: boolean;
+  show_publish_feishu?: boolean;
+  show_publish_dingtalk?: boolean;
+  show_publish_offiaccount?: boolean;
+
+  show_dataset_enhance?: boolean;
+  show_batch_eval?: boolean;
 
   concatMd?: string;
   confluenceUrl?: string;
@@ -134,8 +144,10 @@ export type SystemEnvType = {
   vectorMaxProcess: number;
   qaMaxProcess: number;
   vlmMaxProcess: number;
-  hnswEfSearch: number;
   tokenWorkers: number; // token count max worker
+
+  hnswEfSearch: number;
+  hnswMaxScanTuples: number;
 
   oneapiUrl?: string;
   chatApiKey?: string;
@@ -155,6 +167,24 @@ export type customPdfParseType = {
   doc2xKey?: string;
   price?: number;
   extension?: string;
+};
+
+export type LicenseDataType = {
+  startTime: string;
+  expiredTime: string;
+  company: string;
+  description?: string; // 描述
+  hosts?: string[]; // 管理端有效域名
+  maxUsers?: number; // 最大用户数，不填默认不上限
+  maxApps?: number; // 最大应用数，不填默认不上限
+  maxDatasets?: number; // 最大数据集数，不填默认不上限
+  functions: {
+    sso: boolean;
+    pay: boolean;
+    customTemplates: boolean;
+    datasetEnhance: boolean;
+    batchEval: boolean;
+  };
 };
 
 export enum SandBoxTypeEnum {

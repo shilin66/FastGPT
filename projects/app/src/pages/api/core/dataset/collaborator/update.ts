@@ -1,8 +1,8 @@
-import { NextApiRequest } from 'next';
+import type { NextApiRequest } from 'next';
 import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { ManagePermissionVal } from '@fastgpt/global/support/permission/constant';
-import { UpdateDatasetCollaboratorBody } from '@fastgpt/global/core/dataset/collaborator';
+import type { UpdateDatasetCollaboratorBody } from '@fastgpt/global/core/dataset/collaborator';
 import { updateDatasetCollaborators } from '@fastgpt/service/support/permission/dataset/controller';
 import { authDataset } from '@fastgpt/service/support/permission/dataset/auth';
 
