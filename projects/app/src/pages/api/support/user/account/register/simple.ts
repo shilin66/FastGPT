@@ -21,6 +21,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       throw new Error('params error');
     }
 
+    if (username === 'root' || username === 'admin') {
+      return Promise.reject('非法用户名');
+    }
+
     // 用户存在
     if (
       await MongoUser.findOne({

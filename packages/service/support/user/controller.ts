@@ -73,7 +73,7 @@ export async function createUserWithDefaultTeamAndPermission(
     {
       teamId: defaultTeam._id,
       userId,
-      name: username.replaceAll('@zenlayer.com', ''),
+      name: username,
       status: TeamMemberStatusEnum.active,
       createTime: new Date(),
       defaultTeam: true
