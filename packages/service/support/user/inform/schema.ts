@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 import { getMongoModel } from '../../../common/mongo';
-import { SystemMsgModalValueType } from './type';
+import type { SystemMsgModalValueType } from './type';
 
 const collectionName = 'system_msg';
 

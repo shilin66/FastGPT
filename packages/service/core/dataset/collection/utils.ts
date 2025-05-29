@@ -1,10 +1,10 @@
 import { MongoDatasetCollection } from './schema';
-import { ClientSession } from '../../../common/mongo';
+import { type ClientSession } from '../../../common/mongo';
 import { MongoDatasetCollectionTags } from '../tag/schema';
 import { readFromSecondary } from '../../../common/mongo/utils';
 import {
-  CollectionWithDatasetType,
-  DatasetCollectionSchemaType
+  type CollectionWithDatasetType,
+  type DatasetCollectionSchemaType
 } from '@fastgpt/global/core/dataset/type';
 import {
   DatasetCollectionDataProcessModeEnum,
@@ -19,7 +19,7 @@ import { hashStr } from '@fastgpt/global/common/string/tools';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { createCollectionAndInsertData, delCollection } from './controller';
 import { collectionCanSync } from '@fastgpt/global/core/dataset/collection/utils';
-import { PushDatasetDataResponse } from '@fastgpt/global/core/dataset/api';
+import type { PushDatasetDataResponse } from '@fastgpt/global/core/dataset/api';
 import { pushDataListToTrainingQueue } from '../training/controller';
 import { createTrainingUsage } from '../../../support/wallet/usage/controller';
 import { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';

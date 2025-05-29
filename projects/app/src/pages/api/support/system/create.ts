@@ -1,7 +1,7 @@
 import type { NextApiRequest } from 'next';
 import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
-import { FastGPTConfigFileType } from '@fastgpt/global/common/system/types';
+import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types';
 import { MongoSystemConfigs } from '@fastgpt/service/common/system/config/schema';
 import { SystemConfigsTypeEnum } from '@fastgpt/global/common/system/config/constants';
 import { parseHeaderCert } from '@fastgpt/service/support/permission/controller';

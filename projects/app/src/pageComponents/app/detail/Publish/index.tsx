@@ -44,27 +44,46 @@ const OutLink = () => {
       value: PublishChannelEnum.apikey,
       isProFn: false
     },
+    ...(feConfigs?.show_publish_feishu !== false
+      ? [
+          {
+            icon: 'core/app/publish/lark',
+            title: t('publish:feishu_bot'),
+            desc: t('publish:feishu_bot_desc'),
+            value: PublishChannelEnum.feishu,
+            isProFn: true
+          }
+        ]
+      : []),
+    ...(feConfigs?.show_publish_dingtalk !== false
+      ? [
+          {
+            icon: 'common/dingtalkFill',
+            title: t('publish:dingtalk.bot'),
+            desc: t('publish:dingtalk.bot_desc'),
+            value: PublishChannelEnum.dingtalk,
+            isProFn: true
+          }
+        ]
+      : []),
     // {
-    //   icon: 'core/app/publish/lark',
-    //   title: t('publish:feishu_bot'),
-    //   desc: t('publish:feishu_bot_desc'),
-    //   value: PublishChannelEnum.feishu,
+    //   icon: 'core/app/publish/wecom',
+    //   title: t('publish:wecom.bot'),
+    //   desc: t('publish:wecom.bot_desc'),
+    //   value: PublishChannelEnum.wecom,
     //   isProFn: true
     // },
-    // {
-    //   icon: 'core/app/publish/lark',
-    //   title: t('publish:feishu_bot'),
-    //   desc: t('publish:feishu_bot_desc'),
-    //   value: PublishChannelEnum.feishu,
-    //   isProFn: true
-    // },
-    // {
-    //   icon: 'common/dingtalkFill',
-    //   title: t('publish:dingtalk.bot'),
-    //   desc: t('publish:dingtalk.bot_desc'),
-    //   value: PublishChannelEnum.dingtalk,
-    //   isProFn: true
-    // },
+    ...(feConfigs?.show_publish_offiaccount !== false
+      ? [
+          {
+            icon: 'core/app/publish/offiaccount',
+            title: t('publish:official_account.name'),
+            desc: t('publish:official_account.desc'),
+            value: PublishChannelEnum.officialAccount,
+            isProFn: true
+          }
+        ]
+      : []),
     {
       icon: 'common/teamsFill',
       title: t('publish:teams.bot'),
@@ -79,20 +98,6 @@ const OutLink = () => {
       value: PublishChannelEnum.chromeExtension,
       isProFn: false
     }
-    // {
-    //   icon: 'core/app/publish/wecom',
-    //   title: t('publish:wecom.bot'),
-    //   desc: t('publish:wecom.bot_desc'),
-    //   value: PublishChannelEnum.wecom,
-    //   isProFn: true
-    // // },
-    // {
-    //   icon: 'core/app/publish/offiaccount',
-    //   title: t('publish:official_account.name'),
-    //   desc: t('publish:official_account.desc'),
-    //   value: PublishChannelEnum.officialAccount,
-    //   isProFn: true
-    // }
   ]);
 
   const [linkType, setLinkType] = useState<PublishChannelEnum>(PublishChannelEnum.share);
@@ -139,16 +144,15 @@ const OutLink = () => {
         px={[4, 8]}
         py={[4, 6]}
         flex={1}
-        overflow={'auto'}
       >
         {linkType === PublishChannelEnum.share && (
           <Link appId={appId} type={PublishChannelEnum.share} />
         )}
         {linkType === PublishChannelEnum.apikey && <API appId={appId} />}
-        {/*{linkType === PublishChannelEnum.feishu && <FeiShu appId={appId} />}*/}
-        {/*{linkType === PublishChannelEnum.dingtalk && <DingTalk appId={appId} />}*/}
+        {linkType === PublishChannelEnum.feishu && <FeiShu appId={appId} />}
+        {linkType === PublishChannelEnum.dingtalk && <DingTalk appId={appId} />}
         {/* {linkType === PublishChannelEnum.wecom && <Wecom appId={appId} />} */}
-        {/*{linkType === PublishChannelEnum.officialAccount && <OffiAccount appId={appId} />}*/}
+        {linkType === PublishChannelEnum.officialAccount && <OffiAccount appId={appId} />}
         {linkType === PublishChannelEnum.teams && <Teams appId={appId} />}
         {linkType === PublishChannelEnum.chromeExtension && <ChromeExtension />}
       </Flex>

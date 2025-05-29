@@ -1,4 +1,5 @@
-import ConfluenceClient, { Attachment, ChildPage, Page } from './client';
+import type { Attachment, ChildPage, Page } from './client';
+import type ConfluenceClient from './client';
 
 export const getSpaceAllPagesRecursive = async (
   client: ConfluenceClient,

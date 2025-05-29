@@ -12,6 +12,7 @@ import { checkTimerLock } from '@fastgpt/service/common/system/timerLock/utils';
 import { TimerIdEnum } from '@fastgpt/service/common/system/timerLock/constants';
 import { addHours } from 'date-fns';
 import { getScheduleTriggerApp } from '@/service/core/app/utils';
+import { clearExpiredRawTextBufferCron } from '@fastgpt/service/common/buffer/rawText/controller';
 import { localCacheManager } from '@fastgpt/service/support/globalCache/cache';
 
 // Try to run train every minute
@@ -127,6 +128,7 @@ export const startCron = () => {
   clearInvalidDataCron();
   clearGlobalCacheCron();
   scheduleTriggerAppCron();
+  clearExpiredRawTextBufferCron();
   scheduleSyncConfluenceDatasetCron();
   scheduleClearInvitationLinkCron();
 };

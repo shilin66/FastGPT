@@ -1,4 +1,4 @@
-import { NextApiRequest } from 'next';
+import type { NextApiRequest } from 'next';
 import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { listAppCollaborator } from '@fastgpt/service/support/permission/app/controller';

@@ -1,6 +1,6 @@
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
-import { putUpdateGroupData } from '@fastgpt/global/support/user/team/group/api';
+import type { putUpdateGroupData } from '@fastgpt/global/support/user/team/group/api';
 import {
   authGroupMemberRole,
   updateMemberGroup

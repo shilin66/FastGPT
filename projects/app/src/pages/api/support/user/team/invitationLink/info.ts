@@ -2,7 +2,7 @@ import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/nex
 import { NextAPI } from '@/service/middleware/entry';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { MongoInvitationLink } from '@fastgpt/service/support/user/team/invitationLink/schema';
-import { TeamSchema } from '@fastgpt/global/support/user/team/type';
+import type { TeamSchema } from '@fastgpt/global/support/user/team/type';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 
 async function handler(req: ApiRequestProps, res: ApiResponseType<any>) {
