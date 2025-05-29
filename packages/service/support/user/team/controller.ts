@@ -343,7 +343,7 @@ export async function createTeam(
       {
         teamId,
         userId,
-        name: user.username.replaceAll('@zenlayer.com', ''),
+        name: user.username,
         role: TeamMemberRoleEnum.owner,
         status: TeamMemberStatusEnum.active,
         createTime: new Date(),
@@ -668,7 +668,7 @@ export async function inviteTeamMember({
       notInTeamUsernames.map((username) => ({
         teamId,
         userId: userMap.get(username),
-        name: username.replaceAll('@zenlayer.com', ''),
+        name: username,
         // status: TeamMemberStatusEnum.waiting,
         createTime: new Date(),
         defaultTeam: false

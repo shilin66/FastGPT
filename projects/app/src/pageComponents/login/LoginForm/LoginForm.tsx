@@ -108,33 +108,33 @@ const LoginForm = ({ setPageType, loginSuccess }: Props) => {
             })}
           ></Input>
         </FormControl>
-        {feConfigs?.docUrl && (
-          <Flex
-            alignItems={'center'}
-            mt={7}
-            fontSize={'mini'}
-            color={'myGray.700'}
-            fontWeight={'medium'}
-          >
-            {t('login:policy_tip')}
-            <Link
-              ml={1}
-              href={getDocPath('/docs/agreement/terms/')}
-              target={'_blank'}
-              color={'primary.700'}
-            >
-              {t('login:terms')}
-            </Link>
-            <Box mx={1}>&</Box>
-            <Link
-              href={getDocPath('/docs/agreement/privacy/')}
-              target={'_blank'}
-              color={'primary.700'}
-            >
-              {t('login:privacy')}
-            </Link>
-          </Flex>
-        )}
+        {/*{feConfigs?.docUrl && (*/}
+        {/*  <Flex*/}
+        {/*    alignItems={'center'}*/}
+        {/*    mt={7}*/}
+        {/*    fontSize={'mini'}*/}
+        {/*    color={'myGray.700'}*/}
+        {/*    fontWeight={'medium'}*/}
+        {/*  >*/}
+        {/*    {t('login:policy_tip')}*/}
+        {/*    <Link*/}
+        {/*      ml={1}*/}
+        {/*      href={getDocPath('/docs/agreement/terms/')}*/}
+        {/*      target={'_blank'}*/}
+        {/*      color={'primary.700'}*/}
+        {/*    >*/}
+        {/*      {t('login:terms')}*/}
+        {/*    </Link>*/}
+        {/*    <Box mx={1}>&</Box>*/}
+        {/*    <Link*/}
+        {/*      href={getDocPath('/docs/agreement/privacy/')}*/}
+        {/*      target={'_blank'}*/}
+        {/*      color={'primary.700'}*/}
+        {/*    >*/}
+        {/*      {t('login:privacy')}*/}
+        {/*    </Link>*/}
+        {/*  </Flex>*/}
+        {/*)}*/}
 
         <Button
           type="submit"
@@ -150,36 +150,36 @@ const LoginForm = ({ setPageType, loginSuccess }: Props) => {
           {t('login:Login')}
         </Button>
 
-        {/*<Flex*/}
-        {/*  align={'center'}*/}
-        {/*  justifyContent={'flex-end'}*/}
-        {/*  color={'primary.700'}*/}
-        {/*  fontWeight={'medium'}*/}
-        {/*>*/}
-        {/*  {feConfigs?.find_password_method && feConfigs.find_password_method.length > 0 && (*/}
-        {/*    <Box*/}
-        {/*      cursor={'pointer'}*/}
-        {/*      _hover={{ textDecoration: 'underline' }}*/}
-        {/*      onClick={() => setPageType('forgetPassword')}*/}
-        {/*      fontSize="mini"*/}
-        {/*    >*/}
-        {/*      {t('login:forget_password')}*/}
-        {/*    </Box>*/}
-        {/*  )}*/}
-        {/*  {feConfigs?.register_method && feConfigs.register_method.length > 0 && (*/}
-        {/*    <Flex alignItems={'center'}>*/}
-        {/*      <Box mx={3} h={'12px'} w={'1px'} bg={'myGray.250'}></Box>*/}
-        {/*      <Box*/}
-        {/*        cursor={'pointer'}*/}
-        {/*        _hover={{ textDecoration: 'underline' }}*/}
-        {/*        onClick={() => setPageType('register')}*/}
-        {/*        fontSize="mini"*/}
-        {/*      >*/}
-        {/*        {t('login:register')}*/}
-        {/*      </Box>*/}
-        {/*    </Flex>*/}
-        {/*  )}*/}
-        {/*</Flex>*/}
+        <Flex
+          align={'center'}
+          justifyContent={'flex-end'}
+          color={'primary.700'}
+          fontWeight={'medium'}
+        >
+          {/*{feConfigs?.find_password_method && feConfigs.find_password_method.length > 0 && (*/}
+          {/*  <Box*/}
+          {/*    cursor={'pointer'}*/}
+          {/*    _hover={{ textDecoration: 'underline' }}*/}
+          {/*    onClick={() => setPageType('forgetPassword')}*/}
+          {/*    fontSize="mini"*/}
+          {/*  >*/}
+          {/*    {t('login:forget_password')}*/}
+          {/*  </Box>*/}
+          {/*)}*/}
+          {feConfigs?.register_method && feConfigs.register_method.length > 0 && (
+            <Flex alignItems={'center'}>
+              <Box mx={3} h={'12px'} w={'1px'} bg={'myGray.250'}></Box>
+              <Box
+                cursor={'pointer'}
+                _hover={{ textDecoration: 'underline' }}
+                onClick={() => setPageType('register')}
+                fontSize="mini"
+              >
+                {t('login:register')}
+              </Box>
+            </Flex>
+          )}
+        </Flex>
       </Box>
     </FormLayout>
   );

@@ -35,8 +35,8 @@ const packagePluginList = [
   'firecrawl/scrape',
   'firecrawl/batchScrape',
   'firecrawl/crawl',
-  'firecrawl/map',
-  'oss'
+  'firecrawl/map'
+  // 'oss'
 ];
 
 export const list = [...staticPluginList, ...packagePluginList];

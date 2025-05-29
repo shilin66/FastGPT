@@ -144,25 +144,25 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
             })}
           ></Input>
         </FormControl>
-        <FormControl
-          mt={6}
-          isInvalid={!!errors.code}
-          display={'flex'}
-          alignItems={'center'}
-          position={'relative'}
-        >
-          <Input
-            size={'lg'}
-            bg={'myGray.50'}
-            flex={1}
-            maxLength={8}
-            placeholder={t('user:password.verification_code')}
-            {...register('code', {
-              required: t('user:password.code_required')
-            })}
-          ></Input>
-          <SendCodeBox username={username} />
-        </FormControl>
+        {/*<FormControl*/}
+        {/*  mt={6}*/}
+        {/*  isInvalid={!!errors.code}*/}
+        {/*  display={'flex'}*/}
+        {/*  alignItems={'center'}*/}
+        {/*  position={'relative'}*/}
+        {/*>*/}
+        {/*  <Input*/}
+        {/*    size={'lg'}*/}
+        {/*    bg={'myGray.50'}*/}
+        {/*    flex={1}*/}
+        {/*    maxLength={8}*/}
+        {/*    placeholder={t('user:password.verification_code')}*/}
+        {/*    {...register('code', {*/}
+        {/*      required: t('user:password.code_required')*/}
+        {/*    })}*/}
+        {/*  ></Input>*/}
+        {/*  <SendCodeBox username={username} />*/}
+        {/*</FormControl>*/}
         <FormControl mt={6} isInvalid={!!errors.password}>
           <Input
             bg={'myGray.50'}
@@ -172,9 +172,9 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
             {...register('password', {
               required: true,
               validate: (val) => {
-                if (!checkPasswordRule(val)) {
-                  return t('login:password_tip');
-                }
+                // if (!checkPasswordRule(val)) {
+                //   return t('login:password_tip');
+                // }
                 return true;
               }
             })}
