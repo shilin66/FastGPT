@@ -37,6 +37,7 @@ export const iconPaths = {
   'common/data': () => import('./icons/common/data.svg'),
   'common/detail': () => import('./icons/common/detail.svg'),
   'common/dingtalkFill': () => import('./icons/common/dingtalkFill.svg'),
+  'common/teamsFill': () => import('./icons/common/teamsFill.svg'),
   'common/disable': () => import('./icons/common/disable.svg'),
   'common/downArrowFill': () => import('./icons/common/downArrowFill.svg'),
   'common/download': () => import('./icons/common/download.svg'),
