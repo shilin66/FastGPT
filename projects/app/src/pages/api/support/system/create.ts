@@ -22,6 +22,8 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
     type: SystemConfigsTypeEnum.fastgpt,
     value: body
   });
+  global.feConfigs = body.feConfigs;
+  global.systemEnv = body.systemEnv;
   return;
 }
 
