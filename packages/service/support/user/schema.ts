@@ -2,7 +2,8 @@ import { connectionMongo, getMongoModel } from '../../common/mongo';
 const { Schema } = connectionMongo;
 import { hashStr } from '@fastgpt/global/common/string/tools';
 import type { UserModelSchema } from '@fastgpt/global/support/user/type';
-import { OAuthEnum, UserStatusEnum, userStatusMap } from '@fastgpt/global/support/user/constant';
+import { UserStatusEnum, userStatusMap } from '@fastgpt/global/support/user/constant';
+import { TeamMemberCollectionName } from '@fastgpt/global/support/user/team/constant';
 
 export const userCollectionName = 'users';
 
@@ -18,9 +19,7 @@ const UserSchema = new Schema({
     required: true,
     unique: true // 唯一
   },
-  phonePrefix: {
-    type: Number
-  },
+  phonePrefix: Number,
   password: {
     type: String,
     set: (val: string) => hashStr(val),
@@ -30,13 +29,14 @@ const UserSchema = new Schema({
   loginType: {
     type: String
   },
+  passwordUpdateTime: Date,
   createTime: {
     type: Date,
     default: () => new Date()
   },
   promotionRate: {
     type: Number,
-    default: 15
+    default: 0
   },
   openaiAccount: {
     type: {
@@ -55,7 +55,8 @@ const UserSchema = new Schema({
     default: 'Asia/Shanghai'
   },
   lastLoginTmbId: {
-    type: Schema.Types.ObjectId
+    type: Schema.Types.ObjectId,
+    ref: TeamMemberCollectionName
   },
 
   inviterId: {

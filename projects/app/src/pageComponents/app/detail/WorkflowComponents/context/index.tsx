@@ -2,27 +2,46 @@ import { postWorkflowDebug } from '@/web/core/workflow/api';
 import {
   checkWorkflowNodeAndConnection,
   compareSnapshot,
-  storeEdgesRenderEdge,
+  storeEdge2RenderEdge,
   storeNode2FlowNode
 } from '@/web/core/workflow/utils';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
-import { RuntimeNodeItemType } from '@fastgpt/global/core/workflow/runtime/type';
-import { FlowNodeItemType, StoreNodeItemType } from '@fastgpt/global/core/workflow/type/node';
+import { type RuntimeNodeItemType } from '@fastgpt/global/core/workflow/runtime/type';
+import {
+  type FlowNodeItemType,
+  type StoreNodeItemType
+} from '@fastgpt/global/core/workflow/type/node';
 import type { FlowNodeTemplateType } from '@fastgpt/global/core/workflow/type/node';
-import { RuntimeEdgeItemType, StoreEdgeItemType } from '@fastgpt/global/core/workflow/type/edge';
-import { FlowNodeChangeProps } from '@fastgpt/global/core/workflow/type/fe';
-import { FlowNodeInputItemType } from '@fastgpt/global/core/workflow/type/io';
+import {
+  type RuntimeEdgeItemType,
+  type StoreEdgeItemType
+} from '@fastgpt/global/core/workflow/type/edge';
+import { type FlowNodeChangeProps } from '@fastgpt/global/core/workflow/type/fe';
+import { type FlowNodeInputItemType } from '@fastgpt/global/core/workflow/type/io';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useMemoizedFn, useUpdateEffect } from 'ahooks';
-import React, { Dispatch, SetStateAction, useCallback, useMemo, useRef, useState } from 'react';
-import { Edge, Node, OnConnectStartParams, ReactFlowProvider, useReactFlow } from 'reactflow';
+import React, {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
+import {
+  type Edge,
+  type Node,
+  type OnConnectStartParams,
+  ReactFlowProvider,
+  useReactFlow
+} from 'reactflow';
 import { createContext, useContextSelector } from 'use-context-selector';
 import { defaultRunningStatus } from '../constants';
 import { checkNodeRunStatus } from '@fastgpt/global/core/workflow/runtime/utils';
 import { getHandleId } from '@fastgpt/global/core/workflow/utils';
-import { AppChatConfigType } from '@fastgpt/global/core/app/type';
+import { type AppChatConfigType } from '@fastgpt/global/core/app/type';
 import { AppContext } from '@/pageComponents/app/detail/context';
 import ChatTest from '../Flow/ChatTest';
 import { useDisclosure } from '@chakra-ui/react';
@@ -30,13 +49,13 @@ import { uiWorkflow2StoreWorkflow } from '../utils';
 import { useTranslation } from 'next-i18next';
 import { formatTime2YMDHMS, formatTime2YMDHMW } from '@fastgpt/global/common/string/time';
 import { cloneDeep } from 'lodash';
-import { AppVersionSchemaType } from '@fastgpt/global/core/app/version';
+import { type AppVersionSchemaType } from '@fastgpt/global/core/app/version';
 import WorkflowInitContextProvider, { WorkflowNodeEdgeContext } from './workflowInitContext';
 import WorkflowEventContextProvider from './workflowEventContext';
 import { getAppConfigByDiff } from '@/web/core/app/diff';
 import WorkflowStatusContextProvider from './workflowStatusContext';
-import { ChatItemType, UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
-import { WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
+import { type ChatItemType, type UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
+import { type WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 
 /* 
   Context
@@ -86,7 +105,6 @@ type WorkflowContextType = {
 
   // nodes
   nodeList: FlowNodeItemType[];
-  hasToolNode: boolean;
 
   onUpdateNodeError: (node: string, isError: Boolean) => void;
   onResetNode: (e: { id: string; node: FlowNodeTemplateType }) => void;
@@ -207,7 +225,6 @@ export const WorkflowContext = createContext<WorkflowContextType>({
   },
   basicNodeTemplates: [],
   nodeList: [],
-  hasToolNode: false,
   onUpdateNodeError: function (node: string, isError: Boolean): void {
     throw new Error('Function not implemented.');
   },
@@ -379,10 +396,6 @@ const WorkflowContextProvider = ({
     () => JSON.parse(nodeListString) as FlowNodeItemType[],
     [nodeListString]
   );
-
-  const hasToolNode = useMemo(() => {
-    return !!nodeList.find((node) => node.flowNodeType === FlowNodeTypeEnum.tools);
-  }, [nodeList]);
 
   const onUpdateNodeError = useMemoizedFn((nodeId: string, isError: Boolean) => {
     setNodes((state) => {
@@ -842,7 +855,7 @@ const WorkflowContextProvider = ({
   });
   const onSwitchCloudVersion = useMemoizedFn((appVersion: AppVersionSchemaType) => {
     const nodes = appVersion.nodes.map((item) => storeNode2FlowNode({ item, t }));
-    const edges = appVersion.edges.map((item) => storeEdgesRenderEdge({ edge: item }));
+    const edges = appVersion.edges.map((item) => storeEdge2RenderEdge({ edge: item }));
     const chatConfig = appVersion.chatConfig;
 
     resetSnapshot({
@@ -893,7 +906,7 @@ const WorkflowContextProvider = ({
       isInit?: boolean
     ) => {
       const nodes = e.nodes?.map((item) => storeNode2FlowNode({ item, t })) || [];
-      const edges = e.edges?.map((item) => storeEdgesRenderEdge({ edge: item })) || [];
+      const edges = e.edges?.map((item) => storeEdge2RenderEdge({ edge: item })) || [];
 
       // Get storage snapshot，兼容旧版正在编辑的用户，刷新后会把 local 数据存到内存并删除
       const pastSnapshot = (() => {
@@ -992,7 +1005,6 @@ const WorkflowContextProvider = ({
 
       // node
       nodeList,
-      hasToolNode,
       onUpdateNodeError,
       onResetNode,
       onChangeNode,
@@ -1038,7 +1050,6 @@ const WorkflowContextProvider = ({
       flowData2StoreDataAndCheck,
       future,
       getNodeDynamicInputs,
-      hasToolNode,
       initData,
       nodeList,
       onChangeNode,

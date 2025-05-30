@@ -6,11 +6,11 @@ import {
   Box,
   useOutsideClick,
   MenuButton,
-  MenuItemProps,
-  PlacementWithLogical,
-  AvatarProps,
-  BoxProps,
-  DividerProps
+  type MenuItemProps,
+  type PlacementWithLogical,
+  type AvatarProps,
+  type BoxProps,
+  type DividerProps
 } from '@chakra-ui/react';
 import MyDivider from '../MyDivider';
 import type { IconNameType } from '../Icon/type';
@@ -216,7 +216,7 @@ const MyMenu = ({
     if (offset) return offset;
     if (typeof width === 'number') return [-width / 2, 5];
     return [0, 5];
-  }, [offset]);
+  }, [offset, width]);
 
   return (
     <Menu

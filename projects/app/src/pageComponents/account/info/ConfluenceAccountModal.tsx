@@ -51,7 +51,7 @@ const ConfluenceAccountModal = ({
             fontWeight={'bold'}
             fontSize={'sm'}
           >
-            {t('common:common.course.Read Course')}
+            {t('common:read_doc')}
           </Link>
         </Box>
         <Box mt={5}>
@@ -85,10 +85,10 @@ const ConfluenceAccountModal = ({
       </ModalBody>
       <ModalFooter>
         <Button mr={3} variant={'whiteBase'} onClick={onClose}>
-          {t('common:common.Cancel')}
+          {t('common:Cancel')}
         </Button>
         <Button isLoading={isLoading} onClick={handleSubmit((data) => onSubmit(data))}>
-          {t('common:common.Confirm')}
+          {t('common:Confirm')}
         </Button>
       </ModalFooter>
     </MyModal>

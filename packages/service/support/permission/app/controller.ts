@@ -1,11 +1,11 @@
-import { UpdateAppCollaboratorBody } from '@fastgpt/global/core/app/collaborator';
+import type { UpdateAppCollaboratorBody } from '@fastgpt/global/core/app/collaborator';
 import { MongoApp } from '../../../core/app/schema';
 import { AppErrEnum } from '@fastgpt/global/common/error/code/app';
 import {
   OwnerPermissionVal,
   PerResourceTypeEnum
 } from '@fastgpt/global/support/permission/constant';
-import { CollaboratorItemType } from '@fastgpt/global/support/permission/collaborator';
+import type { CollaboratorItemType } from '@fastgpt/global/support/permission/collaborator';
 import { deleteCollaborators, listCollaborator, updateCollaborators } from '../controller';
 import { MongoResourcePermission } from '../schema';
 

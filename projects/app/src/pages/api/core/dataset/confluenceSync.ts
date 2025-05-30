@@ -1,7 +1,7 @@
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { NextAPI } from '@/service/middleware/entry';
 import type { ApiRequestProps } from '@fastgpt/service/type/next';
-import { PostConfluenceSyncParams } from '@fastgpt/global/core/dataset/api';
+import type { PostConfluenceSyncParams } from '@fastgpt/global/core/dataset/api';
 import { authDataset } from '@fastgpt/service/support/permission/dataset/auth';
 import { trainConfluenceCollection } from '@fastgpt/service/core/dataset/training/controller';
 

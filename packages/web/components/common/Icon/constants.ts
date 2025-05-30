@@ -2,6 +2,7 @@
 
 export const iconPaths = {
   alignLeft: () => import('./icons/alignLeft.svg'),
+  backup: () => import('./icons/backup.svg'),
   book: () => import('./icons/book.svg'),
   change: () => import('./icons/change.svg'),
   chatSend: () => import('./icons/chatSend.svg'),
@@ -232,6 +233,7 @@ export const iconPaths = {
   'core/dataset/tableCollection': () => import('./icons/core/dataset/tableCollection.svg'),
   'core/dataset/tag': () => import('./icons/core/dataset/tag.svg'),
   'core/dataset/websiteDataset': () => import('./icons/core/dataset/websiteDataset.svg'),
+  'core/dataset/otherDataset': () => import('./icons/core/dataset/otherDataset.svg'),
   'core/dataset/websiteDatasetColor': () => import('./icons/core/dataset/websiteDatasetColor.svg'),
   'core/dataset/websiteDatasetOutline': () =>
     import('./icons/core/dataset/websiteDatasetOutline.svg'),
@@ -444,6 +446,7 @@ export const iconPaths = {
   point: () => import('./icons/point.svg'),
   preview: () => import('./icons/preview.svg'),
   'price/bg': () => import('./icons/price/bg.svg'),
+  'price/pricearrow': () => import('./icons/price/pricearrow.svg'),
   'price/right': () => import('./icons/price/right.svg'),
   save: () => import('./icons/save.svg'),
   sliderTag: () => import('./icons/sliderTag.svg'),

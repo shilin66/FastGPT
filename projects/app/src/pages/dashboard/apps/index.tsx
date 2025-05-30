@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
+'use client';
+import React, { useMemo, useState } from 'react';
 import { Box, Flex, Button, useDisclosure, Input, InputGroup } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
 import { serviceSideProps } from '@/web/common/i18n/utils';
@@ -28,13 +29,11 @@ import MyBox from '@fastgpt/web/components/common/MyBox';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import JsonImportModal from '@/pageComponents/dashboard/apps/JsonImportModal';
-import { PermissionValueType } from '@fastgpt/global/support/permission/type';
 import DashboardContainer from '@/pageComponents/dashboard/Container';
 import List from '@/pageComponents/dashboard/apps/List';
 import MCPToolsEditModal from '@/pageComponents/dashboard/apps/MCPToolsEditModal';
 import { getUtmWorkflow } from '@/web/support/marketing/utils';
 import { useMount } from 'ahooks';
-import { AppCollaboratorDeleteParams } from '@fastgpt/global/core/app/collaborator';
 
 const CreateModal = dynamic(() => import('@/pageComponents/dashboard/apps/CreateModal'));
 const EditFolderModal = dynamic(
@@ -263,7 +262,7 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
 
         {/* Folder slider */}
         {!!folderDetail && isPc && (
-          <Box pt={[4, 6]} pr={[4, 6]}>
+          <Box pt={[4, 6]} pr={[4, 6]} h={'100%'} pb={4} overflow={'auto'}>
             <FolderSlideCard
               refetchResource={() => Promise.all([refetchFolderDetail(), loadMyApps()])}
               resumeInheritPermission={() => resumeInheritPer(folderDetail._id)}

@@ -1,30 +1,26 @@
 import {
-  TeamMemberItemType,
-  TeamMemberSchema,
-  TeamMemberWithTeamAndUserSchema,
-  TeamSchema,
-  TeamTmbItemType
+  type TeamMemberItemType,
+  type TeamMemberSchema,
+  type TeamMemberWithTeamAndUserSchema,
+  type TeamSchema,
+  type TeamTmbItemType
 } from '@fastgpt/global/support/user/team/type';
-import { ClientSession, Types } from '../../../common/mongo';
+import { type ClientSession, Types } from '../../../common/mongo';
 import {
-  notLeaveStatus,
   TeamMemberRoleEnum,
-  TeamMemberStatusEnum
+  TeamMemberStatusEnum,
+  notLeaveStatus
 } from '@fastgpt/global/support/user/team/constant';
 import { MongoTeamMember } from './teamMemberSchema';
 import { MongoTeam } from './teamSchema';
 import {
-  CreateTeamProps,
-  InviteMemberProps,
-  InviteMemberResponse,
-  UpdateInviteProps,
-  UpdateTeamProps
+  type CreateTeamProps,
+  type InviteMemberProps,
+  type InviteMemberResponse,
+  type UpdateInviteProps,
+  type UpdateTeamProps
 } from '@fastgpt/global/support/user/team/controller';
-import {
-  createJWT,
-  getClbsAndGroupsWithInfo,
-  getResourcePermission
-} from '../../permission/controller';
+import { getClbsAndGroupsWithInfo, getResourcePermission } from '../../permission/controller';
 import {
   OwnerPermissionVal,
   PerResourceTypeEnum
@@ -37,7 +33,7 @@ import { DefaultGroupName } from '@fastgpt/global/support/user/team/group/consta
 import { MongoResourcePermission } from '../../permission/schema';
 import { getUserDetail } from '../controller';
 import { MongoUser } from '../schema';
-import {
+import type {
   ResourcePerWithGroup,
   ResourcePerWithOrg,
   ResourcePerWithTmbWithUser
@@ -53,14 +49,15 @@ import {
   listOrgPathByTeamId
 } from '../../permission/org/controllers';
 import { refreshSourceAvatar } from '../../../common/file/image/controller';
-import { PaginationResponse } from '../../../../web/common/fetch/type';
-import {
+import type { PaginationResponse } from '../../../../web/common/fetch/type';
+import type {
   CollaboratorItemType,
   DeletePermissionQuery,
   UpdateClbPermissionProps
 } from '@fastgpt/global/support/permission/collaborator';
 import { MongoOrgModel } from '../../permission/org/orgSchema';
 import { MongoOrgMemberModel } from '../../permission/org/orgMemberSchema';
+import { createUserSession } from '../session';
 
 async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemType> {
   const tmb = await MongoTeamMember.findOne(match).populate<{ team: TeamSchema }>('team').lean();
@@ -703,7 +700,7 @@ export async function inviteTeamMember({
   };
 }
 
-export async function switchTeam(newTeamId: string, userId: string) {
+export async function switchTeam(newTeamId: string, userId: string, ip?: string | null) {
   const teamMember = await MongoTeamMember.findOne({
     teamId: newTeamId,
     userId
@@ -728,7 +725,13 @@ export async function switchTeam(newTeamId: string, userId: string) {
     userId
   });
 
-  return createJWT(userDetail);
+  return await createUserSession({
+    userId: userDetail._id,
+    teamId: userDetail.team.teamId,
+    tmbId: userDetail.team.tmbId,
+    isRoot: userDetail.username === 'root',
+    ip: ip
+  });
 }
 
 export async function updatePermission(

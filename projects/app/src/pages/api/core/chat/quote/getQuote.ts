@@ -1,12 +1,12 @@
 import { NextAPI } from '@/service/middleware/entry';
 import { authChatCrud, authCollectionInChat } from '@/service/support/permission/auth/chat';
 import { MongoDatasetData } from '@fastgpt/service/core/dataset/data/schema';
-import { ApiRequestProps } from '@fastgpt/service/type/next';
-import { quoteDataFieldSelector, QuoteDataItemType } from '@/service/core/chat/constants';
+import { type ApiRequestProps } from '@fastgpt/service/type/next';
+import { quoteDataFieldSelector, type QuoteDataItemType } from '@/service/core/chat/constants';
 import { processChatTimeFilter } from '@/service/core/chat/utils';
 import { ChatErrEnum } from '@fastgpt/global/common/error/code/chat';
 
-export type GetQuoteDataProps = {
+export type GetQuoteProps = {
   datasetDataIdList: string[];
 
   collectionIdList: string[];
@@ -19,9 +19,9 @@ export type GetQuoteDataProps = {
   teamToken?: string;
 };
 
-export type GetQuoteDataRes = QuoteDataItemType[];
+export type GetQuotesRes = QuoteDataItemType[];
 
-async function handler(req: ApiRequestProps<GetQuoteDataProps>): Promise<GetQuoteDataRes> {
+async function handler(req: ApiRequestProps<GetQuoteProps>): Promise<GetQuotesRes> {
   const {
     appId,
     chatId,

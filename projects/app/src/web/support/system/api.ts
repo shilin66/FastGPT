@@ -1,5 +1,5 @@
 import { GET, POST } from '@/web/common/api/request';
-import { FastGPTConfigFileType } from '@fastgpt/global/common/system/types';
+import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types';
 
 export const getSystemConfig = () => GET<FastGPTConfigFileType>('/support/system/detail');
 

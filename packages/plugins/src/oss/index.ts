@@ -1,6 +1,6 @@
 import axios from 'axios';
 import Cookie from 'cookie';
-import { FastGPTFeConfigsType } from '@fastgpt/global/common/system/types';
+import type { FastGPTFeConfigsType } from '@fastgpt/global/common/system/types';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 
 type Props = {

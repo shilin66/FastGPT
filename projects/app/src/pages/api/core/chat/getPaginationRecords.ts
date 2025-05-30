@@ -1,6 +1,6 @@
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
-import { GetChatRecordsProps } from '@/global/core/chat/api';
+import { type GetChatRecordsProps } from '@/global/core/chat/api';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { transformPreviewHistories } from '@/global/core/chat/utils';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
@@ -14,8 +14,8 @@ import {
   removeAIResponseCite
 } from '@fastgpt/global/core/chat/utils';
 import { GetChatTypeEnum } from '@/global/core/chat/constants';
-import { PaginationProps, PaginationResponse } from '@fastgpt/web/common/fetch/type';
-import { ChatItemType } from '@fastgpt/global/core/chat/type';
+import { type PaginationProps, type PaginationResponse } from '@fastgpt/web/common/fetch/type';
+import { type ChatItemType } from '@fastgpt/global/core/chat/type';
 import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';
 
 export type getPaginationRecordsQuery = {};
@@ -55,12 +55,14 @@ async function handler(
   const isPlugin = app.type === AppTypeEnum.plugin;
   const isOutLink = authType === GetChatTypeEnum.outLink;
 
+  const commonField =
+    'dataId obj value adminFeedback userGoodFeedback userBadFeedback time hideInUI durationSeconds errorMsg';
   const fieldMap = {
-    [GetChatTypeEnum.normal]: `dataId obj value adminFeedback userBadFeedback userGoodFeedback time hideInUI durationSeconds ${
+    [GetChatTypeEnum.normal]: `${commonField} ${
       DispatchNodeResponseKeyEnum.nodeResponse
     } ${loadCustomFeedbacks ? 'customFeedbacks' : ''}`,
-    [GetChatTypeEnum.outLink]: `dataId obj value userGoodFeedback userBadFeedback adminFeedback time hideInUI durationSeconds ${DispatchNodeResponseKeyEnum.nodeResponse}`,
-    [GetChatTypeEnum.team]: `dataId obj value userGoodFeedback userBadFeedback adminFeedback time hideInUI durationSeconds ${DispatchNodeResponseKeyEnum.nodeResponse}`
+    [GetChatTypeEnum.outLink]: `${commonField} ${DispatchNodeResponseKeyEnum.nodeResponse}`,
+    [GetChatTypeEnum.team]: `${commonField} ${DispatchNodeResponseKeyEnum.nodeResponse}`
   };
 
   const { total, histories } = await getChatItems({

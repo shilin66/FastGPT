@@ -3,14 +3,14 @@ import NodeCard from '../render/NodeCard';
 import { useTranslation } from 'next-i18next';
 import { Box, Button, Flex } from '@chakra-ui/react';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
-import { NodeProps, Position, useViewport } from 'reactflow';
-import { FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node';
-import { IfElseListItemType } from '@fastgpt/global/core/workflow/template/system/ifElse/type';
+import { type NodeProps, Position, useViewport } from 'reactflow';
+import { type FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node';
+import { type IfElseListItemType } from '@fastgpt/global/core/workflow/template/system/ifElse/type';
 import { useContextSelector } from 'use-context-selector';
 import { WorkflowContext } from '../../../context';
 import Container from '../../components/Container';
 import DndDrag, { Draggable } from '@fastgpt/web/components/common/DndDrag/index';
-import { SourceHandle } from '../render/Handle';
+import { MySourceHandle } from '../render/Handle';
 import { getHandleId } from '@fastgpt/global/core/workflow/utils';
 import ListItem from './ListItem';
 import { IfElseResultEnum } from '@fastgpt/global/core/workflow/template/system/ifElse/constant';
@@ -95,7 +95,7 @@ const NodeIfElse = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
             <Box color={'black'} fontSize={'md'} ml={2}>
               {IfElseResultEnum.ELSE}
             </Box>
-            <SourceHandle
+            <MySourceHandle
               nodeId={nodeId}
               handleId={elseHandleId}
               position={Position.Right}

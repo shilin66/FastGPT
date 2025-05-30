@@ -3,7 +3,7 @@ import {
   FlowNodeOutputTypeEnum,
   FlowNodeTypeEnum
 } from '../../node/constant';
-import { FlowNodeTemplateType } from '../../type/node.d';
+import { type FlowNodeTemplateType } from '../../type/node.d';
 import {
   WorkflowIOValueTypeEnum,
   NodeOutputKeyEnum,
@@ -24,7 +24,6 @@ export const TextEditorNode: FlowNodeTemplateType = {
   name: i18nT('workflow:text_concatenation'),
   intro: i18nT('workflow:intro_text_concatenation'),
   courseUrl: '/docs/guide/dashboard/workflow/text_editor/',
-  version: '4813',
   inputs: [
     {
       key: NodeInputKeyEnum.textareaInput,

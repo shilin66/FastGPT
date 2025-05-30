@@ -4,30 +4,30 @@
 import type { NextApiResponse } from 'next';
 import {
   getChildAppPreviewNode,
-  splitCombinePluginId
+  splitCombineToolId
 } from '@fastgpt/service/core/app/plugin/controller';
-import { FlowNodeTemplateType } from '@fastgpt/global/core/workflow/type/node.d';
+import { type FlowNodeTemplateType } from '@fastgpt/global/core/workflow/type/node.d';
 import { NextAPI } from '@/service/middleware/entry';
-import { ApiRequestProps } from '@fastgpt/service/type/next';
+import { type ApiRequestProps } from '@fastgpt/service/type/next';
 import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { PluginSourceEnum } from '@fastgpt/global/core/plugin/constants';
 
-export type GetPreviewNodeQuery = { appId: string };
+export type GetPreviewNodeQuery = { appId: string; versionId?: string };
 
 async function handler(
   req: ApiRequestProps<{}, GetPreviewNodeQuery>,
   _res: NextApiResponse<any>
 ): Promise<FlowNodeTemplateType> {
-  const { appId } = req.query;
+  const { appId, versionId } = req.query;
 
-  const { source } = await splitCombinePluginId(appId);
+  const { source } = splitCombineToolId(appId);
 
   if (source === PluginSourceEnum.personal) {
     await authApp({ req, authToken: true, appId, per: ReadPermissionVal });
   }
 
-  return getChildAppPreviewNode({ id: appId });
+  return getChildAppPreviewNode({ appId, versionId });
 }
 
 export default NextAPI(handler);

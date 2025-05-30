@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactFlow, { NodeProps, SelectionMode } from 'reactflow';
+import ReactFlow, { type NodeProps, SelectionMode } from 'reactflow';
 import { Box, IconButton, useDisclosure } from '@chakra-ui/react';
 import { SmallCloseIcon } from '@chakra-ui/icons';
 import { EDGE_TYPE, FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
@@ -10,7 +10,7 @@ import ButtonEdge from './components/ButtonEdge';
 import NodeTemplatesModal from './NodeTemplatesModal';
 
 import 'reactflow/dist/style.css';
-import { FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node.d';
+import { type FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node.d';
 import { connectionLineStyle, defaultEdgeOptions, maxZoom, minZoom } from '../constants';
 import { useContextSelector } from 'use-context-selector';
 import { useWorkflow } from './hooks/useWorkflow';
@@ -19,6 +19,7 @@ import FlowController from './components/FlowController';
 import ContextMenu from './components/ContextMenu';
 import { WorkflowNodeEdgeContext, WorkflowInitContext } from '../context/workflowInitContext';
 import { WorkflowEventContext } from '../context/workflowEventContext';
+import NodeTemplatesPopover from './NodeTemplatesPopover';
 
 const NodeSimple = dynamic(() => import('./nodes/NodeSimple'));
 const nodeTypes: Record<FlowNodeTypeEnum, any> = {
@@ -127,6 +128,7 @@ const Workflow = () => {
             }}
           />
           <NodeTemplatesModal isOpen={isOpenTemplate} onClose={onCloseTemplate} />
+          <NodeTemplatesPopover />
         </>
 
         <ReactFlow

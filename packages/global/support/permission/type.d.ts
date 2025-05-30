@@ -1,9 +1,9 @@
-import { UserModelSchema } from '../user/type';
-import { RequireOnlyOne } from '../../common/type/utils';
-import { TeamMemberSchema } from '../user/team/type';
-import { MemberGroupSchemaType } from './memberGroup/type';
+import type { UserModelSchema } from '../user/type';
+import type { RequireOnlyOne } from '../../common/type/utils';
+import type { TeamMemberSchema } from '../user/team/type';
+import type { MemberGroupSchemaType } from './memberGroup/type';
 import { type PermissionKeyEnum, type PerResourceTypeEnum } from './constant';
-import { OrgSchemaType } from '../user/team/org/type';
+import type { OrgSchemaType } from '../user/team/org/type';
 
 // PermissionValueType, the type of permission's value is a number, which is a bit field actually.
 // It is spired by the permission system in Linux.

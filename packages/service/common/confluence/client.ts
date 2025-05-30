@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosRequestConfig } from 'axios';
+import type { AxiosInstance, AxiosResponse, AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import { getFileContentTypeFromHeader, guessBase64ImageType } from '../file/utils';
 
 // 定义接口
