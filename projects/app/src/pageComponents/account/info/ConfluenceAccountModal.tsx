@@ -85,10 +85,10 @@ const ConfluenceAccountModal = ({
       </ModalBody>
       <ModalFooter>
         <Button mr={3} variant={'whiteBase'} onClick={onClose}>
-          {t('common:cancel')}
+          {t('common:Cancel')}
         </Button>
         <Button isLoading={isLoading} onClick={handleSubmit((data) => onSubmit(data))}>
-          {t('common:confirm')}
+          {t('common:Confirm')}
         </Button>
       </ModalFooter>
     </MyModal>

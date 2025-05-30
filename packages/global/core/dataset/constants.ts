@@ -39,7 +39,7 @@ export const DatasetTypeMap = {
   },
   [DatasetTypeEnum.confluenceDataset]: {
     icon: 'core/dataset/confluenceDataset',
-    label: 'confluence_dataset',
+    label: i18nT('dataset:confluence_dataset'),
     collectionLabel: i18nT('common:Website')
   },
   [DatasetTypeEnum.feishu]: {
