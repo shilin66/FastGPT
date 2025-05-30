@@ -412,13 +412,37 @@ export const trainConfluenceCollection = async ({
 
           // 3. 加载页面数据
           await reloadConfluencePageCollectionChunks({
+            dataset,
             collection: {
-              ...collection.toObject(),
-              dataset: dataset
+              teamId: collection.teamId,
+              tmbId: collection.tmbId,
+              name: page.title || collection.name,
+              datasetId: collection.datasetId,
+              parentId: collection.parentId,
+              type: collection.type,
+
+              trainingType: collection.trainingType,
+              chunkSize: collection.chunkSize,
+              chunkSplitter: collection.chunkSplitter,
+              qaPrompt: collection.qaPrompt,
+
+              fileId: collection.fileId,
+              rawLink: collection.rawLink,
+              externalFileId: collection.externalFileId,
+              externalFileUrl: collection.externalFileUrl,
+              apiFileId: collection.apiFileId,
+
+              rawTextLength: markdown.result.length,
+
+              metadata: collection.metadata,
+
+              tags: collection.tags,
+              createTime: collection.createTime,
+              updateTime: new Date()
             },
             tmbId,
+            collectionId: collection._id,
             rawText: markdown.result,
-            title: page.title,
             session // 同样使用同一个 session
           });
 

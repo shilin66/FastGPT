@@ -1,17 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { jsonRes } from '@fastgpt/service/common/response';
 import { MongoUser } from '@fastgpt/service/support/user/schema';
-// import { connectToDatabase } from '@/service/mongo';
 import { MongoTeam } from '@fastgpt/service/support/user/team/teamSchema';
 import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
-import {
-  TeamMemberRoleEnum,
-  TeamMemberStatusEnum
-} from '@fastgpt/global/support/user/team/constant';
+import { TeamMemberStatusEnum } from '@fastgpt/global/support/user/team/constant';
 import { getUserDetail } from '@fastgpt/service/support/user/controller';
-import { createJWT, setCookie } from '@fastgpt/service/support/permission/controller';
-import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
-import { PermissionList, PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
+import { setCookie } from '@fastgpt/service/support/permission/controller';
+import requestIp from 'request-ip';
+import { createUserSession } from '@fastgpt/service/support/user/session';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   try {
@@ -71,7 +67,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       tmbId: defaultTeam._id,
       userId
     });
-    const token = createJWT(userDetail);
+    const token = await createUserSession({
+      userId: userId,
+      teamId: userDetail.team.teamId,
+      tmbId: userDetail.team.tmbId,
+      isRoot: username === 'root',
+      ip: requestIp.getClientIp(req)
+    });
+
     setCookie(res, token);
 
     jsonRes(res, {
