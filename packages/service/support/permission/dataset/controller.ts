@@ -1,9 +1,9 @@
 import { AppErrEnum } from '@fastgpt/global/common/error/code/app';
 import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
-import { CollaboratorItemType } from '@fastgpt/global/support/permission/collaborator';
+import type { CollaboratorItemType } from '@fastgpt/global/support/permission/collaborator';
 import { deleteCollaborators, listCollaborator, updateCollaborators } from '../controller';
 import { MongoDataset } from '../../../core/dataset/schema';
-import { UpdateDatasetCollaboratorBody } from '@fastgpt/global/core/dataset/collaborator';
+import type { UpdateDatasetCollaboratorBody } from '@fastgpt/global/core/dataset/collaborator';
 
 export async function updateDatasetCollaborators(
   updateDatasetCollaboratorBody: UpdateDatasetCollaboratorBody

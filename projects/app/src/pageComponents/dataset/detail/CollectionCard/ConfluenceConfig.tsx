@@ -27,15 +27,16 @@ import {
 } from '@fastgpt/global/core/dataset/constants';
 import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
-import { ChunkSettingsType } from '@fastgpt/global/core/dataset/type';
+import type { ChunkSettingsType } from '@fastgpt/global/core/dataset/type';
+import type { CollectionChunkFormType } from '@/pageComponents/dataset/detail/Form/CollectionChunkForm';
 import CollectionChunkForm, {
-  collectionChunkForm2StoreChunkData,
-  CollectionChunkFormType
+  collectionChunkForm2StoreChunkData
 } from '@/pageComponents/dataset/detail/Form/CollectionChunkForm';
 import { getLLMDefaultChunkSize } from '@fastgpt/global/core/dataset/training/utils';
 import { useMyStep } from '@fastgpt/web/hooks/useStep';
 import MyDivider from '@fastgpt/web/components/common/MyDivider';
 import { getDocPath } from '@/web/common/system/doc';
+import { defaultFormData } from '@/pageComponents/dataset/detail/Import/Context';
 
 export type ConfluenceConfigFormType = {
   confluenceConfig: {
@@ -107,8 +108,15 @@ const ConfluenceConfigModal = ({
 
       chunkSettingMode: chunkSettings?.chunkSettingMode || ChunkSettingModeEnum.auto,
       chunkSplitMode: chunkSettings?.chunkSplitMode || DataChunkSplitModeEnum.size,
-      embeddingChunkSize: chunkSettings?.chunkSize || 2000,
-      qaChunkSize: chunkSettings?.chunkSize || getLLMDefaultChunkSize(datasetDetail.agentModel),
+
+      paragraphChunkAIMode:
+        chunkSettings?.paragraphChunkAIMode || defaultFormData.paragraphChunkAIMode,
+      paragraphChunkDeep: chunkSettings?.paragraphChunkDeep || defaultFormData.paragraphChunkDeep,
+      paragraphChunkMinSize:
+        chunkSettings?.paragraphChunkMinSize || defaultFormData.paragraphChunkMinSize,
+
+      chunkSize: chunkSettings?.chunkSize || defaultFormData.chunkSize,
+
       indexSize: chunkSettings?.indexSize || datasetDetail.vectorModel?.defaultToken || 512,
 
       chunkSplitter: chunkSettings?.chunkSplitter || '',
@@ -144,7 +152,7 @@ const ConfluenceConfigModal = ({
                 textDecoration={'underline'}
                 fontWeight={'bold'}
               >
-                {t('common:common.course.Read Course')}
+                {t('common:read_doc')}
               </Link>
             </Box>
 
@@ -180,7 +188,7 @@ const ConfluenceConfigModal = ({
                 </Flex>
                 <Flex justifyContent={'space-between'} mt={5} flex={'0 0 120px'} fontWeight={'sm'}>
                   <FormLabel flex={'0 0 150px'} fontSize={'sm'}>
-                    {t('common:core.dataset.confluence.Page Id')}({t('common:common.choosable')})
+                    {t('common:core.dataset.confluence.Page Id')}({t('common:choosable')})
                     <QuestionTip
                       label={`同步指定的页面，如果不配置，将会同步整个空间。\n查看浏览器地址栏上显示的Confluence地址,eg: ${feConfigs.confluenceUrl}/spaces/~63bd11e204b5f5c7b5ed0a0a/pages/12033720325，取pages后面的值:12033720325`}
                       ml={1}
@@ -234,7 +242,7 @@ const ConfluenceConfigModal = ({
           {activeStep == 0 && (
             <>
               <Button variant={'whiteBase'} onClick={onClose}>
-                {t('common:common.Close')}
+                {t('common:Close')}
               </Button>
               <Button
                 ml={2}
@@ -243,7 +251,7 @@ const ConfluenceConfigModal = ({
                   goToNext();
                 })}
               >
-                {t('common:common.Next Step')}
+                {t('common:next_step')}
               </Button>
             </>
           )}
@@ -251,7 +259,7 @@ const ConfluenceConfigModal = ({
           {activeStep == 1 && (
             <>
               <Button variant={'whiteBase'} onClick={goToPrevious}>
-                {t('common:common.Last Step')}
+                {t('common:last_step')}
               </Button>
               <Button
                 ml={2}

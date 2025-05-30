@@ -3,6 +3,11 @@ import { getEmbeddingModel } from '../ai/model';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import type { StoreNodeItemType } from '@fastgpt/global/core/workflow/type/node';
+import { getChildAppPreviewNode, splitCombineToolId } from './plugin/controller';
+import { PluginSourceEnum } from '@fastgpt/global/core/plugin/constants';
+import { authAppByTmbId } from '../../support/permission/app/auth';
+import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
+import { getErrText } from '@fastgpt/global/common/error/utils';
 
 export async function listAppDatasetDataByTeamIdAndDatasetIds({
   teamId,
@@ -27,13 +32,58 @@ export async function listAppDatasetDataByTeamIdAndDatasetIds({
 export async function rewriteAppWorkflowToDetail({
   nodes,
   teamId,
-  isRoot
+  isRoot,
+  ownerTmbId
 }: {
   nodes: StoreNodeItemType[];
   teamId: string;
   isRoot: boolean;
+  ownerTmbId: string;
 }) {
   const datasetIdSet = new Set<string>();
+
+  /* Add node(App Type) versionlabel and latest sign ==== */
+  await Promise.all(
+    nodes.map(async (node) => {
+      if (!node.pluginId) return;
+      const { source } = splitCombineToolId(node.pluginId);
+
+      try {
+        const [preview] = await Promise.all([
+          getChildAppPreviewNode({
+            appId: node.pluginId,
+            versionId: node.version
+          }),
+          ...(source === PluginSourceEnum.personal
+            ? [
+                authAppByTmbId({
+                  tmbId: ownerTmbId,
+                  appId: node.pluginId,
+                  per: ReadPermissionVal
+                })
+              ]
+            : [])
+        ]);
+
+        node.pluginData = {
+          diagram: preview.diagram,
+          userGuide: preview.userGuide,
+          courseUrl: preview.courseUrl,
+          name: preview.name,
+          avatar: preview.avatar
+        };
+        node.versionLabel = preview.versionLabel;
+        node.isLatestVersion = preview.isLatestVersion;
+        node.version = preview.version;
+      } catch (error) {
+        node.pluginData = {
+          error: getErrText(error)
+        };
+      }
+    })
+  );
+
+  /* Add node(App Type) versionlabel and latest sign ==== */
 
   // Get all dataset ids from nodes
   nodes.forEach((node) => {

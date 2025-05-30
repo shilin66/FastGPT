@@ -1,5 +1,5 @@
 import { MongoApp } from '@fastgpt/service/core/app/schema';
-import { AppListItemType } from '@fastgpt/global/core/app/type';
+import { type AppListItemType } from '@fastgpt/global/core/app/type';
 import { NextAPI } from '@/service/middleware/entry';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import {
@@ -7,8 +7,8 @@ import {
   ReadPermissionVal
 } from '@fastgpt/global/support/permission/constant';
 import { AppPermission } from '@fastgpt/global/support/permission/app/controller';
-import { ApiRequestProps } from '@fastgpt/service/type/next';
-import { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
+import { type ApiRequestProps } from '@fastgpt/service/type/next';
+import { type ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { parseParentIdInMongo } from '@fastgpt/global/common/parentFolder/utils';
 import { AppFolderTypeList, AppTypeEnum } from '@fastgpt/global/core/app/constants';
 import { AppDefaultPermissionVal } from '@fastgpt/global/support/permission/app/constant';
@@ -138,18 +138,20 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
   })();
   const limit = (() => {
     if (getRecentlyChat) return 15;
-    if (searchKey) return 20;
-    return 1000;
+    if (searchKey) return 50;
+    return;
   })();
 
   const myApps = await MongoApp.find(
     findAppsQuery,
-    '_id parentId avatar type name intro tmbId updateTime pluginData inheritPermission'
+    '_id parentId avatar type name intro tmbId updateTime pluginData inheritPermission',
+    {
+      limit: limit
+    }
   )
     .sort({
       updateTime: -1
     })
-    .limit(limit)
     .lean();
 
   // Add app permission and filter apps by read permission

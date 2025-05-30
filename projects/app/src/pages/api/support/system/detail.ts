@@ -15,7 +15,7 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
       error: 'No permission'
     });
   }
-  return (await getFastGPTConfigFromDB()).config;
+  return (await getFastGPTConfigFromDB()).fastgptConfig;
 }
 
 export default NextAPI(handler);

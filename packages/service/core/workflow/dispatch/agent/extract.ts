@@ -9,26 +9,23 @@ import {
 import { ChatItemValueTypeEnum, ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 import { createChatCompletion } from '../../../ai/config';
 import type { ContextExtractAgentItemType } from '@fastgpt/global/core/workflow/template/system/contextExtract/type';
-import {
-  NodeInputKeyEnum,
-  NodeOutputKeyEnum,
-  toolValueTypeList
-} from '@fastgpt/global/core/workflow/constants';
+import type { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
+import { NodeOutputKeyEnum, toolValueTypeList } from '@fastgpt/global/core/workflow/constants';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import type { ModuleDispatchProps } from '@fastgpt/global/core/workflow/runtime/type';
 import { replaceVariable, sliceJsonStr } from '@fastgpt/global/common/string/tools';
-import { LLMModelItemType } from '@fastgpt/global/core/ai/model.d';
+import { type LLMModelItemType } from '@fastgpt/global/core/ai/model.d';
 import { getHistories } from '../utils';
 import { getLLMModel } from '../../../ai/model';
 import { formatModelChars2Points } from '../../../../support/wallet/usage/utils';
 import json5 from 'json5';
 import {
-  ChatCompletionMessageParam,
-  ChatCompletionTool,
-  UnStreamChatType
+  type ChatCompletionMessageParam,
+  type ChatCompletionTool,
+  type UnStreamChatType
 } from '@fastgpt/global/core/ai/type';
 import { ChatCompletionRequestMessageRoleEnum } from '@fastgpt/global/core/ai/constants';
-import { DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
+import { type DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
 import { chatValue2RuntimePrompt } from '@fastgpt/global/core/chat/adapt';
 import { llmCompletionsBodyFormat, formatLLMResponse } from '../../../ai/utils';
 import { ModelTypeEnum } from '../../../../../global/core/ai/model';
@@ -226,28 +223,29 @@ const toolChoice = async (props: ActionProps) => {
     }
   ];
 
+  const body = llmCompletionsBodyFormat(
+    {
+      stream: extractModel.toolChoiceStream || false,
+      model: extractModel.model,
+      temperature: 0.01,
+      messages: filterMessages,
+      tools,
+      tool_choice: { type: 'function', function: { name: agentFunName } }
+    },
+    extractModel
+  );
   const { response } = await createChatCompletion({
-    body: llmCompletionsBodyFormat(
-      {
-        stream: extractModel.toolChoiceStream || false,
-        model: extractModel.model,
-        temperature: 0.01,
-        messages: filterMessages,
-        tools,
-        tool_choice: { type: 'function', function: { name: agentFunName } }
-      },
-      extractModel
-    ),
+    body,
     userKey: externalProvider.openaiAccount
   });
-  const { toolCalls, usage } = await formatLLMResponse(response);
+  const { text, toolCalls, usage } = await formatLLMResponse(response);
 
   const arg: Record<string, any> = (() => {
     try {
       return json5.parse(toolCalls?.[0]?.function?.arguments || '');
     } catch (error) {
-      console.log(agentFunction.parameters);
-      console.log(toolCalls?.[0]?.function);
+      console.log('body', body);
+      console.log('AI response', text, toolCalls?.[0]?.function);
       console.log('Your model may not support tool_call', error);
       return {};
     }

@@ -1,33 +1,49 @@
 import type { LLMModelItemType, EmbeddingModelItemType } from '../../core/ai/model.d';
 import { PermissionTypeEnum } from '../../support/permission/constant';
 import { PushDatasetDataChunkProps } from './api';
-import {
+import type {
   DataChunkSplitModeEnum,
   DatasetCollectionDataProcessModeEnum,
   DatasetCollectionTypeEnum,
   DatasetStatusEnum,
   DatasetTypeEnum,
   SearchScoreTypeEnum,
-  TrainingModeEnum
+  TrainingModeEnum,
+  ChunkSettingModeEnum,
+  ChunkTriggerConfigTypeEnum
 } from './constants';
-import { DatasetPermission } from '../../support/permission/dataset/controller';
-import { Permission } from '../../support/permission/controller';
-import { APIFileServer, FeishuServer, YuqueServer } from './apiDataset';
-import { SourceMemberType } from 'support/user/type';
-import { DatasetDataIndexTypeEnum } from './data/constants';
-import { ChunkSettingModeEnum } from './constants';
+import type { DatasetPermission } from '../../support/permission/dataset/controller';
+import type { APIFileServer, FeishuServer, YuqueServer } from './apiDataset';
+import type { SourceMemberType } from 'support/user/type';
+import type { DatasetDataIndexTypeEnum } from './data/constants';
 
 export type ChunkSettingsType = {
-  trainingType: DatasetCollectionDataProcessModeEnum;
-  autoIndexes?: boolean;
+  trainingType?: DatasetCollectionDataProcessModeEnum;
+
+  // Chunk trigger
+  chunkTriggerType?: ChunkTriggerConfigTypeEnum;
+  chunkTriggerMinSize?: number; // maxSize from agent model, not store
+
+  // Data enhance
+  dataEnhanceCollectionName?: boolean; // Auto add collection name to data
+
+  // Index enhance
   imageIndex?: boolean;
+  autoIndexes?: boolean;
 
-  chunkSettingMode?: ChunkSettingModeEnum;
+  // Chunk setting
+  chunkSettingMode?: ChunkSettingModeEnum; // 系统参数/自定义参数
   chunkSplitMode?: DataChunkSplitModeEnum;
-
-  chunkSize?: number;
+  // Paragraph split
+  paragraphChunkAIMode?: ParagraphChunkAIModeEnum;
+  paragraphChunkDeep?: number; // Paragraph deep
+  paragraphChunkMinSize?: number; // Paragraph min size, if too small, it will merge
+  // Size split
+  chunkSize?: number; // chunk/qa chunk size, Paragraph max chunk size.
+  // Char split
+  chunkSplitter?: string; // chunk/qa chunk splitter
   indexSize?: number;
-  chunkSplitter?: string;
+
   qaPrompt?: string;
 };
 
@@ -80,7 +96,7 @@ export type DatasetSchemaType = {
   status?: `${DatasetStatusEnum}`;
 };
 
-export type DatasetCollectionSchemaType = {
+export type DatasetCollectionSchemaType = ChunkSettingsType & {
   _id: string;
   teamId: string;
   tmbId: string;
@@ -121,18 +137,7 @@ export type DatasetCollectionSchemaType = {
 
   // Parse settings
   customPdfParse?: boolean;
-  // Chunk settings
-  autoIndexes?: boolean;
-  imageIndex?: boolean;
   trainingType: DatasetCollectionDataProcessModeEnum;
-
-  chunkSettingMode?: ChunkSettingModeEnum;
-  chunkSplitMode?: DataChunkSplitModeEnum;
-
-  chunkSize?: number;
-  indexSize?: number;
-  chunkSplitter?: string;
-  qaPrompt?: string;
 };
 
 export type DatasetCollectionTagsSchemaType = {
@@ -195,6 +200,7 @@ export type DatasetTrainingSchemaType = {
   q: string;
   a: string;
   chunkIndex: number;
+  indexSize?: number;
   weight: number;
   indexes: Omit<DatasetDataIndexItemType, 'dataId'>[];
   retryCount: number;

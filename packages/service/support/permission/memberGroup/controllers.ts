@@ -1,22 +1,22 @@
 import {
-  MemberGroupListItemType,
-  MemberGroupSchemaType
+  type MemberGroupListItemType,
+  type MemberGroupSchemaType
 } from '@fastgpt/global/support/permission/memberGroup/type';
 import { MongoGroupMemberModel } from './groupMemberSchema';
 import { parseHeaderCert } from '../controller';
 import { MongoMemberGroupModel } from './memberGroupSchema';
 import { DefaultGroupName } from '@fastgpt/global/support/user/team/group/constant';
-import { ClientSession } from 'mongoose';
+import { type ClientSession } from 'mongoose';
 import {
   GroupMemberRole,
   memberGroupPermissionList
 } from '@fastgpt/global/support/permission/memberGroup/constant';
-import { AuthModeType, AuthResponseType } from '../type';
+import { type AuthModeType, type AuthResponseType } from '../type';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
 import { getTmbInfoByTmbId } from '../../user/team/controller';
 import { MongoResourcePermission } from '../schema';
-import { TeamMemberSchema } from '@fastgpt/global/support/user/team/type';
+import { type TeamMemberSchema } from '@fastgpt/global/support/user/team/type';
 import { Permission } from '@fastgpt/global/support/permission/controller';
 
 /**

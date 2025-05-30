@@ -14,7 +14,7 @@ import { formatHttpError } from '../utils';
 import { valueTypeFormat } from '@fastgpt/global/core/workflow/runtime/utils';
 import { SERVICE_LOCAL_HOST } from '../../../../common/system/tools';
 import { addLog } from '../../../../common/system/log';
-import { DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
+import { type DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import {
   textAdaptGptResponse,
@@ -30,6 +30,7 @@ import { JSONPath } from 'jsonpath-plus';
 import type { SystemPluginSpecialResponse } from '../../../../../plugins/type';
 import json5 from 'json5';
 import qs from 'qs';
+import * as https from 'node:https';
 
 type PropsArrType = {
   key: string;
@@ -510,6 +511,13 @@ async function fetchData({
   params: Record<string, any>;
   timeout: number;
 }) {
+  const rawFlag = headers['x_ignore_ssl_err'];
+  const ignoreSSL = rawFlag === true || rawFlag === 'true';
+  if (ignoreSSL) {
+    delete headers['x_ignore_ssl_err'];
+  }
+  const httpsAgent = ignoreSSL ? new https.Agent({ rejectUnauthorized: false }) : undefined;
+
   const { data: response } = await axios({
     method,
     baseURL: `http://${SERVICE_LOCAL_HOST}`,
@@ -520,7 +528,8 @@ async function fetchData({
     timeout: timeout * 1000,
     params: params,
     paramsSerializer: (params) => qs.stringify(params, { encode: true }),
-    data: ['POST', 'PUT', 'PATCH'].includes(method) ? body : undefined
+    data: ['POST', 'PUT', 'PATCH'].includes(method) ? body : undefined,
+    ...(ignoreSSL ? { httpsAgent } : {})
   });
 
   return {

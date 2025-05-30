@@ -1,5 +1,5 @@
 import type { ApiRequestProps } from '@fastgpt/service/type/next';
-import { CreateDatasetCollectionTagParams } from '@fastgpt/global/core/dataset/api';
+import type { CreateDatasetCollectionTagParams } from '@fastgpt/global/core/dataset/api';
 import { NextAPI } from '@/service/middleware/entry';
 import { MongoDatasetCollectionTags } from '@fastgpt/service/core/dataset/tag/schema';
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';

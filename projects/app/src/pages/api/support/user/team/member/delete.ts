@@ -1,7 +1,7 @@
 import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { deleteTeamMember } from '@fastgpt/service/support/user/team/controller';
-import { NextApiRequest } from 'next';
+import type { NextApiRequest } from 'next';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { TeamManagePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 

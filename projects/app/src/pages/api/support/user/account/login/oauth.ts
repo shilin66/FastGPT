@@ -1,16 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { jsonRes } from '@fastgpt/service/common/response';
-// import { connectToDatabase } from '@/service/mongo';
 import {
   createUserWithDefaultTeamAndPermission,
   getUserDetail
 } from '@fastgpt/service/support/user/controller';
-import { OauthLoginProps } from '@fastgpt/global/support/user/api';
+import type { OauthLoginProps } from '@fastgpt/global/support/user/api';
 import axios from 'axios';
 import { MongoUser } from '@fastgpt/service/support/user/schema';
-import { createJWT, setCookie } from '@fastgpt/service/support/permission/controller';
-import { ConfidentialClientApplication, Configuration, LogLevel } from '@azure/msal-node';
+import { setCookie } from '@fastgpt/service/support/permission/controller';
+import type { Configuration } from '@azure/msal-node';
+import { ConfidentialClientApplication, LogLevel } from '@azure/msal-node';
 import { OAuthEnum } from '@fastgpt/global/support/user/constant';
+import { createUserSession } from '@fastgpt/service/support/user/session';
+import requestIp from 'request-ip';
+import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -25,10 +28,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         username = await authByMicrosoft(props.code, callbackUrl);
         break;
       default:
-        throw new Error('未配置登录方式');
+        return Promise.reject('未配置登录方式');
     }
     if (!username) {
-      throw new Error('用户名不存在');
+      return Promise.reject(CommonErrEnum.invalidParams);
     }
 
     const user = await MongoUser.findOne({
@@ -39,7 +42,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId: userId,
       tmbId: user?.lastLoginTmbId
     });
-    const token = createJWT(userDetail);
+    const token = await createUserSession({
+      userId: userDetail._id,
+      teamId: userDetail.team.teamId,
+      tmbId: userDetail.team.tmbId,
+      isRoot: userDetail.username === 'root',
+      ip: requestIp.getClientIp(req)
+    });
     setCookie(res, token);
 
     jsonRes(res, {
