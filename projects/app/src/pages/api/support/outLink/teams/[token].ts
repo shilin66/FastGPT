@@ -101,8 +101,8 @@ class TeamsStreamingBot extends ActivityHandler {
           stream: true,
           detail: true,
           shareId: this.shareId,
-          outLinkUid: turnContext.activity.from.name,
-          chatId: turnContext.activity.from.name
+          outLinkUid: `${turnContext.activity.from.name}-${this.shareId}`,
+          chatId: `${turnContext.activity.from.name}-${this.shareId}`
         },
         {
           responseType: 'stream',
