@@ -1,0 +1,19 @@
+[API_KEYS]
+OPENAI = "sk-pxCqnLVpWCOcSAFE0c9d99E8C7B2496dA1Be0768A419879d"
+GROQ = ""
+ANTHROPIC = ""
+FASTGPT = "opsnb-ureo3nAJVCFC6H5gllQ00hyTEiFCqABkMea2vtzracAELTlKh1NSb"
+
+[API_ENDPOINTS]
+OLLAMA = ""
+SEARXNG = "http://searxng:8080"
+FASTGPT_URL = "http://98.98.76.227:3000"
+OPENAI_BASE_URL = "http://98.98.76.227:3001/v1"
+
+[GENERAL]
+PORT = 3001
+SIMILARITY_MEASURE = "cosine"
+MONGODB_URI = "mongodb://Aijei3Dene2nv:nue8He7H3aqq@98.98.76.227:27017/perplexica?authSource=admin&directConnection=true"
+MONGODB_MAX_LINK= 30
+JWT_SIGN_KEY = 'any'
+BASE_PATH = "perplexica"
