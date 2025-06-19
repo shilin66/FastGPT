@@ -1,0 +1,39 @@
+services:
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    ports:
+      - 4000:8080
+    networks:
+      - perplexica-network
+    restart: unless-stopped
+
+  perplexica-backend:
+    image: ghcr.io/shilin66/perplexica-backend:poc
+    depends_on:
+      - searxng
+    ports:
+      - 3003:3001
+    volumes:
+      - ./config.toml:/home/perplexica/config.toml
+        # extra_hosts:
+        #- 'host.docker.internal:host-gateway'
+    networks:
+      - perplexica-network
+    restart: unless-stopped
+
+  perplexica-frontend:
+    image: ghcr.io/shilin66/perplexica-frontend:poc
+    depends_on:
+      - perplexica-backend
+    ports:
+      - 3004:3000
+    volumes:
+      - ./config.json:/home/perplexica/public/config/config.json
+    networks:
+      - perplexica-network
+    restart: unless-stopped
+
+networks:
+  perplexica-network:
