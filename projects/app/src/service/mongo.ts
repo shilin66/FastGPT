@@ -32,8 +32,9 @@ export async function initRootUser(retry = 3): Promise<any> {
         );
         rootId = _id;
       }
+      const defaultTeamName = global.feConfigs.userDefaultTeam || 'Public';
       // init root team
-      await createDefaultTeam({ userId: rootId, session });
+      await createDefaultTeam({ userId: rootId, teamName: defaultTeamName, session });
     });
 
     console.log(`root user init:`, {
