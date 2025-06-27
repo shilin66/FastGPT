@@ -483,6 +483,8 @@ export const iconPaths = {
   'support/system/settingLight': () => import('./icons/support/system/settingLight.svg'),
   'support/search/searchFill': () => import('./icons/support/search/searchFill.svg'),
   'support/search/searchLight': () => import('./icons/support/search/searchLight.svg'),
+  'support/license/licenseConfigLight': () =>
+    import('./icons/support/license/licenseConfigLight.svg'),
   text: () => import('./icons/text.svg'),
   union: () => import('./icons/union.svg'),
   user: () => import('./icons/user.svg'),

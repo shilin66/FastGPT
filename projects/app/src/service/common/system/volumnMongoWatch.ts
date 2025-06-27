@@ -25,7 +25,7 @@ const reloadConfigWatch = () => {
       if (
         change.operationType === 'update' ||
         (change.operationType === 'insert' &&
-          [SystemConfigsTypeEnum.fastgptPro, SystemConfigsTypeEnum.license].includes(
+          [SystemConfigsTypeEnum.fastgpt, SystemConfigsTypeEnum.license].includes(
             change.fullDocument.type
           ))
       ) {

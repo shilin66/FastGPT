@@ -126,6 +126,7 @@ export type FastGPTFeConfigsType = {
   autoIndexPrompt?: string;
   imageIndexPrompt?: string;
   markdownIframeSandbox?: string;
+  checkLicenseCron?: string;
 };
 
 export type GithubType = {
@@ -170,6 +171,9 @@ export type customPdfParseType = {
 };
 
 export type LicenseDataType = {
+  licenseServer: string;
+  licenseKey: string;
+  clientId: string;
   startTime: string;
   expiredTime: string;
   company: string;

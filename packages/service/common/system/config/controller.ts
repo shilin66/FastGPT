@@ -28,7 +28,7 @@ export const getFastGPTConfigFromDB = async (): Promise<{
   ]);
 
   const config = fastgptConfig?.value || {};
-  const licenseData = licenseConfig?.value?.data as LicenseDataType | undefined;
+  const licenseData = licenseConfig?.value as LicenseDataType | undefined;
 
   const fastgptConfigTime = fastgptConfig?.createTime.getTime().toString();
   const licenseConfigTime = licenseConfig?.createTime.getTime().toString();

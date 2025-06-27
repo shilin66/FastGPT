@@ -79,6 +79,7 @@
   "model.voices": "voice role",
   "model.voices_tip": "Configure multiple through an array, for example:\n\n[\n  {\n    \"label\": \"Alloy\",\n    \"value\": \"alloy\"\n  },\n  {\n    \"label\": \"Echo\",\n    \"value\": \"echo\"\n  }\n]",
   "model_provider": "Model Provider",
+  "license_config": "License Configuration",
   "notifications": "Notify",
   "personal_information": "Personal",
   "personalization": "Personalization",
