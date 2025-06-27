@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { withNextCors } from './cors';
 import { type ApiRequestProps } from '../../type/next';
 import { addLog } from '../system/log';
-
+import { verifyDbLicense } from '../license/verify';
 export type NextApiHandler<T = any> = (
   req: ApiRequestProps,
   res: NextApiResponse<T>
@@ -21,6 +21,7 @@ export const NextEntry = ({
 
       try {
         await Promise.all([
+          apiVerifyLicense(req),
           withNextCors(req, res),
           ...beforeCallback.map((item) => item(req, res))
         ]);
@@ -57,4 +58,32 @@ export const NextEntry = ({
       }
     };
   };
+};
+
+const apiVerifyLicense = async (req: NextApiRequest) => {
+  console.log('apiVerifyLicense');
+  const api_white_list = [
+    '/api/support/user/account/login/oauth',
+    '/api/support/user/account/loginByPassword',
+    '/api/support/user/account/preLogin*',
+    '/api/support/user/account/loginout',
+    '/api/support/user/account/tokenLogin',
+    '/api/support/system/*',
+    '/api/support/license/*'
+  ];
+  // 从 req中获取url
+  const urlstr = req.url ?? '';
+  const url = new URL(urlstr, 'http://localhost');
+  const path = url.pathname;
+
+  const isWhitelisted = api_white_list.some((pattern) => {
+    if (pattern.includes('*')) {
+      const regex = new RegExp(`^${pattern.replace('*', '.*')}$`);
+      return regex.test(path);
+    }
+    return path === pattern;
+  });
+  if (!isWhitelisted) {
+    await verifyDbLicense();
+  }
 };

@@ -79,6 +79,7 @@
   "model.voices": "声音角色",
   "model.voices_tip": "通过一个数组配置多个，例如：\n[\n  {\n    \"label\": \"Alloy\",\n    \"value\": \"alloy\"\n  },\n  {\n    \"label\": \"Echo\",\n    \"value\": \"echo\"\n  }\n]",
   "model_provider": "模型提供商",
+  "license_config": "授权配置",
   "notifications": "通知",
   "personal_information": "个人信息",
   "personalization": "个性化",

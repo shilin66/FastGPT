@@ -17,6 +17,7 @@ export enum TabEnum {
   'bill' = 'bill',
   'inform' = 'inform',
   'setting' = 'setting',
+  'licenseConfig' = 'licenseConfig',
   'thirdParty' = 'thirdParty',
   'individuation' = 'individuation',
   'apikey' = 'apikey',
@@ -82,6 +83,15 @@ const AccountContainer = ({
       label: t('account:model_provider'),
       value: TabEnum.model
     },
+    ...(userInfo?.username === 'root'
+      ? [
+          {
+            icon: 'support/license/licenseConfigLight',
+            label: t('account:license_config'),
+            value: TabEnum.licenseConfig
+          }
+        ]
+      : []),
     ...(feConfigs?.show_promotion && userInfo?.team?.permission.isOwner
       ? [
           {

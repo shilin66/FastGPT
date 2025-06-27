@@ -14,6 +14,7 @@ import { addHours } from 'date-fns';
 import { getScheduleTriggerApp } from '@/service/core/app/utils';
 import { clearExpiredRawTextBufferCron } from '@fastgpt/service/common/buffer/rawText/controller';
 import { localCacheManager } from '@fastgpt/service/support/globalCache/cache';
+import { checkCacheLicense } from '@fastgpt/service/common/license/verify';
 
 // Try to run train every minute
 const setTrainingQueueCron = () => {
@@ -122,11 +123,22 @@ const clearGlobalCacheCron = () => {
   });
 };
 
+const checkCacheLicenseCron = () => {
+  const cron = global.feConfigs.checkLicenseCron || '0 0 0 * * *';
+  setCron(cron, async () => {
+    // check license
+    console.log('>>>>>>>>>>>>>>>>>>>> start check license');
+    await checkCacheLicense();
+    console.log('<<<<<<<<<<<<<<<<<<<< end check license');
+  });
+};
+
 export const startCron = () => {
   setTrainingQueueCron();
   setClearTmpUploadFilesCron();
   clearInvalidDataCron();
   clearGlobalCacheCron();
+  checkCacheLicenseCron();
   scheduleTriggerAppCron();
   clearExpiredRawTextBufferCron();
   scheduleSyncConfluenceDatasetCron();

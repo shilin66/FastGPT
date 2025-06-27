@@ -5,8 +5,12 @@ const localCache = global.localCache;
 
 export const localCacheManager = {
   set(token: string, data: any, ttl: number) {
-    const expires = Date.now() + ttl;
-    localCache.set(token, { data, expires });
+    if (ttl === -1) {
+      localCache.set(token, { data, expires: -1 });
+    } else {
+      const expires = Date.now() + ttl;
+      localCache.set(token, { data, expires });
+    }
   },
   get(token: string) {
     const entry = localCache.get(token);
@@ -28,7 +32,7 @@ export const localCacheManager = {
   startCleanup() {
     const now = Date.now();
     localCache.forEach((value, key) => {
-      if (now > value.expires) localCache.delete(key);
+      if (value.expires !== -1 && now > value.expires) localCache.delete(key);
     });
   }
 };
