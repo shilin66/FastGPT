@@ -33,7 +33,7 @@ import {
   parseLLMStreamResponse
 } from '../../../../ai/utils';
 import { getNanoid, sliceStrStartEnd } from '@fastgpt/global/common/string/tools';
-import { toolValueTypeList } from '@fastgpt/global/core/workflow/constants';
+import { toolValueTypeList, valueTypeJsonSchemaMap } from '@fastgpt/global/core/workflow/constants';
 import { type WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import { ChatItemValueTypeEnum } from '@fastgpt/global/core/chat/constants';
 import { getErrText } from '@fastgpt/global/common/error/utils';
@@ -211,6 +211,17 @@ export const runToolWithToolChoice = async (
   const assistantResponses = response?.assistantResponses || [];
 
   const tools: ChatCompletionTool[] = toolNodes.map((item) => {
+    if (item.jsonSchema) {
+      return {
+        type: 'function',
+        function: {
+          name: item.nodeId,
+          description: item.intro || item.name,
+          parameters: item.jsonSchema
+        }
+      };
+    }
+
     const properties: Record<
       string,
       {
@@ -224,9 +235,10 @@ export const runToolWithToolChoice = async (
       }
     > = {};
     item.toolParams.forEach((item) => {
-      const jsonSchema = (
-        toolValueTypeList.find((type) => type.value === item.valueType) || toolValueTypeList[0]
-      )?.jsonSchema;
+      const jsonSchema = item.valueType
+        ? valueTypeJsonSchemaMap[item.valueType] || toolValueTypeList[0].jsonSchema
+        : toolValueTypeList[0].jsonSchema;
+
       properties[item.key] = {
         ...jsonSchema,
         description: item.toolDescription || '',
@@ -367,11 +379,14 @@ export const runToolWithToolChoice = async (
         const reasoningContent = result.choices?.[0]?.message?.reasoning_content || '';
         const usage = result.usage;
 
+        const formatReasoningContent = removeDatasetCiteText(reasoningContent, retainDatasetCite);
+        const formatAnswer = removeDatasetCiteText(answer, retainDatasetCite);
+
         if (aiChatReasoning && reasoningContent) {
           workflowStreamResponse?.({
             event: SseResponseEventEnum.fastAnswer,
             data: textAdaptGptResponse({
-              reasoning_content: removeDatasetCiteText(reasoningContent, retainDatasetCite)
+              reasoning_content: formatReasoningContent
             })
           });
         }
@@ -406,7 +421,7 @@ export const runToolWithToolChoice = async (
           workflowStreamResponse?.({
             event: SseResponseEventEnum.fastAnswer,
             data: textAdaptGptResponse({
-              text: removeDatasetCiteText(answer, retainDatasetCite)
+              text: formatAnswer
             })
           });
         }
@@ -414,8 +429,8 @@ export const runToolWithToolChoice = async (
           if (tool.function.arguments === '') tool.function.arguments = '{}';
         });
         return {
-          reasoningContent: (reasoningContent as string) || '',
-          answer,
+          reasoningContent: formatReasoningContent,
+          answer: formatAnswer,
           toolCalls: toolCalls,
           finish_reason,
           inputTokens: usage?.prompt_tokens,

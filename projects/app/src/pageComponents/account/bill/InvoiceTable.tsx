@@ -22,6 +22,8 @@ import MyIcon from '@fastgpt/web/components/common/Icon';
 import dayjs from 'dayjs';
 import { formatStorePrice2Read } from '@fastgpt/global/support/wallet/usage/tools';
 import MyModal from '@fastgpt/web/components/common/MyModal';
+import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
+import { downloadFetch } from '@/web/common/system/utils';
 
 const InvoiceTable = () => {
   const { t } = useTranslation();
@@ -135,6 +137,14 @@ function InvoiceDetailModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+
+  const { runAsync: handleDownloadInvoice } = useRequest2(async (id: string) => {
+    await downloadFetch({
+      url: `/api/proApi/support/wallet/bill/invoice/downloadFile?id=${id}`,
+      filename: `${invoice.teamName}.pdf`
+    });
+  });
+
   return (
     <MyModal
       maxW={['90vw', '700px']}
@@ -165,6 +175,14 @@ function InvoiceDetailModal({
           />
           <LabelItem label={t('account_bill:contact_phone')} value={invoice.contactPhone} />
           <LabelItem label={t('account_bill:email_address')} value={invoice.emailAddress} />
+          {invoice.status === 2 && (
+            <Flex alignItems={'center'} justify={'space-between'}>
+              <FormLabel flex={'0 0 120px'}>{t('account_bill:Invoice_document')}</FormLabel>
+              <Box cursor={'pointer'} onClick={() => handleDownloadInvoice(invoice._id)}>
+                {t('account_bill:click_to_download')}
+              </Box>
+            </Flex>
+          )}
         </Flex>
       </ModalBody>
     </MyModal>

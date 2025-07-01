@@ -28,10 +28,12 @@ export type getTrainingDetailResponse = {
 };
 
 const defaultCounts: Record<TrainingModeEnum, number> = {
+  parse: 0,
   qa: 0,
   chunk: 0,
   image: 0,
-  auto: 0
+  auto: 0,
+  imageParse: 0
 };
 
 async function handler(
@@ -41,9 +43,10 @@ async function handler(
 
   const { collection } = await authDatasetCollection({
     req,
+    collectionId,
+    per: ReadPermissionVal,
     authToken: true,
-    collectionId: collectionId as string,
-    per: ReadPermissionVal
+    authApiKey: true
   });
 
   const match = {
