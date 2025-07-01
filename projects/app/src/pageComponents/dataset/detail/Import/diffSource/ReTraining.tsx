@@ -37,7 +37,7 @@ const ReTraining = () => {
           apiFileId: collection.apiFileId,
 
           createStatus: 'waiting',
-          icon: getCollectionIcon(collection.type, collection.name),
+          icon: getCollectionIcon({ type: collection.type, name: collection.name }),
           id: collection._id,
           isUploading: false,
           sourceName: collection.name,
@@ -55,8 +55,9 @@ const ReTraining = () => {
         dataEnhanceCollectionName:
           collection.dataEnhanceCollectionName || defaultFormData.dataEnhanceCollectionName,
 
-        imageIndex: collection.imageIndex || defaultFormData.imageIndex,
-        autoIndexes: collection.autoIndexes || defaultFormData.autoIndexes,
+        imageIndex: collection.imageIndex ?? defaultFormData.imageIndex,
+        autoIndexes: collection.autoIndexes ?? defaultFormData.autoIndexes,
+        indexPrefixTitle: collection.indexPrefixTitle ?? defaultFormData.indexPrefixTitle,
 
         chunkSettingMode: collection.chunkSettingMode || defaultFormData.chunkSettingMode,
         chunkSplitMode: collection.chunkSplitMode || defaultFormData.chunkSplitMode,

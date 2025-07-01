@@ -1,4 +1,9 @@
-import type { ChunkSettingsType, DatasetDataIndexItemType, DatasetSchemaType } from './type';
+import type {
+  ChunkSettingsType,
+  DatasetDataIndexItemType,
+  DatasetDataFieldType,
+  DatasetSchemaType
+} from './type';
 import type {
   DatasetCollectionTypeEnum,
   DatasetCollectionDataProcessModeEnum,
@@ -8,12 +13,14 @@ import type {
   ParagraphChunkAIModeEnum,
   DatasetStatusEnum
 } from './constants';
-import type { LLMModelItemType } from '../ai/model.d';
-import type { ParentIdType } from 'common/parentFolder/type';
+import type { ParentIdType } from '../../common/parentFolder/type';
 
 /* ================= dataset ===================== */
 export type DatasetUpdateBody = {
   id: string;
+
+  apiDatasetServer?: DatasetSchemaType['apiDatasetServer'];
+
   parentId?: ParentIdType;
   name?: string;
   avatar?: string;
@@ -26,9 +33,6 @@ export type DatasetUpdateBody = {
   confluenceConfig?: DatasetSchemaType['confluenceConfig'];
   externalReadUrl?: DatasetSchemaType['externalReadUrl'];
   defaultPermission?: DatasetSchemaType['defaultPermission'];
-  apiServer?: DatasetSchemaType['apiServer'];
-  yuqueServer?: DatasetSchemaType['yuqueServer'];
-  feishuServer?: DatasetSchemaType['feishuServer'];
   chunkSettings?: DatasetSchemaType['chunkSettings'];
 
   // sync schedule
@@ -103,6 +107,9 @@ export type ExternalFileCreateDatasetCollectionParams = ApiCreateDatasetCollecti
   externalFileUrl: string;
   filename?: string;
 };
+export type ImageCreateDatasetCollectionParams = ApiCreateDatasetCollectionParams & {
+  collectionName: string;
+};
 
 /* ================= tag ===================== */
 export type CreateDatasetCollectionTagParams = {
@@ -128,8 +135,9 @@ export type PgSearchRawType = {
   score: number;
 };
 export type PushDatasetDataChunkProps = {
-  q: string; // embedding content
-  a?: string; // bonus content
+  q?: string;
+  a?: string;
+  imageId?: string;
   chunkIndex?: number;
   indexes?: Omit<DatasetDataIndexItemType, 'dataId'>[];
 };

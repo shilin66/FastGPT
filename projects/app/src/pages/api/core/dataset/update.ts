@@ -37,6 +37,11 @@ import {
 } from '@fastgpt/service/core/dataset/websiteSync';
 import { delDatasetRelevantData } from '@fastgpt/service/core/dataset/controller';
 import { isEqual } from 'lodash';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
+import { getI18nDatasetType } from '@fastgpt/service/support/user/audit/util';
+import { getEmbeddingModel, getLLMModel } from '@fastgpt/service/core/ai/model';
+import { computedCollectionChunkSettings } from '@fastgpt/global/core/dataset/training/utils';
 
 export type DatasetUpdateQuery = {};
 export type DatasetUpdateResponse = any;
@@ -56,7 +61,7 @@ async function handler(
   req: ApiRequestProps<DatasetUpdateBody, DatasetUpdateQuery>,
   _res: ApiResponseType<any>
 ): Promise<DatasetUpdateResponse> {
-  const {
+  let {
     id,
     parentId,
     name,
@@ -67,9 +72,7 @@ async function handler(
     websiteConfig,
     confluenceConfig,
     externalReadUrl,
-    apiServer,
-    yuqueServer,
-    feishuServer,
+    apiDatasetServer,
     autoSync,
     status,
     chunkSettings
@@ -81,16 +84,35 @@ async function handler(
 
   const isMove = parentId !== undefined;
 
-  const { dataset, permission } = await authDataset({
+  const { dataset, permission, tmbId, teamId } = await authDataset({
     req,
     authToken: true,
     datasetId: id,
     per: ReadPermissionVal
   });
+
+  let targetName = '';
+
+  chunkSettings = chunkSettings
+    ? computedCollectionChunkSettings({
+        ...chunkSettings,
+        llmModel: getLLMModel(dataset.agentModel),
+        vectorModel: getEmbeddingModel(dataset.vectorModel)
+      })
+    : undefined;
+
   if (isMove) {
     if (parentId) {
       // move to a folder, check the target folder's permission
-      await authDataset({ req, authToken: true, datasetId: parentId, per: ManagePermissionVal });
+      const { dataset: targetDataset } = await authDataset({
+        req,
+        authToken: true,
+        datasetId: parentId,
+        per: ManagePermissionVal
+      });
+      targetName = targetDataset.name;
+    } else {
+      targetName = 'root';
     }
     if (dataset.parentId) {
       // move from a folder, check the (old) folder's permission
@@ -156,6 +178,35 @@ async function handler(
       await delDatasetRelevantData({ datasets: [dataset], session });
     }
 
+    const apiDatasetParams = (() => {
+      if (!apiDatasetServer) return {};
+
+      const flattenObjectWithConditions = (
+        obj: any,
+        prefix = 'apiDatasetServer'
+      ): Record<string, any> => {
+        const result: Record<string, any> = {};
+
+        if (!obj || typeof obj !== 'object') return result;
+
+        Object.keys(obj).forEach((key) => {
+          const value = obj[key];
+          const newKey = prefix ? `${prefix}.${key}` : key;
+
+          if (typeof value === 'object' && !Array.isArray(value)) {
+            // Recursively flatten nested objects
+            Object.assign(result, flattenObjectWithConditions(value, newKey));
+          } else {
+            // Add non-empty primitive values
+            result[newKey] = value;
+          }
+        });
+
+        return result;
+      };
+      return flattenObjectWithConditions(apiDatasetServer);
+    })();
+
     await MongoDataset.findByIdAndUpdate(
       id,
       {
@@ -169,24 +220,10 @@ async function handler(
         ...(confluenceConfig && { confluenceConfig }),
         ...(intro !== undefined && { intro }),
         ...(externalReadUrl !== undefined && { externalReadUrl }),
-        ...(!!apiServer?.baseUrl && { 'apiServer.baseUrl': apiServer.baseUrl }),
-        ...(!!apiServer?.authorization && {
-          'apiServer.authorization': apiServer.authorization
-        }),
-        ...(!!apiServer?.basePath !== undefined && { 'apiServer.basePath': apiServer?.basePath }),
-        ...(!!yuqueServer?.userId && { 'yuqueServer.userId': yuqueServer.userId }),
-        ...(!!yuqueServer?.token && { 'yuqueServer.token': yuqueServer.token }),
-        ...(!!yuqueServer?.basePath !== undefined && {
-          'yuqueServer.basePath': yuqueServer?.basePath
-        }),
-        ...(!!feishuServer?.appId && { 'feishuServer.appId': feishuServer.appId }),
-        ...(!!feishuServer?.appSecret && { 'feishuServer.appSecret': feishuServer.appSecret }),
-        ...(!!feishuServer?.folderToken && {
-          'feishuServer.folderToken': feishuServer.folderToken
-        }),
         ...(isMove && { inheritPermission: true }),
         ...(status !== undefined && { status }),
-        ...(typeof autoSync === 'boolean' && { autoSync })
+        ...(typeof autoSync === 'boolean' && { autoSync }),
+        ...apiDatasetParams
       },
       { session }
     );
@@ -225,7 +262,9 @@ async function handler(
           collaborators: parentClbsAndGroups,
           session
         });
+        logDatasetMove({ tmbId, teamId, dataset, targetName });
       } else {
+        logDatasetMove({ tmbId, teamId, dataset, targetName });
         // Not folder, delete all clb
         await MongoResourcePermission.deleteMany(
           { resourceId: id, teamId: dataset.teamId, resourceType: PerResourceTypeEnum.dataset },
@@ -234,6 +273,7 @@ async function handler(
       }
       return onUpdate(session);
     } else {
+      logDatasetUpdate({ tmbId, teamId, dataset });
       return onUpdate(session);
     }
   });
@@ -319,4 +359,51 @@ const updateSyncSchedule = async ({
       );
     }
   }
+};
+
+const logDatasetMove = ({
+  tmbId,
+  teamId,
+  dataset,
+  targetName
+}: {
+  tmbId: string;
+  teamId: string;
+  dataset: any;
+  targetName: string;
+}) => {
+  (async () => {
+    addAuditLog({
+      tmbId,
+      teamId,
+      event: AuditEventEnum.MOVE_DATASET,
+      params: {
+        datasetName: dataset.name,
+        targetFolderName: targetName,
+        datasetType: getI18nDatasetType(dataset.type)
+      }
+    });
+  })();
+};
+
+const logDatasetUpdate = ({
+  tmbId,
+  teamId,
+  dataset
+}: {
+  tmbId: string;
+  teamId: string;
+  dataset: any;
+}) => {
+  (async () => {
+    addAuditLog({
+      tmbId,
+      teamId,
+      event: AuditEventEnum.UPDATE_DATASET,
+      params: {
+        datasetName: dataset.name,
+        datasetType: getI18nDatasetType(dataset.type)
+      }
+    });
+  })();
 };
