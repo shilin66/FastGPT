@@ -55,12 +55,12 @@ const AccountContainer = ({
             icon: 'support/user/usersLight',
             label: t('account:team'),
             value: TabEnum.team
+          },
+          {
+            icon: 'support/usage/usageRecordLight',
+            label: t('account:usage_records'),
+            value: TabEnum.usage
           }
-          // {
-          //   icon: 'support/usage/usageRecordLight',
-          //   label: t('account:usage_records'),
-          //   value: TabEnum.usage
-          // }
         ]
       : []),
     ...(feConfigs?.show_pay && userInfo?.team?.permission.hasManagePer

@@ -1,5 +1,4 @@
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
-import { pushQAUsage } from '@/service/support/wallet/usage/push';
 import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
 import { createChatCompletion } from '@fastgpt/service/core/ai/config';
 import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/type.d';
@@ -11,15 +10,28 @@ import { getLLMModel } from '@fastgpt/service/core/ai/model';
 import { checkTeamAiPointsAndLock } from './utils';
 import { addMinutes } from 'date-fns';
 import { countGptMessagesTokens, countPromptTokens } from '@fastgpt/service/common/string/tiktoken';
-import { pushDataListToTrainingQueueByCollectionId } from '@fastgpt/service/core/dataset/training/controller';
 import { loadRequestMessages } from '@fastgpt/service/core/chat/utils';
 import { llmCompletionsBodyFormat, formatLLMResponse } from '@fastgpt/service/core/ai/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
+import type { DatasetDataSchemaType } from '@fastgpt/global/core/dataset/type';
+import { pushDataListToTrainingQueue } from '@fastgpt/service/core/dataset/training/controller';
+import { pushLLMTrainingUsage } from '@fastgpt/service/support/wallet/usage/controller';
+import { getErrText } from '@fastgpt/global/common/error/utils';
 
 const reduceQueue = () => {
   global.qaQueueLen = global.qaQueueLen > 0 ? global.qaQueueLen - 1 : 0;
 
   return global.qaQueueLen === 0;
+};
+const reduceQueueAndReturn = (delay = 0) => {
+  reduceQueue();
+  if (delay) {
+    setTimeout(() => {
+      generateAuto();
+    }, delay);
+  } else {
+    generateAuto();
+  }
 };
 const extractData = (content: string) => {
   const summaryMatch = content.match(/<summary>\n([\s\S]*?)\n<\/summary>/);
@@ -30,6 +42,11 @@ const extractData = (content: string) => {
   return { summary, questionIndex };
 };
 
+type PopulateType = {
+  dataset: { vectorModel: string; agentModel: string; vlmModel: string };
+  collection: { name: string };
+  data: { _id: string; indexes: DatasetDataSchemaType['indexes'] };
+};
 export async function generateAuto(): Promise<any> {
   const max = global.systemEnv?.qaMaxProcess || 10;
   if (global.qaQueueLen >= max) return;
@@ -55,19 +72,20 @@ export async function generateAuto(): Promise<any> {
           $inc: { retryCount: -1 }
         }
       )
-        .select({
-          _id: 1,
-          teamId: 1,
-          tmbId: 1,
-          datasetId: 1,
-          collectionId: 1,
-          q: 1,
-          model: 1,
-          chunkIndex: 1,
-          indexes: 1,
-          billId: 1,
-          prompt: 1
-        })
+        .populate<PopulateType>([
+          {
+            path: 'dataset',
+            select: 'vectorModel'
+          },
+          {
+            path: 'collection',
+            select: 'name'
+          },
+          {
+            path: 'data',
+            select: '_id indexes'
+          }
+        ])
         .lean();
 
       // task preemption
@@ -95,23 +113,28 @@ export async function generateAuto(): Promise<any> {
     return;
   }
   if (error) {
-    reduceQueue();
-    return generateAuto();
+    return reduceQueueAndReturn();
+  }
+
+  if (!data.dataset || !data.collection) {
+    addLog.info(`[AutoIndex Queue] Dataset or collection not found`, data);
+    // Delete data
+    await MongoDatasetTraining.deleteOne({ _id: data._id });
+    return reduceQueueAndReturn();
   }
 
   // auth balance
   if (!(await checkTeamAiPointsAndLock(data.teamId))) {
-    reduceQueue();
-    return generateAuto();
+    return reduceQueueAndReturn();
   }
   addLog.info(`[AutoIndex  Queue] Start`);
 
   try {
-    const modelData = getLLMModel(data.model);
+    const modelData = getLLMModel(data.dataset.agentModel);
     const autoIndexPrompt = global.feConfigs.autoIndexPrompt || AutoIndexPromptDefault;
     const prompt = `${replaceVariable(autoIndexPrompt, { text })}`;
 
-    // request LLM to get QA
+    // request LLM to get Index
     const messages: ChatCompletionMessageParam[] = [
       {
         role: 'user',
@@ -131,7 +154,8 @@ export async function generateAuto(): Promise<any> {
       )
     });
     const { text: answer, usage } = await formatLLMResponse(chatResponse);
-
+    const inputTokens = usage?.prompt_tokens || (await countGptMessagesTokens(messages));
+    const outputTokens = usage?.completion_tokens || (await countPromptTokens(answer));
     const { summary, questionIndex } = extractData(answer);
 
     addLog.info(`[AutoIndex  Queue] Finish`, {
@@ -162,40 +186,47 @@ export async function generateAuto(): Promise<any> {
     }
 
     // get vector and insert
-    const { insertLen } = await pushDataListToTrainingQueueByCollectionId({
+    await pushDataListToTrainingQueue({
       teamId: data.teamId,
       tmbId: data.tmbId,
+      datasetId: data.datasetId,
       collectionId: data.collectionId,
       mode: TrainingModeEnum.chunk,
       data: [newData],
-      billId: data.billId
+      billId: data.billId,
+      vectorModel: data.dataset.vectorModel,
+      agentModel: data.dataset.agentModel,
+      vlmModel: data.dataset.vlmModel
     });
 
     // delete data from training
     await MongoDatasetTraining.findByIdAndDelete(data._id);
 
     // add bill
-    if (insertLen > 0) {
-      pushQAUsage({
-        teamId: data.teamId,
-        tmbId: data.tmbId,
-        inputTokens: await countGptMessagesTokens(messages),
-        outputTokens: await countPromptTokens(answer),
-        billId: data.billId,
-        model: modelData.model
-      });
-    } else {
-      addLog.info(`AutoIndex result 0:`, { answer });
-    }
+    pushLLMTrainingUsage({
+      teamId: data.teamId,
+      tmbId: data.tmbId,
+      inputTokens,
+      outputTokens,
+      billId: data.billId,
+      model: modelData.model,
+      mode: 'autoIndex'
+    });
 
-    reduceQueue();
-    generateAuto();
+    return reduceQueueAndReturn();
   } catch (err: any) {
     addLog.error(`[AutoIndex  Queue] Error`, err);
-    reduceQueue();
+    await MongoDatasetTraining.updateOne(
+      {
+        teamId: data.teamId,
+        datasetId: data.datasetId,
+        _id: data._id
+      },
+      {
+        errorMsg: getErrText(err, 'unknown error')
+      }
+    );
 
-    setTimeout(() => {
-      generateAuto();
-    }, 1000);
+    return reduceQueueAndReturn(500);
   }
 }

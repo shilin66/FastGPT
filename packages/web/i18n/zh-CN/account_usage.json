@@ -48,6 +48,8 @@
   "total_points_consumed": "AI 积分消耗",
   "total_usage": "总消耗",
   "usage_detail": "使用详情",
+  "team_usage_detail": "平台使用详情",
   "user_type": "类型",
+  "search_team": "搜索团队",
   "wecom": "企业微信"
 }

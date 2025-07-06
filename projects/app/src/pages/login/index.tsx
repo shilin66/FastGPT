@@ -200,23 +200,23 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
         {isOpen && <CommunityModal onClose={onClose} />}
       </Flex>
 
-      {showRedirect && (
-        <RedirectDrawer
-          isOpen={isOpenRedirect}
-          onClose={onCloseRedirect}
-          onRedirect={() => router.push(ChineseRedirectUrl)}
-          disableDrawer={() => setShowRedirect(false)}
-        />
-      )}
-      {isOpenCookiesDrawer && (
-        <CookiesDrawer
-          onAgree={() => {
-            setLocalCookieVersion(cookieVersion);
-            onCloseCookiesDrawer();
-          }}
-          onClose={onCloseCookiesDrawer}
-        />
-      )}
+      {/*{showRedirect && (*/}
+      {/*  <RedirectDrawer*/}
+      {/*    isOpen={isOpenRedirect}*/}
+      {/*    onClose={onCloseRedirect}*/}
+      {/*    onRedirect={() => router.push(ChineseRedirectUrl)}*/}
+      {/*    disableDrawer={() => setShowRedirect(false)}*/}
+      {/*  />*/}
+      {/*)}*/}
+      {/*{isOpenCookiesDrawer && (*/}
+      {/*  <CookiesDrawer*/}
+      {/*    onAgree={() => {*/}
+      {/*      setLocalCookieVersion(cookieVersion);*/}
+      {/*      onCloseCookiesDrawer();*/}
+      {/*    }}*/}
+      {/*    onClose={onCloseCookiesDrawer}*/}
+      {/*  />*/}
+      {/*)}*/}
     </>
   );
 };

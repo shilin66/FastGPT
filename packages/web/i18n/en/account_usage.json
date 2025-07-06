@@ -48,6 +48,8 @@
   "total_points_consumed": "AI points consumption",
   "total_usage": "Total Usage",
   "usage_detail": "Details",
+  "team_usage_detail": "Platform Usage",
   "user_type": "type",
+  "search_team": "Search Team",
   "wecom": "WeCom"
 }

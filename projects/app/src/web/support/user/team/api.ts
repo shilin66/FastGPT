@@ -9,7 +9,11 @@ import type {
   UpdateInviteProps,
   UpdateTeamProps
 } from '@fastgpt/global/support/user/team/controller.d';
-import type { TeamTagItemType, TeamTagSchema } from '@fastgpt/global/support/user/team/type';
+import type {
+  TeamSchema,
+  TeamTagItemType,
+  TeamTagSchema
+} from '@fastgpt/global/support/user/team/type';
 import type {
   TeamTmbItemType,
   TeamMemberItemType,
@@ -30,6 +34,10 @@ import type {
 /* --------------- team  ---------------- */
 export const getTeamList = (status: `${TeamMemberSchema['status']}`) =>
   GET<TeamTmbItemType[]>(`/support/user/team/list`, { status });
+
+export const getAllTeamList = (props: PaginationProps<{}>) =>
+  POST<PaginationResponse<TeamSchema>>(`/support/user/team/listAll`, props);
+
 export const postCreateTeam = (data: CreateTeamProps) =>
   POST<string>(`/support/user/team/create`, data);
 export const putUpdateTeam = (data: UpdateTeamProps) => PUT(`/support/user/team/update`, data);
