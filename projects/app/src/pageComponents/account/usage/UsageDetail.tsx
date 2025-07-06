@@ -78,13 +78,13 @@ const UsageDetail = ({ usage, onClose }: { usage: UsageItemType; onClose: () => 
       onClose={onClose}
       iconSrc="/imgs/modal/bill.svg"
       title={t('account_usage:usage_detail')}
-      maxW={['90vw', '700px']}
+      maxW={['90vw', '800px']}
     >
       <ModalBody>
-        <Flex alignItems={'center'} pb={4}>
-          <FormLabel flex={'0 0 80px'}>{t('account_usage:order_number')}:</FormLabel>
-          <Box>{usage.id}</Box>
-        </Flex>
+        {/*<Flex alignItems={'center'} pb={4}>*/}
+        {/*  <FormLabel flex={'0 0 80px'}>{t('account_usage:order_number')}:</FormLabel>*/}
+        {/*  <Box>{usage.id}</Box>*/}
+        {/*</Flex>*/}
         <Flex alignItems={'center'} pb={4}>
           <FormLabel flex={'0 0 80px'}>{t('account_usage:generation_time')}:</FormLabel>
           <Box>{dayjs(usage.time).format('YYYY/MM/DD HH:mm:ss')}</Box>

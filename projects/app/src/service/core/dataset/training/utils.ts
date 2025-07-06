@@ -7,8 +7,8 @@ import { datasetParseQueue } from '../queues/datasetParse';
 import { MongoDataset } from '@fastgpt/service/core/dataset/schema';
 import { delay } from '@fastgpt/global/common/system/utils';
 import { trainConfluenceCollection } from '@fastgpt/service/core/dataset/training/controller';
-import { generateAuto } from '@/service/events/generateAuto';
-import { generateImage } from '@/service/events/generateImage';
+import { generateAuto } from '@/service/core/dataset/queues/generateAuto';
+import { generateImage } from '@/service/core/dataset/queues/generateImage';
 
 export const createDatasetTrainingMongoWatch = () => {
   const changeStream = MongoDatasetTraining.watch();

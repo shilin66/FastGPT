@@ -11,6 +11,7 @@ export enum UsageSourceEnum {
   feishu = 'feishu',
   dingtalk = 'dingtalk',
   official_account = 'official_account',
+  teams = 'teams',
   pdfParse = 'pdfParse',
   mcp = 'mcp'
 }
@@ -42,6 +43,9 @@ export const UsageSourceMap = {
   },
   [UsageSourceEnum.wecom]: {
     label: i18nT('account_usage:wecom')
+  },
+  [UsageSourceEnum.teams]: {
+    label: 'Teams'
   },
   [UsageSourceEnum.dingtalk]: {
     label: i18nT('account_usage:dingtalk')

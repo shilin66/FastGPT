@@ -8,25 +8,33 @@ import type { PushDatasetDataChunkProps } from '@fastgpt/global/core/dataset/api
 import { getLLMModel } from '@fastgpt/service/core/ai/model';
 import { checkTeamAiPointsAndLock } from './utils';
 import { addMinutes } from 'date-fns';
-import { pushDataListToTrainingQueueByCollectionId } from '@fastgpt/service/core/dataset/training/controller';
 import { loadRequestMessages } from '@fastgpt/service/core/chat/utils';
-import {
-  llmCompletionsBodyFormat,
-  formatLLMResponse,
-  llmStreamResponseToAnswerText
-} from '@fastgpt/service/core/ai/utils';
+import { llmCompletionsBodyFormat, formatLLMResponse } from '@fastgpt/service/core/ai/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
-import { MongoDatasetCollection } from '@fastgpt/service/core/dataset/collection/schema';
-import { pushQAUsage } from '../support/wallet/usage/push';
-import { countGptMessagesTokens, countPromptTokens } from '@fastgpt/service/common/string/tiktoken';
 import { ImageIndexPromptDefault } from '@fastgpt/global/core/ai/prompt/agent';
 import { getImageBase64 } from '@fastgpt/service/common/file/image/utils';
+import { pushDataListToTrainingQueue } from '@fastgpt/service/core/dataset/training/controller';
+import type { DatasetDataSchemaType } from '@fastgpt/global/core/dataset/type';
+import { countGptMessagesTokens, countPromptTokens } from '@fastgpt/service/common/string/tiktoken';
+import { pushLLMTrainingUsage } from '@fastgpt/service/support/wallet/usage/controller';
+import { getErrText } from '@fastgpt/global/common/error/utils';
 
 const reduceQueue = () => {
   global.vectorQueueLen = global.vectorQueueLen > 0 ? global.vectorQueueLen - 1 : 0;
 
   return global.vectorQueueLen === 0;
 };
+const reduceQueueAndReturn = (delay = 0) => {
+  reduceQueue();
+  if (delay) {
+    setTimeout(() => {
+      generateImage();
+    }, delay);
+  } else {
+    generateImage();
+  }
+};
+
 const extractData = (content: string) => {
   const imageIndexMatch = content.match(/<imageIndex>\n([\s\S]*?)\n<\/imageIndex>/);
   const imageIndex = imageIndexMatch ? imageIndexMatch[1].trim() : '';
@@ -58,6 +66,12 @@ const extractLinkUrl = (text: string) => {
   return [...new Set(matches)];
 };
 
+type PopulateType = {
+  dataset: { vectorModel: string; agentModel: string; vlmModel: string };
+  collection: { name: string; autoIndexes: boolean };
+  data: { _id: string; indexes: DatasetDataSchemaType['indexes'] };
+};
+
 export async function generateImage(): Promise<any> {
   const max = global.systemEnv?.vlmMaxProcess || 10;
   if (global.vectorQueueLen >= max) return;
@@ -68,7 +82,6 @@ export async function generateImage(): Promise<any> {
   const {
     data,
     text,
-    collection,
     done = false,
     error = false
   } = await (async () => {
@@ -84,18 +97,20 @@ export async function generateImage(): Promise<any> {
           $inc: { retryCount: -1 }
         }
       )
-        .select({
-          _id: 1,
-          teamId: 1,
-          tmbId: 1,
-          datasetId: 1,
-          collectionId: 1,
-          q: 1,
-          model: 1,
-          chunkIndex: 1,
-          billId: 1,
-          prompt: 1
-        })
+        .populate<PopulateType>([
+          {
+            path: 'dataset',
+            select: 'agentModel vectorModel vlmModel'
+          },
+          {
+            path: 'collection',
+            select: 'name autoIndexes'
+          },
+          {
+            path: 'data',
+            select: '_id indexes'
+          }
+        ])
         .lean();
 
       // task preemption
@@ -104,16 +119,9 @@ export async function generateImage(): Promise<any> {
           done: true
         };
       }
-      const collection = await MongoDatasetCollection.findById(data.collectionId);
-      if (!collection) {
-        addLog.error(`[ImageIndex  Queue] Error collection is null`);
-        return {
-          error: true
-        };
-      }
       return {
         data,
-        collection,
+        // collection,
         text: data.q
       };
     } catch (error) {
@@ -123,6 +131,7 @@ export async function generateImage(): Promise<any> {
       };
     }
   })();
+
   if (done || !data) {
     if (reduceQueue()) {
       addLog.info(`[ImageIndex  Queue] Done`);
@@ -130,18 +139,24 @@ export async function generateImage(): Promise<any> {
     return;
   }
   if (error) {
-    reduceQueue();
-    return generateImage();
+    return reduceQueueAndReturn();
   }
+
+  if (!data.dataset || !data.collection) {
+    addLog.info(`[Image Queue] Dataset or collection not found`, data);
+    // Delete data
+    await MongoDatasetTraining.deleteOne({ _id: data._id });
+    return reduceQueueAndReturn();
+  }
+
   // auth balance
   if (!(await checkTeamAiPointsAndLock(data.teamId))) {
-    reduceQueue();
-    return generateImage();
+    return reduceQueueAndReturn();
   }
   addLog.info(`[ImageIndex  Queue] Start`);
 
   try {
-    const modelData = getLLMModel(data.model);
+    const modelData = getLLMModel(data.dataset.vlmModel);
     const imageIndexPrompt = global.feConfigs.imageIndexPrompt || ImageIndexPromptDefault;
     const prompt = `${replaceVariable(imageIndexPrompt, { text })}`;
     const images = extractLinkUrl(text);
@@ -188,6 +203,8 @@ export async function generateImage(): Promise<any> {
         )
       });
       const { text: answer, usage } = await formatLLMResponse(chatResponse);
+      const inputTokens = usage?.prompt_tokens || (await countGptMessagesTokens(messages));
+      const outputTokens = usage?.completion_tokens || (await countPromptTokens(answer));
 
       const indexList = extractData(answer);
 
@@ -204,37 +221,49 @@ export async function generateImage(): Promise<any> {
         });
       });
 
-      pushQAUsage({
+      // add bill
+      pushLLMTrainingUsage({
         teamId: data.teamId,
         tmbId: data.tmbId,
-        inputTokens: await countGptMessagesTokens(messages),
-        outputTokens: await countPromptTokens(answer),
+        inputTokens,
+        outputTokens,
         billId: data.billId,
-        model: modelData.model
+        model: modelData.model,
+        mode: 'imageIndex'
       });
     }
 
     // get vector and insert
-    const { insertLen } = await pushDataListToTrainingQueueByCollectionId({
+    await pushDataListToTrainingQueue({
       teamId: data.teamId,
       tmbId: data.tmbId,
+      datasetId: data.datasetId,
       collectionId: data.collectionId,
-      mode: collection.autoIndexes ? TrainingModeEnum.auto : TrainingModeEnum.chunk,
+      mode: data.collection.autoIndexes ? TrainingModeEnum.auto : TrainingModeEnum.chunk,
       data: [newData],
-      billId: data.billId
+      billId: data.billId,
+      vectorModel: data.dataset.vectorModel,
+      agentModel: data.dataset.agentModel,
+      vlmModel: data.dataset.vlmModel
     });
 
     // delete data from training
     await MongoDatasetTraining.findByIdAndDelete(data._id);
 
-    reduceQueue();
-    generateImage();
+    return reduceQueueAndReturn();
   } catch (err: any) {
     addLog.error(`[ImageIndex  Queue] Error`, err);
-    reduceQueue();
+    await MongoDatasetTraining.updateOne(
+      {
+        teamId: data.teamId,
+        datasetId: data.datasetId,
+        _id: data._id
+      },
+      {
+        errorMsg: getErrText(err, 'unknown error')
+      }
+    );
 
-    setTimeout(() => {
-      generateImage();
-    }, 1000);
+    return reduceQueueAndReturn(500);
   }
 }
