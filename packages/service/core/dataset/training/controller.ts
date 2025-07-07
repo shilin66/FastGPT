@@ -298,13 +298,14 @@ export const trainConfluenceCollection = async ({
             const col = pageConfluence[page.id];
             if (
               !col ||
-              page.version.number !== col.confluence?.pageVersion ||
-              dataset.chunkSettings?.autoIndexes !== col.autoIndexes ||
-              dataset.chunkSettings?.imageIndex !== col.imageIndex ||
-              dataset.chunkSettings?.trainingType !== col.trainingType ||
-              dataset.chunkSettings?.chunkSize !== col.chunkSize ||
-              dataset.chunkSettings?.chunkSplitter !== col.chunkSplitter ||
-              dataset.chunkSettings?.qaPrompt !== col.qaPrompt
+              page.version.number !== col.confluence?.pageVersion
+              // ||
+              // dataset.chunkSettings?.autoIndexes !== col.autoIndexes ||
+              // dataset.chunkSettings?.imageIndex !== col.imageIndex ||
+              // dataset.chunkSettings?.trainingType !== col.trainingType ||
+              // dataset.chunkSettings?.chunkSize !== col.chunkSize ||
+              // dataset.chunkSettings?.chunkSplitter !== col.chunkSplitter ||
+              // dataset.chunkSettings?.qaPrompt !== col.qaPrompt
             ) {
               return {
                 collection: await createOneCollection({
