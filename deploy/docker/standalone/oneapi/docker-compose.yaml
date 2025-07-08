@@ -2,7 +2,7 @@ version: '3.4'
 
 services:
   one-api:
-    image: "${REGISTRY:-docker.io}/justsong/one-api:latest"
+    image: "docker.m.daocloud.io/justsong/one-api:latest"
     container_name: one-api
     restart: always
     command: --log-dir /app/logs
@@ -28,7 +28,7 @@ services:
       retries: 3
 
   db:
-    image: "${REGISTRY:-docker.io}/mysql:8.2.0"
+    image: "docker.m.daocloud.io/mysql:8.2.0"
     restart: always
     container_name: mysql
     volumes:
