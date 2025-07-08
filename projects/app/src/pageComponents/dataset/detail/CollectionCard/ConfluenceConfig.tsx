@@ -29,10 +29,8 @@ import { Prompt_AgentQA } from '@fastgpt/global/core/ai/prompt/agent';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import type { ChunkSettingsType } from '@fastgpt/global/core/dataset/type';
 import type { CollectionChunkFormType } from '@/pageComponents/dataset/detail/Form/CollectionChunkForm';
-import CollectionChunkForm, {
-  collectionChunkForm2StoreChunkData
-} from '@/pageComponents/dataset/detail/Form/CollectionChunkForm';
-import { getLLMDefaultChunkSize } from '@fastgpt/global/core/dataset/training/utils';
+import CollectionChunkForm from '@/pageComponents/dataset/detail/Form/CollectionChunkForm';
+import { computedCollectionChunkSettings } from '@fastgpt/global/core/dataset/training/utils';
 import { useMyStep } from '@fastgpt/web/hooks/useStep';
 import MyDivider from '@fastgpt/web/components/common/MyDivider';
 import { getDocPath } from '@/web/common/system/doc';
@@ -268,7 +266,7 @@ const ConfluenceConfigModal = ({
                     () =>
                       onSuccess({
                         confluenceConfig: getValues(),
-                        chunkSettings: collectionChunkForm2StoreChunkData({
+                        chunkSettings: computedCollectionChunkSettings({
                           ...data,
                           agentModel: datasetDetail.agentModel,
                           vectorModel: datasetDetail.vectorModel

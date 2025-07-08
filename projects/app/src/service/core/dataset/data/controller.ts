@@ -16,21 +16,24 @@ import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
 import { type ClientSession } from '@fastgpt/service/common/mongo';
 import { MongoDatasetDataText } from '@fastgpt/service/core/dataset/data/dataTextSchema';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
-import { splitText2Chunks } from '@fastgpt/global/common/string/textSplitter';
 import { countPromptTokens } from '@fastgpt/service/common/string/tiktoken';
+import { deleteDatasetImage } from '@fastgpt/service/core/dataset/image/controller';
+import { text2Chunks } from '@fastgpt/service/worker/function';
 
 const formatIndexes = async ({
   indexes = [],
   q,
   a = '',
   indexSize,
-  maxIndexSize
+  maxIndexSize,
+  indexPrefix
 }: {
   indexes?: (Omit<DatasetDataIndexItemType, 'dataId'> & { dataId?: string })[];
   q: string;
   a?: string;
   indexSize: number;
   maxIndexSize: number;
+  indexPrefix?: string;
 }): Promise<
   {
     type: `${DatasetDataIndexTypeEnum}`;
@@ -38,8 +41,14 @@ const formatIndexes = async ({
     dataId?: string;
   }[]
 > => {
+  const formatText = (text: string) => {
+    if (indexPrefix && !text.startsWith(indexPrefix)) {
+      return `${indexPrefix}\n${text}`;
+    }
+    return text;
+  };
   /* get dataset data default index */
-  const getDefaultIndex = ({
+  const getDefaultIndex = async ({
     q = '',
     a,
     indexSize
@@ -48,38 +57,38 @@ const formatIndexes = async ({
     a?: string;
     indexSize: number;
   }) => {
-    const qChunks = splitText2Chunks({
-      text: q,
-      chunkSize: indexSize,
-      maxSize: maxIndexSize
-    }).chunks;
+    const qChunks = (
+      await text2Chunks({
+        text: q,
+        chunkSize: indexSize,
+        maxSize: maxIndexSize
+      })
+    ).chunks;
     const aChunks = a
-      ? splitText2Chunks({ text: a, chunkSize: indexSize, maxSize: maxIndexSize }).chunks
+      ? (await text2Chunks({ text: a, chunkSize: indexSize, maxSize: maxIndexSize })).chunks
       : [];
 
     return [
       ...qChunks.map((text) => ({
-        text,
+        text: formatText(text),
         type: DatasetDataIndexTypeEnum.default
       })),
       ...aChunks.map((text) => ({
-        text,
+        text: formatText(text),
         type: DatasetDataIndexTypeEnum.default
       }))
     ];
   };
 
   // If index not type, set it to custom
-  indexes = indexes
-    .map((item) => ({
-      text: typeof item.text === 'string' ? item.text : String(item.text),
-      type: item.type || DatasetDataIndexTypeEnum.custom,
-      dataId: item.dataId
-    }))
-    .filter((item) => !!item.text.trim());
+  indexes = indexes.map((item) => ({
+    text: typeof item.text === 'string' ? item.text : String(item.text),
+    type: item.type || DatasetDataIndexTypeEnum.custom,
+    dataId: item.dataId
+  }));
 
   // Recompute default indexes, Merge ids of the same index, reduce the number of rebuilds
-  const defaultIndexes = getDefaultIndex({ q, a, indexSize });
+  const defaultIndexes = await getDefaultIndex({ q, a, indexSize });
 
   const concatDefaultIndexes = defaultIndexes.map((item) => {
     const oldIndex = indexes!.find((index) => index.text === item.text);
@@ -113,11 +122,13 @@ const formatIndexes = async ({
         // If oversize tokens, split it
         const tokens = await countPromptTokens(item.text);
         if (tokens > maxIndexSize) {
-          const splitText = splitText2Chunks({
-            text: item.text,
-            chunkSize: indexSize,
-            maxSize: maxIndexSize
-          }).chunks;
+          const splitText = (
+            await text2Chunks({
+              text: item.text,
+              chunkSize: indexSize,
+              maxSize: maxIndexSize
+            })
+          ).chunks;
           return splitText.map((text) => ({
             text,
             type: item.type
@@ -127,9 +138,22 @@ const formatIndexes = async ({
         return item;
       })
     )
-  ).flat();
+  )
+    .flat()
+    .filter((item) => !!item.text.trim());
 
-  return chekcIndexes;
+  // Add prefix
+  const prefixIndexes = indexPrefix
+    ? chekcIndexes.map((index) => {
+        if (index.type === DatasetDataIndexTypeEnum.custom) return index;
+        return {
+          ...index,
+          text: formatText(index.text)
+        };
+      })
+    : chekcIndexes;
+
+  return prefixIndexes;
 };
 /* insert data.
  * 1. create data id
@@ -142,15 +166,19 @@ export async function insertData2Dataset({
   datasetId,
   collectionId,
   q,
-  a = '',
+  a,
+  imageId,
   chunkIndex = 0,
   indexSize = 512,
   indexes,
+  indexPrefix,
   embeddingModel,
+  imageDescMap,
   session
 }: CreateDatasetDataProps & {
   embeddingModel: string;
   indexSize?: number;
+  imageDescMap?: Record<string, string>;
   session?: ClientSession;
 }) {
   if (!q || !datasetId || !collectionId || !embeddingModel) {
@@ -170,7 +198,8 @@ export async function insertData2Dataset({
     q,
     a,
     indexSize,
-    maxIndexSize: embModel.maxToken
+    maxIndexSize: embModel.maxToken,
+    indexPrefix
   });
 
   // insert to vector store
@@ -209,6 +238,8 @@ export async function insertData2Dataset({
         collectionId,
         q,
         a,
+        imageId,
+        imageDescMap,
         chunkIndex,
         indexes: results.map((item) => item.index)
       }
@@ -250,7 +281,8 @@ export async function updateData2Dataset({
   a,
   indexes,
   model,
-  indexSize = 512
+  indexSize = 512,
+  indexPrefix
 }: UpdateDatasetDataProps & { model: string; indexSize?: number }) {
   if (!Array.isArray(indexes)) {
     return Promise.reject('indexes is required');
@@ -266,7 +298,8 @@ export async function updateData2Dataset({
     q,
     a,
     indexSize,
-    maxIndexSize: getEmbeddingModel(model).maxToken
+    maxIndexSize: getEmbeddingModel(model).maxToken,
+    indexPrefix
   });
 
   // 3. Patch indexes, create, update, delete
@@ -312,6 +345,11 @@ export async function updateData2Dataset({
       }
     }
   }
+
+  const deleteVectorIdList = patchResult
+    .filter((item) => item.type === 'delete' || item.type === 'update')
+    .map((item) => item.index.dataId)
+    .filter(Boolean) as string[];
 
   // 4. Update mongo updateTime(便于脏数据检查器识别)
   const updateTime = mongoData.updateTime;
@@ -372,14 +410,10 @@ export async function updateData2Dataset({
     );
 
     // Delete vector
-    const deleteIdList = patchResult
-      .filter((item) => item.type === 'delete' || item.type === 'update')
-      .map((item) => item.index.dataId)
-      .filter(Boolean) as string[];
-    if (deleteIdList.length > 0) {
+    if (deleteVectorIdList.length > 0) {
       await deleteDatasetDataVector({
         teamId: mongoData.teamId,
-        idList: deleteIdList
+        idList: deleteVectorIdList
       });
     }
   });
@@ -391,8 +425,16 @@ export async function updateData2Dataset({
 
 export const deleteDatasetData = async (data: DatasetDataItemType) => {
   await mongoSessionRun(async (session) => {
+    // 1. Delete MongoDB data
     await MongoDatasetData.deleteOne({ _id: data.id }, { session });
     await MongoDatasetDataText.deleteMany({ dataId: data.id }, { session });
+
+    // 2. If there are any image files, delete the image records and GridFS file.
+    if (data.imageId) {
+      await deleteDatasetImage(data.imageId);
+    }
+
+    // 3. Delete vector data
     await deleteDatasetDataVector({
       teamId: data.teamId,
       idList: data.indexes.map((item) => item.dataId)

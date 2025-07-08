@@ -9,13 +9,20 @@ import type {
   UpdateInviteProps,
   UpdateTeamProps
 } from '@fastgpt/global/support/user/team/controller.d';
-import type { TeamTagItemType, TeamTagSchema } from '@fastgpt/global/support/user/team/type';
+import type {
+  TeamSchema,
+  TeamTagItemType,
+  TeamTagSchema
+} from '@fastgpt/global/support/user/team/type';
 import type {
   TeamTmbItemType,
   TeamMemberItemType,
   TeamMemberSchema
 } from '@fastgpt/global/support/user/team/type.d';
-import type { FeTeamPlanStatusType, TeamSubSchema } from '@fastgpt/global/support/wallet/sub/type';
+import type {
+  ClientTeamPlanStatusType,
+  TeamSubSchema
+} from '@fastgpt/global/support/wallet/sub/type';
 import type { TeamInvoiceHeaderType } from '@fastgpt/global/support/user/team/type';
 import type { PaginationProps, PaginationResponse } from '@fastgpt/web/common/fetch/type';
 import type {
@@ -27,6 +34,10 @@ import type {
 /* --------------- team  ---------------- */
 export const getTeamList = (status: `${TeamMemberSchema['status']}`) =>
   GET<TeamTmbItemType[]>(`/support/user/team/list`, { status });
+
+export const getAllTeamList = (props: PaginationProps<{}>) =>
+  POST<PaginationResponse<TeamSchema>>(`/support/user/team/listAll`, props);
+
 export const postCreateTeam = (data: CreateTeamProps) =>
   POST<string>(`/support/user/team/create`, data);
 export const putUpdateTeam = (data: UpdateTeamProps) => PUT(`/support/user/team/update`, data);
@@ -99,7 +110,7 @@ export const checkTeamDatasetSizeLimit = (size: number) =>
 
 /* plans */
 export const getTeamPlanStatus = () =>
-  GET<FeTeamPlanStatusType>(`/support/user/team/plan/getTeamPlanStatus`, { maxQuantity: 1 });
+  GET<ClientTeamPlanStatusType>(`/support/user/team/plan/getTeamPlanStatus`, { maxQuantity: 1 });
 export const getTeamPlans = () => GET<TeamSubSchema[]>(`/support/user/team/plan/getTeamPlans`);
 
 export const redeemCoupon = (couponCode: string) =>

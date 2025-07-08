@@ -8,9 +8,11 @@ import { retryFn } from '@fastgpt/global/common/system/utils';
 export class MCPClient {
   private client: Client;
   private url: string;
+  private headers: Record<string, any> = {};
 
-  constructor(config: { url: string }) {
+  constructor(config: { url: string; headers: Record<string, any> }) {
     this.url = config.url;
+    this.headers = config.headers;
     this.client = new Client({
       name: 'FastGPT-MCP-client',
       version: '1.0.0'
@@ -19,11 +21,34 @@ export class MCPClient {
 
   private async getConnection(): Promise<Client> {
     try {
-      const transport = new StreamableHTTPClientTransport(new URL(this.url));
+      const transport = new StreamableHTTPClientTransport(new URL(this.url), {
+        requestInit: {
+          headers: this.headers
+        }
+      });
       await this.client.connect(transport);
       return this.client;
     } catch (error) {
-      await this.client.connect(new SSEClientTransport(new URL(this.url)));
+      await this.client.connect(
+        new SSEClientTransport(new URL(this.url), {
+          requestInit: {
+            headers: this.headers
+          },
+          eventSourceInit: {
+            fetch: (url, init) => {
+              const headers = new Headers({
+                ...init?.headers,
+                ...this.headers
+              });
+
+              return fetch(url, {
+                ...init,
+                headers
+              });
+            }
+          }
+        })
+      );
       return this.client;
     }
   }
@@ -53,10 +78,15 @@ export class MCPClient {
       const tools = response.tools.map((tool) => ({
         name: tool.name,
         description: tool.description || '',
-        inputSchema: tool.inputSchema || {
-          type: 'object',
-          properties: {}
-        }
+        inputSchema: tool.inputSchema
+          ? {
+              ...tool.inputSchema,
+              properties: tool.inputSchema.properties || {}
+            }
+          : {
+              type: 'object',
+              properties: {}
+            }
       }));
 
       // @ts-ignore

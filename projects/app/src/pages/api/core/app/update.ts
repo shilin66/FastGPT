@@ -24,6 +24,10 @@ import { TeamAppCreatePermissionVal } from '@fastgpt/global/support/permission/u
 import { AppErrEnum } from '@fastgpt/global/common/error/code/app';
 import { refreshSourceAvatar } from '@fastgpt/service/common/file/image/controller';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
+import { getI18nAppType } from '@fastgpt/service/support/user/audit/util';
+import { i18nT } from '@fastgpt/web/i18n/utils';
 
 export type AppUpdateQuery = {
   appId: string;
@@ -54,7 +58,7 @@ async function handler(req: ApiRequestProps<AppUpdateBody, AppUpdateQuery>) {
 
   // this step is to get the app and its permission, and we will check the permission manually for
   // different cases
-  const { app, permission } = await authApp({
+  const { app, permission, teamId, tmbId } = await authApp({
     req,
     authToken: true,
     appId,
@@ -65,11 +69,23 @@ async function handler(req: ApiRequestProps<AppUpdateBody, AppUpdateQuery>) {
     Promise.reject(AppErrEnum.unExist);
   }
 
+  let targetName = '';
+
   if (isMove) {
     if (parentId) {
       // move to a folder, check the target folder's permission
-      await authApp({ req, authToken: true, appId: parentId, per: ManagePermissionVal });
+      const { app: targetApp } = await authApp({
+        req,
+        authToken: true,
+        appId: parentId,
+        per: ManagePermissionVal
+      });
+
+      targetName = targetApp.name;
+    } else {
+      targetName = 'root';
     }
+
     if (app.parentId) {
       // move from a folder, check the (old) folder's permission
       await authApp({ req, authToken: true, appId: app.parentId, per: ManagePermissionVal });
@@ -92,9 +108,8 @@ async function handler(req: ApiRequestProps<AppUpdateBody, AppUpdateQuery>) {
   const onUpdate = async (session?: ClientSession) => {
     // format nodes data
     // 1. dataset search limit, less than model quoteMaxToken
-    const { nodes: formatNodes } = beforeUpdateAppFormat({
-      nodes,
-      isPlugin: app.type === AppTypeEnum.plugin
+    beforeUpdateAppFormat({
+      nodes
     });
 
     await refreshSourceAvatar(avatar, app.avatar, session);
@@ -118,8 +133,8 @@ async function handler(req: ApiRequestProps<AppUpdateBody, AppUpdateQuery>) {
         ...(avatar && { avatar }),
         ...(intro !== undefined && { intro }),
         ...(teamTags && { teamTags }),
-        ...(formatNodes && {
-          modules: formatNodes
+        ...(nodes && {
+          modules: nodes
         }),
         ...(edges && {
           edges
@@ -160,6 +175,7 @@ async function handler(req: ApiRequestProps<AppUpdateBody, AppUpdateQuery>) {
           session
         });
       } else {
+        logAppMove({ tmbId, teamId, app, targetName });
         // Not folder, delete all clb
         await MongoResourcePermission.deleteMany(
           { resourceType: PerResourceTypeEnum.app, teamId: app.teamId, resourceId: app._id },
@@ -169,8 +185,81 @@ async function handler(req: ApiRequestProps<AppUpdateBody, AppUpdateQuery>) {
       return onUpdate(session);
     });
   } else {
+    logAppUpdate({ tmbId, teamId, app, name, intro });
+
     return onUpdate();
   }
 }
 
 export default NextAPI(handler);
+
+const logAppMove = ({
+  tmbId,
+  teamId,
+  app,
+  targetName
+}: {
+  tmbId: string;
+  teamId: string;
+  app: any;
+  targetName: string;
+}) => {
+  addAuditLog({
+    tmbId,
+    teamId,
+    event: AuditEventEnum.MOVE_APP,
+    params: {
+      appName: app.name,
+      targetFolderName: targetName,
+      appType: getI18nAppType(app.type)
+    }
+  });
+};
+
+const logAppUpdate = ({
+  tmbId,
+  teamId,
+  app,
+  name,
+  intro
+}: {
+  tmbId: string;
+  teamId: string;
+  app: any;
+  name?: string;
+  intro?: string;
+}) => {
+  const getUpdateItems = () => {
+    const names: string[] = [];
+    const values: string[] = [];
+
+    if (name !== undefined) {
+      names.push(i18nT('common:name'));
+      values.push(name);
+    }
+
+    if (intro !== undefined) {
+      names.push(i18nT('common:Intro'));
+      values.push(intro);
+    }
+
+    return {
+      names,
+      values
+    };
+  };
+
+  const { names: newItemNames, values: newItemValues } = getUpdateItems();
+
+  addAuditLog({
+    tmbId,
+    teamId,
+    event: AuditEventEnum.UPDATE_APP_INFO,
+    params: {
+      appName: app.name,
+      newItemNames: newItemNames,
+      newItemValues: newItemValues,
+      appType: getI18nAppType(app.type)
+    }
+  });
+};

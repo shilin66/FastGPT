@@ -66,9 +66,8 @@ export function initGlobalVariables() {
     };
 
     global.createUsageHandler = function createUsageHandler(data: CreateUsageProps) {
-      // if (!isProVersion()) return;
-      // return POST('/support/wallet/usage/createUsage', data);
-      return;
+      if (!isProVersion()) return;
+      return POST('/support/wallet/usage/createUsage', data);
     };
 
     global.concatUsageHandler = function concatUsageHandler(data: ConcatUsageProps) {

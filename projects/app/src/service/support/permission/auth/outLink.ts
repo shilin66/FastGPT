@@ -65,6 +65,7 @@ export async function authOutLinkChatStart({
   ]);
 
   return {
+    outLinkType: outLinkConfig.type,
     sourceName: outLinkConfig.name,
     teamId: outLinkConfig.teamId,
     tmbId: outLinkConfig.tmbId,

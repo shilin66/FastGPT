@@ -33,3 +33,24 @@ export type UsageItemType = {
   list: UsageSchemaType['list'];
   sourceMember: SourceMemberType;
 };
+
+export type TeamUsageItemType = {
+  id: string;
+  teamAvatar: string;
+  teamName: string;
+  totalPoints: number;
+  totalInputTokens: string;
+  totalOutputTokens: string;
+  totalTokens: string;
+  owner: string;
+  models: {
+    name?: string;
+    amount: number;
+    inputTokens: string;
+    outputTokens: string;
+    allTokens: string;
+    charsLength?: string;
+    pages?: string;
+    duration?: string;
+  }[];
+};

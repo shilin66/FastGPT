@@ -351,6 +351,21 @@ export async function createTeam(
   );
 }
 
+export const listAllTeam = async (
+  offset: number,
+  pageSize: number
+): Promise<PaginationResponse<TeamSchema>> => {
+  const [list, total] = await Promise.all([
+    MongoTeam.find().skip(offset).limit(pageSize).lean() as unknown as TeamSchema[],
+    MongoTeam.countDocuments()
+  ]);
+
+  return {
+    list,
+    total
+  };
+};
+
 export async function listUserTeam(status: string, userId: string): Promise<TeamTmbItemType[]> {
   const tmbList = (await MongoTeamMember.find({ status, userId }).populate(
     'team'

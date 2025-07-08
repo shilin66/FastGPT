@@ -12,12 +12,16 @@ export const formatStorePrice2Read = (val = 0, multiple = 1) => {
 };
 
 export const getUsageSourceByAuthType = ({
+  outLinkType,
   shareId,
   authType
 }: {
+  outLinkType?: string;
   shareId?: string;
   authType?: `${AuthUserTypeEnum}`;
 }) => {
+  if (outLinkType === PublishChannelEnum.share) return UsageSourceEnum.shareLink;
+  if (outLinkType === PublishChannelEnum.teams) return UsageSourceEnum.teams;
   if (shareId) return UsageSourceEnum.shareLink;
   if (authType === AuthUserTypeEnum.apikey) return UsageSourceEnum.api;
   return UsageSourceEnum.fastgpt;
