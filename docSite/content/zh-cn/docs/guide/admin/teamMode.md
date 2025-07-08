@@ -2,7 +2,7 @@
 title: '团队模式说明文档'
 description: 'FastGPT 团队模式说明文档'
 icon: ''
-draft: false
+draft: true
 toc: true
 weight: 707
 ---

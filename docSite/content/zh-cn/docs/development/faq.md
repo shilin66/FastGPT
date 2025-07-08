@@ -3,7 +3,7 @@ weight: 740
 title: "私有部署常见问题"
 description: "FastGPT 私有部署常见问题"
 icon: upgrade
-draft: false
+draft: true
 images: []
 ---
 

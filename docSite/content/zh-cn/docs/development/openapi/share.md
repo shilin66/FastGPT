@@ -2,7 +2,7 @@
 title: '分享链接身份鉴权'
 description: 'FastGPT 分享链接身份鉴权'
 icon: 'share'
-draft: false
+draft: true
 toc: true
 weight: 860
 ---

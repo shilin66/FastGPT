@@ -2,7 +2,7 @@
 title: '开源协议'
 description: ' FastGPT 开源许可证'
 icon: 'verified_user'
-draft: false
+draft: true
 toc: true
 weight: 1210
 ---
