@@ -2,7 +2,7 @@
 title: '隐私政策'
 description: ' FastGPT 隐私政策'
 icon: 'gavel'
-draft: false
+draft: true
 toc: true
 weight: 1221
 ---

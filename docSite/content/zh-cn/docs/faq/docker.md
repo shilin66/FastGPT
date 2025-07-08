@@ -2,7 +2,7 @@
 title: 'Docker 部署问题'
 description: 'FastGPT Docker 部署问题'
 icon: ''
-draft: false
+draft: true
 toc: true
 weight: 902
 type: redirect

@@ -2,7 +2,7 @@
 title: 'Docker Compose 快速部署'
 description: '使用 Docker Compose 快速部署 FastGPT'
 icon: ''
-draft: false
+draft: true
 toc: true
 weight: 707
 ---

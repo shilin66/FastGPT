@@ -2,7 +2,7 @@
 title: 'SSO & 外部成员同步'
 description: 'FastGPT 外部成员系统接入设计与配置'
 icon: ''
-draft: false
+draft: true
 toc: true
 weight: 707
 ---

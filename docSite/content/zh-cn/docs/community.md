@@ -2,7 +2,7 @@
 title: '加入社区'
 description: ' 加入 FastGPT 开发者社区和我们一起成长'
 icon: 'forum'
-draft: false
+draft: true
 toc: true
 weight: 1300
 ---

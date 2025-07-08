@@ -2,7 +2,7 @@
 title: '快速开始本地开发'
 description: '对 FastGPT 进行开发调试'
 icon: 'developer_guide'
-draft: false
+draft: true
 toc: true
 weight: 705
 ---

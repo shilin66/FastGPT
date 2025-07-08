@@ -2,7 +2,7 @@
 title: '服务协议'
 description: ' FastGPT 服务协议'
 icon: 'gavel'
-draft: false
+draft: true
 toc: true
 weight: 1220
 ---

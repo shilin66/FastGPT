@@ -2,7 +2,7 @@
 title: "Sealos 一键部署"
 description: "使用 Sealos 一键部署 FastGPT"
 icon: "cloud"
-draft: false
+draft: true
 toc: true
 weight: 706
 ---

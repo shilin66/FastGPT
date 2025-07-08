@@ -2,7 +2,7 @@
 title: '配置文件介绍'
 description: 'FastGPT 配置参数介绍'
 icon: 'settings'
-draft: false
+draft: true
 toc: true
 weight: 707
 ---
