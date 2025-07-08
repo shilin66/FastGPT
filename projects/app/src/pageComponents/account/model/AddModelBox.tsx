@@ -466,6 +466,18 @@ export const ModelEditModal = ({
                     <Tr>
                       <Td>
                         <HStack spacing={1}>
+                          <Box>{t('account:model.ai_search')}</Box>
+                        </HStack>
+                      </Td>
+                      <Td textAlign={'right'}>
+                        <Flex justifyContent={'flex-end'}>
+                          <Switch {...register('aiSearch')} />
+                        </Flex>
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td>
+                        <HStack spacing={1}>
                           <Box>{t('account:model.normalization')}</Box>
                           <QuestionTip label={t('account:model.normalization_tip')} />
                         </HStack>

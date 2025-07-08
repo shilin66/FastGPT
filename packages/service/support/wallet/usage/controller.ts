@@ -79,7 +79,7 @@ export async function concatUsage(data: ConcatUsageProps) {
     const updated = await MongoUsage.findOneAndUpdate(
       { _id: billId, teamId, tmbId, [baseKey]: { $exists: true } },
       { $inc: incOps },
-      { new: true, lean: true } // lean:true 返回普通 JS 对象，少些 Mongoose 开销
+      { new: true, lean: true }
     ).exec();
 
     if (!updated) {
@@ -91,11 +91,6 @@ export async function concatUsage(data: ConcatUsageProps) {
       });
       return;
     }
-
-    console.log('concatUsage: 更新成功', {
-      totalPoints: updated.totalPoints,
-      modelUsage: updated.list[listIndex]
-    });
   } catch (error) {
     addLog.error('concatUsage error', error);
   }

@@ -9,6 +9,7 @@ import { delay } from '@fastgpt/global/common/system/utils';
 import { trainConfluenceCollection } from '@fastgpt/service/core/dataset/training/controller';
 import { generateAuto } from '@/service/core/dataset/queues/generateAuto';
 import { generateImage } from '@/service/core/dataset/queues/generateImage';
+import { generateImageParse } from '@/service/core/dataset/queues/generateImageParse';
 
 export const createDatasetTrainingMongoWatch = () => {
   const changeStream = MongoDatasetTraining.watch();
@@ -26,6 +27,10 @@ export const createDatasetTrainingMongoWatch = () => {
           datasetParseQueue();
         } else if (mode === TrainingModeEnum.auto) {
           generateAuto();
+        } else if (mode === TrainingModeEnum.image) {
+          generateImage();
+        } else if (mode === TrainingModeEnum.imageParse) {
+          generateImageParse();
         }
       }
     } catch (error) {}
@@ -41,6 +46,7 @@ export const startTrainingQueue = (fast?: boolean) => {
     datasetParseQueue();
     generateAuto();
     generateImage();
+    generateImageParse();
   }
 };
 
