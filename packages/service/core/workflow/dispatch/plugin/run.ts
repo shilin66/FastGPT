@@ -17,6 +17,7 @@ import { chatValue2RuntimePrompt } from '@fastgpt/global/core/chat/adapt';
 import { getPluginRunUserQuery } from '@fastgpt/global/core/workflow/utils';
 import { getPluginInputsFromStoreNodes } from '@fastgpt/global/core/app/plugin/utils';
 import type { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
+import { getUserChatInfoAndAuthTeamPoints } from '../../../../support/permission/auth/team';
 
 type RunPluginProps = ModuleDispatchProps<{
   [NodeInputKeyEnum.forbidStream]?: boolean;
@@ -73,36 +74,39 @@ export const dispatchRunPlugin = async (props: RunPluginProps): Promise<RunPlugi
     };
   });
 
+  const { externalProvider } = await getUserChatInfoAndAuthTeamPoints(runningAppInfo.tmbId);
   const runtimeVariables = {
     ...filterSystemVariables(props.variables),
-    appId: String(plugin.id)
+    appId: String(plugin.id),
+    ...(externalProvider ? externalProvider.externalWorkflowVariables : {})
   };
-  const { flowResponses, flowUsages, assistantResponses, runTimes } = await dispatchWorkFlow({
-    ...props,
-    // Rewrite stream mode
-    ...(system_forbid_stream
-      ? {
-          stream: false,
-          workflowStreamResponse: undefined
-        }
-      : {}),
-    runningAppInfo: {
-      id: String(plugin.id),
-      // 如果系统插件有 teamId 和 tmbId，则使用系统插件的 teamId 和 tmbId（管理员指定了插件作为系统插件）
-      teamId: plugin.teamId || runningAppInfo.teamId,
-      tmbId: plugin.tmbId || runningAppInfo.tmbId,
-      isChildApp: true
-    },
-    variables: runtimeVariables,
-    query: getPluginRunUserQuery({
-      pluginInputs: getPluginInputsFromStoreNodes(plugin.nodes),
+  const { flowResponses, flowUsages, assistantResponses, runTimes, system_memories } =
+    await dispatchWorkFlow({
+      ...props,
+      // Rewrite stream mode
+      ...(system_forbid_stream
+        ? {
+            stream: false,
+            workflowStreamResponse: undefined
+          }
+        : {}),
+      runningAppInfo: {
+        id: String(plugin.id),
+        // 如果系统插件有 teamId 和 tmbId，则使用系统插件的 teamId 和 tmbId（管理员指定了插件作为系统插件）
+        teamId: plugin.teamId || runningAppInfo.teamId,
+        tmbId: plugin.tmbId || runningAppInfo.tmbId,
+        isChildApp: true
+      },
       variables: runtimeVariables,
-      files
-    }).value,
-    chatConfig: {},
-    runtimeNodes,
-    runtimeEdges: storeEdges2RuntimeEdges(plugin.edges)
-  });
+      query: getPluginRunUserQuery({
+        pluginInputs: getPluginInputsFromStoreNodes(plugin.nodes),
+        variables: runtimeVariables,
+        files
+      }).value,
+      chatConfig: {},
+      runtimeNodes,
+      runtimeEdges: storeEdges2RuntimeEdges(plugin.edges)
+    });
   const output = flowResponses.find((item) => item.moduleType === FlowNodeTypeEnum.pluginOutput);
   if (output) {
     output.moduleLogo = plugin.avatar;
@@ -116,6 +120,7 @@ export const dispatchRunPlugin = async (props: RunPluginProps): Promise<RunPlugi
   return {
     // 嵌套运行时，如果 childApp stream=false，实际上不会有任何内容输出给用户，所以不需要存储
     assistantResponses: system_forbid_stream ? [] : assistantResponses,
+    system_memories,
     // responseData, // debug
     [DispatchNodeResponseKeyEnum.runTimes]: runTimes,
     [DispatchNodeResponseKeyEnum.nodeResponse]: {

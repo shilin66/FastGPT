@@ -17,6 +17,8 @@ import { syncCollaborators } from '@fastgpt/service/support/permission/inheritPe
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
 export type DatasetFolderCreateQuery = {};
 export type DatasetFolderCreateBody = {
   parentId?: string;
@@ -92,6 +94,16 @@ async function handler(
       );
     }
   });
+  (async () => {
+    addAuditLog({
+      tmbId,
+      teamId,
+      event: AuditEventEnum.CREATE_DATASET_FOLDER,
+      params: {
+        folderName: name
+      }
+    });
+  })();
 
   return {};
 }

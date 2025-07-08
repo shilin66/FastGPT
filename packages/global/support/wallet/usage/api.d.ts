@@ -14,6 +14,13 @@ export type GetUsageProps = {
   projectName?: string;
 };
 
+export type GetTeamUsageProps = {
+  dateStart: string;
+  dateEnd: string;
+  teamIds?: string[];
+  searchKey?: string;
+};
+
 export type GetUsageDashboardProps = GetUsageProps & {
   unit: 'day' | 'month';
 };

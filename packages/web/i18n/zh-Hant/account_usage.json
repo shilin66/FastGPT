@@ -20,8 +20,10 @@
   "export_title": "時間,成員,類型,項目名,AI 積分消耗",
   "feishu": "飛書",
   "generation_time": "生成時間",
+  "image_index": "圖片索引",
   "image_parse": "圖片標註",
   "input_token_length": "輸入 tokens",
+  "llm_paragraph": "模型分段",
   "mcp": "MCP 調用",
   "member": "成員",
   "member_name": "成員名",
@@ -46,6 +48,8 @@
   "total_points_consumed": "AI 積分消耗",
   "total_usage": "總消耗",
   "usage_detail": "使用詳細資訊",
+  "team_usage_detail": "平台使用詳細資訊",
   "user_type": "類型",
+  "search_team": "搜尋組織",
   "wecom": "企業微信"
 }

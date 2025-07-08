@@ -13,11 +13,12 @@ import {
   Textarea,
   useDisclosure,
   Checkbox,
-  HStack
+  HStack,
+  Grid
 } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import LeftRadio from '@fastgpt/web/components/common/Radio/LeftRadio';
-import type { ParagraphChunkAIModeEnum } from '@fastgpt/global/core/dataset/constants';
+import { ParagraphChunkAIModeEnum } from '@fastgpt/global/core/dataset/constants';
 import { ChunkTriggerConfigTypeEnum } from '@fastgpt/global/core/dataset/constants';
 import {
   DataChunkSplitModeEnum,
@@ -35,7 +36,6 @@ import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContex
 import MySelect from '@fastgpt/web/components/common/MySelect';
 import {
   chunkAutoChunkSize,
-  getAutoIndexSize,
   getIndexSizeSelectList,
   getLLMDefaultChunkSize,
   getLLMMaxChunkSize,
@@ -44,7 +44,6 @@ import {
   minChunkSize
 } from '@fastgpt/global/core/dataset/training/utils';
 import RadioGroup from '@fastgpt/web/components/common/Radio/RadioGroup';
-import type { LLMModelItemType, EmbeddingModelItemType } from '@fastgpt/global/core/ai/model.d';
 
 const PromptTextarea = ({
   defaultValue = '',
@@ -98,6 +97,7 @@ export type CollectionChunkFormType = {
   // Index enhance
   imageIndex: boolean;
   autoIndexes: boolean;
+  indexPrefixTitle: boolean;
 
   // Chunk setting
   chunkSettingMode: ChunkSettingModeEnum; // 系统参数/自定义参数
@@ -133,6 +133,8 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
   const autoIndexes = watch('autoIndexes');
   const indexSize = watch('indexSize');
   const imageIndex = watch('imageIndex');
+  const indexPrefixTitle = watch('indexPrefixTitle');
+  const paragraphChunkAIMode = watch('paragraphChunkAIMode');
 
   const trainingModeList = useMemo(() => {
     const list = {
@@ -268,7 +270,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
               <Box flex={'1 0 0'}>
                 <MyNumberInput
                   h={'34px'}
-                  bg={'white'}
+                  inputFieldProps={{ bg: 'white' }}
                   min={100}
                   max={100000}
                   register={register}
@@ -281,48 +283,56 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
         </Box>
       )}
 
-      {trainingType === DatasetCollectionDataProcessModeEnum.chunk &&
-        feConfigs?.show_dataset_enhance !== false && (
-          <Box mt={6}>
-            <Box fontSize={'sm'} mb={2} color={'myGray.600'}>
-              {t('dataset:enhanced_indexes')}
-            </Box>
-            <HStack gap={[3, 7]}>
-              <HStack flex={'1'} spacing={1}>
-                <MyTooltip label={!feConfigs?.isPlus ? t('common:commercial_function_tip') : ''}>
-                  <Checkbox
-                    isDisabled={!feConfigs?.isPlus}
-                    isChecked={autoIndexes}
-                    {...register('autoIndexes')}
+      <Box mt={6}>
+        <Box fontSize={'sm'} mb={2} color={'myGray.600'}>
+          {t('dataset:enhanced_indexes')}
+        </Box>
+        <Grid gridTemplateColumns={'1fr 1fr'} rowGap={[2, 4]} columnGap={[3, 7]}>
+          <HStack flex={'1'} spacing={1}>
+            <Checkbox isChecked={indexPrefixTitle} {...register('indexPrefixTitle')}>
+              <FormLabel>{t('dataset:index_prefix_title')}</FormLabel>
+            </Checkbox>
+            <QuestionTip label={t('dataset:index_prefix_title_tips')} />
+          </HStack>
+          {trainingType === DatasetCollectionDataProcessModeEnum.chunk &&
+            feConfigs?.show_dataset_enhance !== false && (
+              <>
+                <HStack flex={'1'} spacing={1}>
+                  <MyTooltip label={!feConfigs?.isPlus ? t('common:commercial_function_tip') : ''}>
+                    <Checkbox
+                      isDisabled={!feConfigs?.isPlus}
+                      isChecked={autoIndexes}
+                      {...register('autoIndexes')}
+                    >
+                      <FormLabel>{t('dataset:auto_indexes')}</FormLabel>
+                    </Checkbox>
+                  </MyTooltip>
+                  <QuestionTip label={t('dataset:auto_indexes_tips')} />
+                </HStack>
+                <HStack flex={'1'} spacing={1}>
+                  <MyTooltip
+                    label={
+                      !feConfigs?.isPlus
+                        ? t('common:commercial_function_tip')
+                        : !datasetDetail?.vlmModel
+                          ? t('common:error_vlm_not_config')
+                          : ''
+                    }
                   >
-                    <FormLabel>{t('dataset:auto_indexes')}</FormLabel>
-                  </Checkbox>
-                </MyTooltip>
-                <QuestionTip label={t('dataset:auto_indexes_tips')} />
-              </HStack>
-              <HStack flex={'1'} spacing={1}>
-                <MyTooltip
-                  label={
-                    !feConfigs?.isPlus
-                      ? t('common:commercial_function_tip')
-                      : !datasetDetail?.vlmModel
-                        ? t('common:error_vlm_not_config')
-                        : ''
-                  }
-                >
-                  <Checkbox
-                    isDisabled={!feConfigs?.isPlus || !datasetDetail?.vlmModel}
-                    isChecked={imageIndex}
-                    {...register('imageIndex')}
-                  >
-                    <FormLabel>{t('dataset:image_auto_parse')}</FormLabel>
-                  </Checkbox>
-                </MyTooltip>
-                <QuestionTip label={t('dataset:image_auto_parse_tips')} />
-              </HStack>
-            </HStack>
-          </Box>
-        )}
+                    <Checkbox
+                      isDisabled={!feConfigs?.isPlus || !datasetDetail?.vlmModel}
+                      isChecked={imageIndex}
+                      {...register('imageIndex')}
+                    >
+                      <FormLabel>{t('dataset:image_auto_parse')}</FormLabel>
+                    </Checkbox>
+                  </MyTooltip>
+                  <QuestionTip label={t('dataset:image_auto_parse_tips')} />
+                </HStack>
+              </>
+            )}
+        </Grid>
+      </Box>
       <Box mt={6}>
         <Box fontSize={'sm'} mb={2} color={'myGray.600'}>
           {t('dataset:chunk_process_params')}
@@ -362,11 +372,35 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                       onChange={(e) => {
                         setValue('chunkSplitMode', e);
                       }}
+                      fontSize={'md'}
                     />
 
                     {chunkSplitMode === DataChunkSplitModeEnum.paragraph && (
                       <>
-                        <Box mt={1.5}>
+                        <Box mt={3}>
+                          <Box fontSize={'sm'}>{t('dataset:llm_paragraph_mode')}</Box>
+                          <MySelect<ParagraphChunkAIModeEnum>
+                            size={'sm'}
+                            bg={'myGray.50'}
+                            value={paragraphChunkAIMode}
+                            onChange={(e) => {
+                              setValue('paragraphChunkAIMode', e);
+                            }}
+                            list={[
+                              {
+                                label: t('dataset:llm_paragraph_mode_forbid'),
+                                value: ParagraphChunkAIModeEnum.forbid,
+                                description: t('dataset:llm_paragraph_mode_forbid_desc')
+                              },
+                              {
+                                label: t('dataset:llm_paragraph_mode_auto'),
+                                value: ParagraphChunkAIModeEnum.auto,
+                                description: t('dataset:llm_paragraph_mode_auto_desc')
+                              }
+                            ]}
+                          />
+                        </Box>
+                        <Box mt={2} fontSize={'sm'}>
                           <Box>{t('dataset:paragraph_max_deep')}</Box>
                           <MyNumberInput
                             size={'sm'}
@@ -379,7 +413,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                             h={'32px'}
                           />
                         </Box>
-                        <Box mt={1.5}>
+                        <Box mt={2} fontSize={'sm'}>
                           <Box>{t('dataset:max_chunk_size')}</Box>
                           <Box
                             css={{
@@ -409,7 +443,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                     )}
 
                     {chunkSplitMode === DataChunkSplitModeEnum.size && (
-                      <Box mt={1.5}>
+                      <Box mt={3} fontSize={'sm'}>
                         <Box>{t('dataset:chunk_size')}</Box>
                         <Box
                           css={{
@@ -438,45 +472,48 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                     )}
 
                     {chunkSplitMode === DataChunkSplitModeEnum.char && (
-                      <HStack mt={1.5}>
-                        <Box flex={'1 0 0'}>
-                          <MySelect<string>
-                            list={customSplitList}
-                            size={'sm'}
-                            bg={'myGray.50'}
-                            value={customListSelectValue}
-                            h={'32px'}
-                            onChange={(val) => {
-                              if (val === 'Other') {
-                                setValue('chunkSplitter', '');
-                              } else {
-                                setValue('chunkSplitter', val);
-                              }
-                              setCustomListSelectValue(val);
-                            }}
-                          />
-                        </Box>
-                        {customListSelectValue === 'Other' && (
-                          <Input
-                            flex={'1 0 0'}
-                            h={'32px'}
-                            size={'sm'}
-                            bg={'myGray.50'}
-                            placeholder="\n;======;==SPLIT=="
-                            {...register('chunkSplitter')}
-                          />
-                        )}
-                      </HStack>
+                      <Box mt={3} fontSize={'sm'}>
+                        <Box>{t('dataset:custom_split_char')}</Box>
+                        <HStack>
+                          <Box flex={'1 0 0'}>
+                            <MySelect<string>
+                              list={customSplitList}
+                              size={'sm'}
+                              bg={'myGray.50'}
+                              value={customListSelectValue}
+                              h={'32px'}
+                              onChange={(val) => {
+                                if (val === 'Other') {
+                                  setValue('chunkSplitter', '');
+                                } else {
+                                  setValue('chunkSplitter', val);
+                                }
+                                setCustomListSelectValue(val);
+                              }}
+                            />
+                          </Box>
+                          {customListSelectValue === 'Other' && (
+                            <Input
+                              flex={'1 0 0'}
+                              h={'32px'}
+                              size={'sm'}
+                              bg={'myGray.50'}
+                              placeholder="\n;======;==SPLIT=="
+                              {...register('chunkSplitter')}
+                            />
+                          )}
+                        </HStack>
+                      </Box>
                     )}
                   </Box>
 
                   {trainingType === DatasetCollectionDataProcessModeEnum.chunk && (
-                    <Box>
-                      <Flex alignItems={'center'} mt={3}>
+                    <Box fontSize={'sm'} mt={2}>
+                      <Flex alignItems={'center'}>
                         <Box>{t('dataset:index_size')}</Box>
                         <QuestionTip label={t('dataset:index_size_tips')} />
                       </Flex>
-                      <Box mt={1}>
+                      <Box>
                         <MySelect<number>
                           bg={'myGray.50'}
                           list={indexSizeSeletorList}
@@ -490,7 +527,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                   )}
 
                   {showQAPromptInput && (
-                    <Box mt={3}>
+                    <Box mt={2}>
                       <Box>{t('common:core.dataset.collection.QA Prompt')}</Box>
                       <Box
                         position={'relative'}
@@ -570,83 +607,3 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
 };
 
 export default CollectionChunkForm;
-
-// Get chunk settings from form
-export const collectionChunkForm2StoreChunkData = ({
-  agentModel,
-  vectorModel,
-  ...data
-}: CollectionChunkFormType & {
-  agentModel: LLMModelItemType;
-  vectorModel: EmbeddingModelItemType;
-}): CollectionChunkFormType => {
-  const {
-    trainingType,
-    autoIndexes,
-    chunkSettingMode,
-    chunkSize,
-    chunkSplitter,
-    indexSize,
-    qaPrompt
-  } = data;
-
-  // 根据处理方式，获取 auto 和 custom 的参数。
-  const trainingModeSize: {
-    autoChunkSize: number;
-    autoIndexSize: number;
-    chunkSize: number;
-    indexSize: number;
-  } = (() => {
-    if (trainingType === DatasetCollectionDataProcessModeEnum.qa) {
-      return {
-        autoChunkSize: getLLMDefaultChunkSize(agentModel),
-        autoIndexSize: getMaxIndexSize(vectorModel),
-        chunkSize,
-        indexSize: getMaxIndexSize(vectorModel)
-      };
-    } else if (autoIndexes) {
-      return {
-        autoChunkSize: chunkAutoChunkSize,
-        autoIndexSize: getAutoIndexSize(vectorModel),
-        chunkSize,
-        indexSize
-      };
-    } else {
-      return {
-        autoChunkSize: chunkAutoChunkSize,
-        autoIndexSize: getAutoIndexSize(vectorModel),
-        chunkSize,
-        indexSize
-      };
-    }
-  })();
-
-  // 获取真实参数
-  const {
-    chunkSize: formatChunkIndex,
-    indexSize: formatIndexSize,
-    chunkSplitter: formatChunkSplitter
-  } = (() => {
-    if (chunkSettingMode === ChunkSettingModeEnum.auto) {
-      return {
-        chunkSize: trainingModeSize.autoChunkSize,
-        indexSize: trainingModeSize.autoIndexSize,
-        chunkSplitter: ''
-      };
-    } else {
-      return {
-        chunkSize: trainingModeSize.chunkSize,
-        indexSize: trainingModeSize.indexSize,
-        chunkSplitter
-      };
-    }
-  })();
-
-  return {
-    ...data,
-    chunkSize: formatChunkIndex,
-    indexSize: formatIndexSize,
-    chunkSplitter: formatChunkSplitter,
-    qaPrompt: trainingType === DatasetCollectionDataProcessModeEnum.qa ? qaPrompt : undefined
-  };
-};

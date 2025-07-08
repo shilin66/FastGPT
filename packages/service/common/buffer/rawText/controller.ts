@@ -5,6 +5,8 @@ import { addLog } from '../../system/log';
 import { setCron } from '../../system/cron';
 import { checkTimerLock } from '../../system/timerLock/utils';
 import { TimerIdEnum } from '../../system/timerLock/constants';
+import { gridFsStream2Buffer } from '../../file/gridfs/utils';
+import { readRawContentFromBuffer } from '../../../worker/function';
 
 const getGridBucket = () => {
   return new connectionMongo.mongo.GridFSBucket(connectionMongo.connection.db!, {
@@ -85,30 +87,27 @@ export const getRawTextBuffer = async (sourceId: string) => {
 
     // Read file content
     const downloadStream = gridBucket.openDownloadStream(bufferData._id);
-    const chunks: Buffer[] = [];
 
-    return new Promise<{
-      text: string;
-      sourceName: string;
-    } | null>((resolve, reject) => {
-      downloadStream.on('data', (chunk) => {
-        chunks.push(chunk);
-      });
+    const fileBuffers = await gridFsStream2Buffer(downloadStream);
 
-      downloadStream.on('end', () => {
-        const buffer = Buffer.concat(chunks);
-        const text = buffer.toString('utf8');
-        resolve({
-          text,
-          sourceName: bufferData.metadata?.sourceName || ''
-        });
-      });
+    const rawText = await (async () => {
+      if (fileBuffers.length < 10000000) {
+        return fileBuffers.toString('utf8');
+      } else {
+        return (
+          await readRawContentFromBuffer({
+            extension: 'txt',
+            encoding: 'utf8',
+            buffer: fileBuffers
+          })
+        ).rawText;
+      }
+    })();
 
-      downloadStream.on('error', (error) => {
-        addLog.error('getRawTextBuffer error', error);
-        resolve(null);
-      });
-    });
+    return {
+      text: rawText,
+      sourceName: bufferData.metadata?.sourceName || ''
+    };
   });
 };
 
@@ -142,23 +141,26 @@ export const updateRawTextBufferExpiredTime = async ({
 };
 
 export const clearExpiredRawTextBufferCron = async () => {
+  const gridBucket = getGridBucket();
+
   const clearExpiredRawTextBuffer = async () => {
     addLog.debug('Clear expired raw text buffer start');
-    const gridBucket = getGridBucket();
 
-    return retryFn(async () => {
-      const data = await MongoRawTextBufferSchema.find(
-        {
-          'metadata.expiredTime': { $lt: new Date() }
-        },
-        '_id'
-      ).lean();
+    const data = await MongoRawTextBufferSchema.find(
+      {
+        'metadata.expiredTime': { $lt: new Date() }
+      },
+      '_id'
+    ).lean();
 
-      for (const item of data) {
+    for (const item of data) {
+      try {
         await gridBucket.delete(item._id);
+      } catch (error) {
+        addLog.error('Delete expired raw text buffer error', error);
       }
-      addLog.debug('Clear expired raw text buffer end');
-    });
+    }
+    addLog.debug('Clear expired raw text buffer end');
   };
 
   setCron('*/10 * * * *', async () => {
@@ -175,5 +177,4 @@ export const clearExpiredRawTextBufferCron = async () => {
       }
     }
   });
-  clearExpiredRawTextBuffer();
 };

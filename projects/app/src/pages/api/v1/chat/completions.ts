@@ -60,6 +60,7 @@ import { getWorkflowResponseWrite } from '@fastgpt/service/core/workflow/dispatc
 import { WORKFLOW_MAX_RUN_TIMES } from '@fastgpt/service/core/workflow/constants';
 import { getPluginInputsFromStoreNodes } from '@fastgpt/global/core/app/plugin/utils';
 import { type ExternalProviderType } from '@fastgpt/global/core/workflow/runtime/type';
+import type { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
 
 type FastGptWebChatProps = {
   chatId?: string; // undefined: get histories from messages, '': new chat, 'xxxxx': get histories from db
@@ -92,6 +93,7 @@ type AuthResponseType = {
   responseAllData: boolean;
   outLinkUserId?: string;
   sourceName?: string;
+  outLinkType?: string;
 };
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -156,6 +158,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       responseDetail,
       authType,
       sourceName,
+      outLinkType,
       apikey,
       responseAllData,
       outLinkUserId = customUid,
@@ -262,50 +265,61 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
 
     /* start flow controller */
-    const { flowResponses, flowUsages, assistantResponses, newVariables, durationSeconds } =
-      await (async () => {
-        if (app.version === 'v2') {
-          return dispatchWorkFlow({
-            res,
-            requestOrigin: req.headers.origin,
-            mode: 'chat',
-            timezone,
-            externalProvider,
+    const {
+      flowResponses,
+      flowUsages,
+      assistantResponses,
+      newVariables,
+      durationSeconds,
+      system_memories
+    } = await (async () => {
+      if (app.version === 'v2') {
+        return dispatchWorkFlow({
+          res,
+          requestOrigin: req.headers.origin,
+          mode: 'chat',
+          timezone,
+          externalProvider,
 
-            runningAppInfo: {
-              id: String(app._id),
-              teamId: String(app.teamId),
-              tmbId: String(app.tmbId)
-            },
-            runningUserInfo: {
-              teamId,
-              tmbId
-            },
-            uid: String(outLinkUserId || tmbId),
+          runningAppInfo: {
+            id: String(app._id),
+            teamId: String(app.teamId),
+            tmbId: String(app.tmbId)
+          },
+          runningUserInfo: {
+            teamId,
+            tmbId
+          },
+          uid: String(outLinkUserId || tmbId),
 
-            chatId,
-            responseChatItemId,
-            runtimeNodes,
-            runtimeEdges: storeEdges2RuntimeEdges(edges, interactive),
-            variables,
-            query: removeEmptyUserInput(userQuestion.value),
-            lastInteractive: interactive,
-            chatConfig,
-            histories: newHistories,
-            stream,
-            retainDatasetCite,
-            maxRunTimes: WORKFLOW_MAX_RUN_TIMES,
-            workflowStreamResponse: workflowResponseWrite
-          });
-        }
-        return Promise.reject('您的工作流版本过低，请重新发布一次');
-      })();
+          chatId,
+          responseChatItemId,
+          runtimeNodes,
+          runtimeEdges: storeEdges2RuntimeEdges(edges, interactive),
+          variables,
+          query: removeEmptyUserInput(userQuestion.value),
+          lastInteractive: interactive,
+          chatConfig,
+          histories: newHistories,
+          stream,
+          retainDatasetCite,
+          maxRunTimes: WORKFLOW_MAX_RUN_TIMES,
+          workflowStreamResponse: workflowResponseWrite
+        });
+      }
+      return Promise.reject('您的工作流版本过低，请重新发布一次');
+    })();
 
     // save chat
     const isOwnerUse = !shareId && !spaceTeamId && String(tmbId) === String(app.tmbId);
     const source = (() => {
-      if (shareId) {
-        return ChatSourceEnum.share;
+      if (outLinkType) {
+        if (outLinkType === ChatSourceEnum.share) {
+          return ChatSourceEnum.share;
+        }
+        if (outLinkType === ChatSourceEnum.teams) {
+          return ChatSourceEnum.teams;
+        }
       }
       if (authType === 'apikey') {
         return ChatSourceEnum.api;
@@ -327,7 +341,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       dataId: responseChatItemId,
       obj: ChatRoleEnum.AI,
       value: assistantResponses,
-      [DispatchNodeResponseKeyEnum.nodeResponse]: flowResponses
+      [DispatchNodeResponseKeyEnum.nodeResponse]: flowResponses,
+      memories: system_memories
     };
 
     const saveChatId = chatId || getNanoid(24);
@@ -433,7 +448,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       appId: app._id,
       teamId,
       tmbId: tmbId,
-      source: getUsageSourceByAuthType({ shareId, authType }),
+      source: getUsageSourceByAuthType({ outLinkType, shareId, authType }),
       flowUsages
     });
 
@@ -481,7 +496,8 @@ const authShareChat = async ({
     responseDetail,
     showNodeStatus,
     uid,
-    sourceName
+    sourceName,
+    outLinkType
   } = await authOutLinkChatStart(data);
   const app = await MongoApp.findById(appId).lean();
 
@@ -497,6 +513,7 @@ const authShareChat = async ({
 
   return {
     sourceName,
+    outLinkType,
     teamId,
     tmbId,
     app,

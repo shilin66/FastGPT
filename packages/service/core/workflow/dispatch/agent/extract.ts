@@ -10,10 +10,14 @@ import { ChatItemValueTypeEnum, ChatRoleEnum } from '@fastgpt/global/core/chat/c
 import { createChatCompletion } from '../../../ai/config';
 import type { ContextExtractAgentItemType } from '@fastgpt/global/core/workflow/template/system/contextExtract/type';
 import type { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
-import { NodeOutputKeyEnum, toolValueTypeList } from '@fastgpt/global/core/workflow/constants';
+import {
+  NodeOutputKeyEnum,
+  toolValueTypeList,
+  valueTypeJsonSchemaMap
+} from '@fastgpt/global/core/workflow/constants';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import type { ModuleDispatchProps } from '@fastgpt/global/core/workflow/runtime/type';
-import { replaceVariable, sliceJsonStr } from '@fastgpt/global/common/string/tools';
+import { sliceJsonStr } from '@fastgpt/global/common/string/tools';
 import { type LLMModelItemType } from '@fastgpt/global/core/ai/model.d';
 import { getHistories } from '../utils';
 import { getLLMModel } from '../../../ai/model';
@@ -21,12 +25,10 @@ import { formatModelChars2Points } from '../../../../support/wallet/usage/utils'
 import json5 from 'json5';
 import {
   type ChatCompletionMessageParam,
-  type ChatCompletionTool,
-  type UnStreamChatType
+  type ChatCompletionTool
 } from '@fastgpt/global/core/ai/type';
 import { ChatCompletionRequestMessageRoleEnum } from '@fastgpt/global/core/ai/constants';
 import { type DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
-import { chatValue2RuntimePrompt } from '@fastgpt/global/core/chat/adapt';
 import { llmCompletionsBodyFormat, formatLLMResponse } from '../../../ai/utils';
 import { ModelTypeEnum } from '../../../../../global/core/ai/model';
 import {
@@ -46,14 +48,15 @@ type Response = DispatchNodeResultType<{
   [NodeOutputKeyEnum.contextExtractFields]: string;
 }>;
 
-type ActionProps = Props & { extractModel: LLMModelItemType };
+type ActionProps = Props & { extractModel: LLMModelItemType; lastMemory?: Record<string, any> };
 
 const agentFunName = 'request_function';
 
 export async function dispatchContentExtract(props: Props): Promise<Response> {
   const {
     externalProvider,
-    node: { name },
+    runningAppInfo,
+    node: { nodeId, name },
     histories,
     params: { content, history = 6, model, description, extractKeys }
   } = props;
@@ -65,18 +68,27 @@ export async function dispatchContentExtract(props: Props): Promise<Response> {
   const extractModel = getLLMModel(model);
   const chatHistories = getHistories(history, histories);
 
+  const memoryKey = `${runningAppInfo.id}-${nodeId}`;
+  // @ts-ignore
+  const lastMemory = chatHistories[chatHistories.length - 1]?.memories?.[memoryKey] as Record<
+    string,
+    any
+  >;
+
   const { arg, inputTokens, outputTokens } = await (async () => {
     if (extractModel.toolChoice) {
       return toolChoice({
         ...props,
         histories: chatHistories,
-        extractModel
+        extractModel,
+        lastMemory
       });
     }
     return completions({
       ...props,
       histories: chatHistories,
-      extractModel
+      extractModel,
+      lastMemory
     });
   })();
 
@@ -121,6 +133,9 @@ export async function dispatchContentExtract(props: Props): Promise<Response> {
   return {
     [NodeOutputKeyEnum.success]: success,
     [NodeOutputKeyEnum.contextExtractFields]: JSON.stringify(arg),
+    [DispatchNodeResponseKeyEnum.memories]: {
+      [memoryKey]: arg
+    },
     ...arg,
     [DispatchNodeResponseKeyEnum.nodeResponse]: {
       totalPoints: externalProvider.openaiAccount?.key ? 0 : totalPoints,
@@ -144,13 +159,53 @@ export async function dispatchContentExtract(props: Props): Promise<Response> {
   };
 }
 
-const getFunctionCallSchema = async ({
-  extractModel,
-  histories,
-  params: { content, extractKeys, description },
-  node: { version }
-}: ActionProps) => {
+const getJsonSchema = ({ params: { extractKeys } }: ActionProps) => {
+  const properties: Record<
+    string,
+    {
+      type: string;
+      description: string;
+    }
+  > = {};
+  extractKeys.forEach((item) => {
+    const jsonSchema = item.valueType
+      ? valueTypeJsonSchemaMap[item.valueType] || toolValueTypeList[0].jsonSchema
+      : toolValueTypeList[0].jsonSchema;
+
+    properties[item.key] = {
+      ...jsonSchema,
+      description: item.desc,
+      ...(item.enum ? { enum: item.enum.split('\n').filter(Boolean) } : {})
+    };
+  });
+
+  return properties;
+};
+
+const toolChoice = async (props: ActionProps) => {
+  const {
+    externalProvider,
+    extractModel,
+    histories,
+    params: { content, description },
+    lastMemory
+  } = props;
+
   const messages: ChatItemType[] = [
+    {
+      obj: ChatRoleEnum.System,
+      value: [
+        {
+          type: ChatItemValueTypeEnum.text,
+          text: {
+            content: getExtractJsonToolPrompt({
+              systemPrompt: description,
+              memory: lastMemory ? JSON.stringify(lastMemory) : undefined
+            })
+          }
+        }
+      ]
+    },
     ...histories,
     {
       obj: ChatRoleEnum.Human,
@@ -158,10 +213,7 @@ const getFunctionCallSchema = async ({
         {
           type: ChatItemValueTypeEnum.text,
           text: {
-            content: replaceVariable(getExtractJsonToolPrompt(version), {
-              description,
-              content
-            })
+            content
           }
         }
       ]
@@ -177,49 +229,20 @@ const getFunctionCallSchema = async ({
     useVision: false
   });
 
-  const properties: Record<
-    string,
-    {
-      type: string;
-      description: string;
-    }
-  > = {};
-  extractKeys.forEach((item) => {
-    const jsonSchema = (
-      toolValueTypeList.find((type) => type.value === item.valueType) || toolValueTypeList[0]
-    )?.jsonSchema;
-    properties[item.key] = {
-      ...jsonSchema,
-      description: item.desc,
-      ...(item.enum ? { enum: item.enum.split('\n').filter(Boolean) } : {})
-    };
-  });
-  // function body
-  const agentFunction = {
-    name: agentFunName,
-    description: '需要执行的函数',
-    parameters: {
-      type: 'object',
-      properties,
-      required: []
-    }
-  };
-
-  return {
-    filterMessages: requestMessages,
-    agentFunction
-  };
-};
-
-const toolChoice = async (props: ActionProps) => {
-  const { externalProvider, extractModel } = props;
-
-  const { filterMessages, agentFunction } = await getFunctionCallSchema(props);
+  const schema = getJsonSchema(props);
 
   const tools: ChatCompletionTool[] = [
     {
       type: 'function',
-      function: agentFunction
+      function: {
+        name: agentFunName,
+        description: '需要执行的函数',
+        parameters: {
+          type: 'object',
+          properties: schema,
+          required: []
+        }
+      }
     }
   ];
 
@@ -228,12 +251,13 @@ const toolChoice = async (props: ActionProps) => {
       stream: extractModel.toolChoiceStream || false,
       model: extractModel.model,
       temperature: 0.01,
-      messages: filterMessages,
+      messages: requestMessages,
       tools,
       tool_choice: { type: 'function', function: { name: agentFunName } }
     },
     extractModel
   );
+
   const { response } = await createChatCompletion({
     body,
     userKey: externalProvider.openaiAccount
@@ -242,7 +266,7 @@ const toolChoice = async (props: ActionProps) => {
 
   const arg: Record<string, any> = (() => {
     try {
-      return json5.parse(toolCalls?.[0]?.function?.arguments || '');
+      return json5.parse(toolCalls?.[0]?.function?.arguments || text || '');
     } catch (error) {
       console.log('body', body);
       console.log('AI response', text, toolCalls?.[0]?.function);
@@ -267,40 +291,39 @@ const toolChoice = async (props: ActionProps) => {
   };
 };
 
-const completions = async ({
-  extractModel,
-  externalProvider,
-  histories,
-  params: { content, extractKeys, description = 'No special requirements' },
-  node: { version }
-}: ActionProps) => {
+const completions = async (props: ActionProps) => {
+  const {
+    extractModel,
+    externalProvider,
+    histories,
+    lastMemory,
+    params: { content, description }
+  } = props;
+
   const messages: ChatItemType[] = [
+    {
+      obj: ChatRoleEnum.System,
+      value: [
+        {
+          type: ChatItemValueTypeEnum.text,
+          text: {
+            content: getExtractJsonPrompt({
+              systemPrompt: description,
+              memory: lastMemory ? JSON.stringify(lastMemory) : undefined,
+              schema: JSON.stringify(getJsonSchema(props))
+            })
+          }
+        }
+      ]
+    },
+    ...histories,
     {
       obj: ChatRoleEnum.Human,
       value: [
         {
           type: ChatItemValueTypeEnum.text,
           text: {
-            content: replaceVariable(
-              extractModel.customExtractPrompt || getExtractJsonPrompt(version),
-              {
-                description,
-                json: extractKeys
-                  .map((item) => {
-                    const valueType = item.valueType || 'string';
-                    if (valueType !== 'string' && valueType !== 'number') {
-                      item.enum = undefined;
-                    }
-
-                    return `{"type":${item.valueType || 'string'}, "key":"${item.key}", "description":"${item.desc}" ${
-                      item.enum ? `, "enum":"[${item.enum.split('\n')}]"` : ''
-                    }}`;
-                  })
-                  .join('\n'),
-                text: `${histories.map((item) => `${item.obj}:${chatValue2RuntimePrompt(item.value).text}`).join('\n')}
-Human: ${content}`
-              }
-            )
+            content
           }
         }
       ]
