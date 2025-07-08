@@ -1,6 +1,6 @@
 services:
   searxng:
-    image: docker.io/searxng/searxng:latest
+    image: docker.m.daocloud.io/searxng/searxng:latest
     volumes:
       - ./searxng:/etc/searxng:rw
     ports:
