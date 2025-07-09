@@ -22,18 +22,16 @@ const InsertImageModal = ({
 
   const [selectFiles, setSelectFiles] = useState<MySelectFileItemType[]>([]);
   const onSelectFiles = (files: SelectFileItemType[]) => {
-    setSelectFiles((pre) => {
-      const formatFiles = Array.from(files).map<MySelectFileItemType>((item) => {
-        const previewUrl = URL.createObjectURL(item.file);
+    const formatFiles = Array.from(files).map<MySelectFileItemType>((item) => {
+      const previewUrl = URL.createObjectURL(item.file);
 
-        return {
-          ...item,
-          previewUrl
-        };
-      });
-
-      return [...pre, ...formatFiles];
+      return {
+        ...item,
+        previewUrl
+      };
     });
+
+    setSelectFiles(formatFiles);
   };
 
   const onRemoveFile = (index: number) => {
