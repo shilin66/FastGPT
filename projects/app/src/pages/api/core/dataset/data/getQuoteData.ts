@@ -10,6 +10,7 @@ import { MongoDatasetCollection } from '@fastgpt/service/core/dataset/collection
 import { ChatErrEnum } from '@fastgpt/global/common/error/code/chat';
 import { i18nT } from '@fastgpt/web/i18n/utils';
 import { formatDatasetDataValue } from '@fastgpt/service/core/dataset/data/controller';
+import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 
 export type GetQuoteDataResponse = {
   collection: DatasetCollectionSchemaType;
@@ -51,6 +52,11 @@ async function handler(req: ApiRequestProps<GetQuoteDataProps>): Promise<GetQuot
         return Promise.reject(i18nT('common:data_not_found'));
       }
 
+      const summaryIndex = datasetData.indexes.find(
+        (item) => item.type === DatasetDataIndexTypeEnum.summary
+      );
+      const summary = summaryIndex ? summaryIndex.text : '';
+
       const [collection, { responseDetail }] = await Promise.all([
         MongoDatasetCollection.findById(datasetData.collectionId).lean(),
         authChatCrud({
@@ -84,6 +90,7 @@ async function handler(req: ApiRequestProps<GetQuoteDataProps>): Promise<GetQuot
           datasetId: datasetData.datasetId,
           q: datasetData.q,
           a: datasetData.a,
+          summary,
           imageId: datasetData.imageId
         })
       };
@@ -95,6 +102,10 @@ async function handler(req: ApiRequestProps<GetQuoteDataProps>): Promise<GetQuot
         dataId,
         per: ReadPermissionVal
       });
+      const summaryIndex = datasetData.indexes.find(
+        (item) => item.type === DatasetDataIndexTypeEnum.summary
+      );
+      const summary = summaryIndex ? summaryIndex.text : '';
       return {
         collection,
         ...formatDatasetDataValue({
@@ -102,6 +113,7 @@ async function handler(req: ApiRequestProps<GetQuoteDataProps>): Promise<GetQuot
           datasetId: datasetData.datasetId,
           q: datasetData.q,
           a: datasetData.a,
+          summary,
           imageId: datasetData.imageId
         })
       };

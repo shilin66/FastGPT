@@ -29,6 +29,7 @@ import { datasetSearchQueryExtension } from './utils';
 import type { RerankModelItemType } from '@fastgpt/global/core/ai/model.d';
 import { addLog } from '../../../common/system/log';
 import { formatDatasetDataValue } from '../data/controller';
+import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 
 export type SearchDatasetDataProps = {
   histories: ChatItemType[];
@@ -497,7 +498,10 @@ export async function searchDatasetData(
           console.log('Data is not found', item);
           return;
         }
-
+        const summaryIndex = data.indexes.find(
+          (item) => item.type === DatasetDataIndexTypeEnum.summary
+        );
+        const summary = summaryIndex ? summaryIndex.text : '';
         const result: SearchDataResponseItemType = {
           id: String(data._id),
           updateTime: data.updateTime,
@@ -506,6 +510,7 @@ export async function searchDatasetData(
             datasetId: data.datasetId,
             q: data.q,
             a: data.a,
+            summary,
             imageId: data.imageId,
             imageDescMap: data.imageDescMap
           }),
@@ -638,7 +643,10 @@ export async function searchDatasetData(
               console.log('Data is not found', item);
               return;
             }
-
+            const summaryIndex = data.indexes.find(
+              (item) => item.type === DatasetDataIndexTypeEnum.summary
+            );
+            const summary = summaryIndex ? summaryIndex.text : '';
             return {
               id: String(data._id),
               datasetId: String(data.datasetId),
@@ -649,6 +657,7 @@ export async function searchDatasetData(
                 datasetId: data.datasetId,
                 q: data.q,
                 a: data.a,
+                summary,
                 imageId: data.imageId,
                 imageDescMap: data.imageDescMap
               }),

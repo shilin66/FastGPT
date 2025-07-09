@@ -377,6 +377,7 @@ async function filterDatasetQuote({
       id: item.id,
       q: item.q,
       a: item.a || '',
+      imagePreviewUrl: `![${item.summary}](${item.imagePreivewUrl})`,
       updateTime: formatTime2YMDHM(item.updateTime),
       source: item.sourceName,
       sourceId: String(item.sourceId || ''),
