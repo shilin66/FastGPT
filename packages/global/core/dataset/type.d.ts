@@ -280,6 +280,7 @@ export type DatasetDataItemType = DatasetDataFieldType & {
   id: string;
   teamId: string;
   datasetId: string;
+  summary?: string;
   imagePreivewUrl?: string;
   updateTime: Date;
   collectionId: string;

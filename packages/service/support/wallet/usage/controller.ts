@@ -535,7 +535,7 @@ export const getTeamUsage = async (
 };
 
 export const getUsages = async (
-  { dateStart, dateEnd, sources, teamMemberIds, projectName }: GetUsageProps,
+  { dateStart, dateEnd, sources, teamMemberIds = [], projectName }: GetUsageProps,
   teamId: string,
   offset: number,
   pageSize: number
@@ -657,7 +657,7 @@ export const getUsageDashboardData = async (
 
     // 团队成员过滤
     if (teamMemberIds?.length) {
-      query.tmbId = { $in: teamMemberIds };
+      query.tmbId = { $in: teamMemberIds.map((item) => new Types.ObjectId(item)) };
     }
 
     // 项目名称模糊匹配
