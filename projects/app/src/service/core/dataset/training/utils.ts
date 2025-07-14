@@ -60,7 +60,7 @@ export const scheduleTriggerDataset = async () => {
       // random delay 0 ~ 60s
       await delay(Math.floor(Math.random() * 60 * 1000));
       try {
-        await trainConfluenceCollection({ dataset, teamId: dataset.teamId });
+        await trainConfluenceCollection({ dataset, teamId: dataset.teamId, isSync: true });
       } catch (error) {
         console.error('scheduleTriggerDataset error', error);
       }

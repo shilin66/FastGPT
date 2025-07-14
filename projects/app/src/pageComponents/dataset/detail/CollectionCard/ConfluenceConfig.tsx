@@ -101,8 +101,17 @@ const ConfluenceConfigModal = ({
   const form = useForm<CollectionChunkFormType>({
     defaultValues: {
       trainingType: chunkSettings?.trainingType || DatasetCollectionDataProcessModeEnum.chunk,
-      imageIndex: chunkSettings?.imageIndex || false,
-      autoIndexes: chunkSettings?.autoIndexes || false,
+
+      chunkTriggerType: chunkSettings?.chunkTriggerType || defaultFormData.chunkTriggerType,
+      chunkTriggerMinSize:
+        chunkSettings?.chunkTriggerMinSize || defaultFormData.chunkTriggerMinSize,
+
+      dataEnhanceCollectionName:
+        chunkSettings?.dataEnhanceCollectionName || defaultFormData.dataEnhanceCollectionName,
+
+      imageIndex: chunkSettings?.imageIndex || defaultFormData.imageIndex,
+      autoIndexes: chunkSettings?.autoIndexes || defaultFormData.autoIndexes,
+      indexPrefixTitle: chunkSettings?.indexPrefixTitle || defaultFormData.indexPrefixTitle,
 
       chunkSettingMode: chunkSettings?.chunkSettingMode || ChunkSettingModeEnum.auto,
       chunkSplitMode: chunkSettings?.chunkSplitMode || DataChunkSplitModeEnum.size,
