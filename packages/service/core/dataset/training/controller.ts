@@ -220,10 +220,12 @@ export const pushDatasetToParseQueue = async ({
 
 export const trainConfluenceCollection = async ({
   dataset,
-  teamId
+  teamId,
+  isSync = false
 }: {
   dataset: DatasetSchemaType;
   teamId: string;
+  isSync?: boolean;
 }) => {
   const tmb = (await MongoTeamMember.findById(dataset.tmbId)
     .populate('user')
@@ -297,6 +299,7 @@ export const trainConfluenceCollection = async ({
           const createOrUpdateCollection = async () => {
             const col = pageConfluence[page.id];
             if (
+              !isSync ||
               !col ||
               page.version.number !== col.confluence?.pageVersion
               // ||
