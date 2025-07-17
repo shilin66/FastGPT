@@ -5,5 +5,4 @@ export interface UserUpdateParams {
   balance?: number;
   avatar?: string;
   timezone?: string;
-  confluenceAccount?: UserModelSchema['confluenceAccount'];
 }

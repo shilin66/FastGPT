@@ -286,8 +286,7 @@ export async function createOneCollection({ session, ...props }: CreateOneCollec
     rawLink,
     externalFileId,
     externalFileUrl,
-    apiFileId,
-    confluence = {}
+    apiFileId
   } = props;
   // Create collection tags
   const tags = await MongoDatasetCollectionTags.find({
@@ -318,8 +317,7 @@ export async function createOneCollection({ session, ...props }: CreateOneCollec
         ...(rawLink ? { rawLink } : {}),
         ...(externalFileId ? { externalFileId } : {}),
         ...(externalFileUrl ? { externalFileUrl } : {}),
-        ...(apiFileId ? { apiFileId } : {}),
-        ...(confluence ? { confluence } : undefined)
+        ...(apiFileId ? { apiFileId } : {})
       }
     ],
     { session, ordered: true }

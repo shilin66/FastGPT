@@ -1,5 +1,5 @@
 import { setCron } from '@fastgpt/service/common/system/cron';
-import { scheduleTriggerDataset, startTrainingQueue } from '@/service/core/dataset/training/utils';
+import { startTrainingQueue } from '@/service/core/dataset/training/utils';
 import { clearTmpUploadFiles } from '@fastgpt/service/common/file/utils';
 import {
   checkInvalidDatasetFiles,
@@ -11,6 +11,7 @@ import {
 import { checkTimerLock } from '@fastgpt/service/common/system/timerLock/utils';
 import { TimerIdEnum } from '@fastgpt/service/common/system/timerLock/constants';
 import { addHours } from 'date-fns';
+1;
 import { getScheduleTriggerApp } from '@/service/core/app/utils';
 import { clearExpiredRawTextBufferCron } from '@fastgpt/service/common/buffer/rawText/controller';
 import { clearExpiredDatasetImageCron } from '@fastgpt/service/core/dataset/image/controller';
@@ -87,25 +88,12 @@ const scheduleClearInvitationLinkCron = () => {
   setCron('0 0 * * *', async () => {
     if (
       await checkTimerLock({
-        timerId: TimerIdEnum.scheduleSyncConfluenceDatasetCron,
+        timerId: TimerIdEnum.clearInvalidInvitationLink,
         lockMinuted: 59
       })
     ) {
       // clear expired invitation link
       checkExpiredInvitationLink();
-    }
-  });
-};
-
-const scheduleSyncConfluenceDatasetCron = () => {
-  setCron('0 */1 * * *', async () => {
-    if (
-      await checkTimerLock({
-        timerId: TimerIdEnum.scheduleSyncConfluenceDataset,
-        lockMinuted: 59
-      })
-    ) {
-      scheduleTriggerDataset();
     }
   });
 };
@@ -143,6 +131,5 @@ export const startCron = () => {
   scheduleTriggerAppCron();
   clearExpiredRawTextBufferCron();
   clearExpiredDatasetImageCron();
-  scheduleSyncConfluenceDatasetCron();
   scheduleClearInvitationLinkCron();
 };

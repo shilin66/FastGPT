@@ -156,7 +156,6 @@ const DataCard = () => {
             )}
           </Box>
           {datasetDetail.type !== 'websiteDataset' &&
-            datasetDetail.type !== 'confluenceDataset' &&
             !!collection?.chunkSize &&
             collection.permission?.hasWritePer && (
               <Button

@@ -74,7 +74,6 @@ export type FastGPTFeConfigsType = {
   show_batch_eval?: boolean;
 
   concatMd?: string;
-  confluenceUrl?: string;
   docUrl?: string;
   openAPIDocUrl?: string;
   systemPluginCourseUrl?: string;

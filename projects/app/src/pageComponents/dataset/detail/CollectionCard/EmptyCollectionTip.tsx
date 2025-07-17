@@ -51,20 +51,6 @@ const EmptyCollectionTip = () => {
           }
         />
       )}
-      {datasetDetail.type === DatasetTypeEnum.confluenceDataset && (
-        <EmptyTip
-          text={
-            <Flex>
-              {datasetDetail.status === DatasetStatusEnum.syncing && (
-                <>{t('common:core.dataset.status.syncing')}</>
-              )}
-              {datasetDetail.status === DatasetStatusEnum.active && (
-                <>{t('common:core.dataset.collection.Empty Tip')}</>
-              )}
-            </Flex>
-          }
-        />
-      )}
     </>
   );
 };

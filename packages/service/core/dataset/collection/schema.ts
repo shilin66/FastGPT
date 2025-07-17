@@ -70,16 +70,6 @@ const DatasetCollectionSchema = new Schema({
   externalFileId: String,
   externalFileUrl: String, // external import url
 
-  // confluence collection
-  confluence: {
-    type: {
-      pageId: String,
-      parentPageId: String,
-      pageVersion: Number,
-      spaceId: String
-    }
-  },
-
   rawTextLength: Number,
   hashRawText: String,
   metadata: {
