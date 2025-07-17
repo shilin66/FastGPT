@@ -59,7 +59,7 @@
             "key": "apiUrl",
             "label": "apiUrl",
             "description": "apiUrl。不填写，则使用官方云服务。默认使用私有部署服务",
-            "defaultValue": "http://192.254.90.4:3008",
+            "defaultValue": "",
             "list": [
               {
                 "label": "",
