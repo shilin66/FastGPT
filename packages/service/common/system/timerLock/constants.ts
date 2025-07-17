@@ -9,8 +9,7 @@ export enum TimerIdEnum {
 
   clearExpiredRawTextBuffer = 'clearExpiredRawTextBuffer',
   clearExpiredDatasetImage = 'clearExpiredDatasetImage',
-  scheduleSyncConfluenceDataset = 'scheduleSyncConfluenceDataset',
-  scheduleSyncConfluenceDatasetCron = 'scheduleSyncConfluenceDatasetCron'
+  clearInvalidInvitationLink = 'clearInvalidInvitationLink'
 }
 
 export enum LockNotificationEnum {

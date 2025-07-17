@@ -44,12 +44,6 @@ const UserSchema = new Schema({
       baseUrl: String
     }
   },
-  confluenceAccount: {
-    type: {
-      account: String,
-      apiToken: String
-    }
-  },
   timezone: {
     type: String,
     default: 'Asia/Shanghai'

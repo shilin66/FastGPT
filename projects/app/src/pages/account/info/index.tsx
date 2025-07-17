@@ -46,7 +46,6 @@ import { getWorkorderURL } from '@/web/common/workorder/api';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import { useMount } from 'ahooks';
 import MyDivider from '@fastgpt/web/components/common/MyDivider';
-import ConfluenceAccountModal from '@/pageComponents/account/info/ConfluenceAccountModal';
 
 const RedeemCouponModal = dynamic(() => import('@/pageComponents/account/info/RedeemCouponModal'), {
   ssr: false
@@ -154,8 +153,7 @@ const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
     async (data: UserType) => {
       await updateUserInfo({
         avatar: data.avatar,
-        timezone: data.timezone,
-        confluenceAccount: data.confluenceAccount
+        timezone: data.timezone
       });
       reset(data);
       toast({
@@ -723,11 +721,6 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
 
   const theme = useTheme();
   const { toast } = useToast();
-  const {
-    isOpen: isOpenConfluence,
-    onClose: onCloseConfluence,
-    onOpen: onOpenConfluence
-  } = useDisclosure();
   const { reset } = useForm<UserUpdateParams>({
     defaultValues: userInfo as UserType
   });
@@ -735,8 +728,7 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
     async (data: UserType) => {
       await updateUserInfo({
         avatar: data.avatar,
-        timezone: data.timezone,
-        confluenceAccount: data.confluenceAccount
+        timezone: data.timezone
       });
       reset(data);
       toast({
@@ -774,30 +766,6 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
                 </Box>
               </Flex>
             ))}
-        <Flex
-          bg={'white'}
-          py={3}
-          px={6}
-          border={theme.borders.sm}
-          borderWidth={'1.5px'}
-          borderRadius={'md'}
-          alignItems={'center'}
-          cursor={'pointer'}
-          userSelect={'none'}
-          onClick={onOpenConfluence}
-          fontSize={'sm'}
-        >
-          <MyIcon name={'core/dataset/confluenceDataset'} w={'18px'} color={'myGray.600'} />
-          <Box ml={2} flex={1}>
-            {'Confluence' + t('common:navbar.Account')}
-          </Box>
-          <Box
-            w={'9px'}
-            h={'9px'}
-            borderRadius={'50%'}
-            bg={userInfo?.confluenceAccount?.apiToken ? '#67c13b' : 'myGray.500'}
-          />
-        </Flex>
         {feConfigs?.concatMd && (
           <Flex onClick={onOpenContact} {...ButtonStyles}>
             <MyIcon name={'modal/concat'} w={'18px'} color={'myGray.600'} />
@@ -817,18 +785,6 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
             </Flex>
           )}
       </Grid>
-      {isOpenConfluence && userInfo && (
-        <ConfluenceAccountModal
-          defaultData={userInfo?.confluenceAccount}
-          onSuccess={(data) =>
-            onclickSave({
-              ...userInfo,
-              confluenceAccount: data
-            })
-          }
-          onClose={onCloseConfluence}
-        />
-      )}
     </Box>
   );
 };

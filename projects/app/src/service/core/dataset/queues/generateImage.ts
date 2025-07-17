@@ -177,60 +177,61 @@ export async function generateImage(): Promise<any> {
           };
         })
       );
-      // request LLM to get QA
-      const messages: ChatCompletionMessageParam[] = [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: prompt
-            },
-            ...imgMsgs
-          ]
-        }
-      ];
-
-      const { response: chatResponse } = await createChatCompletion({
-        body: llmCompletionsBodyFormat(
+      for (const imgMsg of imgMsgs) {
+        // request LLM to get QA
+        const messages: ChatCompletionMessageParam[] = [
           {
-            model: modelData.model,
-            temperature: 0.3,
-            messages: await loadRequestMessages({ messages, useVision: true }),
-            stream: true
-          },
-          modelData
-        )
-      });
-      const { text: answer, usage } = await formatLLMResponse(chatResponse);
-      const inputTokens = usage?.prompt_tokens || (await countGptMessagesTokens(messages));
-      const outputTokens = usage?.completion_tokens || (await countPromptTokens(answer));
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              imgMsg
+            ]
+          }
+        ];
 
-      const indexList = extractData(answer);
-
-      addLog.info(`[ImageIndex  Queue] Finish`, {
-        time: Date.now() - startTime,
-        imageIndexLength: indexList?.length,
-        usage
-      });
-
-      indexList.forEach((item) => {
-        newData.indexes?.push({
-          type: DatasetDataIndexTypeEnum.image,
-          text: item
+        const { response: chatResponse } = await createChatCompletion({
+          body: llmCompletionsBodyFormat(
+            {
+              model: modelData.model,
+              temperature: 0.3,
+              messages: await loadRequestMessages({ messages, useVision: true }),
+              stream: true
+            },
+            modelData
+          )
         });
-      });
+        const { text: answer, usage } = await formatLLMResponse(chatResponse);
+        const inputTokens = usage?.prompt_tokens || (await countGptMessagesTokens(messages));
+        const outputTokens = usage?.completion_tokens || (await countPromptTokens(answer));
 
-      // add bill
-      pushLLMTrainingUsage({
-        teamId: data.teamId,
-        tmbId: data.tmbId,
-        inputTokens,
-        outputTokens,
-        billId: data.billId,
-        model: modelData.model,
-        mode: 'imageIndex'
-      });
+        const indexList = extractData(answer);
+
+        addLog.info(`[ImageIndex  Queue] Finish`, {
+          time: Date.now() - startTime,
+          imageIndexLength: indexList?.length,
+          usage
+        });
+
+        indexList.forEach((item) => {
+          newData.indexes?.push({
+            type: DatasetDataIndexTypeEnum.image,
+            text: item
+          });
+        });
+        // add bill
+        pushLLMTrainingUsage({
+          teamId: data.teamId,
+          tmbId: data.tmbId,
+          inputTokens,
+          outputTokens,
+          billId: data.billId,
+          model: modelData.model,
+          mode: 'imageIndex'
+        });
+      }
     }
 
     // get vector and insert

@@ -30,7 +30,6 @@ export type DatasetUpdateBody = {
   vlmModel?: string;
 
   websiteConfig?: DatasetSchemaType['websiteConfig'];
-  confluenceConfig?: DatasetSchemaType['confluenceConfig'];
   externalReadUrl?: DatasetSchemaType['externalReadUrl'];
   defaultPermission?: DatasetSchemaType['defaultPermission'];
   chunkSettings?: DatasetSchemaType['chunkSettings'];
@@ -65,7 +64,6 @@ export type CreateDatasetCollectionParams = DatasetCollectionStoreDataType & {
   hashRawText?: string;
 
   tags?: string[];
-  confluence?: {};
   createTime?: Date;
   updateTime?: Date;
   nextSyncTime?: Date;
@@ -143,10 +141,6 @@ export type PushDatasetDataChunkProps = {
 };
 
 export type PostWebsiteSyncParams = {
-  datasetId: string;
-};
-
-export type PostConfluenceSyncParams = {
   datasetId: string;
 };
 

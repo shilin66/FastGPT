@@ -127,44 +127,6 @@ const DatasetSchema = new Schema({
   chunkSettings: {
     type: ChunkSettings
   },
-  confluenceConfig: {
-    type: {
-      spaceKey: {
-        type: String
-      },
-      pageId: {
-        type: String
-      },
-      syncSubPages: {
-        type: Boolean,
-        default: false
-      },
-      syncSchedule: {
-        type: Boolean,
-        default: false
-      },
-
-      // abandon
-      mode: {
-        type: String,
-        enum: DatasetCollectionDataProcessModeEnum
-      },
-      way: {
-        type: String,
-        enum: Object.values(ChunkSettingModeEnum)
-      },
-      chunkSize: {
-        type: Number,
-        required: true
-      },
-      chunkSplitter: {
-        type: String
-      },
-      qaPrompt: {
-        type: String
-      }
-    }
-  },
   inheritPermission: {
     type: Boolean,
     default: true

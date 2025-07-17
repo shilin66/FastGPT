@@ -26,8 +26,7 @@ export type CreateDatasetType =
   | DatasetTypeEnum.apiDataset
   | DatasetTypeEnum.websiteDataset
   | DatasetTypeEnum.feishu
-  | DatasetTypeEnum.yuque
-  | DatasetTypeEnum.confluenceDataset;
+  | DatasetTypeEnum.yuque;
 
 const CreateModal = ({
   onClose,

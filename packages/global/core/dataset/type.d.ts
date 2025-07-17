@@ -78,19 +78,6 @@ export type DatasetSchemaType = {
 
   chunkSettings?: ChunkSettingsType;
 
-  confluenceConfig?: {
-    spaceKey: string;
-    pageId?: string;
-    syncSubPages?: boolean;
-    syncSchedule?: boolean;
-
-    // abandon
-    mode?: DatasetCollectionDataProcessModeEnum;
-    way?: ChunkSettingModeEnum;
-    chunkSize?: number;
-    chunkSplitter?: string;
-    qaPrompt?: string;
-  };
   inheritPermission: boolean;
 
   apiDatasetServer?: ApiDatasetServerType;
@@ -131,12 +118,6 @@ export type DatasetCollectionSchemaType = ChunkSettingsType & {
 
   rawTextLength?: number;
   hashRawText?: string;
-  confluence?: {
-    pageId: string;
-    parentPageId: string;
-    pageVersion: number;
-    spaceId: string;
-  };
   metadata?: {
     webPageSelector?: string;
     relatedImgId?: string; // The id of the associated image collections

@@ -48,7 +48,6 @@ export async function getUserDetail({
     timezone: user.timezone,
     loginType: user.loginType,
     promotionRate: user.promotionRate,
-    confluenceAccount: user.confluenceAccount,
     team: tmb,
     notificationAccount: tmb.notificationAccount,
     permission: tmb.permission,

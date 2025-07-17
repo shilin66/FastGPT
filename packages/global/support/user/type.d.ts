@@ -15,10 +15,6 @@ export type UserModelSchema = {
   timezone: string;
   status: `${UserStatusEnum}`;
   lastLoginTmbId?: string;
-  confluenceAccount?: {
-    apiToken: string;
-    account: string;
-  };
   passwordUpdateTime?: Date;
   fastgpt_sem?: {
     keyword: string;
@@ -33,7 +29,6 @@ export type UserType = {
   timezone: string;
   loginType: string;
   promotionRate: UserModelSchema['promotionRate'];
-  confluenceAccount: UserModelSchema['confluenceAccount'];
   team: TeamTmbItemType;
   notificationAccount?: string;
   permission: TeamPermission;

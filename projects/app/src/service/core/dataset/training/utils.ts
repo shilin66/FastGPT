@@ -6,7 +6,6 @@ import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/sch
 import { datasetParseQueue } from '../queues/datasetParse';
 import { MongoDataset } from '@fastgpt/service/core/dataset/schema';
 import { delay } from '@fastgpt/global/common/system/utils';
-import { trainConfluenceCollection } from '@fastgpt/service/core/dataset/training/controller';
 import { generateAuto } from '@/service/core/dataset/queues/generateAuto';
 import { generateImage } from '@/service/core/dataset/queues/generateImage';
 import { generateImageParse } from '@/service/core/dataset/queues/generateImageParse';
@@ -48,22 +47,4 @@ export const startTrainingQueue = (fast?: boolean) => {
     generateImage();
     generateImageParse();
   }
-};
-
-export const scheduleTriggerDataset = async () => {
-  const datasets = await MongoDataset.find({
-    'confluenceConfig.syncSchedule': true
-  });
-  console.log('scheduleTriggerDataset datasets', datasets.length);
-  await Promise.allSettled(
-    datasets.map(async (dataset) => {
-      // random delay 0 ~ 60s
-      await delay(Math.floor(Math.random() * 60 * 1000));
-      try {
-        await trainConfluenceCollection({ dataset, teamId: dataset.teamId });
-      } catch (error) {
-        console.error('scheduleTriggerDataset error', error);
-      }
-    })
-  );
 };

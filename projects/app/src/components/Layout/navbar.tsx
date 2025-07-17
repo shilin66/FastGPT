@@ -72,13 +72,6 @@ const Navbar = ({ unread }: { unread: number }) => {
         activeLink: ['/dataset/list', '/dataset/detail']
       },
       {
-        label: t('common:navbar.AI Search'),
-        icon: 'support/search/searchLight',
-        activeIcon: 'support/search/searchFill',
-        link: '/search',
-        activeLink: ['/search']
-      },
-      {
         label: t('common:navbar.Account'),
         icon: 'support/user/userLight',
         activeIcon: 'support/user/userFill',
