@@ -51,7 +51,7 @@ async function handler(req: ApiRequestProps<{ linkId: string }>, res: ApiRespons
   const { _id: tmbId } = await MongoTeamMember.create({
     teamId: linkInfo.teamId,
     userId,
-    name: user.username.replaceAll('@zenlayer.com', ''),
+    name: user.username,
     status: TeamMemberStatusEnum.active,
     createTime: new Date()
   });

@@ -156,14 +156,14 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
           <Flex
             w={['42px', '56px']}
             h={['42px', '56px']}
-            // bg={'myGray.25'}
-            // borderRadius={['semilg', 'lg']}
-            // borderWidth={['1px', '1.5px']}
-            // borderColor={'myGray.200'}
+            bg={'myGray.25'}
+            borderRadius={['semilg', 'lg']}
+            borderWidth={['1px', '1.5px']}
+            borderColor={'myGray.200'}
             alignItems={'center'}
             justifyContent={'center'}
           >
-            <MyImage src={LOGO_ICON} w={['24px', '50px']} alt={'icon'} />
+            <MyImage src={LOGO_ICON} w={['22.5px', '36px']} alt={'icon'} />
           </Flex>
           <Box ml={[3, 5]} fontSize={['lg', 'xl']} fontWeight={'bold'} color={'myGray.900'}>
             {feConfigs?.systemTitle}
