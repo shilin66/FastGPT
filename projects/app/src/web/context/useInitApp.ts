@@ -11,6 +11,7 @@ import {
   setBdVId,
   setFastGPTSem,
   setInviterId,
+  setMsclkid,
   setSourceDomain,
   setUtmParams,
   setUtmWorkflow
@@ -20,7 +21,9 @@ import { type ShortUrlParams } from '@fastgpt/global/support/marketing/type';
 type MarketingQueryParams = {
   hiId?: string;
   bd_vid?: string;
+  msclkid?: string;
   k?: string;
+  search?: string;
   sourceDomain?: string;
   utm_source?: string;
   utm_medium?: string;
@@ -31,6 +34,7 @@ type MarketingQueryParams = {
 const MARKETING_PARAMS: (keyof MarketingQueryParams)[] = [
   'hiId',
   'bd_vid',
+  'msclkid',
   'k',
   'sourceDomain',
   'utm_source',
@@ -41,8 +45,18 @@ const MARKETING_PARAMS: (keyof MarketingQueryParams)[] = [
 
 export const useInitApp = () => {
   const router = useRouter();
-  const { hiId, bd_vid, k, sourceDomain, utm_source, utm_medium, utm_content, utm_workflow } =
-    router.query as MarketingQueryParams;
+  const {
+    hiId,
+    bd_vid,
+    msclkid,
+    k,
+    search,
+    sourceDomain,
+    utm_source,
+    utm_medium,
+    utm_content,
+    utm_workflow
+  } = router.query as MarketingQueryParams;
 
   const { loadGitStar, setInitd, feConfigs } = useSystemStore();
   const { userInfo } = useUserStore();
@@ -121,6 +135,7 @@ export const useInitApp = () => {
   useMount(() => {
     setInviterId(hiId);
     setBdVId(bd_vid);
+    setMsclkid(msclkid);
     setUtmWorkflow(utm_workflow);
     setSourceDomain(sourceDomain);
 
@@ -132,7 +147,7 @@ export const useInitApp = () => {
     if (utm_workflow) {
       setUtmParams(utmParams);
     }
-    setFastGPTSem({ keyword: k, ...utmParams });
+    setFastGPTSem({ keyword: k, search, ...utmParams });
 
     const newPath = getPathWithoutMarketingParams();
     router.replace(newPath);

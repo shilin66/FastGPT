@@ -37,6 +37,7 @@ import ChatRecordContextProvider, {
   ChatRecordContext
 } from '@/web/core/chat/context/chatRecordContext';
 import ChatQuoteList from '@/pageComponents/chat/ChatQuoteList';
+import { ChatTypeEnum } from '@/components/core/chat/ChatContainer/ChatBox/constants';
 
 const CustomPluginRunBox = dynamic(() => import('@/pageComponents/chat/CustomPluginRunBox'));
 
@@ -212,7 +213,7 @@ const Chat = ({ myApps }: { myApps: AppListItemType[] }) => {
                     showEmptyIntro
                     feedbackType={'user'}
                     onStartChat={onStartChat}
-                    chatType={'chat'}
+                    chatType={ChatTypeEnum.chat}
                     isReady={!loading}
                   />
                 )}
@@ -276,6 +277,10 @@ const Render = (props: { appId: string; isStandalone?: string }) => {
     setAppId(appId);
   }, [appId, setAppId]);
 
+  const currentApp = useMemo(() => {
+    return myApps.find((app) => app._id === appId);
+  }, [appId, myApps]);
+
   const chatHistoryProviderParams = useMemo(
     () => ({ appId, source: ChatSourceEnum.online }),
     [appId]
@@ -291,7 +296,7 @@ const Render = (props: { appId: string; isStandalone?: string }) => {
   return source === ChatSourceEnum.online ? (
     <ChatContextProvider params={chatHistoryProviderParams}>
       <ChatItemContextProvider
-        showRouteToAppDetail={isStandalone !== '1'}
+        showRouteToAppDetail={isStandalone !== '1' && !!currentApp?.permission.hasWritePer}
         showRouteToDatasetDetail={isStandalone !== '1'}
         isShowReadRawSource={true}
         isResponseDetail={true}

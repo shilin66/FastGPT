@@ -37,7 +37,6 @@ import {
 } from '@fastgpt/global/core/dataset/training/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 import { clearCollectionImages, removeDatasetImageExpiredTime } from '../image/utils';
-import { MongoDatasetCollectionTags } from '../tag/schema';
 
 export const createCollectionAndInsertData = async ({
   dataset,
@@ -181,18 +180,6 @@ export const createCollectionAndInsertData = async ({
 
       hashRawText: rawText ? hashStr(rawText) : undefined,
       rawTextLength: rawText?.length,
-      nextSyncTime: (() => {
-        // ignore auto collections sync for website datasets
-        if (!dataset.autoSync && dataset.type === DatasetTypeEnum.websiteDataset) return undefined;
-        if (
-          [DatasetCollectionTypeEnum.link, DatasetCollectionTypeEnum.apiFile].includes(
-            formatCreateCollectionParams.type
-          )
-        ) {
-          return addDays(new Date(), 1);
-        }
-        return undefined;
-      })(),
       session
     });
 
@@ -280,24 +267,19 @@ export async function createOneCollection({ session, ...props }: CreateOneCollec
     teamId,
     parentId,
     datasetId,
-    tags: tagIdList,
+    tags,
 
     fileId,
     rawLink,
     externalFileId,
     externalFileUrl,
     apiFileId,
+    apiFileParentId,
     confluence = {}
   } = props;
-  // Create collection tags
-  const tags = await MongoDatasetCollectionTags.find({
-    teamId,
-    datasetId,
-    _id: { $in: tagIdList }
-  });
 
   const collectionTags = await createOrGetCollectionTags({
-    tags: tags.map((item) => item.tag),
+    tags,
     teamId,
     datasetId,
     session
@@ -319,6 +301,7 @@ export async function createOneCollection({ session, ...props }: CreateOneCollec
         ...(externalFileId ? { externalFileId } : {}),
         ...(externalFileUrl ? { externalFileUrl } : {}),
         ...(apiFileId ? { apiFileId } : {}),
+        ...(apiFileParentId ? { apiFileParentId } : {}),
         ...(confluence ? { confluence } : undefined)
       }
     ],

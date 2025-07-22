@@ -14,6 +14,7 @@ import type {
   DatasetStatusEnum
 } from './constants';
 import type { ParentIdType } from '../../common/parentFolder/type';
+import type { APIFileItemType } from './apiDataset/type';
 
 /* ================= dataset ===================== */
 export type DatasetUpdateBody = {
@@ -60,6 +61,7 @@ export type CreateDatasetCollectionParams = DatasetCollectionStoreDataType & {
   externalFileId?: string;
   externalFileUrl?: string;
   apiFileId?: string;
+  apiFileParentId?: string; //when file is imported by folder, the parentId is the folderId
 
   rawTextLength?: number;
   hashRawText?: string;
@@ -68,7 +70,6 @@ export type CreateDatasetCollectionParams = DatasetCollectionStoreDataType & {
   confluence?: {};
   createTime?: Date;
   updateTime?: Date;
-  nextSyncTime?: Date;
 };
 
 export type ApiCreateDatasetCollectionParams = DatasetCollectionStoreDataType & {
@@ -85,6 +86,9 @@ export type LinkCreateDatasetCollectionParams = ApiCreateDatasetCollectionParams
 export type ApiDatasetCreateDatasetCollectionParams = ApiCreateDatasetCollectionParams & {
   name: string;
   apiFileId: string;
+};
+export type ApiDatasetCreateDatasetCollectionV2Params = ApiCreateDatasetCollectionParams & {
+  apiFiles: APIFileItemType[];
 };
 export type FileIdCreateDatasetCollectionParams = ApiCreateDatasetCollectionParams & {
   fileId: string;
@@ -142,7 +146,7 @@ export type PushDatasetDataChunkProps = {
   indexes?: Omit<DatasetDataIndexItemType, 'dataId'>[];
 };
 
-export type PostWebsiteSyncParams = {
+export type PostDatasetSyncParams = {
   datasetId: string;
 };
 

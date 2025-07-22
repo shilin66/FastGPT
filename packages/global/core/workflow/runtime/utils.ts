@@ -1,20 +1,24 @@
-import { ChatCompletionRequestMessageRoleEnum } from '../../ai/constants';
-import { NodeInputKeyEnum, NodeOutputKeyEnum, WorkflowIOValueTypeEnum } from '../constants';
-import { FlowNodeTypeEnum } from '../node/constant';
-import { type StoreNodeItemType } from '../type/node';
-import { type StoreEdgeItemType } from '../type/edge';
-import { type RuntimeEdgeItemType, type RuntimeNodeItemType } from './type';
-import { VARIABLE_NODE_ID } from '../constants';
-import { isValidReferenceValueFormat } from '../utils';
-import { type FlowNodeOutputItemType, type ReferenceValueType } from '../type/io';
-import { type ChatItemType, type NodeOutputItemType } from '../../../core/chat/type';
-import { ChatItemValueTypeEnum, ChatRoleEnum } from '../../../core/chat/constants';
-import { replaceVariable, valToStr } from '../../../common/string/tools';
 import json5 from 'json5';
+import { replaceVariable, valToStr } from '../../../common/string/tools';
+import { ChatItemValueTypeEnum, ChatRoleEnum } from '../../../core/chat/constants';
+import type { ChatItemType, NodeOutputItemType } from '../../../core/chat/type';
+import { ChatCompletionRequestMessageRoleEnum } from '../../ai/constants';
+import {
+  NodeInputKeyEnum,
+  NodeOutputKeyEnum,
+  VARIABLE_NODE_ID,
+  WorkflowIOValueTypeEnum
+} from '../constants';
+import { FlowNodeTypeEnum } from '../node/constant';
 import {
   type InteractiveNodeResponseType,
   type WorkflowInteractiveResponseType
 } from '../template/system/interactive/type';
+import type { StoreEdgeItemType } from '../type/edge';
+import type { FlowNodeOutputItemType, ReferenceValueType } from '../type/io';
+import type { StoreNodeItemType } from '../type/node';
+import { isValidReferenceValueFormat } from '../utils';
+import type { RuntimeEdgeItemType, RuntimeNodeItemType } from './type';
 
 export const extractDeepestInteractive = (
   interactive: WorkflowInteractiveResponseType
@@ -93,65 +97,57 @@ export const valueTypeFormat = (value: any, type?: WorkflowIOValueTypeEnum) => {
   }
 
   // 4.3 字符串转对象
-  if (
-    (type === WorkflowIOValueTypeEnum.object || type.startsWith('array')) &&
-    typeof value === 'string' &&
-    value.trim()
-  ) {
-    const trimmedValue = value.trim();
-    const isJsonString = isObjectString(trimmedValue);
-
-    if (isJsonString) {
+  if (type === WorkflowIOValueTypeEnum.object) {
+    if (isObjectString(value)) {
+      const trimmedValue = value.trim();
       try {
-        const parsed = json5.parse(trimmedValue);
-        // 检测解析结果与目标类型是否一致
-        if (type.startsWith('array') && Array.isArray(parsed)) return parsed;
-        if (type === WorkflowIOValueTypeEnum.object && typeof parsed === 'object') return parsed;
+        return json5.parse(trimmedValue);
       } catch (error) {}
     }
+    return {};
   }
 
   // 4.4 数组类型(这里 value 不是数组类型)（TODO: 嵌套数据类型转化）
   if (type.startsWith('array')) {
+    if (isObjectString(value)) {
+      try {
+        return json5.parse(value);
+      } catch (error) {}
+    }
     return [value];
   }
 
   // 4.5 特殊类型处理
   if (
-    [WorkflowIOValueTypeEnum.datasetQuote, WorkflowIOValueTypeEnum.selectDataset].includes(type)
+    [
+      WorkflowIOValueTypeEnum.datasetQuote,
+      WorkflowIOValueTypeEnum.selectDataset,
+      WorkflowIOValueTypeEnum.selectApp
+    ].includes(type)
   ) {
     if (isObjectString(value)) {
       try {
         return json5.parse(value);
-      } catch (error) {
-        return [];
-      }
+      } catch (error) {}
     }
     return [];
   }
-  if (
-    [WorkflowIOValueTypeEnum.selectApp, WorkflowIOValueTypeEnum.object].includes(type) &&
-    typeof value === 'string'
-  ) {
+
+  // Invalid history type
+  if (type === WorkflowIOValueTypeEnum.chatHistory) {
     if (isObjectString(value)) {
       try {
         return json5.parse(value);
-      } catch (error) {
-        return {};
-      }
+      } catch (error) {}
     }
-    return {};
-  }
-  // Invalid history type
-  if (type === WorkflowIOValueTypeEnum.chatHistory) {
-    return 0;
+    return [];
   }
 
   // 5. 默认返回原值
   return value;
 };
 
-/* 
+/*
   Get interaction information (if any) from the last AI message.
   What can be done:
   1. Get the interactive data
@@ -254,7 +250,8 @@ export const storeNodes2RuntimeNodes = (
         inputs: node.inputs,
         outputs: node.outputs,
         pluginId: node.pluginId,
-        version: node.version
+        version: node.version,
+        toolConfig: node.toolConfig
       };
     }) || []
   );
@@ -268,7 +265,7 @@ export const filterWorkflowEdges = (edges: RuntimeEdgeItemType[]) => {
   );
 };
 
-/* 
+/*
   1. 输入线分类：普通线和递归线（可以追溯到自身）
   2. 起始线全部非 waiting 执行，或递归线全部非 waiting 执行
 */
@@ -279,7 +276,7 @@ export const checkNodeRunStatus = ({
   node: RuntimeNodeItemType;
   runtimeEdges: RuntimeEdgeItemType[];
 }) => {
-  /* 
+  /*
     区分普通连线和递归连线
     递归连线：可以通过往上查询 nodes，最终追溯到自身
   */
@@ -363,7 +360,7 @@ export const checkNodeRunStatus = ({
   return 'wait';
 };
 
-/* 
+/*
   Get the value of the reference variable/node output
   1. [string,string]
   2. [string,string][]
