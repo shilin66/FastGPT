@@ -51,6 +51,7 @@ export type FastGPTFeConfigsType = {
   bind_notification_method?: ['email' | 'phone'];
   googleClientVerKey?: string;
   mcpServerProxyEndpoint?: string;
+  chineseRedirectUrl?: string;
 
   show_emptyChat?: boolean;
   show_appStore?: boolean;
@@ -83,7 +84,6 @@ export type FastGPTFeConfigsType = {
   customSharePageDomain?: string;
 
   systemTitle?: string;
-  systemDescription?: string;
   scripts?: { [key: string]: string }[];
   favicon?: string;
 
@@ -107,6 +107,7 @@ export type FastGPTFeConfigsType = {
   perplexica_url?: string;
   uploadFileMaxAmount?: number;
   uploadFileMaxSize?: number;
+  evalFileMaxLines?: number;
 
   // Compute by systemEnv.customPdfParse
   showCustomPdfParse?: boolean;

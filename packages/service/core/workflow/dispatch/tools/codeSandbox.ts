@@ -2,9 +2,9 @@ import type { ModuleDispatchProps } from '@fastgpt/global/core/workflow/runtime/
 import { NodeInputKeyEnum, NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { type DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
 import axios from 'axios';
-import { formatHttpError } from '../utils';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { SandboxCodeTypeEnum } from '@fastgpt/global/core/workflow/template/system/sandbox/constants';
+import { getErrText } from '@fastgpt/global/common/error/utils';
 import { SandBoxTypeEnum } from '@fastgpt/global/common/system/types/index.d';
 import { transformerNodejs, transformerPython3 } from './difySandBoxUtil';
 
@@ -13,11 +13,16 @@ type RunCodeType = ModuleDispatchProps<{
   [NodeInputKeyEnum.code]: string;
   [NodeInputKeyEnum.addInputParam]: Record<string, any>;
 }>;
-type RunCodeResponse = DispatchNodeResultType<{
-  [NodeOutputKeyEnum.error]?: any;
-  [NodeOutputKeyEnum.rawResponse]?: Record<string, any>;
-  [key: string]: any;
-}>;
+type RunCodeResponse = DispatchNodeResultType<
+  {
+    [NodeOutputKeyEnum.error]?: any; // @deprecated
+    [NodeOutputKeyEnum.rawResponse]?: Record<string, any>;
+    [key: string]: any;
+  },
+  {
+    [NodeOutputKeyEnum.error]: string;
+  }
+>;
 
 function getURL(codeType: string): string {
   if (codeType == SandboxCodeTypeEnum.py) {
@@ -27,16 +32,17 @@ function getURL(codeType: string): string {
   }
 }
 
-export const dispatchRunCode = async (props: RunCodeType): Promise<RunCodeResponse> => {
+export const dispatchCodeSandbox = async (props: RunCodeType): Promise<RunCodeResponse> => {
   const {
+    node: { catchError },
     params: { codeType, code, [NodeInputKeyEnum.addInputParam]: customVariables }
   } = props;
 
   const sandBoxType = global.systemEnv.sandBoxType;
   if (sandBoxType && sandBoxType[codeType] === SandBoxTypeEnum.dify) {
-    return callDifySandBox(code, customVariables, codeType);
+    return callDifySandBox(code, customVariables, codeType, catchError);
   } else if (sandBoxType && sandBoxType[codeType] === SandBoxTypeEnum.fastgpt) {
-    return callFastGptSandBox(code, customVariables, codeType);
+    return callFastGptSandBox(code, customVariables, codeType, catchError);
   } else {
     throw new Error('Unsupported sandbox type');
   }
@@ -45,7 +51,8 @@ export const dispatchRunCode = async (props: RunCodeType): Promise<RunCodeRespon
 const callDifySandBox = async (
   code: string,
   variables: Record<string, any>,
-  codeType: 'python3' | 'js'
+  codeType: 'python3' | 'js',
+  catchError?: boolean
 ) => {
   if (!global.systemEnv.difySandBoxUrl) {
     throw new Error('Can not find difySandBoxUrl in env');
@@ -132,11 +139,28 @@ const callDifySandBox = async (
       };
     }
   } catch (error) {
+    const text = getErrText(error);
+
+    // @adapt
+    if (catchError === undefined) {
+      return {
+        data: {
+          [NodeOutputKeyEnum.error]: { message: text }
+        },
+        [DispatchNodeResponseKeyEnum.nodeResponse]: {
+          customInputs: variables,
+          errorText: text
+        }
+      };
+    }
+
     return {
-      [NodeOutputKeyEnum.error]: formatHttpError(error),
+      error: {
+        [NodeOutputKeyEnum.error]: text
+      },
       [DispatchNodeResponseKeyEnum.nodeResponse]: {
         customInputs: variables,
-        error: formatHttpError(error)
+        errorText: text
       }
     };
   }
@@ -145,11 +169,18 @@ const callDifySandBox = async (
 const callFastGptSandBox = async (
   code: string,
   variables: Record<string, any>,
-  codeType: 'python3' | 'js'
+  codeType: 'python3' | 'js',
+  catchError?: boolean
 ) => {
   if (!process.env.SANDBOX_URL) {
     return {
-      [NodeOutputKeyEnum.error]: 'Can not find SANDBOX_URL in env'
+      error: {
+        [NodeOutputKeyEnum.error]: 'Can not find SANDBOX_URL in env'
+      },
+      [DispatchNodeResponseKeyEnum.nodeResponse]: {
+        errorText: 'Can not find SANDBOX_URL in env',
+        customInputs: variables
+      }
     };
   }
 
@@ -168,24 +199,43 @@ const callFastGptSandBox = async (
 
     if (runResult.success) {
       return {
-        [NodeOutputKeyEnum.rawResponse]: runResult.data.codeReturn,
+        data: {
+          [NodeOutputKeyEnum.rawResponse]: runResult.data.codeReturn,
+          ...runResult.data.codeReturn
+        },
         [DispatchNodeResponseKeyEnum.nodeResponse]: {
           customInputs: variables,
           customOutputs: runResult.data.codeReturn,
           codeLog: runResult.data.log
         },
-        [DispatchNodeResponseKeyEnum.toolResponses]: runResult.data.codeReturn,
-        ...runResult.data.codeReturn
+        [DispatchNodeResponseKeyEnum.toolResponses]: runResult.data.codeReturn
       };
     } else {
-      return Promise.reject('Run code failed');
+      throw new Error('Run code failed');
     }
   } catch (error) {
+    const text = getErrText(error);
+
+    // @adapt
+    if (catchError === undefined) {
+      return {
+        data: {
+          [NodeOutputKeyEnum.error]: { message: text }
+        },
+        [DispatchNodeResponseKeyEnum.nodeResponse]: {
+          customInputs: variables,
+          errorText: text
+        }
+      };
+    }
+
     return {
-      [NodeOutputKeyEnum.error]: formatHttpError(error),
+      error: {
+        [NodeOutputKeyEnum.error]: text
+      },
       [DispatchNodeResponseKeyEnum.nodeResponse]: {
         customInputs: variables,
-        error: formatHttpError(error)
+        errorText: text
       }
     };
   }
