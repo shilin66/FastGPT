@@ -6,8 +6,9 @@ import { useContextSelector } from 'use-context-selector';
 import { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
 import { VariableInputEnum } from '@fastgpt/global/core/workflow/constants';
 import { useEffect } from 'react';
-import { ExternalVariableInputItem, VariableInputItem } from './VariableInput';
 import MyDivider from '@fastgpt/web/components/common/MyDivider';
+import LabelAndFormRender from '@/components/core/app/formRender/LabelAndForm';
+import { variableInputTypeToInputType } from '@/components/core/app/formRender/utils';
 
 const VariablePopover = ({
   showExternalVariables = false
@@ -28,16 +29,18 @@ const VariablePopover = ({
   const hasExternalVariable = externalVariableList.length > 0;
   const hasVariable = variableList.length > 0;
 
-  const { getValues, setValue } = variablesForm;
+  const { getValues, reset } = variablesForm;
 
   useEffect(() => {
+    const values = getValues();
     variables.forEach((item) => {
       const val = getValues(`variables.${item.key}`);
       if (item.defaultValue !== undefined && (val === undefined || val === null || val === '')) {
-        setValue(`variables.${item.key}`, item.defaultValue);
+        values.variables[item.key] = item.defaultValue;
       }
     });
-  }, [variables]);
+    reset(values);
+  }, [getValues, reset, variables]);
 
   return (
     <MyPopover
@@ -51,7 +54,7 @@ const VariablePopover = ({
       }
     >
       {({ onClose }) => (
-        <Box p={4}>
+        <Box p={4} maxH={'60vh'} overflow={'auto'}>
           {hasExternalVariable && (
             <Box textAlign={'left'}>
               <Flex
@@ -68,27 +71,34 @@ const VariablePopover = ({
                 {t('chat:variable_invisable_in_share')}
               </Flex>
               {externalVariableList.map((item) => (
-                <ExternalVariableInputItem
-                  key={item.id}
-                  item={item}
+                <LabelAndFormRender
+                  {...item}
+                  key={item.key}
+                  formKey={`variables.${item.key}`}
+                  placeholder={item.description}
+                  inputType={variableInputTypeToInputType(item.type)}
                   variablesForm={variablesForm}
+                  bg={'myGray.50'}
                 />
               ))}
             </Box>
           )}
           {hasExternalVariable && hasVariable && <MyDivider h={'1px'} />}
           {hasVariable && (
-            <Box textAlign={'left'}>
+            <Box>
               {variableList.map((item) => (
-                <VariableInputItem key={item.id} item={item} variablesForm={variablesForm} />
+                <LabelAndFormRender
+                  {...item}
+                  key={item.key}
+                  formKey={`variables.${item.key}`}
+                  placeholder={item.description}
+                  inputType={variableInputTypeToInputType(item.type)}
+                  variablesForm={variablesForm}
+                  bg={'myGray.50'}
+                />
               ))}
             </Box>
           )}
-          <Flex w={'full'} justifyContent={'flex-end'}>
-            <Button size={'sm'} onClick={onClose}>
-              {t('common:Confirm')}
-            </Button>
-          </Flex>
         </Box>
       )}
     </MyPopover>

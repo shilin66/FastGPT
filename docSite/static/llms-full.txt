@@ -5,7 +5,7 @@ FastGPT 项目在 Apache License 2.0 许可下开源，但包含以下附加条�
 
 + FastGPT 允许被用于商业化，例如作为其他应用的“后端即服务”使用，或者作为应用开发平台提供给企业。然而，当满足以下条件时，必须联系作者获得商业许可：
    
-   + 多租户 SaaS 服务：除非获得 FastGPT 的明确书面授权，否则不得使用 tryfastgpt.ai 的源码来运营与 tryfastgpt.ai 服务类似的多租户 SaaS 服务。
+   + 多租户 SaaS 服务：除非获得 FastGPT 的明确书面授权，否则不得使用 fastgpt.io 的源码来运营与 fastgpt.io 服务类似的多租户 SaaS 服务。
    + LOGO 及版权信息：在使用 FastGPT 的过程中，不得移除或修改 FastGPT 控制台内的 LOGO 或版权信息。
 
    请通过电子邮件 yujinlong@sealos.io 联系我们咨询许可事宜。
@@ -153,7 +153,7 @@ FastGPT 服务协议是您与珠海环界云计算有限公司（以下简称“
 
 FastGPT 是一个由用户和贡献者参与推动的开源项目，如果您对产品使用存在疑问和建议，可尝试以下方式寻求支持。我们的团队与社区会竭尽所能为您提供帮助。
 
-+ 📱 扫码加入社区微信交流群👇
++ 📱 扫码加入社区飞书交流群👇
 
    <img width="400px" src="https://oss.laf.run/otnvvf-imgs/fastgpt-feishu1.png" class="medium-zoom-image" />
 
@@ -1175,6 +1175,18 @@ curl --location --request POST 'https://<oneapi_url>/v1/chat/completions' \
 | 500w 组向量 | 8c32g 200GB | 16c64g 200GB |
 {{< /table >}}
 
+### Oceanbase版本
+
+支持最大 16,000 维的 float 稠密向量数据存储。
+
+{{< table "table-hover table-striped-columns" >}}
+| 环境        | 最低配置（单节点） | 推荐配置 |
+| ----------- | ------------------ | -------- |
+| 测试        | 2c6g               | 2c8g    |
+| 100w 组向量 | 未测试             |          |
+| 500w 组向量 |                    |          |
+{{< /table >}}
+
 ### Milvus版本
 
 对于亿级以上向量性能更优秀。
@@ -1947,11 +1959,11 @@ curl --location --request POST 'https://oneapi.xxxx/v1/chat/completions' \
 # 快速开始本地开发
 ## 对 FastGPT 进行开发调试
 
-本文档介绍了如何设置开发环境以构建和测试 [FastGPT](https://tryfastgpt.ai)，。
+本文档介绍了如何设置开发环境以构建和测试 [FastGPT](https://fastgpt.io)，。
 
 ## 前置依赖项
 
-您需要在计算机上安装和配置以下依赖项才能构建 [FastGPT](https://tryfastgpt.ai)：
+您需要在计算机上安装和配置以下依赖项才能构建 [FastGPT](https://fastgpt.io)：
 
 - [Git](http://git-scm.com/)
 - [Docker](https://www.docker.com/)（构建镜像）
@@ -3104,7 +3116,7 @@ deepseek 系列：
 
 ## 2. 部署最新版 FastGPT 到本地环境
 {{% alert context="warning" %}}
-请使用 v4.8.22 以上版本，部署参考: https://doc.tryfastgpt.ai/docs/development/intro/
+请使用 v4.8.22 以上版本，部署参考: https://doc.fastgpt.io/docs/development/intro/
 {{% /alert %}}
 
 ## 3. 模型配置（下面两种方式二选其一）
@@ -5404,7 +5416,7 @@ curl --location --request POST 'http://localhost:3000/api/core/dataset/collectio
 --header 'Authorization: Bearer {{authorization}}' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-    "link":"https://doc.tryfastgpt.ai/docs/course/quick-start/",
+    "link":"https://doc.fastgpt.io/docs/course/quick-start/",
     "datasetId":"6593e137231a2be9c5603ba7",
     "parentId": null,
 
@@ -5758,7 +5770,7 @@ curl --location --request POST 'http://localhost:3000/api/core/dataset/collectio
                 "tmbId": "65422be6aa44b7da77729ec9",
                 "type": "link",
                 "name": "快速上手 | FastGPT",
-                "rawLink": "https://doc.tryfastgpt.ai/docs/course/quick-start/",
+                "rawLink": "https://doc.fastgpt.io/docs/course/quick-start/",
                 "updateTime": "2024-01-20T13:54:53.031Z",
                 "dataAmount": 3,
                 "trainingAmount": 0,
@@ -6564,9 +6576,9 @@ curl --location --request POST 'https://api.fastgpt.in/api/v1/chat/completions' 
 
 在分享链接的地址中，增加一个额外的参数: authToken。例如：
 
-原始的链接：`https://share.tryfastgpt.ai/chat/share?shareId=648aaf5ae121349a16d62192`  
+原始的链接：`https://share.fastgpt.io/chat/share?shareId=648aaf5ae121349a16d62192`  
 
-完整链接: `https://share.tryfastgpt.ai/chat/share?shareId=648aaf5ae121349a16d62192&authToken=userid12345`
+完整链接: `https://share.fastgpt.io/chat/share?shareId=648aaf5ae121349a16d62192&authToken=userid12345`
 
 这个`authToken`通常是你系统生成的用户唯一凭证（Token之类的）。FastGPT 会在鉴权接口的`body`中携带 token={{authToken}} 的参数。
 
@@ -6898,9 +6910,9 @@ export default async function (ctx: FunctionContext) {
 
 ### 3. 修改分享链接参数
 
-源分享链接：`https://share.tryfastgpt.ai/chat/share?shareId=64be36376a438af0311e599c`
+源分享链接：`https://share.fastgpt.io/chat/share?shareId=64be36376a438af0311e599c`
 
-修改后：`https://share.tryfastgpt.ai/chat/share?shareId=64be36376a438af0311e599c&authToken=fastgpt`
+修改后：`https://share.fastgpt.io/chat/share?shareId=64be36376a438af0311e599c&authToken=fastgpt`
 
 ### 4. 测试效果
 
@@ -7194,7 +7206,7 @@ FastGPT 商业版共包含了2个应用（fastgpt, fastgpt-plus）和2个数据�
 
 ### 如何更新/升级 FastGPT
 
-[升级脚本文档](https://doc.tryfastgpt.ai/docs/development/upgrading/)先看下文档，看下需要升级哪个版本。注意，不要跨版本升级！！！！！
+[升级脚本文档](https://doc.fastgpt.io/docs/development/upgrading/)先看下文档，看下需要升级哪个版本。注意，不要跨版本升级！！！！！
 
 例如，目前是4.5 版本，要升级到4.5.1，就先把镜像版本改成v4.5.1，执行一下升级脚本，等待完成后再继续升级。如果目标版本不需要执行初始化，则可以跳过。
 
@@ -7229,7 +7241,7 @@ FastGPT 商业版共包含了2个应用（fastgpt, fastgpt-plus）和2个数据�
 
 ![](/imgs/onsealos5.png)
 
-[配置文件参考](https://doc.tryfastgpt.ai/docs/development/configuration/)
+[配置文件参考](https://doc.fastgpt.io/docs/development/configuration/)
 
 ### 修改站点名称以及 favicon
 修改应用的环境变量，增加
@@ -11333,7 +11345,7 @@ ${content}
 
 ![](/imgs/create-app3.png)
 
-然后我们就可以愉快的开始聊天啦。
+然后我们就可以愉快地开始聊天啦。
 
 ![](/imgs/create-app4.png)
 
@@ -11861,7 +11873,7 @@ HTTP 模块会向对应的地址发送一个 `HTTP` 请求，实际操作与 Pos
   "array": [1, 2, 3],
   "obj": {
     "name": "FastGPT",
-    "url": "https://tryfastgpt.ai"
+    "url": "https://fastgpt.io"
   }
 }
 ```
@@ -11900,7 +11912,7 @@ HTTP 模块会向对应的地址发送一个 `HTTP` 请求，实际操作与 Pos
   "array2": [1, 2, 3],
   "object": {
     "name": "FastGPT",
-    "url": "https://tryfastgpt.ai"
+    "url": "https://fastgpt.io"
   }
 }
 ```
@@ -12768,8 +12780,8 @@ function main({secret}){
 
 ### **相关示例**
 
-- [谷歌搜索](https://doc.fastgpt.in/docs/use-cases/app-cases/google_search/)
-- [发送飞书webhook](https://doc.fastgpt.in/docs/use-cases/app-cases/feishu_webhook/)
+- [谷歌搜索](https://doc.fastgpt.io/docs/use-cases/app-cases/google_search/)
+- [发送飞书webhook](https://doc.fastgpt.io/docs/use-cases/app-cases/feishu_webhook/)
 
 # 用户选择
 ## FastGPT 用户选择模块的使用说明
@@ -13570,7 +13582,7 @@ Web 站点同步利用爬虫的技术，可以通过一个入口网站，自动�
 Tips: 国内的媒体站点基本不可用，公众号、csdn、知乎等。可以通过终端发送`curl`请求检测是否为静态站点，例如：
 
 ```bash
-curl https://doc.tryfastgpt.ai/docs/intro/
+curl https://doc.fastgpt.io/docs/intro/
 ```
 
 ## 如何使用
@@ -14315,7 +14327,7 @@ FastGPT 是一个基于 LLM 大语言模型的知识库问答系统，将智能�
 
 {{% alert icon="🤖 " context="success" %}}
 快速开始体验
-- 海外版：[https://tryfastgpt.ai](https://tryfastgpt.ai)
+- 海外版：[https://fastgpt.io](https://fastgpt.io)
 - 国内版：[https://fastgpt.cn](https://fastgpt.cn)
 {{% /alert %}}
 
@@ -14993,7 +15005,6 @@ FastGPT 提供了一种基于 LLM Model 搭建应用的简便方式。
 不要使用 Markdown 语法， 输入 JSON 格式的内容。
 输出的"reason"的内容使用中文。
 直接输出一个列表， 其成员为一个相同类型的对象， 定义如下
-您正在找回 FastGPT 账号
 ```
 {
 “raw”: string; // 表示原文
@@ -18333,7 +18344,7 @@ Fastgpt 提供了工作流线路可以返回去执行的功能，所以我们可
 
 需要在 dev 环境下执行下面的操作。
 
-> 可参照 [FastGPT｜快速开始本地开发](https://doc.fastgpt.in/docs/development/intro/)
+> 可参照 [FastGPT｜快速开始本地开发](https://doc.fastgpt.io/docs/development/intro/)
 
 1. ### 在 FastGPT 工作台中，创建一个应用
 

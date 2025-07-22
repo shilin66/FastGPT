@@ -80,6 +80,7 @@ const scheduleTriggerAppCron = () => {
       getScheduleTriggerApp();
     }
   });
+  getScheduleTriggerApp();
 };
 
 const scheduleClearInvitationLinkCron = () => {
