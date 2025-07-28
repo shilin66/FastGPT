@@ -285,11 +285,11 @@ export const LoginContainer = ({
         )}
       </Box>
 
-      <CookiesModal />
-      <ChineseRedirectModal />
+      {/*<CookiesModal />*/}
+      {/*<ChineseRedirectModal />*/}
 
       {/* Community modal */}
-      {showCommunityModal && <CommunityModal onClose={() => setShowCommunityModal(false)} />}
+      {/*{showCommunityModal && <CommunityModal onClose={() => setShowCommunityModal(false)} />}*/}
     </>
   );
 };
