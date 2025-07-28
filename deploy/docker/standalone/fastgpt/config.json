@@ -7,7 +7,7 @@
     "show_openai_account": false,
     "isPlus": true,
     "userDefaultTeam": "Public",
-    "systemTitle": "Niubility AI",
+    "systemTitle": "FastGPT",
     "show_emptyChat": false,
     "show_git": false,
     "show_team_chat": true,
@@ -39,7 +39,7 @@
     ]
   },
   "systemEnv": {
-    "openapiPrefix": "opsnb",
+    "openapiPrefix": "fastgpt",
     "vectorMaxProcess": 15,
     "qaMaxProcess": 15,
     "pgHNSWEfSearch": 100,
