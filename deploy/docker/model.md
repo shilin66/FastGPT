@@ -1,7 +1,7 @@
 #  安装conda
 ```bash
 
-curl -O https://repo.anaconda.com/archive/Anaconda3-2025.06-0-Linux-x86_64.sh
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 
 ## 验证安装包(可选) 查看 sha256与官网是否一致 https://repo.anaconda.com/archive/
 shasum -a 256 ~/Anaconda3-2025.06-0-Linux-x86_64.sh
@@ -55,7 +55,7 @@ pip install "xinference[transformers]" -i https://pypi.tuna.tsinghua.edu.cn/simp
 ```shell
 conda create -n mineru python=3.12 -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
 pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple
-pip install -U "mineru[all]" -i https://mirrors.aliyun.com/pypi/simple
+pip install "mineru[all]"==2.1.4 -i https://mirrors.aliyun.com/pypi/simple
 
 export MINERU_MODEL_SOURCE=modelscope
 mineru-models-download
