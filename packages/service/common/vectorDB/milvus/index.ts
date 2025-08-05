@@ -69,7 +69,7 @@ export class MilvusCtrl {
           {
             name: 'vector',
             data_type: DataType.FloatVector,
-            dim: 1536
+            dim: parseInt(process.env.VECTOR_DB_DIM ? process.env.VECTOR_DB_DIM : '1536')
           },
           { name: 'teamId', data_type: DataType.VarChar, max_length: 64 },
           { name: 'datasetId', data_type: DataType.VarChar, max_length: 64 },
