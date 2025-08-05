@@ -27,6 +27,7 @@ import type { StoreSecretValueType } from '@fastgpt/global/common/secret/type';
 import { addLog } from '../../../../common/system/log';
 import { SERVICE_LOCAL_HOST } from '../../../../common/system/tools';
 import { formatHttpError } from '../utils';
+import { isInternalAddress } from '../../../../common/system/utils';
 import qs from 'qs';
 import * as https from 'node:https';
 
@@ -416,6 +417,10 @@ async function fetchData({
   params: Record<string, any>;
   timeout: number;
 }) {
+  if (isInternalAddress(url)) {
+    return Promise.reject('Url is invalid');
+  }
+
   const rawFlag = headers['x_ignore_ssl_err'];
   const ignoreSSL = rawFlag === true || rawFlag === 'true';
   if (ignoreSSL) {

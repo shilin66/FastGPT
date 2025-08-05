@@ -135,12 +135,7 @@ const UsageTable = () => {
           <Box fontSize={'mini'} fontWeight={'medium'} color={'myGray.900'}>
             {t('common:user.Time')}
           </Box>
-          <DateRangePicker
-            defaultDate={dateRange}
-            dateRange={dateRange}
-            position="bottom"
-            onSuccess={setDateRange}
-          />
+          <DateRangePicker defaultDate={dateRange} dateRange={dateRange} onSuccess={setDateRange} />
           {/* {usageTab === UsageTabEnum.dashboard && (
             <MySelect<UnitType>
               bg={'myGray.50'}
@@ -170,7 +165,7 @@ const UsageTable = () => {
                   setSelectTmbIds(val as string[]);
                 }}
                 itemWrap={false}
-                height={'32px'}
+                h={'32px'}
                 bg={'myGray.50'}
                 w={'160px'}
                 ScrollData={ScrollData}

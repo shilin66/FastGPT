@@ -126,7 +126,7 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
   );
 
   const show_oauth = useMemo(
-    () => !getBdVId() && !!(feConfigs?.sso?.url || oAuthList.length > 0),
+    () => !!(feConfigs?.sso?.url || oAuthList.length > 0),
     [feConfigs?.sso?.url, oAuthList.length]
   );
 
