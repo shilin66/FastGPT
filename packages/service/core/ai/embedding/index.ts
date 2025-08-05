@@ -81,16 +81,17 @@ export async function getVectorsByText({ model, input, type, headers }: GetVecto
 }
 
 function unityDimensional(vector: number[]) {
-  if (vector.length > 1536) {
+  const dim = parseInt(process.env.VECTOR_DB_DIM ? process.env.VECTOR_DB_DIM : '1536');
+  if (vector.length > dim) {
     console.log(
-      `The current vector dimension is ${vector.length}, and the vector dimension cannot exceed 1536. The first 1536 dimensions are automatically captured`
+      `The current vector dimension is ${vector.length}, and the vector dimension cannot exceed ${dim}. The first ${dim} dimensions are automatically captured`
     );
-    return vector.slice(0, 1536);
+    return vector.slice(0, dim);
   }
   let resultVector = vector;
   const vectorLen = vector.length;
 
-  const zeroVector = new Array(1536 - vectorLen).fill(0);
+  const zeroVector = new Array(dim - vectorLen).fill(0);
 
   return resultVector.concat(zeroVector);
 }
