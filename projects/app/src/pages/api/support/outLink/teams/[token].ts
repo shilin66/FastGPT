@@ -1,15 +1,14 @@
+import type { Activity, TurnContext } from 'botbuilder';
 import {
-  Activity,
   ActivityHandler,
   ActivityTypes,
   CardFactory,
   CloudAdapter,
   ConfigurationBotFrameworkAuthentication,
-  MessageFactory,
-  TurnContext
+  MessageFactory
 } from 'botbuilder';
 import axios from 'axios';
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { MongoOutLink } from '@fastgpt/service/support/outLink/schema';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';

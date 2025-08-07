@@ -1,15 +1,16 @@
 import { createChatCompletion } from '../../../../ai/config';
 import { filterGPTMessageByMaxContext, loadRequestMessages } from '../../../../chat/utils';
-import {
+import type {
   ChatCompletion,
   StreamChatType,
   ChatCompletionMessageParam,
   ChatCompletionCreateParams,
   ChatCompletionMessageFunctionCall,
   ChatCompletionFunctionMessageParam,
-  ChatCompletionAssistantMessageParam
+  ChatCompletionAssistantMessageParam,
+  CompletionFinishReason
 } from '@fastgpt/global/core/ai/type.d';
-import { NextApiResponse } from 'next';
+import { type NextApiResponse } from 'next';
 import { responseWriteController } from '../../../../../common/response';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { textAdaptGptResponse } from '@fastgpt/global/core/workflow/runtime/utils';
@@ -18,12 +19,16 @@ import {
   getLLMDefaultUsage
 } from '@fastgpt/global/core/ai/constants';
 import { dispatchWorkFlow } from '../../index';
-import { DispatchToolModuleProps, RunToolResponse, ToolNodeItemType } from './type.d';
+import {
+  type DispatchToolModuleProps,
+  type RunToolResponse,
+  type ToolNodeItemType
+} from './type.d';
 import json5 from 'json5';
-import { DispatchFlowResponse, WorkflowResponseType } from '../../type';
+import { type DispatchFlowResponse, type WorkflowResponseType } from '../../type';
 import { countGptMessagesTokens } from '../../../../../common/string/tiktoken/index';
 import { getNanoid, sliceStrStartEnd } from '@fastgpt/global/common/string/tools';
-import { AIChatItemType } from '@fastgpt/global/core/chat/type';
+import { type AIChatItemType } from '@fastgpt/global/core/chat/type';
 import { GPTMessages2Chats } from '@fastgpt/global/core/chat/adapt';
 import { formatToolResponse, initToolCallEdges, initToolNodes } from './utils';
 import {
@@ -32,8 +37,8 @@ import {
   removeDatasetCiteText,
   parseLLMStreamResponse
 } from '../../../../ai/utils';
-import { toolValueTypeList } from '@fastgpt/global/core/workflow/constants';
-import { WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
+import { toolValueTypeList, valueTypeJsonSchemaMap } from '@fastgpt/global/core/workflow/constants';
+import { type WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import { ChatItemValueTypeEnum } from '@fastgpt/global/core/chat/constants';
 
 type FunctionRunResponseType = {
@@ -157,6 +162,14 @@ export const runToolWithFunctionCall = async (
   const assistantResponses = response?.assistantResponses || [];
 
   const functions: ChatCompletionCreateParams.Function[] = toolNodes.map((item) => {
+    if (item.jsonSchema) {
+      return {
+        name: item.nodeId,
+        description: item.intro,
+        parameters: item.jsonSchema
+      };
+    }
+
     const properties: Record<
       string,
       {
@@ -167,9 +180,9 @@ export const runToolWithFunctionCall = async (
       }
     > = {};
     item.toolParams.forEach((item) => {
-      const jsonSchema = (
-        toolValueTypeList.find((type) => type.value === item.valueType) || toolValueTypeList[0]
-      ).jsonSchema;
+      const jsonSchema = item.valueType
+        ? valueTypeJsonSchemaMap[item.valueType] || toolValueTypeList[0].jsonSchema
+        : toolValueTypeList[0].jsonSchema;
 
       properties[item.key] = {
         ...jsonSchema,
@@ -240,8 +253,10 @@ export const runToolWithFunctionCall = async (
       max_tokens,
       top_p: aiChatTopP,
       stop: aiChatStopSign,
-      response_format: aiChatResponseFormat,
-      json_schema: aiChatJsonSchema
+      response_format: {
+        type: aiChatResponseFormat as any,
+        json_schema: aiChatJsonSchema
+      }
     },
     toolModel
   );
@@ -262,14 +277,15 @@ export const runToolWithFunctionCall = async (
     }
   });
 
-  let { answer, functionCalls, inputTokens, outputTokens } = await (async () => {
+  let { answer, functionCalls, inputTokens, outputTokens, finish_reason } = await (async () => {
     if (isStreamResponse) {
       if (!res || res.closed) {
         return {
           answer: '',
           functionCalls: [],
           inputTokens: 0,
-          outputTokens: 0
+          outputTokens: 0,
+          finish_reason: 'close' as const
         };
       }
       const result = await streamResponse({
@@ -284,10 +300,12 @@ export const runToolWithFunctionCall = async (
         answer: result.answer,
         functionCalls: result.functionCalls,
         inputTokens: result.usage.prompt_tokens,
-        outputTokens: result.usage.completion_tokens
+        outputTokens: result.usage.completion_tokens,
+        finish_reason: result.finish_reason
       };
     } else {
       const result = aiResponse as ChatCompletion;
+      const finish_reason = result.choices?.[0]?.finish_reason as CompletionFinishReason;
       const function_call = result.choices?.[0]?.message?.function_call;
       const usage = result.usage;
 
@@ -318,7 +336,8 @@ export const runToolWithFunctionCall = async (
         answer,
         functionCalls: toolCalls,
         inputTokens: usage?.prompt_tokens,
-        outputTokens: usage?.completion_tokens
+        outputTokens: usage?.completion_tokens,
+        finish_reason
       };
     }
   })();
@@ -484,7 +503,8 @@ export const runToolWithFunctionCall = async (
         completeMessages,
         assistantResponses: toolNodeAssistants,
         runTimes,
-        toolWorkflowInteractiveResponse
+        toolWorkflowInteractiveResponse,
+        finish_reason
       };
     }
 
@@ -498,7 +518,8 @@ export const runToolWithFunctionCall = async (
         toolNodeInputTokens,
         toolNodeOutputTokens,
         assistantResponses: toolNodeAssistants,
-        runTimes
+        runTimes,
+        finish_reason
       }
     );
   } else {
@@ -526,7 +547,8 @@ export const runToolWithFunctionCall = async (
         : outputTokens,
       completeMessages,
       assistantResponses: [...assistantResponses, ...toolNodeAssistant.value],
-      runTimes: (response?.runTimes || 0) + 1
+      runTimes: (response?.runTimes || 0) + 1,
+      finish_reason
     };
   }
 };
@@ -549,28 +571,25 @@ async function streamResponse({
     readStream: stream
   });
 
-  let textAnswer = '';
   let functionCalls: ChatCompletionMessageFunctionCall[] = [];
   let functionId = getNanoid();
-  let usage = getLLMDefaultUsage();
 
-  const { parsePart } = parseLLMStreamResponse();
+  const { parsePart, getResponseData, updateFinishReason } = parseLLMStreamResponse();
 
   for await (const part of stream) {
-    usage = part.usage || usage;
     if (res.closed) {
       stream.controller?.abort();
+      updateFinishReason('close');
       break;
     }
 
-    const { content: toolChoiceContent, responseContent } = parsePart({
+    const { responseContent } = parsePart({
       part,
       parseThinkTag: false,
       retainDatasetCite
     });
 
     const responseChoice = part.choices?.[0]?.delta;
-    textAnswer += toolChoiceContent;
 
     if (responseContent) {
       workflowStreamResponse?.({
@@ -580,7 +599,7 @@ async function streamResponse({
           text: responseContent
         })
       });
-    } else if (responseChoice.function_call) {
+    } else if (responseChoice?.function_call) {
       const functionCall: {
         arguments?: string;
         name?: string;
@@ -643,5 +662,7 @@ async function streamResponse({
     }
   }
 
-  return { answer: textAnswer, functionCalls, usage };
+  const { content, finish_reason, usage } = getResponseData();
+
+  return { answer: content, functionCalls, finish_reason, usage };
 }

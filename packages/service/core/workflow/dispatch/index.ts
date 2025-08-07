@@ -3,7 +3,7 @@ import {
   DispatchNodeResponseKeyEnum,
   SseResponseEventEnum
 } from '@fastgpt/global/core/workflow/runtime/constants';
-import { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
+import type { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import type {
   ChatDispatchProps,
   DispatchNodeResultType,
@@ -223,6 +223,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
         interactiveResponse: InteractiveNodeResponseType;
       }
     | undefined;
+  let system_memories: Record<string, any> = {}; // Workflow node memories
 
   /* Store special response field  */
   function pushStore(
@@ -235,7 +236,8 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       toolResponses,
       assistantResponses,
       rewriteHistories,
-      runTimes = 1
+      runTimes = 1,
+      system_memories: newMemories
     }: Omit<
       DispatchNodeResultType<{
         [NodeOutputKeyEnum.answerText]?: string;
@@ -248,6 +250,13 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     // Add run times
     workflowRunTimes += runTimes;
     props.maxRunTimes -= runTimes;
+
+    if (newMemories) {
+      system_memories = {
+        ...system_memories,
+        ...newMemories
+      };
+    }
 
     if (responseData) {
       chatResponses.push(responseData);
@@ -549,7 +558,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       // Skip some special key
       if (
         [NodeInputKeyEnum.childrenNodeIdList, NodeInputKeyEnum.httpJsonBody].includes(
-          input.key as any
+          input.key as NodeInputKeyEnum
         )
       ) {
         params[input.key] = input.value;
@@ -771,7 +780,12 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       [DispatchNodeResponseKeyEnum.assistantResponses]:
         mergeAssistantResponseAnswerText(chatAssistantResponse),
       [DispatchNodeResponseKeyEnum.toolResponses]: toolRunResponse,
-      newVariables: removeSystemVariable(variables, externalProvider.externalWorkflowVariables),
+      [DispatchNodeResponseKeyEnum.newVariables]: removeSystemVariable(
+        variables,
+        externalProvider.externalWorkflowVariables
+      ),
+      [DispatchNodeResponseKeyEnum.memories]:
+        Object.keys(system_memories).length > 0 ? system_memories : undefined,
       durationSeconds
     };
   } catch (error) {

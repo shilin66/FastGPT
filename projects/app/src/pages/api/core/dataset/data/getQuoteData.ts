@@ -1,18 +1,21 @@
 import { NextAPI } from '@/service/middleware/entry';
-import { DatasetCollectionSchemaType } from '@fastgpt/global/core/dataset/type';
+import { type DatasetCollectionSchemaType } from '@fastgpt/global/core/dataset/type';
 import { authChatCrud, authCollectionInChat } from '@/service/support/permission/auth/chat';
 import { MongoDatasetData } from '@fastgpt/service/core/dataset/data/schema';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { authDatasetData } from '@fastgpt/service/support/permission/dataset/auth';
-import { OutLinkChatAuthProps } from '@fastgpt/global/support/permission/chat';
-import { ApiRequestProps } from '@fastgpt/service/type/next';
+import { type OutLinkChatAuthProps } from '@fastgpt/global/support/permission/chat';
+import { type ApiRequestProps } from '@fastgpt/service/type/next';
 import { MongoDatasetCollection } from '@fastgpt/service/core/dataset/collection/schema';
 import { ChatErrEnum } from '@fastgpt/global/common/error/code/chat';
+import { i18nT } from '@fastgpt/web/i18n/utils';
+import { formatDatasetDataValue } from '@fastgpt/service/core/dataset/data/controller';
+import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 
 export type GetQuoteDataResponse = {
   collection: DatasetCollectionSchemaType;
   q: string;
-  a: string;
+  a?: string;
 };
 
 export type GetQuoteDataProps =
@@ -46,8 +49,13 @@ async function handler(req: ApiRequestProps<GetQuoteDataProps>): Promise<GetQuot
 
       const datasetData = await MongoDatasetData.findById(dataId);
       if (!datasetData) {
-        return Promise.reject('Can not find the data');
+        return Promise.reject(i18nT('common:data_not_found'));
       }
+
+      const summaryIndex = datasetData.indexes.find(
+        (item) => item.type === DatasetDataIndexTypeEnum.summary
+      );
+      const summary = summaryIndex ? summaryIndex.text : '';
 
       const [collection, { responseDetail }] = await Promise.all([
         MongoDatasetCollection.findById(datasetData.collectionId).lean(),
@@ -77,8 +85,14 @@ async function handler(req: ApiRequestProps<GetQuoteDataProps>): Promise<GetQuot
 
       return {
         collection,
-        q: datasetData.q,
-        a: datasetData.a
+        ...formatDatasetDataValue({
+          teamId: datasetData.teamId,
+          datasetId: datasetData.datasetId,
+          q: datasetData.q,
+          a: datasetData.a,
+          summary,
+          imageId: datasetData.imageId
+        })
       };
     } else {
       const { datasetData, collection } = await authDatasetData({
@@ -88,10 +102,20 @@ async function handler(req: ApiRequestProps<GetQuoteDataProps>): Promise<GetQuot
         dataId,
         per: ReadPermissionVal
       });
+      const summaryIndex = datasetData.indexes.find(
+        (item) => item.type === DatasetDataIndexTypeEnum.summary
+      );
+      const summary = summaryIndex ? summaryIndex.text : '';
       return {
         collection,
-        q: datasetData.q,
-        a: datasetData.a
+        ...formatDatasetDataValue({
+          teamId: datasetData.teamId,
+          datasetId: datasetData.datasetId,
+          q: datasetData.q,
+          a: datasetData.a,
+          summary,
+          imageId: datasetData.imageId
+        })
       };
     }
   })();

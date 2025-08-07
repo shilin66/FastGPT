@@ -11,7 +11,7 @@ import axios from 'axios';
 import { ChatCompletionRequestMessageRoleEnum } from '@fastgpt/global/core/ai/constants';
 import { i18nT } from '../../../web/i18n/utils';
 import { addLog } from '../../common/system/log';
-import { addEndpointToImageUrl, getImageBase64 } from '../../common/file/image/utils';
+import { getImageBase64 } from '../../common/file/image/utils';
 
 export const filterGPTMessageByMaxContext = async ({
   messages = [],
@@ -65,8 +65,8 @@ export const filterGPTMessageByMaxContext = async ({
     if (lastMessage.role === ChatCompletionRequestMessageRoleEnum.User) {
       const tokens = await countGptMessagesTokens([lastMessage, ...tmpChats]);
       maxContext -= tokens;
-      // 该轮信息整体 tokens 超出范围，这段数据不要了
-      if (maxContext < 0) {
+      // 该轮信息整体 tokens 超出范围，这段数据不要了。但是至少保证一组。
+      if (maxContext < 0 && chats.length > 0) {
         break;
       }
 
@@ -100,13 +100,14 @@ export const loadRequestMessages = async ({
   ): string | ChatCompletionContentPartText[] | undefined => {
     if (typeof content === 'string') {
       if (!content) return;
-      return addEndpointToImageUrl(content);
+      return content;
     }
 
     const arrayContent = content
       .filter((item) => item.text)
-      .map((item) => ({ ...item, text: addEndpointToImageUrl(item.text) }));
-    if (arrayContent.length === 0) return;
+      .map((item) => item.text)
+      .join('\n');
+
     return arrayContent;
   };
   // Parse user content(text and img) Store history => api messages

@@ -1,5 +1,7 @@
+import { isTestEnv } from '@fastgpt/global/common/system/constants';
 import { addLog } from '../../common/system/log';
-import mongoose, { Model, Mongoose } from 'mongoose';
+import type { Model } from 'mongoose';
+import mongoose, { Mongoose } from 'mongoose';
 
 export default mongoose;
 export * from 'mongoose';
@@ -69,7 +71,7 @@ const addCommonMiddleware = (schema: mongoose.Schema) => {
 
 export const getMongoModel = <T>(name: string, schema: mongoose.Schema) => {
   if (connectionMongo.models[name]) return connectionMongo.models[name] as Model<T>;
-  if (process.env.NODE_ENV !== 'test') console.log('Load model======', name);
+  if (!isTestEnv) console.log('Load model======', name);
   addCommonMiddleware(schema);
 
   const model = connectionMongo.model<T>(name, schema);

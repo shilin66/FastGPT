@@ -14,13 +14,13 @@ import {
   Input,
   ModalFooter,
   Button,
-  ButtonProps
+  type ButtonProps
 } from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   ModelProviderList,
-  ModelProviderIdType,
+  type ModelProviderIdType,
   getModelProvider
 } from '@fastgpt/global/core/ai/provider';
 import MySelect from '@fastgpt/web/components/common/MySelect';
@@ -28,7 +28,7 @@ import { ModelTypeEnum } from '@fastgpt/global/core/ai/model';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import { getSystemModelDefaultConfig, putSystemModel } from '@/web/core/ai/config';
-import { SystemModelItemType } from '@fastgpt/service/core/ai/type';
+import { type SystemModelItemType } from '@fastgpt/service/core/ai/type';
 import { useForm } from 'react-hook-form';
 import MyNumberInput from '@fastgpt/web/components/common/Input/NumberInput';
 import MyTextarea from '@/components/common/Textarea/MyTextarea';
@@ -38,7 +38,6 @@ import { useSystemStore } from '@/web/common/system/useSystemStore';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
-import { getCQPrompt, getExtractJsonPrompt } from '@fastgpt/global/core/ai/prompt/agent';
 
 export const AddModelButton = ({
   onCreate,
@@ -153,7 +152,7 @@ export const ModelEditModal = ({
       onSuccess: () => {
         onClose();
       },
-      successToast: t('common:common.Success')
+      successToast: t('common:Success')
     }
   );
 
@@ -171,6 +170,36 @@ export const ModelEditModal = ({
         }, 0);
       }
     }
+  );
+
+  const CustomApi = useMemo(
+    () => (
+      <>
+        <Tr>
+          <Td>
+            <HStack spacing={1}>
+              <Box>{t('account:model.request_url')}</Box>
+              <QuestionTip label={t('account:model.request_url_tip')} />
+            </HStack>
+          </Td>
+          <Td textAlign={'right'}>
+            <Input {...register('requestUrl')} {...InputStyles} />
+          </Td>
+        </Tr>
+        <Tr>
+          <Td>
+            <HStack spacing={1}>
+              <Box>{t('account:model.request_auth')}</Box>
+              <QuestionTip label={t('account:model.request_auth_tip')} />
+            </HStack>
+          </Td>
+          <Td textAlign={'right'}>
+            <Input {...register('requestAuth')} {...InputStyles} />
+          </Td>
+        </Tr>
+      </>
+    ),
+    []
   );
 
   return (
@@ -437,6 +466,18 @@ export const ModelEditModal = ({
                     <Tr>
                       <Td>
                         <HStack spacing={1}>
+                          <Box>{t('account:model.ai_search')}</Box>
+                        </HStack>
+                      </Td>
+                      <Td textAlign={'right'}>
+                        <Flex justifyContent={'flex-end'}>
+                          <Switch {...register('aiSearch')} />
+                        </Flex>
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td>
+                        <HStack spacing={1}>
                           <Box>{t('account:model.normalization')}</Box>
                           <QuestionTip label={t('account:model.normalization_tip')} />
                         </HStack>
@@ -534,28 +575,7 @@ export const ModelEditModal = ({
                     </Tr>
                   </>
                 )}
-                <Tr>
-                  <Td>
-                    <HStack spacing={1}>
-                      <Box>{t('account:model.request_url')}</Box>
-                      <QuestionTip label={t('account:model.request_url_tip')} />
-                    </HStack>
-                  </Td>
-                  <Td textAlign={'right'}>
-                    <Input {...register('requestUrl')} {...InputStyles} />
-                  </Td>
-                </Tr>
-                <Tr>
-                  <Td>
-                    <HStack spacing={1}>
-                      <Box>{t('account:model.request_auth')}</Box>
-                      <QuestionTip label={t('account:model.request_auth_tip')} />
-                    </HStack>
-                  </Td>
-                  <Td textAlign={'right'}>
-                    <Input {...register('requestAuth')} {...InputStyles} />
-                  </Td>
-                </Tr>
+                {!isLLMModel && CustomApi}
               </Tbody>
             </Table>
           </TableContainer>
@@ -694,36 +714,6 @@ export const ModelEditModal = ({
                   <Tr>
                     <Td>
                       <HStack spacing={1}>
-                        <Box>{t('account:model.custom_cq_prompt')}</Box>
-                        <QuestionTip
-                          label={t('account:model.custom_cq_prompt_tip', {
-                            prompt: getCQPrompt()
-                          })}
-                        />
-                      </HStack>
-                    </Td>
-                    <Td textAlign={'right'}>
-                      <MyTextarea {...register('customCQPrompt')} {...InputStyles} />
-                    </Td>
-                  </Tr>
-                  <Tr>
-                    <Td>
-                      <HStack spacing={1}>
-                        <Box>{t('account:model.custom_extract_prompt')}</Box>
-                        <QuestionTip
-                          label={t('account:model.custom_extract_prompt_tip', {
-                            prompt: getExtractJsonPrompt()
-                          })}
-                        />
-                      </HStack>
-                    </Td>
-                    <Td textAlign={'right'}>
-                      <MyTextarea {...register('customExtractPrompt')} {...InputStyles} />
-                    </Td>
-                  </Tr>
-                  <Tr>
-                    <Td>
-                      <HStack spacing={1}>
                         <Box>{t('account:model.default_config')}</Box>
                         <QuestionTip label={t('account:model.default_config_tip')} />
                       </HStack>
@@ -748,6 +738,7 @@ export const ModelEditModal = ({
                       />
                     </Td>
                   </Tr>
+                  {CustomApi}
                 </Tbody>
               </Table>
             </TableContainer>
@@ -766,10 +757,10 @@ export const ModelEditModal = ({
           </Button>
         )}
         <Button variant={'whiteBase'} mr={4} onClick={onClose}>
-          {t('common:common.Cancel')}
+          {t('common:Cancel')}
         </Button>
         <Button isLoading={updatingModel} onClick={handleSubmit(updateModel)}>
-          {t('common:common.Confirm')}
+          {t('common:Confirm')}
         </Button>
       </ModalFooter>
     </MyModal>

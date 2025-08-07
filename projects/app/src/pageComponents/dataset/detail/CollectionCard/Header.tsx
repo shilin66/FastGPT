@@ -17,7 +17,8 @@ import {
   DatasetCollectionTypeEnum,
   DatasetTypeEnum,
   DatasetTypeMap,
-  DatasetStatusEnum
+  DatasetStatusEnum,
+  ApiDatasetTypeMap
 } from '@fastgpt/global/core/dataset/constants';
 import EditFolderModal, { useEditFolder } from '../../EditFolderModal';
 import { TabEnum } from '../../../../pages/dataset/detail/index';
@@ -36,6 +37,8 @@ import MyTag from '@fastgpt/web/components/common/Tag/index';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 
 const FileSourceSelector = dynamic(() => import('../Import/components/FileSourceSelector'));
+const BackupImportModal = dynamic(() => import('./BackupImportModal'));
+const TemplateImportModal = dynamic(() => import('./TemplateImportModal'));
 
 const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
   const { t } = useTranslation();
@@ -77,6 +80,18 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
     onOpen: onOpenFileSourceSelector,
     onClose: onCloseFileSourceSelector
   } = useDisclosure();
+  // Backup import modal
+  const {
+    isOpen: isOpenBackupImportModal,
+    onOpen: onOpenBackupImportModal,
+    onClose: onCloseBackupImportModal
+  } = useDisclosure();
+  // Template import modal
+  const {
+    isOpen: isOpenTemplateImportModal,
+    onOpen: onOpenTemplateImportModal,
+    onClose: onCloseTemplateImportModal
+  } = useDisclosure();
 
   const { runAsync: onCreateCollection } = useRequest2(
     async ({ name, type }: { name: string; type: DatasetCollectionTypeEnum }) => {
@@ -92,8 +107,8 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
       onSuccess() {
         getData(pageNum);
       },
-      successToast: t('common:common.Create Success'),
-      errorToast: t('common:common.Create Failed')
+      successToast: t('common:create_success'),
+      errorToast: t('common:create_failed')
     }
   );
 
@@ -158,7 +173,7 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
             flex={1}
             size={'sm'}
             h={'36px'}
-            placeholder={t('common:common.Search') || ''}
+            placeholder={t('common:Search') || ''}
             value={searchText}
             leftIcon={
               <MyIcon
@@ -232,8 +247,38 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
                     {
                       label: (
                         <Flex>
+                          <MyIcon name={'core/dataset/fileCollection'} mr={2} w={'20px'} />
+                          {t('common:core.dataset.Text collection')}
+                        </Flex>
+                      ),
+                      onClick: onOpenFileSourceSelector
+                    },
+                    ...(feConfigs?.isPlus
+                      ? [
+                          {
+                            label: (
+                              <Flex>
+                                <MyIcon name={'image'} mr={2} w={'20px'} />
+                                {t('dataset:core.dataset.Image collection')}
+                              </Flex>
+                            ),
+                            onClick: () =>
+                              router.replace({
+                                query: {
+                                  ...router.query,
+                                  currentTab: TabEnum.import,
+                                  source: ImportDataSourceEnum.imageDataset
+                                }
+                              })
+                          }
+                        ]
+                      : []),
+
+                    {
+                      label: (
+                        <Flex>
                           <MyIcon name={'core/dataset/manualCollection'} mr={2} w={'20px'} />
-                          {t('common:core.dataset.Manual collection')}
+                          {t('dataset:empty_collection')}
                         </Flex>
                       ),
                       onClick: () => {
@@ -243,31 +288,28 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
                             onCreateCollection({ name, type: DatasetCollectionTypeEnum.virtual })
                         });
                       }
+                    }
+                  ]
+                },
+                {
+                  children: [
+                    {
+                      label: (
+                        <Flex>
+                          <MyIcon name={'common/layer'} w={'20px'} mr={2} />
+                          {t('dataset:template_dataset')}
+                        </Flex>
+                      ),
+                      onClick: onOpenTemplateImportModal
                     },
                     {
                       label: (
                         <Flex>
-                          <MyIcon name={'core/dataset/fileCollection'} mr={2} w={'20px'} />
-                          {t('common:core.dataset.Text collection')}
+                          <MyIcon name={'backup'} mr={2} w={'20px'} />
+                          {t('dataset:backup_dataset')}
                         </Flex>
                       ),
-                      onClick: onOpenFileSourceSelector
-                    },
-                    {
-                      label: (
-                        <Flex>
-                          <MyIcon name={'core/dataset/tableCollection'} mr={2} w={'20px'} />
-                          {t('common:core.dataset.Table collection')}
-                        </Flex>
-                      ),
-                      onClick: () =>
-                        router.replace({
-                          query: {
-                            ...router.query,
-                            currentTab: TabEnum.import,
-                            source: ImportDataSourceEnum.csvTable
-                          }
-                        })
+                      onClick: onOpenBackupImportModal
                     }
                   ]
                 }
@@ -483,9 +525,7 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
             />
           )}
           {/* apiDataset */}
-          {(datasetDetail?.type === DatasetTypeEnum.apiDataset ||
-            datasetDetail?.type === DatasetTypeEnum.feishu ||
-            datasetDetail?.type === DatasetTypeEnum.yuque) && (
+          {datasetDetail?.type && ApiDatasetTypeMap[datasetDetail.type] && (
             <Flex
               px={3.5}
               py={2}
@@ -541,8 +581,27 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
           name={editFolderData.name}
         />
       )}
-      <EditCreateVirtualFileModal iconSrc={'modal/manualDataset'} closeBtnText={''} />
+      <EditCreateVirtualFileModal
+        iconSrc={'modal/manualDataset'}
+        closeBtnText={t('common:Cancel')}
+      />
       {isOpenFileSourceSelector && <FileSourceSelector onClose={onCloseFileSourceSelector} />}
+      {isOpenBackupImportModal && (
+        <BackupImportModal
+          onFinish={() => {
+            getData(1);
+          }}
+          onClose={onCloseBackupImportModal}
+        />
+      )}
+      {isOpenTemplateImportModal && (
+        <TemplateImportModal
+          onFinish={() => {
+            getData(1);
+          }}
+          onClose={onCloseTemplateImportModal}
+        />
+      )}
     </MyBox>
   );
 };

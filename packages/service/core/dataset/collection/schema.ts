@@ -1,6 +1,6 @@
 import { connectionMongo, getMongoModel } from '../../../common/mongo';
 const { Schema } = connectionMongo;
-import { DatasetCollectionSchemaType } from '@fastgpt/global/core/dataset/type.d';
+import { type DatasetCollectionSchemaType } from '@fastgpt/global/core/dataset/type.d';
 import { DatasetCollectionTypeMap } from '@fastgpt/global/core/dataset/constants';
 import { ChunkSettings, DatasetCollectionName } from '../schema';
 import {
@@ -142,6 +142,12 @@ try {
       }
     }
   );
+
+  // Clear invalid image
+  DatasetCollectionSchema.index({
+    teamId: 1,
+    'metadata.relatedImgId': 1
+  });
 } catch (error) {
   console.log(error);
 }

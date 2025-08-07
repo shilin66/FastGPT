@@ -5,8 +5,11 @@ export enum TimerIdEnum {
   clearExpiredSubPlan = 'clearExpiredSubPlan',
   updateStandardPlan = 'updateStandardPlan',
   scheduleTriggerApp = 'scheduleTriggerApp',
-  scheduleSyncConfluenceDataset = 'scheduleSyncConfluenceDataset',
   notification = 'notification',
+
+  clearExpiredRawTextBuffer = 'clearExpiredRawTextBuffer',
+  clearExpiredDatasetImage = 'clearExpiredDatasetImage',
+  scheduleSyncConfluenceDataset = 'scheduleSyncConfluenceDataset',
   scheduleSyncConfluenceDatasetCron = 'scheduleSyncConfluenceDatasetCron'
 }
 

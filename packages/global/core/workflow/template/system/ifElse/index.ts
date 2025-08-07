@@ -10,7 +10,7 @@ import {
   FlowNodeOutputTypeEnum,
   FlowNodeTypeEnum
 } from '../../../node/constant';
-import { FlowNodeTemplateType } from '../../../type/node';
+import { type FlowNodeTemplateType } from '../../../type/node';
 import { getHandleConfig } from '../../utils';
 
 export const IfElseNode: FlowNodeTemplateType = {
@@ -24,7 +24,6 @@ export const IfElseNode: FlowNodeTemplateType = {
   intro: i18nT('workflow:execute_different_branches_based_on_conditions'),
   showStatus: true,
   courseUrl: '/docs/guide/dashboard/workflow/tfswitch/',
-  version: '481',
   inputs: [
     {
       key: NodeInputKeyEnum.ifElseList,
@@ -38,7 +37,8 @@ export const IfElseNode: FlowNodeTemplateType = {
             {
               variable: undefined,
               condition: undefined,
-              value: undefined
+              value: undefined,
+              valueType: 'input'
             }
           ]
         }

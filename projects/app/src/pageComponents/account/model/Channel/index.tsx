@@ -24,7 +24,7 @@ import { useTranslation } from 'next-i18next';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import MyIconButton from '@fastgpt/web/components/common/Icon/button';
 import { useUserStore } from '@/web/support/user/useUserStore';
-import { ChannelInfoType } from '@/global/aiproxy/type';
+import { type ChannelInfoType } from '@/global/aiproxy/type';
 import MyTag from '@fastgpt/web/components/common/Tag/index';
 import {
   aiproxyIdMap,
@@ -137,7 +137,10 @@ const ChannelTable = ({ Tab }: { Tab: React.ReactNode }) => {
                     <Td>{item.name}</Td>
                     <Td>
                       <HStack>
-                        <MyIcon name={provider?.avatar as any} w={'1rem'} />
+                        <MyIcon
+                          name={(providerData?.avatar || provider?.avatar) as any}
+                          w={'1rem'}
+                        />
                         <Box>{t(providerData?.label as any)}</Box>
                       </HStack>
                     </Td>
@@ -215,7 +218,7 @@ const ChannelTable = ({ Tab }: { Tab: React.ReactNode }) => {
                               {
                                 type: 'danger',
                                 icon: 'delete',
-                                label: t('common:common.Delete'),
+                                label: t('common:Delete'),
                                 onClick: () =>
                                   openConfirm(
                                     () => onDeleteChannel(item.id),

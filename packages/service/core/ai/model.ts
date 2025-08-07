@@ -1,5 +1,5 @@
 import { cloneDeep } from 'lodash';
-import { SystemModelItemType } from './type';
+import { type SystemModelItemType } from './type';
 
 export const getDefaultLLMModel = () => global?.systemDefaultModel.llm!;
 export const getLLMModel = (model?: string) => {
@@ -18,6 +18,10 @@ export const getVlmModel = (model?: string) => {
   return Array.from(global.llmModelMap.values())
     ?.filter((item) => item.vision)
     ?.find((item) => item.model === model || item.name === model);
+};
+
+export const getVlmModelList = () => {
+  return Array.from(global.llmModelMap.values())?.filter((item) => item.vision) || [];
 };
 
 export const getDefaultEmbeddingModel = () => global?.systemDefaultModel.embedding!;

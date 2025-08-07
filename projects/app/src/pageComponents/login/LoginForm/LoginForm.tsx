@@ -1,8 +1,8 @@
-import React, { Dispatch } from 'react';
+import React, { type Dispatch } from 'react';
 import { FormControl, Flex, Input, Button, Box, Link } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { LoginPageTypeEnum } from '@/web/support/user/login/constants';
-import { postLogin } from '@/web/support/user/api';
+import { postLogin, getPreLogin } from '@/web/support/user/api';
 import type { ResLogin } from '@/global/support/api/userRes';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
@@ -33,10 +33,12 @@ const LoginForm = ({ setPageType, loginSuccess }: Props) => {
 
   const { runAsync: onclickLogin, loading: requesting } = useRequest2(
     async ({ username, password }: LoginFormType) => {
+      const { code } = await getPreLogin(username);
       loginSuccess(
         await postLogin({
           username,
-          password
+          password,
+          code
         })
       );
       toast({
@@ -108,33 +110,33 @@ const LoginForm = ({ setPageType, loginSuccess }: Props) => {
             })}
           ></Input>
         </FormControl>
-        {feConfigs?.docUrl && (
-          <Flex
-            alignItems={'center'}
-            mt={7}
-            fontSize={'mini'}
-            color={'myGray.700'}
-            fontWeight={'medium'}
-          >
-            {t('login:policy_tip')}
-            <Link
-              ml={1}
-              href={getDocPath('/docs/agreement/terms/')}
-              target={'_blank'}
-              color={'primary.700'}
-            >
-              {t('login:terms')}
-            </Link>
-            <Box mx={1}>&</Box>
-            <Link
-              href={getDocPath('/docs/agreement/privacy/')}
-              target={'_blank'}
-              color={'primary.700'}
-            >
-              {t('login:privacy')}
-            </Link>
-          </Flex>
-        )}
+        {/*{feConfigs?.docUrl && (*/}
+        {/*  <Flex*/}
+        {/*    alignItems={'center'}*/}
+        {/*    mt={7}*/}
+        {/*    fontSize={'mini'}*/}
+        {/*    color={'myGray.700'}*/}
+        {/*    fontWeight={'medium'}*/}
+        {/*  >*/}
+        {/*    {t('login:policy_tip')}*/}
+        {/*    <Link*/}
+        {/*      ml={1}*/}
+        {/*      href={getDocPath('/docs/agreement/terms/')}*/}
+        {/*      target={'_blank'}*/}
+        {/*      color={'primary.700'}*/}
+        {/*    >*/}
+        {/*      {t('login:terms')}*/}
+        {/*    </Link>*/}
+        {/*    <Box mx={1}>&</Box>*/}
+        {/*    <Link*/}
+        {/*      href={getDocPath('/docs/agreement/privacy/')}*/}
+        {/*      target={'_blank'}*/}
+        {/*      color={'primary.700'}*/}
+        {/*    >*/}
+        {/*      {t('login:privacy')}*/}
+        {/*    </Link>*/}
+        {/*  </Flex>*/}
+        {/*)}*/}
 
         <Button
           type="submit"

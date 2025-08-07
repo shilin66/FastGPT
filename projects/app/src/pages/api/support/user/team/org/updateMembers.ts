@@ -1,6 +1,6 @@
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
-import { putUpdateOrgMembersData } from '@fastgpt/global/support/user/team/org/api';
+import type { putUpdateOrgMembersData } from '@fastgpt/global/support/user/team/org/api';
 import { MongoOrgModel } from '@fastgpt/service/support/permission/org/orgSchema';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';

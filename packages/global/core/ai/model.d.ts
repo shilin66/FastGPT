@@ -1,4 +1,4 @@
-import { ModelTypeEnum } from './model';
+import type { ModelTypeEnum } from './model';
 import type { ModelProviderIdType } from './provider';
 
 type PriceType = {
@@ -53,9 +53,6 @@ export type LLMModelItemType = PriceType &
     functionCallStream: boolean;
     toolChoice: boolean;
     toolChoiceStream: boolean;
-
-    customCQPrompt: string;
-    customExtractPrompt: string;
 
     defaultSystemChatPrompt?: string;
     defaultConfig?: Record<string, any>;

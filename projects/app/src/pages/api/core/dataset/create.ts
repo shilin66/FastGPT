@@ -18,6 +18,9 @@ import { authDataset } from '@fastgpt/service/support/permission/dataset/auth';
 import { checkTeamDatasetLimit } from '@fastgpt/service/support/permission/teamLimit';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import type { ApiRequestProps } from '@fastgpt/service/type/next';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
+import { getI18nDatasetType } from '@fastgpt/service/support/user/audit/util';
 
 export type DatasetCreateQuery = {};
 export type DatasetCreateBody = CreateDatasetParams;
@@ -35,9 +38,7 @@ async function handler(
     vectorModel = getDefaultEmbeddingModel()?.model,
     agentModel = getDatasetModel()?.model,
     vlmModel,
-    apiServer,
-    feishuServer,
-    yuqueServer
+    apiDatasetServer
   } = req.body;
 
   // auth
@@ -83,9 +84,7 @@ async function handler(
           vlmModel,
           avatar,
           type,
-          apiServer,
-          feishuServer,
-          yuqueServer
+          apiDatasetServer
         }
       ],
       { session, ordered: true }
@@ -101,6 +100,18 @@ async function handler(
     tmbId,
     uid: userId
   });
+
+  (async () => {
+    addAuditLog({
+      tmbId,
+      teamId,
+      event: AuditEventEnum.CREATE_DATASET,
+      params: {
+        datasetName: name,
+        datasetType: getI18nDatasetType(type)
+      }
+    });
+  })();
 
   return datasetId;
 }

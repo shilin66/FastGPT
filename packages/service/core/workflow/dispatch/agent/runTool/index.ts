@@ -1,4 +1,4 @@
-import { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
+import { NodeInputKeyEnum, NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import type {
   ChatDispatchProps,
@@ -8,8 +8,8 @@ import type {
 import { getLLMModel } from '../../../../ai/model';
 import { filterToolNodeIdByEdges, getHistories } from '../../utils';
 import { runToolWithToolChoice } from './toolChoice';
-import { DispatchToolModuleProps, ToolNodeItemType } from './type.d';
-import { ChatItemType, UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
+import { type DispatchToolModuleProps, type ToolNodeItemType } from './type.d';
+import { type ChatItemType, type UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
 import { ChatItemValueTypeEnum, ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 import {
   GPTMessages2Chats,
@@ -22,16 +22,19 @@ import { formatModelChars2Points } from '../../../../../support/wallet/usage/uti
 import { getHistoryPreview } from '@fastgpt/global/core/chat/utils';
 import { runToolWithFunctionCall } from './functionCall';
 import { runToolWithPromptCall } from './promptCall';
-import { getNanoid, replaceVariable } from '@fastgpt/global/common/string/tools';
+import { replaceVariable } from '@fastgpt/global/common/string/tools';
 import { getMultiplePrompt, Prompt_Tool_Call } from './constants';
 import { filterToolResponseToPreview } from './utils';
-import { InteractiveNodeResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
+import { type InteractiveNodeResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import { getFileContentFromLinks, getHistoryFileLinks } from '../../tools/readFiles';
 import { parseUrlToFileType } from '@fastgpt/global/common/file/tools';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { ModelTypeEnum } from '@fastgpt/global/core/ai/model';
 import { getDocumentQuotePrompt } from '@fastgpt/global/core/ai/prompt/AIChat';
 import { postTextCensor } from '../../../../chat/postTextCensor';
+import type { FlowNodeInputItemType } from '@fastgpt/global/core/workflow/type/io';
+import type { McpToolDataType } from '@fastgpt/global/core/app/mcpTools/type';
+import type { JSONSchemaInputType } from '@fastgpt/global/core/app/jsonschema';
 
 type Response = DispatchNodeResultType<{
   [NodeOutputKeyEnum.answerText]: string;
@@ -39,14 +42,15 @@ type Response = DispatchNodeResultType<{
 }>;
 
 export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<Response> => {
-  const {
-    node: { nodeId, name, isEntry, version },
+  let {
+    node: { nodeId, name, isEntry, version, inputs },
     runtimeNodes,
     runtimeEdges,
     histories,
     query,
     requestOrigin,
     chatConfig,
+    lastInteractive,
     runningUserInfo,
     externalProvider,
     params: {
@@ -66,6 +70,11 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
 
   props.params.aiChatVision = aiChatVision && toolModel.vision;
   props.params.aiChatReasoning = aiChatReasoning && toolModel.reasoning;
+  const fileUrlInput = inputs.find((item) => item.key === NodeInputKeyEnum.fileUrlList);
+  if (!fileUrlInput || !fileUrlInput.value || fileUrlInput.value.length === 0) {
+    fileLinks = undefined;
+  }
+  console.log(fileLinks, 22);
 
   const toolNodeIds = filterToolNodeIdByEdges({ nodeId, edges: runtimeEdges });
 
@@ -77,26 +86,28 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
     })
     .filter(Boolean)
     .map<ToolNodeItemType>((tool) => {
-      const toolParams = tool?.inputs.filter((input) => !!input.toolDescription) || [];
+      const toolParams: FlowNodeInputItemType[] = [];
+      // Raw json schema(MCP tool)
+      let jsonSchema: JSONSchemaInputType | undefined = undefined;
+      tool?.inputs.forEach((input) => {
+        if (input.toolDescription) {
+          toolParams.push(input);
+        }
+
+        if (input.key === NodeInputKeyEnum.toolData || input.key === 'toolData') {
+          const value = input.value as McpToolDataType;
+          jsonSchema = value.inputSchema;
+        }
+      });
+
       return {
         ...(tool as RuntimeNodeItemType),
-        toolParams
+        toolParams,
+        jsonSchema
       };
     });
 
   // Check interactive entry
-  const interactiveResponse = (() => {
-    const lastHistory = chatHistories[chatHistories.length - 1];
-    if (isEntry && lastHistory?.obj === ChatRoleEnum.AI) {
-      const lastValue = lastHistory.value[lastHistory.value.length - 1];
-      if (
-        lastValue?.type === ChatItemValueTypeEnum.interactive &&
-        lastValue.interactive?.toolParams
-      ) {
-        return lastValue.interactive;
-      }
-    }
-  })();
   props.node.isEntry = false;
   const hasReadFilesTool = toolNodes.some(
     (item) => item.flowNodeType === FlowNodeTypeEnum.readFiles
@@ -153,7 +164,7 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
         })
       }
     ];
-    if (interactiveResponse) {
+    if (lastInteractive && isEntry) {
       return value.slice(0, -2);
     }
     return value;
@@ -183,28 +194,26 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
       reserveId: false
       // reserveTool: !!toolModel.toolChoice
     });
+    const requestParams = {
+      runtimeNodes,
+      runtimeEdges,
+      toolNodes,
+      toolModel,
+      messages: adaptMessages,
+      interactiveEntryToolParams: lastInteractive?.toolParams
+    };
 
     if (toolModel.toolChoice) {
       return runToolWithToolChoice({
         ...props,
-        runtimeNodes,
-        runtimeEdges,
-        toolNodes,
-        toolModel,
-        maxRunToolTimes: 30,
-        messages: adaptMessages,
-        interactiveEntryToolParams: interactiveResponse?.toolParams
+        ...requestParams,
+        maxRunToolTimes: 30
       });
     }
     if (toolModel.functionCall) {
       return runToolWithFunctionCall({
         ...props,
-        runtimeNodes,
-        runtimeEdges,
-        toolNodes,
-        toolModel,
-        messages: adaptMessages,
-        interactiveEntryToolParams: interactiveResponse?.toolParams
+        ...requestParams
       });
     }
 
@@ -229,12 +238,7 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
 
     return runToolWithPromptCall({
       ...props,
-      runtimeNodes,
-      runtimeEdges,
-      toolNodes,
-      toolModel,
-      messages: adaptMessages,
-      interactiveEntryToolParams: interactiveResponse?.toolParams
+      ...requestParams
     });
   })();
 

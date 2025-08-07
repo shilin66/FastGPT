@@ -3,17 +3,18 @@ import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 import type { ChatItemType } from '@fastgpt/global/core/chat/type.d';
 import { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import {
-  RuntimeEdgeItemType,
-  RuntimeNodeItemType,
-  SystemVariablesType
+  type RuntimeEdgeItemType,
+  type RuntimeNodeItemType,
+  type SystemVariablesType
 } from '@fastgpt/global/core/workflow/runtime/type';
 import { responseWrite } from '../../../common/response';
-import { NextApiResponse } from 'next';
+import { type NextApiResponse } from 'next';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
-import { SearchDataResponseItemType } from '@fastgpt/global/core/dataset/type';
+import { type SearchDataResponseItemType } from '@fastgpt/global/core/dataset/type';
 import { getMCPToolRuntimeNode } from '@fastgpt/global/core/app/mcpTools/utils';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
+import type { McpToolSetDataType } from '@fastgpt/global/core/app/mcpTools/type';
 
 export const getWorkflowResponseWrite = ({
   res,
@@ -83,10 +84,12 @@ export const filterToolNodeIdByEdges = ({
 export const getHistories = (history?: ChatItemType[] | number, histories: ChatItemType[] = []) => {
   if (!history) return [];
 
-  const systemHistories = histories.filter((item) => item.obj === ChatRoleEnum.System);
+  const systemHistoryIndex = histories.findIndex((item) => item.obj !== ChatRoleEnum.System);
+  const systemHistories = histories.slice(0, systemHistoryIndex);
+  const chatHistories = histories.slice(systemHistoryIndex);
 
   const filterHistories = (() => {
-    if (typeof history === 'number') return histories.slice(-(history * 2));
+    if (typeof history === 'number') return chatHistories.slice(-(history * 2));
     if (Array.isArray(history)) return history;
     return [];
   })();
@@ -161,14 +164,23 @@ export const rewriteRuntimeWorkFlow = (
 
   for (const toolSetNode of toolSetNodes) {
     nodeIdsToRemove.add(toolSetNode.nodeId);
-    const toolList =
-      toolSetNode.inputs.find((input) => input.key === 'toolSetData')?.value?.toolList || [];
-    const url = toolSetNode.inputs.find((input) => input.key === 'toolSetData')?.value?.url;
+    const toolSetValue = toolSetNode.inputs[0]?.value as McpToolSetDataType | undefined;
+
+    if (!toolSetValue) continue;
+
+    const toolList = toolSetValue.toolList;
+    const url = toolSetValue.url;
+    const headerSecret = toolSetValue.headerSecret;
 
     const incomingEdges = edges.filter((edge) => edge.target === toolSetNode.nodeId);
 
     for (const tool of toolList) {
-      const newToolNode = getMCPToolRuntimeNode({ avatar: toolSetNode.avatar, tool, url });
+      const newToolNode = getMCPToolRuntimeNode({
+        avatar: toolSetNode.avatar,
+        tool,
+        url,
+        headerSecret
+      });
 
       nodes.push({ ...newToolNode, name: `${toolSetNode.name} / ${tool.name}` });
 

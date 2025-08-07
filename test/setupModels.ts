@@ -1,5 +1,5 @@
 import { ModelTypeEnum } from 'packages/global/core/ai/model';
-import { ModelProviderIdType } from 'packages/global/core/ai/provider';
+import type { ModelProviderIdType } from 'packages/global/core/ai/provider';
 
 export default async function setupModels() {
   global.llmModelMap = new Map<string, any>();
@@ -14,8 +14,6 @@ export default async function setupModels() {
     isCustom: false,
     requestUrl: undefined,
     requestAuth: undefined,
-    customCQPrompt: '',
-    customExtractPrompt: '',
     defaultSystemChatPrompt: undefined,
     fieldMap: undefined,
     defaultConfig: undefined,
@@ -37,8 +35,6 @@ export default async function setupModels() {
       isCustom: false,
       requestUrl: undefined,
       requestAuth: undefined,
-      customCQPrompt: '',
-      customExtractPrompt: '',
       defaultSystemChatPrompt: undefined,
       fieldMap: undefined,
       defaultConfig: undefined,

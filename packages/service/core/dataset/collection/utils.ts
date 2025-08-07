@@ -1,11 +1,10 @@
 import { MongoDatasetCollection } from './schema';
-import { ClientSession } from '../../../common/mongo';
+import type { ClientSession } from '../../../common/mongo';
 import { MongoDatasetCollectionTags } from '../tag/schema';
 import { readFromSecondary } from '../../../common/mongo/utils';
-import {
-  CollectionWithDatasetType,
-  DatasetCollectionSchemaType
-} from '@fastgpt/global/core/dataset/type';
+import type { CollectionWithDatasetType } from '@fastgpt/global/core/dataset/type';
+import type { DatasetCollectionSchemaType } from '@fastgpt/global/core/dataset/type';
+import { type DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import {
   DatasetCollectionDataProcessModeEnum,
   DatasetCollectionSyncResultEnum,
@@ -17,14 +16,19 @@ import { DatasetErrEnum } from '@fastgpt/global/common/error/code/dataset';
 import { rawText2Chunks, readDatasetSourceRawText } from '../read';
 import { hashStr } from '@fastgpt/global/common/string/tools';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
+import type { CreateOneCollectionParams } from './controller';
 import { createCollectionAndInsertData, delCollection } from './controller';
 import { collectionCanSync } from '@fastgpt/global/core/dataset/collection/utils';
-import { PushDatasetDataResponse } from '@fastgpt/global/core/dataset/api';
+import type { PushDatasetDataResponse } from '@fastgpt/global/core/dataset/api';
 import { pushDataListToTrainingQueue } from '../training/controller';
 import { createTrainingUsage } from '../../../support/wallet/usage/controller';
 import { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
 import { getEmbeddingModel, getLLMModel, getVlmModel } from '../../ai/model';
-import { getLLMMaxChunkSize } from '@fastgpt/global/core/dataset/training/utils';
+import {
+  computedCollectionChunkSettings,
+  getLLMMaxChunkSize
+} from '@fastgpt/global/core/dataset/training/utils';
+import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 
 /**
  * get all collection by top collectionId
@@ -74,27 +78,86 @@ export function getCollectionUpdateTime({ name, time }: { time?: Date; name: str
   return new Date();
 }
 export const reloadConfluencePageCollectionChunks = async ({
+  dataset,
   collection,
   tmbId,
   rawText,
-  title,
+  collectionId,
   session
 }: {
-  collection: CollectionWithDatasetType;
+  dataset: DatasetSchemaType;
+  collection: CreateOneCollectionParams;
   tmbId: string;
   rawText: string;
-  title: string;
+  collectionId: string;
   session: ClientSession;
 }): Promise<PushDatasetDataResponse> => {
-  // split data
-  const chunks = rawText2Chunks({
-    rawText,
-    chunkSize: collection.chunkSize || 512,
-    maxSize: getLLMMaxChunkSize(getLLMModel(collection.dataset.agentModel)),
-    overlapRatio: collection.trainingType === DatasetCollectionDataProcessModeEnum.chunk ? 0.2 : 0,
-    customReg: collection.chunkSplitter ? [collection.chunkSplitter] : [],
-    isQAImport: false
+  const formatCreateCollectionParams = computedCollectionChunkSettings({
+    ...collection,
+    llmModel: getLLMModel(dataset.agentModel),
+    vectorModel: getEmbeddingModel(dataset.vectorModel)
   });
+
+  const trainingType =
+    formatCreateCollectionParams.trainingType || DatasetCollectionDataProcessModeEnum.chunk;
+  const trainingMode = getTrainingModeByCollection({
+    trainingType: trainingType,
+    autoIndexes: formatCreateCollectionParams.autoIndexes,
+    imageIndex: formatCreateCollectionParams.imageIndex
+  });
+
+  if (trainingType === DatasetCollectionDataProcessModeEnum.qa) {
+    delete formatCreateCollectionParams.chunkTriggerType;
+    delete formatCreateCollectionParams.chunkTriggerMinSize;
+    delete formatCreateCollectionParams.dataEnhanceCollectionName;
+    delete formatCreateCollectionParams.imageIndex;
+    delete formatCreateCollectionParams.autoIndexes;
+  }
+
+  // 1. split chunks or create image chunks
+  const {
+    chunks,
+    chunkSize,
+    indexSize
+  }: {
+    chunks: Array<{
+      q?: string;
+      a?: string; // answer or custom content
+      imageId?: string;
+      indexes?: string[];
+    }>;
+    chunkSize?: number;
+    indexSize?: number;
+  } = await (async () => {
+    if (rawText) {
+      // Process text chunks
+      const chunks = await rawText2Chunks({
+        rawText,
+        chunkTriggerType: formatCreateCollectionParams.chunkTriggerType,
+        chunkTriggerMinSize: formatCreateCollectionParams.chunkTriggerMinSize,
+        chunkSize: formatCreateCollectionParams.chunkSize,
+        paragraphChunkDeep: formatCreateCollectionParams.paragraphChunkDeep,
+        paragraphChunkMinSize: formatCreateCollectionParams.paragraphChunkMinSize,
+        maxSize: getLLMMaxChunkSize(getLLMModel(dataset.agentModel)),
+        overlapRatio: trainingType === DatasetCollectionDataProcessModeEnum.chunk ? 0.2 : 0,
+        customReg: formatCreateCollectionParams.chunkSplitter
+          ? [formatCreateCollectionParams.chunkSplitter]
+          : [],
+        backupParse: false
+      });
+      return {
+        chunks,
+        chunkSize: formatCreateCollectionParams.chunkSize,
+        indexSize: formatCreateCollectionParams.indexSize
+      };
+    }
+
+    return {
+      chunks: [],
+      chunkSize: formatCreateCollectionParams.chunkSize,
+      indexSize: formatCreateCollectionParams.indexSize
+    };
+  })();
 
   // 4. create training bill
   const traingBillId = await (async () => {
@@ -104,9 +167,9 @@ export const reloadConfluencePageCollectionChunks = async ({
       tmbId,
       appName: collection.name,
       billSource: UsageSourceEnum.training,
-      vectorModel: getEmbeddingModel(collection.dataset.vectorModel)?.name,
-      agentModel: getLLMModel(collection.dataset.agentModel)?.name,
-      vllmModel: getVlmModel(collection.dataset.vlmModel)?.name,
+      vectorModel: getEmbeddingModel(dataset.vectorModel)?.name,
+      agentModel: getLLMModel(dataset.agentModel)?.name,
+      vllmModel: getVlmModel(dataset.vlmModel)?.name,
       session
     });
     return newBillId;
@@ -114,22 +177,21 @@ export const reloadConfluencePageCollectionChunks = async ({
 
   // 5. insert to training queue
   const insertResults = await pushDataListToTrainingQueue({
-    teamId: collection.teamId,
+    teamId: formatCreateCollectionParams.teamId,
     tmbId,
-    datasetId: collection.dataset._id,
-    collectionId: collection._id,
-    agentModel: collection.dataset.agentModel,
-    vectorModel: collection.dataset.vectorModel,
-    vlmModel: collection.dataset.vlmModel,
-    mode: getTrainingModeByCollection({
-      trainingType: collection.trainingType || DatasetCollectionDataProcessModeEnum.chunk,
-      autoIndexes: collection.autoIndexes,
-      imageIndex: collection.imageIndex
-    }),
-    prompt: collection.qaPrompt,
+    datasetId: dataset._id,
+    collectionId: collectionId,
+    agentModel: dataset.agentModel,
+    vectorModel: dataset.vectorModel,
+    vlmModel: dataset.vlmModel,
+    mode: trainingMode,
     billId: traingBillId,
     data: chunks.map((item, index) => ({
       ...item,
+      indexes: item.indexes?.map((text) => ({
+        type: DatasetDataIndexTypeEnum.custom,
+        text
+      })),
       chunkIndex: index
     })),
     session
@@ -137,9 +199,9 @@ export const reloadConfluencePageCollectionChunks = async ({
 
   // update raw text
   await MongoDatasetCollection.findByIdAndUpdate(
-    collection._id,
+    collectionId,
     {
-      ...(title && { name: title }),
+      ...(collection.name && { name: collection.name }),
       rawTextLength: rawText.length
     },
     { session }
@@ -240,9 +302,7 @@ export const syncCollection = async (collection: CollectionWithDatasetType) => {
     return {
       type: DatasetSourceReadTypeEnum.apiFile,
       sourceId,
-      apiServer: dataset.apiServer,
-      feishuServer: dataset.feishuServer,
-      yuqueServer: dataset.yuqueServer
+      apiDatasetServer: dataset.apiDatasetServer
     };
   })();
 
@@ -277,31 +337,8 @@ export const syncCollection = async (collection: CollectionWithDatasetType) => {
       dataset,
       rawText: rawText,
       createCollectionParams: {
-        teamId: collection.teamId,
-        tmbId: collection.tmbId,
+        ...collection,
         name: title || collection.name,
-        datasetId: collection.datasetId,
-        parentId: collection.parentId,
-        type: collection.type,
-
-        trainingType: collection.trainingType,
-        chunkSize: collection.chunkSize,
-        chunkSplitter: collection.chunkSplitter,
-        qaPrompt: collection.qaPrompt,
-
-        fileId: collection.fileId,
-        rawLink: collection.rawLink,
-        externalFileId: collection.externalFileId,
-        externalFileUrl: collection.externalFileUrl,
-        apiFileId: collection.apiFileId,
-
-        hashRawText,
-        rawTextLength: rawText.length,
-
-        metadata: collection.metadata,
-
-        tags: collection.tags,
-        createTime: collection.createTime,
         updateTime: new Date()
       }
     });
@@ -314,18 +351,37 @@ export const syncCollection = async (collection: CollectionWithDatasetType) => {
   QA: 独立进程
   Chunk: Image Index -> Auto index -> chunk index
 */
-export const getTrainingModeByCollection = (collection: {
-  trainingType: DatasetCollectionSchemaType['trainingType'];
-  autoIndexes?: DatasetCollectionSchemaType['autoIndexes'];
-  imageIndex?: DatasetCollectionSchemaType['imageIndex'];
+export const getTrainingModeByCollection = ({
+  trainingType,
+  autoIndexes,
+  imageIndex
+}: {
+  trainingType: DatasetCollectionDataProcessModeEnum;
+  autoIndexes?: boolean;
+  imageIndex?: boolean;
 }) => {
-  if (collection.trainingType === DatasetCollectionDataProcessModeEnum.qa) {
+  if (
+    trainingType === DatasetCollectionDataProcessModeEnum.imageParse &&
+    global.feConfigs?.isPlus
+  ) {
+    return TrainingModeEnum.imageParse;
+  }
+
+  if (trainingType === DatasetCollectionDataProcessModeEnum.qa) {
     return TrainingModeEnum.qa;
   }
-  if (collection.imageIndex && global.feConfigs?.isPlus) {
+  if (
+    trainingType === DatasetCollectionDataProcessModeEnum.chunk &&
+    imageIndex &&
+    global.feConfigs?.isPlus
+  ) {
     return TrainingModeEnum.image;
   }
-  if (collection.autoIndexes && global.feConfigs?.isPlus) {
+  if (
+    trainingType === DatasetCollectionDataProcessModeEnum.chunk &&
+    autoIndexes &&
+    global.feConfigs?.isPlus
+  ) {
     return TrainingModeEnum.auto;
   }
   return TrainingModeEnum.chunk;

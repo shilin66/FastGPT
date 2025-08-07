@@ -8,7 +8,7 @@ import { useLoading } from '@fastgpt/web/hooks/useLoading';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useTranslation } from 'next-i18next';
 import PopoverConfirm from '@fastgpt/web/components/common/MyPopover/PopoverConfirm';
-import { FastGPTConfigFileType } from '@fastgpt/global/common/system/types';
+import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { getSystemMsgModalData, updateSystemMsgModalData } from '@/web/support/user/inform/api';
 
@@ -71,7 +71,7 @@ const System = () => {
         setCode(JSON.stringify(res, null, 4));
       });
     },
-    successToast: t('common:common.Update Success'),
+    successToast: t('common:update_success'),
     errorToast: ''
   });
 
@@ -83,7 +83,7 @@ const System = () => {
         setSystemMsg(res.content);
       });
     },
-    successToast: t('common:common.Update Success'),
+    successToast: t('common:update_success'),
     errorToast: ''
   });
 
@@ -114,13 +114,13 @@ const System = () => {
                 <Flex position="absolute" top={8} right={3} zIndex={10} alignItems="center">
                   <PopoverConfirm
                     showCancel
-                    content={t('common:common.Confirm Update')}
+                    content={t('common:confirm_update')}
                     Trigger={
                       <Button
                         size={'sm'}
                         leftIcon={<MyIcon name={'common/saveFill'} w={['14px', '16px']} />}
                       >
-                        {t('common:common.Save')}
+                        {t('common:Save')}
                       </Button>
                     }
                     onConfirm={() => {
@@ -176,13 +176,13 @@ const System = () => {
                 <Flex position="absolute" top={8} right={3} zIndex={10} alignItems="center">
                   <PopoverConfirm
                     showCancel
-                    content={t('common:common.Confirm Update')}
+                    content={t('common:confirm_update')}
                     Trigger={
                       <Button
                         size={'sm'}
                         leftIcon={<MyIcon name={'common/saveFill'} w={['14px', '16px']} />}
                       >
-                        {t('common:common.Save')}
+                        {t('common:Save')}
                       </Button>
                     }
                     onConfirm={() => {

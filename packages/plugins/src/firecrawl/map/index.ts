@@ -1,5 +1,5 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { MapParams } from '@mendable/firecrawl-js/src';
+import type { MapParams } from '@mendable/firecrawl-js/src';
 import { addLog } from '@fastgpt/service/common/system/log';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { hashStr } from '@fastgpt/global/common/string/tools';

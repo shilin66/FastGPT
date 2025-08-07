@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Controller, UseFormReturn } from 'react-hook-form';
+import { Controller, type UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'next-i18next';
 import { Box, Button, Card, Flex, Switch, Textarea } from '@chakra-ui/react';
 import ChatAvatar from './ChatAvatar';
@@ -10,10 +10,10 @@ import {
 } from '@fastgpt/global/core/workflow/constants';
 import MySelect from '@fastgpt/web/components/common/MySelect';
 import MyIcon from '@fastgpt/web/components/common/Icon';
-import { ChatBoxInputFormType } from '../type.d';
+import { type ChatBoxInputFormType } from '../type.d';
 import { useContextSelector } from 'use-context-selector';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
-import { VariableItemType } from '@fastgpt/global/core/app/type';
+import { type VariableItemType } from '@fastgpt/global/core/app/type';
 import MyTextarea from '@/components/common/Textarea/MyTextarea';
 import MyNumberInput from '@fastgpt/web/components/common/Input/NumberInput';
 import { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
@@ -94,7 +94,7 @@ export const VariableInputItem = ({
                 step={1}
                 min={item.min}
                 max={item.max}
-                bg={'white'}
+                inputFieldProps={{ bg: 'white' }}
                 value={value}
                 onChange={onChange}
                 isInvalid={errors?.variables && Object.keys(errors.variables).includes(item.key)}
@@ -250,18 +250,16 @@ const VariableInput = ({
               <ExternalVariableInputItem key={item.id} item={item} variablesForm={variablesForm} />
             ))}
             {variableList.length === 0 && !chatStarted && (
-              <Box>
-                <Button
-                  leftIcon={<MyIcon name={'core/chat/chatFill'} w={'16px'} />}
-                  size={'sm'}
-                  maxW={'100px'}
-                  onClick={handleSubmitChat(() => {
-                    chatForm.setValue('chatStarted', true);
-                  })}
-                >
-                  {t('common:core.chat.Start Chat')}
-                </Button>
-              </Box>
+              <Button
+                leftIcon={<MyIcon name={'core/chat/chatFill'} w={'16px'} />}
+                size={'sm'}
+                maxW={'100px'}
+                onClick={handleSubmitChat(() => {
+                  chatForm.setValue('chatStarted', true);
+                })}
+              >
+                {t('common:core.chat.Start Chat')}
+              </Button>
             )}
           </Card>
         </Box>
@@ -287,7 +285,6 @@ const VariableInput = ({
                   size={'sm'}
                   maxW={'100px'}
                   onClick={handleSubmitChat(() => {
-                    console.log('start chat');
                     chatForm.setValue('chatStarted', true);
                   })}
                 >

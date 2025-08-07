@@ -1,53 +1,49 @@
-import { AppSchema } from '@fastgpt/global/core/app/type';
+import { type AppSchema } from '@fastgpt/global/core/app/type';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
-import { getLLMModel } from '../ai/model';
 import { MongoApp } from './schema';
+import type { StoreNodeItemType } from '@fastgpt/global/core/workflow/type/node';
+import { storeSecretValue } from '../../common/secret/utils';
 
-export const beforeUpdateAppFormat = <T extends AppSchema['modules'] | undefined>({
-  nodes,
-  isPlugin
-}: {
-  nodes: T;
-  isPlugin: boolean;
-}) => {
-  if (nodes) {
-    // Check dataset maxTokens
-    if (isPlugin) {
-      let maxTokens = 16000;
+export const beforeUpdateAppFormat = ({ nodes }: { nodes?: StoreNodeItemType[] }) => {
+  if (!nodes) return;
 
-      nodes.forEach((item) => {
-        if (
-          item.flowNodeType === FlowNodeTypeEnum.chatNode ||
-          item.flowNodeType === FlowNodeTypeEnum.tools
-        ) {
-          const model =
-            item.inputs.find((item) => item.key === NodeInputKeyEnum.aiModel)?.value || '';
-          const chatModel = getLLMModel(model);
-          const quoteMaxToken = chatModel.quoteMaxToken || 16000;
+  nodes.forEach((node) => {
+    // Format header secret
+    node.inputs.forEach((input) => {
+      if (input.key === NodeInputKeyEnum.headerSecret && typeof input.value === 'object') {
+        input.value = storeSecretValue(input.value);
+      }
+    });
 
-          maxTokens = Math.max(maxTokens, quoteMaxToken);
-        }
-      });
-
-      nodes.forEach((item) => {
-        if (item.flowNodeType === FlowNodeTypeEnum.datasetSearchNode) {
-          item.inputs.forEach((input) => {
-            if (input.key === NodeInputKeyEnum.datasetMaxTokens) {
-              const val = input.value as number;
-              if (val > maxTokens) {
-                input.value = maxTokens;
-              }
+    // Format dataset search
+    if (node.flowNodeType === FlowNodeTypeEnum.datasetSearchNode) {
+      node.inputs.forEach((input) => {
+        if (input.key === NodeInputKeyEnum.datasetSelectList) {
+          const val = input.value as undefined | { datasetId: string }[] | { datasetId: string };
+          if (!val) {
+            input.value = [];
+          } else if (Array.isArray(val)) {
+            // Not rewrite reference value
+            if (val.length === 2 && val.every((item) => typeof item === 'string')) {
+              return;
             }
-          });
+            input.value = val
+              .map((dataset: { datasetId: string }) => ({
+                datasetId: dataset.datasetId
+              }))
+              .filter((item) => !!item.datasetId);
+          } else if (typeof val === 'object' && val !== null) {
+            input.value = [
+              {
+                datasetId: val.datasetId
+              }
+            ];
+          }
         }
       });
     }
-  }
-
-  return {
-    nodes
-  };
+  });
 };
 
 /* Get apps */

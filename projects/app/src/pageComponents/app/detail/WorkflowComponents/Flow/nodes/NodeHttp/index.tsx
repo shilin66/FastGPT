@@ -1,14 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
-import { NodeProps } from 'reactflow';
+import { type NodeProps } from 'reactflow';
 import NodeCard from '../render/NodeCard';
-import { FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node.d';
+import { type FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node.d';
 import Container from '../../components/Container';
 import RenderInput from '../render/RenderInput';
 import RenderOutput from '../render/RenderOutput';
 import {
   Box,
   Flex,
-  Input,
   Table,
   Thead,
   Tbody,
@@ -32,9 +31,9 @@ import {
 import { useTranslation } from 'next-i18next';
 import LightRowTabs from '@fastgpt/web/components/common/Tabs/LightRowTabs';
 import MyIcon from '@fastgpt/web/components/common/Icon';
-import { FlowNodeInputItemType } from '@fastgpt/global/core/workflow/type/io.d';
+import { type FlowNodeInputItemType } from '@fastgpt/global/core/workflow/type/io.d';
 import { useToast } from '@fastgpt/web/hooks/useToast';
-import { EditorVariableLabelPickerType } from '@fastgpt/web/components/common/Textarea/PromptEditor/type';
+import { type EditorVariableLabelPickerType } from '@fastgpt/web/components/common/Textarea/PromptEditor/type';
 import HttpInput from '@fastgpt/web/components/common/Input/HttpInput';
 import dynamic from 'next/dynamic';
 import MySelect from '@fastgpt/web/components/common/MySelect';
@@ -50,7 +49,9 @@ import { getEditorVariables } from '../../../utils';
 import PromptEditor from '@fastgpt/web/components/common/Textarea/PromptEditor';
 import { WorkflowNodeEdgeContext } from '../../../context/workflowInitContext';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
+
 const CurlImportModal = dynamic(() => import('./CurlImportModal'));
+const HeaderAuthConfig = dynamic(() => import('@/components/common/secret/HeaderAuthConfig'));
 
 const defaultFormBody = {
   key: NodeInputKeyEnum.httpFormBody,
@@ -271,6 +272,7 @@ export function RenderHttpProps({
 
   const edges = useContextSelector(WorkflowNodeEdgeContext, (v) => v.edges);
   const nodeList = useContextSelector(WorkflowContext, (v) => v.nodeList);
+  const onChangeNode = useContextSelector(WorkflowContext, (v) => v.onChangeNode);
 
   const { appDetail } = useContextSelector(AppContext, (v) => v);
   const { feConfigs } = useSystemStore();
@@ -281,6 +283,7 @@ export function RenderHttpProps({
   const jsonBody = inputs.find((item) => item.key === NodeInputKeyEnum.httpJsonBody);
   const formBody =
     inputs.find((item) => item.key === NodeInputKeyEnum.httpFormBody) || defaultFormBody;
+  const headerSecret = inputs.find((item) => item.key === NodeInputKeyEnum.headerSecret)!;
   const contentType = inputs.find((item) => item.key === NodeInputKeyEnum.httpContentType);
 
   const paramsLength = params?.value?.length || 0;
@@ -334,6 +337,21 @@ export function RenderHttpProps({
           <QuestionTip
             ml={1}
             label={t('common:core.module.http.Props tip', { variable: variableText })}
+          />
+          <Flex flex={1} />
+          <HeaderAuthConfig
+            storeHeaderSecretConfig={headerSecret?.value}
+            onUpdate={(data) => {
+              onChangeNode({
+                nodeId,
+                type: 'updateInput',
+                key: NodeInputKeyEnum.headerSecret,
+                value: {
+                  ...headerSecret,
+                  value: data
+                }
+              });
+            }}
           />
         </Flex>
         <LightRowTabs<TabEnum>
@@ -403,7 +421,9 @@ export function RenderHttpProps({
     contentType,
     formBody,
     headersLength,
+    headerSecret,
     nodeId,
+    onChangeNode,
     paramsLength,
     requestMethods,
     selectedTab,
@@ -845,7 +865,7 @@ const NodeHttp = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
       )}
       <>
         <Container>
-          <IOTitle text={t('common:common.Input')} />
+          <IOTitle text={t('common:Input')} />
           <RenderInput
             nodeId={nodeId}
             flowInputList={commonInputs}
@@ -855,7 +875,7 @@ const NodeHttp = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
       </>
       <>
         <Container>
-          <IOTitle text={t('common:common.Output')} />
+          <IOTitle text={t('common:Output')} />
           <RenderOutput flowOutputList={outputs} nodeId={nodeId} />
         </Container>
       </>

@@ -14,11 +14,14 @@ import {
 } from '@fastgpt/global/support/permission/constant';
 import { findAppAndAllChildren } from '@fastgpt/service/core/app/controller';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
-import { ClientSession } from '@fastgpt/service/common/mongo';
+import { type ClientSession } from '@fastgpt/service/common/mongo';
 import { deleteChatFiles } from '@fastgpt/service/core/chat/controller';
 import { pushTrack } from '@fastgpt/service/common/middle/tracks/utils';
 import { MongoOpenApi } from '@fastgpt/service/support/openapi/schema';
 import { removeImageByPath } from '@fastgpt/service/common/file/image/controller';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
+import { getI18nAppType } from '@fastgpt/service/support/user/audit/util';
 
 async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   const { appId } = req.query as { appId: string };
@@ -39,6 +42,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
     teamId,
     appId
   });
+  (async () => {
+    addAuditLog({
+      tmbId,
+      teamId,
+      event: AuditEventEnum.DELETE_APP,
+      params: {
+        appName: app.name,
+        appType: getI18nAppType(app.type)
+      }
+    });
+  })();
 
   // Tracks
   pushTrack.countAppNodes({ teamId, tmbId, uid: userId, appId });

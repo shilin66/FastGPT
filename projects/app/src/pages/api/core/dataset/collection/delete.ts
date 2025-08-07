@@ -6,6 +6,9 @@ import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
 import { NextAPI } from '@/service/middleware/entry';
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
+import { getI18nDatasetType } from '@fastgpt/service/support/user/audit/util';
 
 async function handler(req: NextApiRequest) {
   const { id: collectionId } = req.query as { id: string };
@@ -14,7 +17,7 @@ async function handler(req: NextApiRequest) {
     return Promise.reject(CommonErrEnum.missingParams);
   }
 
-  const { teamId, collection } = await authDatasetCollection({
+  const { teamId, collection, tmbId } = await authDatasetCollection({
     req,
     authToken: true,
     authApiKey: true,
@@ -39,6 +42,19 @@ async function handler(req: NextApiRequest) {
       session
     })
   );
+
+  (async () => {
+    addAuditLog({
+      tmbId,
+      teamId,
+      event: AuditEventEnum.DELETE_COLLECTION,
+      params: {
+        collectionName: collection.name,
+        datasetName: collection.dataset?.name || '',
+        datasetType: getI18nDatasetType(collection.dataset?.type || '')
+      }
+    });
+  })();
 }
 
 export default NextAPI(handler);

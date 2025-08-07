@@ -6,15 +6,20 @@ export enum WorkerNameEnum {
   readFile = 'readFile',
   htmlStr2Md = 'htmlStr2Md',
   countGptMessagesTokens = 'countGptMessagesTokens',
-  systemPluginRun = 'systemPluginRun'
+  systemPluginRun = 'systemPluginRun',
+  text2Chunks = 'text2Chunks'
 }
 
 export const getSafeEnv = () => {
-  return {
-    LOG_LEVEL: process.env.LOG_LEVEL,
-    STORE_LOG_LEVEL: process.env.STORE_LOG_LEVEL,
-    NODE_ENV: process.env.NODE_ENV
+  const env: Record<string, string> = {
+    LOG_LEVEL: process.env.LOG_LEVEL!,
+    STORE_LOG_LEVEL: process.env.STORE_LOG_LEVEL!,
+    NODE_ENV: process.env.NODE_ENV!
   };
+  if (process.env.HTTP_PROXY) env.HTTP_PROXY = process.env.HTTP_PROXY;
+  if (process.env.HTTPS_PROXY) env.HTTPS_PROXY = process.env.HTTPS_PROXY;
+  if (process.env.NO_PROXY) env.NO_PROXY = process.env.NO_PROXY;
+  return env;
 };
 
 export const getWorker = (name: WorkerNameEnum) => {

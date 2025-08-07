@@ -5,42 +5,6 @@ import { i18nT } from '@fastgpt/web/i18n/utils';
 import { ModelTypeEnum } from '@fastgpt/global/core/ai/model';
 import { getDefaultTTSModel } from '@fastgpt/service/core/ai/model';
 
-export const pushQAUsage = async ({
-  teamId,
-  tmbId,
-  model,
-  inputTokens,
-  outputTokens,
-  billId
-}: {
-  teamId: string;
-  tmbId: string;
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  billId: string;
-}) => {
-  // 计算价格
-  const { totalPoints } = formatModelChars2Points({
-    model,
-    modelType: ModelTypeEnum.llm,
-    inputTokens,
-    outputTokens
-  });
-
-  concatUsage({
-    billId,
-    teamId,
-    tmbId,
-    totalPoints,
-    inputTokens,
-    outputTokens,
-    listIndex: 1
-  });
-
-  return { totalPoints };
-};
-
 export const pushGenerateVectorUsage = ({
   billId,
   teamId,
@@ -284,12 +248,14 @@ export const pushRerankUsage = ({
   teamId,
   tmbId,
   model,
-  inputTokens
+  inputTokens,
+  source = UsageSourceEnum.fastgpt
 }: {
   teamId: string;
   tmbId: string;
   model: string;
   inputTokens: number;
+  source?: UsageSourceEnum;
 }) => {
   const { totalPoints, modelName } = formatModelChars2Points({
     model,
@@ -300,9 +266,9 @@ export const pushRerankUsage = ({
   createUsage({
     teamId,
     tmbId,
-    appName: modelName,
+    appName: i18nT('account_bill:rerank'),
     totalPoints,
-    source: UsageSourceEnum.fastgpt,
+    source,
     list: [
       {
         moduleName: modelName,

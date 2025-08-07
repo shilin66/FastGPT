@@ -8,9 +8,9 @@ import type {
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { addLog } from '../../common/system/log';
 import { i18nT } from '../../../web/i18n/utils';
-import { OpenaiAccountType } from '@fastgpt/global/support/user/team/type';
+import { type OpenaiAccountType } from '@fastgpt/global/support/user/team/type';
 import { getLLMModel } from './model';
-import { LLMModelItemType } from '@fastgpt/global/core/ai/model.d';
+import { type LLMModelItemType } from '@fastgpt/global/core/ai/model.d';
 
 const aiProxyBaseUrl = process.env.AIPROXY_API_ENDPOINT
   ? `${process.env.AIPROXY_API_ENDPOINT}/v1`
@@ -78,7 +78,7 @@ export const createChatCompletion = async ({
     }
     body.model = modelConstantsData.model;
 
-    const formatTimeout = timeout ? timeout : body.stream ? 60000 : 600000;
+    const formatTimeout = timeout ? timeout : 600000;
     const ai = getAIApi({
       userKey,
       timeout: formatTimeout

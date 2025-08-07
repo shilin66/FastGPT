@@ -3,12 +3,12 @@ import { FlowNodeTypeEnum } from '../workflow/node/constant';
 import { NodeInputKeyEnum, FlowNodeTemplateTypeEnum } from '../workflow/constants';
 import type { FlowNodeInputItemType } from '../workflow/type/io.d';
 import { getAppChatConfig } from '../workflow/utils';
-import { StoreNodeItemType } from '../workflow/type/node';
+import { type StoreNodeItemType } from '../workflow/type/node';
 import { DatasetSearchModeEnum } from '../dataset/constants';
-import { WorkflowTemplateBasicType } from '../workflow/type';
+import { type WorkflowTemplateBasicType } from '../workflow/type';
 import { AppTypeEnum } from './constants';
-import { AppErrEnum } from '../../common/error/code/app';
-import { PluginErrEnum } from '../../common/error/code/plugin';
+import appErrList from '../../common/error/code/app';
+import pluginErrList from '../../common/error/code/plugin';
 
 export const getDefaultAppForm = (): AppSimpleEditFormType => {
   return {
@@ -189,17 +189,10 @@ export const getAppType = (config?: WorkflowTemplateBasicType | AppSimpleEditFor
   return '';
 };
 
-export const checkAppUnExistError = (error?: string) => {
-  const unExistError: Array<string> = [
-    AppErrEnum.unAuthApp,
-    AppErrEnum.unExist,
-    PluginErrEnum.unAuth,
-    PluginErrEnum.unExist
-  ];
+export const formatToolError = (error?: any) => {
+  if (!error || typeof error !== 'string') return;
 
-  if (!!error && unExistError.includes(error)) {
-    return error;
-  } else {
-    return undefined;
-  }
+  const errorText = appErrList[error]?.message || pluginErrList[error]?.message;
+
+  return errorText || error;
 };

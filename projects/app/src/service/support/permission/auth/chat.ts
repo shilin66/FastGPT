@@ -1,6 +1,6 @@
-import { AIChatItemType, ChatHistoryItemResType, ChatSchema } from '@fastgpt/global/core/chat/type';
+import { type ChatHistoryItemResType, type ChatSchema } from '@fastgpt/global/core/chat/type';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
-import { AuthModeType } from '@fastgpt/service/support/permission/type';
+import { type AuthModeType } from '@fastgpt/service/support/permission/type';
 import { authOutLink } from './outLink';
 import { ChatErrEnum } from '@fastgpt/global/common/error/code/chat';
 import { authTeamSpaceToken } from './team';
@@ -8,6 +8,7 @@ import { AuthUserTypeEnum, ReadPermissionVal } from '@fastgpt/global/support/per
 import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { MongoChatItem } from '@fastgpt/service/core/chat/chatItemSchema';
 import { DatasetErrEnum } from '@fastgpt/global/common/error/code/dataset';
+import { getFlatAppResponses } from '@/global/core/chat/utils';
 
 /* 
   检查chat的权限：
@@ -217,18 +218,7 @@ export const authCollectionInChat = async ({
     if (!chatItem) return Promise.reject(DatasetErrEnum.unAuthDatasetCollection);
 
     // 找 responseData 里，是否有该文档 id
-    const responseData = chatItem.responseData || [];
-    const flatResData: ChatHistoryItemResType[] =
-      responseData
-        ?.map((item) => {
-          return [
-            item,
-            ...(item.pluginDetail || []),
-            ...(item.toolDetail || []),
-            ...(item.loopDetail || [])
-          ];
-        })
-        .flat() || [];
+    const flatResData = getFlatAppResponses(chatItem.responseData || []);
 
     const quoteListSet = new Set(
       flatResData

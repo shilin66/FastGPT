@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
-import { AppLogsListItemType } from '@/types/app';
+import { type AppLogsListItemType } from '@/types/app';
 import { Types } from '@fastgpt/service/common/mongo';
 import { addDays } from 'date-fns';
 import type { GetAppChatLogsParams } from '@/global/core/api/appReq.d';
@@ -10,9 +10,12 @@ import { NextAPI } from '@/service/middleware/entry';
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { readFromSecondary } from '@fastgpt/service/common/mongo/utils';
 import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';
-import { PaginationResponse } from '@fastgpt/web/common/fetch/type';
+import { type PaginationResponse } from '@fastgpt/web/common/fetch/type';
 import { addSourceMember } from '@fastgpt/service/support/user/utils';
 import { replaceRegChars } from '@fastgpt/global/common/string/tools';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
+import { getI18nAppType } from '@fastgpt/service/support/user/audit/util';
 
 async function handler(
   req: NextApiRequest,
@@ -33,7 +36,12 @@ async function handler(
   }
 
   // 凭证校验
-  const { teamId } = await authApp({ req, authToken: true, appId, per: WritePermissionVal });
+  const { teamId, tmbId, app } = await authApp({
+    req,
+    authToken: true,
+    appId,
+    per: WritePermissionVal
+  });
 
   const where = {
     teamId: new Types.ObjectId(teamId),
@@ -78,14 +86,44 @@ async function handler(
                 $group: {
                   _id: null,
                   messageCount: { $sum: 1 },
-                  goodFeedback: { $sum: { $cond: [{ $eq: ['$userGoodFeedback', true] }, 1, 0] } },
-                  badFeedback: { $sum: { $cond: [{ $eq: ['$userBadFeedback', true] }, 1, 0] } },
+                  goodFeedback: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $ifNull: ['$userGoodFeedback', false]
+                        },
+                        1,
+                        0
+                      ]
+                    }
+                  },
+                  badFeedback: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $ifNull: ['$userBadFeedback', false]
+                        },
+                        1,
+                        0
+                      ]
+                    }
+                  },
                   customFeedback: {
                     $sum: {
                       $cond: [{ $gt: [{ $size: { $ifNull: ['$customFeedbacks', []] } }, 0] }, 1, 0]
                     }
                   },
-                  adminMark: { $sum: { $cond: [{ $eq: ['$adminFeedback', true] }, 1, 0] } }
+                  adminMark: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $ifNull: ['$adminFeedback', false]
+                        },
+                        1,
+                        0
+                      ]
+                    }
+                  }
                 }
               }
             ],
@@ -132,12 +170,24 @@ async function handler(
     ),
     MongoChat.countDocuments(where, { ...readFromSecondary })
   ]);
-
+  console.log(list);
   const listWithSourceMember = await addSourceMember({
-    list: list
+    list
   });
 
   const listWithoutTmbId = list.filter((item) => !item.tmbId);
+
+  (async () => {
+    addAuditLog({
+      tmbId,
+      teamId,
+      event: AuditEventEnum.EXPORT_APP_CHAT_LOG,
+      params: {
+        appName: app.name,
+        appType: getI18nAppType(app.type)
+      }
+    });
+  })();
 
   return {
     list: listWithSourceMember.concat(listWithoutTmbId),

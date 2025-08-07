@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Flex, Box, HStack } from '@chakra-ui/react';
 import { UsageSourceEnum, UsageSourceMap } from '@fastgpt/global/support/wallet/usage/constants';
@@ -20,13 +21,16 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 
 import UsageTableList from '@/pageComponents/account/usage/UsageTable';
-import { UnitType } from '@/pageComponents/account/usage/type';
+import { type UnitType } from '@/pageComponents/account/usage/type';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
+import TeamUsageTableList from '@/pageComponents/account/usage/TeamUsage';
+import SearchInput from '@fastgpt/web/components/common/Input/SearchInput';
 const UsageDashboard = dynamic(() => import('@/pageComponents/account/usage/Dashboard'));
 
 export enum UsageTabEnum {
   detail = 'detail',
-  dashboard = 'dashboard'
+  dashboard = 'dashboard',
+  teamUsage = 'teamUsage'
 }
 
 const UsageTable = () => {
@@ -35,13 +39,13 @@ const UsageTable = () => {
   const { isPc } = useSystem();
   const router = useRouter();
   const { usageTab = UsageTabEnum.detail } = router.query as { usageTab: `${UsageTabEnum}` };
-
+  const isRoot = userInfo?.username === 'root';
   const [unit, setUnit] = useState<UnitType>('day');
   const [dateRange, setDateRange] = useState<DateRangeType>({
     from: addDays(new Date(), -7),
     to: new Date()
   });
-
+  const [teamSearchKey, setTeamSearchKey] = useState<string>('');
   const { data: members, ScrollData, total: memberTotal } = useScrollPagination(getTeamMembers, {});
   const {
     value: selectTmbIds,
@@ -62,6 +66,26 @@ const UsageTable = () => {
       })),
     [members]
   );
+  // const { data: teams, ScrollData: teamScrollData, total: teamTotal } = useScrollPagination(getAllTeamList, {});
+  // const {
+  //   value: selectTeamIds,
+  //   setValue: setSelectTeamIds,
+  //   isSelectAll: isSelectAllTeam,
+  //   setIsSelectAll: setIsSelectAllTeam
+  // } = useMultipleSelect<string>([], true);
+  // const teamList = useMemo(
+  //   () =>
+  //     teams.map((item) => ({
+  //       label: (
+  //         <HStack spacing={1} color={'myGray.500'}>
+  //           <Avatar src={item.avatar} w={'1.2rem'} mr={1} rounded={'full'} />
+  //           <Box>{item.name}</Box>
+  //         </HStack>
+  //       ),
+  //       value: item._id
+  //     })),
+  //     [teams]
+  // );
 
   const {
     value: usageSources,
@@ -86,7 +110,8 @@ const UsageTable = () => {
       <FillRowTabs
         list={[
           { label: t('account_usage:usage_detail'), value: 'detail' },
-          { label: t('account_usage:dashboard'), value: 'dashboard' }
+          { label: t('account_usage:dashboard'), value: 'dashboard' },
+          ...(isRoot ? [{ label: t('account_usage:team_usage_detail'), value: 'teamUsage' }] : [])
         ]}
         py={1}
         value={usageTab}
@@ -132,7 +157,7 @@ const UsageTable = () => {
             />
           )} */}
         </Flex>
-        {userInfo?.team?.permission.hasManagePer && (
+        {userInfo?.team?.permission.hasManagePer && usageTab !== UsageTabEnum.teamUsage && (
           <Flex alignItems={'center'} gap={2}>
             <Box fontSize={'mini'} fontWeight={'medium'} color={'myGray.900'}>
               {t('account_usage:member')}
@@ -155,24 +180,40 @@ const UsageTable = () => {
             </Box>
           </Flex>
         )}
-        <Flex alignItems={'center'} gap={2}>
-          <Box fontSize={'mini'} fontWeight={'medium'} color={'myGray.900'}>
-            {t('account_usage:source')}
-          </Box>
-          <Box>
-            <MultipleSelect<UsageSourceEnum>
-              list={sourceList}
-              value={usageSources}
-              onSelect={setUsageSources}
-              isSelectAll={isSelectAllSource}
-              setIsSelectAll={setIsSelectAllSource}
-              itemWrap={false}
-              height={'32px'}
-              bg={'myGray.50'}
-              w={'160px'}
-            />
-          </Box>
-        </Flex>
+        {usageTab !== UsageTabEnum.teamUsage && (
+          <Flex alignItems={'center'} gap={2}>
+            <Box fontSize={'mini'} fontWeight={'medium'} color={'myGray.900'}>
+              {t('account_usage:source')}
+            </Box>
+            <Box>
+              <MultipleSelect<UsageSourceEnum>
+                list={sourceList}
+                value={usageSources}
+                onSelect={setUsageSources}
+                isSelectAll={isSelectAllSource}
+                setIsSelectAll={setIsSelectAllSource}
+                itemWrap={false}
+                height={'32px'}
+                bg={'myGray.50'}
+                w={'160px'}
+              />
+            </Box>
+          </Flex>
+        )}
+        {usageTab === UsageTabEnum.teamUsage && isRoot && (
+          <Flex alignItems={'center'} gap={2}>
+            <Box fontSize={'mini'} fontWeight={'medium'} color={'myGray.900'}>
+              {'团队'}
+            </Box>
+            <Box>
+              <SearchInput
+                placeholder={t('account_usage:search_team')}
+                value={teamSearchKey}
+                onChange={(e) => setTeamSearchKey(e.target.value)}
+              />
+            </Box>
+          </Flex>
+        )}
         {/* {usageTab === UsageTabEnum.detail && (
           <Flex alignItems={'center'}>
             <Box
@@ -197,6 +238,7 @@ const UsageTable = () => {
     [
       t,
       dateRange,
+      userInfo?.username,
       userInfo?.team?.permission.hasManagePer,
       tmbList,
       selectTmbIds,
@@ -208,7 +250,9 @@ const UsageTable = () => {
       setUsageSources,
       isSelectAllSource,
       setIsSelectAllSource,
-      setSelectTmbIds
+      setSelectTmbIds,
+      teamSearchKey,
+      usageTab
     ]
   );
 
@@ -228,9 +272,19 @@ const UsageTable = () => {
       isSelectAllTmb,
       usageSources,
       isSelectAllSource,
-      unit
+      unit,
+      teamSearchKey
     }),
-    [dateRange, isSelectAllSource, unit, isSelectAllTmb, projectName, selectTmbIds, usageSources]
+    [
+      dateRange,
+      isSelectAllSource,
+      unit,
+      isSelectAllTmb,
+      projectName,
+      selectTmbIds,
+      usageSources,
+      teamSearchKey
+    ]
   );
 
   return (
@@ -249,6 +303,9 @@ const UsageTable = () => {
         )}
         {usageTab === UsageTabEnum.dashboard && (
           <UsageDashboard filterParams={filterParams} Tabs={Tabs} Selectors={Selectors} />
+        )}
+        {usageTab === UsageTabEnum.teamUsage && isRoot && (
+          <TeamUsageTableList filterParams={filterParams} Tabs={Tabs} Selectors={Selectors} />
         )}
       </Box>
     </AccountContainer>

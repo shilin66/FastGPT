@@ -13,7 +13,7 @@ import { useTranslation } from 'next-i18next';
 
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useContextSelector } from 'use-context-selector';
-import { WorkflowContext, WorkflowSnapshotsType } from '../WorkflowComponents/context';
+import { WorkflowContext, type WorkflowSnapshotsType } from '../WorkflowComponents/context';
 import { AppContext, TabEnum } from '../context';
 import RouteTab from '../RouteTab';
 import { useRouter } from 'next/router';
@@ -25,16 +25,20 @@ import MyModal from '@fastgpt/web/components/common/MyModal';
 import { formatTime2YMDHMS } from '@fastgpt/global/common/string/time';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
-import SaveButton from '../Workflow/components/SaveButton';
 import PublishHistories from '../PublishHistoriesSlider';
 import { WorkflowEventContext } from '../WorkflowComponents/context/workflowEventContext';
 import { WorkflowStatusContext } from '../WorkflowComponents/context/workflowStatusContext';
+import SaveButton from '../Workflow/components/SaveButton';
 
 const Header = () => {
   const { t } = useTranslation();
   const { isPc } = useSystem();
   const router = useRouter();
-  const { toast } = useToast();
+  const { toast: backSaveToast } = useToast({
+    containerStyle: {
+      mt: '60px'
+    }
+  });
 
   const { appDetail, onSaveApp, currentTab } = useContextSelector(AppContext, (v) => v);
   const isV2Workflow = appDetail?.version === 'v2';
@@ -183,6 +187,7 @@ const Header = () => {
                 size={'sm'}
                 leftIcon={<MyIcon name={'core/workflow/debug'} w={['14px', '16px']} />}
                 variant={'whitePrimary'}
+                flexShrink={0}
                 onClick={() => {
                   const data = flowData2StoreDataAndCheck();
                   if (data) {
@@ -211,12 +216,12 @@ const Header = () => {
     onBack,
     onOpenBackConfirm,
     isV2Workflow,
-    showHistoryModal,
     t,
+    showHistoryModal,
     loading,
     onClickSave,
-    flowData2StoreDataAndCheck,
     setShowHistoryModal,
+    flowData2StoreDataAndCheck,
     setWorkflowTestData
   ]);
 
@@ -229,15 +234,16 @@ const Header = () => {
             setShowHistoryModal(false);
           }}
           past={past}
-          onSwitchTmpVersion={onSwitchTmpVersion}
           onSwitchCloudVersion={onSwitchCloudVersion}
+          onSwitchTmpVersion={onSwitchTmpVersion}
         />
       )}
+
       <MyModal
         isOpen={isOpenBackConfirm}
         onClose={onCloseBackConfirm}
         iconSrc="common/warn"
-        title={t('common:common.Exit')}
+        title={t('common:Exit')}
         w={'400px'}
       >
         <ModalBody>
@@ -245,7 +251,7 @@ const Header = () => {
         </ModalBody>
         <ModalFooter gap={3}>
           <Button variant={'whiteDanger'} onClick={onBack}>
-            {t('common:common.Exit Directly')}
+            {t('common:exit_directly')}
           </Button>
           <Button
             isLoading={loading}
@@ -254,7 +260,7 @@ const Header = () => {
                 await onClickSave({});
                 onCloseBackConfirm();
                 onBack();
-                toast({
+                backSaveToast({
                   status: 'success',
                   title: t('app:saved_success'),
                   position: 'top-right'
@@ -262,7 +268,7 @@ const Header = () => {
               } catch (error) {}
             }}
           >
-            {t('common:common.Save_and_exit')}
+            {t('common:Save_and_exit')}
           </Button>
         </ModalFooter>
       </MyModal>

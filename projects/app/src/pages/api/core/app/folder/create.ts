@@ -1,7 +1,7 @@
 import { NextAPI } from '@/service/middleware/entry';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import { FolderImgUrl } from '@fastgpt/global/common/file/image/constants';
-import { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
+import { type ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { parseParentIdInMongo } from '@fastgpt/global/common/parentFolder/utils';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
 import {
@@ -17,8 +17,9 @@ import { getResourceClbsAndGroups } from '@fastgpt/service/support/permission/co
 import { syncCollaborators } from '@fastgpt/service/support/permission/inheritPermission';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
-import { ApiRequestProps } from '@fastgpt/service/type/next';
-
+import { type ApiRequestProps } from '@fastgpt/service/type/next';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
 export type CreateAppFolderBody = {
   parentId?: ParentIdType;
   name: string;
@@ -83,6 +84,16 @@ async function handler(req: ApiRequestProps<CreateAppFolderBody>) {
       );
     }
   });
+  (async () => {
+    addAuditLog({
+      tmbId,
+      teamId,
+      event: AuditEventEnum.CREATE_APP_FOLDER,
+      params: {
+        folderName: name
+      }
+    });
+  })();
 }
 
 export default NextAPI(handler);

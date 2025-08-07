@@ -20,17 +20,19 @@ import Avatar from '@fastgpt/web/components/common/Avatar';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
-import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { AppListContext } from './context';
 import { useContextSelector } from 'use-context-selector';
-import { ToolType } from '@fastgpt/global/core/app/type';
+import { type McpToolConfigType } from '@fastgpt/global/core/app/type';
 import type { getMCPToolsBody } from '@/pages/api/support/mcp/client/getTools';
+import HeaderAuthConfig from '@/components/common/secret/HeaderAuthConfig';
+import { type StoreSecretValueType } from '@fastgpt/global/common/secret/type';
 
 export type MCPToolSetData = {
   url: string;
-  toolList: ToolType[];
+  toolList: McpToolConfigType[];
+  headerSecret: StoreSecretValueType;
 };
 
 export type EditMCPToolsProps = {
@@ -41,7 +43,6 @@ export type EditMCPToolsProps = {
 
 const MCPToolsEditModal = ({ onClose }: { onClose: () => void }) => {
   const { t } = useTranslation();
-  const { toast } = useToast();
 
   const { parentId, loadMyApps } = useContextSelector(AppListContext, (v) => v);
 
@@ -51,6 +52,7 @@ const MCPToolsEditModal = ({ onClose }: { onClose: () => void }) => {
       name: '',
       mcpData: {
         url: '',
+        headerSecret: {},
         toolList: []
       }
     }
@@ -65,6 +67,7 @@ const MCPToolsEditModal = ({ onClose }: { onClose: () => void }) => {
         avatar: data.avatar,
         toolList: data.mcpData.toolList,
         url: data.mcpData.url,
+        headerSecret: data.mcpData.headerSecret,
         parentId
       });
     },
@@ -73,15 +76,15 @@ const MCPToolsEditModal = ({ onClose }: { onClose: () => void }) => {
         onClose();
         loadMyApps();
       },
-      successToast: t('common:common.Create Success'),
-      errorToast: t('common:common.Create Failed')
+      successToast: t('common:create_success'),
+      errorToast: t('common:create_failed')
     }
   );
 
   const { runAsync: runGetMCPTools, loading: isGettingTools } = useRequest2(
     (data: getMCPToolsBody) => getMCPTools(data),
     {
-      onSuccess: (res: ToolType[]) => {
+      onSuccess: (res: McpToolConfigType[]) => {
         setValue('mcpData.toolList', res);
       },
       errorToast: t('app:MCP_tools_parse_failed')
@@ -109,10 +112,10 @@ const MCPToolsEditModal = ({ onClose }: { onClose: () => void }) => {
       >
         <ModalBody>
           <Box color={'myGray.900'} fontSize={'14px'} fontWeight={'medium'}>
-            {t('common:common.Set Name')}
+            {t('common:input_name')}
           </Box>
           <Flex mt={2} alignItems={'center'}>
-            <MyTooltip label={t('common:common.Set Avatar')}>
+            <MyTooltip label={t('common:set_avatar')}>
               <Avatar
                 flexShrink={0}
                 src={avatar}
@@ -128,14 +131,31 @@ const MCPToolsEditModal = ({ onClose }: { onClose: () => void }) => {
               ml={4}
               bg={'myWhite.600'}
               {...register('name', {
-                required: t('common:common.name_is_empty')
+                required: t('common:name_is_empty')
               })}
             />
           </Flex>
 
-          <Box color={'myGray.900'} fontSize={'14px'} fontWeight={'medium'} mt={6}>
-            {t('app:MCP_tools_url')}
-          </Box>
+          <Flex
+            color={'myGray.900'}
+            fontSize={'14px'}
+            fontWeight={'medium'}
+            mt={6}
+            alignItems={'center'}
+          >
+            <Box>{t('app:MCP_tools_url')}</Box>
+            <Box flex={1} />
+            <HeaderAuthConfig
+              storeHeaderSecretConfig={mcpData.headerSecret}
+              onUpdate={(data) => {
+                setValue('mcpData.headerSecret', data);
+              }}
+              buttonProps={{
+                size: 'sm',
+                variant: 'grayGhost'
+              }}
+            />
+          </Flex>
           <Flex alignItems={'center'} gap={2} mt={2}>
             <Input
               h={8}
@@ -150,10 +170,13 @@ const MCPToolsEditModal = ({ onClose }: { onClose: () => void }) => {
               h={8}
               isLoading={isGettingTools}
               onClick={() => {
-                runGetMCPTools({ url: mcpData.url });
+                runGetMCPTools({
+                  url: mcpData.url,
+                  headerSecret: mcpData.headerSecret
+                });
               }}
             >
-              {t('common:common.Parse')}
+              {t('common:Parse')}
             </Button>
           </Flex>
 
@@ -226,14 +249,14 @@ const MCPToolsEditModal = ({ onClose }: { onClose: () => void }) => {
         </ModalBody>
         <ModalFooter gap={2}>
           <Button variant={'whitePrimary'} onClick={onClose}>
-            {t('common:common.Close')}
+            {t('common:Close')}
           </Button>
           <Button
             isDisabled={mcpData.toolList.length === 0}
             isLoading={isCreating}
             onClick={handleSubmit(onCreate)}
           >
-            {t('common:common.Confirm Create')}
+            {t('common:comfirn_create')}
           </Button>
         </ModalFooter>
       </MyModal>

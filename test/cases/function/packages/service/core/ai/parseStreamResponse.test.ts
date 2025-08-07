@@ -1,4 +1,4 @@
-import { CompletionFinishReason } from '@fastgpt/global/core/ai/type';
+import type { CompletionFinishReason } from '@fastgpt/global/core/ai/type';
 import { parseLLMStreamResponse } from '@fastgpt/service/core/ai/utils';
 import { describe, expect, it } from 'vitest';
 
@@ -168,6 +168,90 @@ describe('Parse dataset cite content test', async () => {
       }
     },
     {
+      // 只要 objectId
+      data: [
+        { content: '知识库' },
+        { content: '问答系统' },
+        { content: '[67e517e747' },
+        { content: '67063e882d' },
+        { content: '6861]' }
+      ],
+      correct: {
+        content: '知识库问答系统[67e517e74767063e882d6861]',
+        responseContent: '知识库问答系统'
+      }
+    },
+    {
+      // 满足替换条件的
+      data: [
+        { content: '知识库' },
+        { content: '问答系统' },
+        { content: '[67e517e747' },
+        { content: '67063e882d' },
+        { content: '6861](' }
+      ],
+      correct: {
+        content: '知识库问答系统[67e517e74767063e882d6861](',
+        responseContent: '知识库问答系统'
+      }
+    },
+    {
+      // 满足替换条件的
+      data: [
+        { content: '知识库' },
+        { content: '问答系统' },
+        { content: '[67e517e747' },
+        { content: '67063e882d' },
+        { content: '6861](C' }
+      ],
+      correct: {
+        content: '知识库问答系统[67e517e74767063e882d6861](C',
+        responseContent: '知识库问答系统'
+      }
+    },
+    {
+      // 满足替换条件的
+      data: [
+        { content: '知识库' },
+        { content: '问答系统' },
+        { content: '[67e517e747' },
+        { content: '67063e882d' },
+        { content: '6861](CI' }
+      ],
+      correct: {
+        content: '知识库问答系统[67e517e74767063e882d6861](CI',
+        responseContent: '知识库问答系统'
+      }
+    },
+    {
+      // 满足替换条件的
+      data: [
+        { content: '知识库' },
+        { content: '问答系统' },
+        { content: '[67e517e747' },
+        { content: '67063e882d' },
+        { content: '6861](CIT' }
+      ],
+      correct: {
+        content: '知识库问答系统[67e517e74767063e882d6861](CIT',
+        responseContent: '知识库问答系统'
+      }
+    },
+    {
+      // 满足替换条件的
+      data: [
+        { content: '知识库' },
+        { content: '问答系统' },
+        { content: '[67e517e747' },
+        { content: '67063e882d' },
+        { content: '6861](CITE' }
+      ],
+      correct: {
+        content: '知识库问答系统[67e517e74767063e882d6861](CITE',
+        responseContent: '知识库问答系统'
+      }
+    },
+    {
       // 缺失结尾
       data: [
         { content: '知识库问答系统' },
@@ -177,7 +261,7 @@ describe('Parse dataset cite content test', async () => {
       ],
       correct: {
         content: '知识库问答系统[67e517e74767063e882d6861](CITE',
-        responseContent: '知识库问答系统[67e517e74767063e882d6861](CITE'
+        responseContent: '知识库问答系统'
       }
     },
     {
@@ -265,7 +349,7 @@ describe('Parse dataset cite content test', async () => {
       ],
       correct: {
         content: '知识库问答系统[](https://fastgpt.cn)[67e517e74767063e882d6861](CIT',
-        responseContent: '知识库问答系统[](https://fastgpt.cn)[67e517e74767063e882d6861](CIT'
+        responseContent: '知识库问答系统[](https://fastgpt.cn)'
       }
     },
     {
@@ -299,6 +383,22 @@ describe('Parse dataset cite content test', async () => {
       correct: {
         content: '知识库问答系统[67e517e7476861](CITE)[67e517e74767063e882d6861](CITE)',
         responseContent: '知识库问答系统[67e517e7476861](CITE)'
+      }
+    },
+    {
+      // [id](CITE)
+      data: [
+        { content: '知识库' },
+        { content: '问答系统' },
+        { content: '[i' },
+        { content: 'd](CITE)' },
+        { content: '[67e517e747' },
+        { content: '67063e882d' },
+        { content: '6861](CITE)' }
+      ],
+      correct: {
+        content: '知识库问答系统[id](CITE)[67e517e74767063e882d6861](CITE)',
+        responseContent: '知识库问答系统'
       }
     }
   ];

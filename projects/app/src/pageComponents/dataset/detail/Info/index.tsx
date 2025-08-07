@@ -27,7 +27,7 @@ import {
 import DatasetTypeTag from '@/components/core/dataset/DatasetTypeTag';
 import dynamic from 'next/dynamic';
 import type { EditAPIDatasetInfoFormType } from './components/EditApiServiceModal';
-import { EditResourceInfoFormType } from '@/components/common/Modal/EditResourceModal';
+import { type EditResourceInfoFormType } from '@/components/common/Modal/EditResourceModal';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 
 const EditResourceModal = dynamic(() => import('@/components/common/Modal/EditResourceModal'));
@@ -55,18 +55,14 @@ const Info = ({ datasetId }: { datasetId: string }) => {
   const vllmModelList = useMemo(() => getVlmModelList(), [getVlmModelList]);
   const vlmModel = watch('vlmModel');
 
-  const { ConfirmModal: ConfirmDelModal } = useConfirm({
-    content: t('common:core.dataset.Delete Confirm'),
-    type: 'delete'
-  });
   const { openConfirm: onOpenConfirmRebuild, ConfirmModal: ConfirmRebuildModal } = useConfirm({
-    title: t('common:common.confirm.Common Tip'),
+    title: t('common:action_confirm'),
     content: t('dataset:confirm_to_rebuild_embedding_tip'),
     type: 'delete'
   });
   const { openConfirm: onOpenConfirmSyncSchedule, ConfirmModal: ConfirmSyncScheduleModal } =
     useConfirm({
-      title: t('common:common.confirm.Common Tip')
+      title: t('common:action_confirm')
     });
 
   const { runAsync: onSave } = useRequest2(
@@ -79,8 +75,8 @@ const Info = ({ datasetId }: { datasetId: string }) => {
       });
     },
     {
-      successToast: t('common:common.Update Success'),
-      errorToast: t('common:common.Update Failed')
+      successToast: t('common:update_success'),
+      errorToast: t('common:update_failed')
     }
   );
 
@@ -97,7 +93,7 @@ const Info = ({ datasetId }: { datasetId: string }) => {
         loadDatasetDetail(datasetId);
       },
       successToast: t('dataset:rebuild_embedding_start_tip'),
-      errorToast: t('common:common.Update Failed')
+      errorToast: t('common:update_failed')
     }
   );
 
@@ -105,8 +101,8 @@ const Info = ({ datasetId }: { datasetId: string }) => {
     onSuccess() {
       setEditedDataset(undefined);
     },
-    successToast: t('common:common.Update Success'),
-    errorToast: t('common:common.Update Failed')
+    successToast: t('common:update_success'),
+    errorToast: t('common:update_failed')
   });
 
   useEffect(() => {
@@ -315,12 +311,12 @@ const Info = ({ datasetId }: { datasetId: string }) => {
                   onClick={() =>
                     setEditedAPIDataset({
                       id: datasetDetail._id,
-                      apiServer: datasetDetail.apiServer
+                      apiDatasetServer: datasetDetail.apiDatasetServer
                     })
                   }
                 />
               </Flex>
-              <Box fontSize={'mini'}>{datasetDetail.apiServer?.baseUrl}</Box>
+              <Box fontSize={'mini'}>{datasetDetail.apiDatasetServer?.apiServer?.baseUrl}</Box>
             </Box>
           </>
         )}
@@ -340,12 +336,12 @@ const Info = ({ datasetId }: { datasetId: string }) => {
                   onClick={() =>
                     setEditedAPIDataset({
                       id: datasetDetail._id,
-                      yuqueServer: datasetDetail.yuqueServer
+                      apiDatasetServer: datasetDetail.apiDatasetServer
                     })
                   }
                 />
               </Flex>
-              <Box fontSize={'mini'}>{datasetDetail.yuqueServer?.userId}</Box>
+              <Box fontSize={'mini'}>{datasetDetail.apiDatasetServer?.yuqueServer?.userId}</Box>
             </Box>
           </>
         )}
@@ -365,12 +361,14 @@ const Info = ({ datasetId }: { datasetId: string }) => {
                   onClick={() =>
                     setEditedAPIDataset({
                       id: datasetDetail._id,
-                      feishuServer: datasetDetail.feishuServer
+                      apiDatasetServer: datasetDetail.apiDatasetServer
                     })
                   }
                 />
               </Flex>
-              <Box fontSize={'mini'}>{datasetDetail.feishuServer?.folderToken}</Box>
+              <Box fontSize={'mini'}>
+                {datasetDetail.apiDatasetServer?.feishuServer?.folderToken}
+              </Box>
             </Box>
           </>
         )}
@@ -414,7 +412,6 @@ const Info = ({ datasetId }: { datasetId: string }) => {
         </>
       )}
 
-      <ConfirmDelModal />
       <ConfirmRebuildModal countDown={10} />
       <ConfirmSyncScheduleModal />
       {editedDataset && (
@@ -440,9 +437,7 @@ const Info = ({ datasetId }: { datasetId: string }) => {
           onEdit={(data) =>
             updateDataset({
               id: datasetId,
-              apiServer: data.apiServer,
-              yuqueServer: data.yuqueServer,
-              feishuServer: data.feishuServer
+              apiDatasetServer: data.apiDatasetServer
             })
           }
         />

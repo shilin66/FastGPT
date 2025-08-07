@@ -1,5 +1,5 @@
-import { PushDatasetDataChunkProps } from '../api';
-import { TrainingModeEnum } from '../constants';
+import type { PushDatasetDataChunkProps } from '../api';
+import type { TrainingModeEnum } from '../constants';
 
 export type PushDataToTrainingQueueProps = {
   teamId: string;
@@ -7,9 +7,9 @@ export type PushDataToTrainingQueueProps = {
   datasetId: string;
   collectionId: string;
 
+  data: PushDatasetDataChunkProps[];
   mode?: TrainingModeEnum;
   data: PushDatasetDataChunkProps[];
-  prompt?: string;
 
   agentModel: string;
   vectorModel: string;

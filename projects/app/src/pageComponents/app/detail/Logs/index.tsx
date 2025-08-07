@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Flex,
   Box,
@@ -20,7 +20,9 @@ import dayjs from 'dayjs';
 import { ChatSourceEnum, ChatSourceMap } from '@fastgpt/global/core/chat/constants';
 import { addDays } from 'date-fns';
 import { usePagination } from '@fastgpt/web/hooks/usePagination';
-import DateRangePicker, { DateRangeType } from '@fastgpt/web/components/common/DateRangePicker';
+import DateRangePicker, {
+  type DateRangeType
+} from '@fastgpt/web/components/common/DateRangePicker';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import { useContextSelector } from 'use-context-selector';
 import { AppContext } from '../context';
@@ -44,8 +46,8 @@ const Logs = () => {
   const appId = useContextSelector(AppContext, (v) => v.appId);
 
   const [dateRange, setDateRange] = useState<DateRangeType>({
-    from: addDays(new Date(), -7),
-    to: new Date()
+    from: new Date(addDays(new Date(), -6).setHours(0, 0, 0, 0)),
+    to: new Date(new Date().setHours(23, 59, 59, 999))
   });
 
   const [detailLogsId, setDetailLogsId] = useState<string>();
@@ -67,6 +69,16 @@ const Logs = () => {
     [t]
   );
 
+  const params = useMemo(
+    () => ({
+      appId,
+      dateStart: dateRange.from!,
+      dateEnd: dateRange.to!,
+      sources: isSelectAllSource ? undefined : chatSources,
+      logTitle
+    }),
+    [appId, chatSources, dateRange.from, dateRange.to, isSelectAllSource, logTitle]
+  );
   const {
     data: logs,
     isLoading,
@@ -76,14 +88,8 @@ const Logs = () => {
     total
   } = usePagination(getAppChatLogs, {
     pageSize: 20,
-    params: {
-      appId,
-      dateStart: dateRange.from || new Date(),
-      dateEnd: addDays(dateRange.to || new Date(), 1),
-      sources: isSelectAllSource ? undefined : chatSources,
-      logTitle
-    },
-    refreshDeps: [chatSources, logTitle]
+    params,
+    refreshDeps: [params]
   });
 
   const { runAsync: exportLogs } = useRequest2(
@@ -114,7 +120,7 @@ const Logs = () => {
       refreshDeps: [chatSources, logTitle]
     }
   );
-
+  console.log(dateRange, 111);
   return (
     <Flex
       flexDirection={'column'}
@@ -151,8 +157,9 @@ const Logs = () => {
           <DateRangePicker
             defaultDate={dateRange}
             position="bottom"
-            onChange={setDateRange}
-            onSuccess={() => getData(1)}
+            onSuccess={(date) => {
+              setDateRange(date);
+            }}
           />
         </Flex>
         <Flex alignItems={'center'} gap={2}>
