@@ -9,8 +9,7 @@ import {
   Grid,
   Flex,
   HStack,
-  css,
-  useToast
+  css
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
@@ -45,6 +44,7 @@ import { useReactFlow, type Node } from 'reactflow';
 import { NodeInputKeyEnum, NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { nodeTemplate2FlowNode } from '@/web/core/workflow/utils';
 import { WorkflowEventContext } from '../../../context/workflowEventContext';
+import { useToast } from '@fastgpt/web/hooks/useToast';
 
 export type TemplateListProps = {
   onAddNode: ({ newNodes }: { newNodes: Node<FlowNodeItemType>[] }) => void;
@@ -56,7 +56,6 @@ export type TemplateListProps = {
 
 const NodeTemplateListItem = ({
   template,
-  templateType,
   handleAddNode,
   isPopover,
   onUpdateParentId
@@ -93,9 +92,9 @@ const NodeTemplateListItem = ({
           <Box mt={2} color={'myGray.500'} maxH={'100px'} overflow={'hidden'}>
             {t(template.intro as any) || t('common:core.workflow.Not intro')}
           </Box>
-          {templateType === TemplateTypeEnum.systemPlugin && (
+          {/* {templateType === TemplateTypeEnum.systemPlugin && (
             <CostTooltip cost={template.currentCost} hasTokenFee={template.hasTokenFee} />
-          )}
+          )} */}
         </Box>
       }
       shouldWrapChildren={false}
@@ -128,11 +127,6 @@ const NodeTemplateListItem = ({
           });
         }}
         onClick={() => {
-          if (template.isFolder && template.flowNodeType !== FlowNodeTypeEnum.toolSet) {
-            onUpdateParentId(template.id);
-            return;
-          }
-
           const position =
             isPopover && handleParams
               ? handleParams.addNodePosition
@@ -160,7 +154,7 @@ const NodeTemplateListItem = ({
         </Box>
 
         {/* Folder right arrow */}
-        {template.isFolder && templateType === TemplateTypeEnum.teamPlugin && (
+        {template.isFolder && (
           <Box
             color={'myGray.500'}
             _hover={{
@@ -202,7 +196,7 @@ const NodeTemplateList = ({
   onUpdateParentId
 }: TemplateListProps) => {
   const { t } = useTranslation();
-  const toast = useToast();
+  const { toast } = useToast();
   const { computedNewNodeName } = useWorkflowUtils();
   const nodeList = useContextSelector(WorkflowContext, (v) => v.nodeList);
   const handleParams = useContextSelector(WorkflowEventContext, (v) => v.handleParams);
@@ -219,16 +213,11 @@ const NodeTemplateList = ({
       template: NodeTemplateListItemType;
       position: { x: number; y: number };
     }) => {
-      if (template.isFolder && template.flowNodeType !== FlowNodeTypeEnum.toolSet) {
-        return;
-      }
-
       try {
         const templateNode = await (async () => {
           try {
             if (AppNodeFlowNodeTypeMap[template.flowNodeType]) {
-              const res = await getPreviewPluginNode({ appId: template.id });
-              return res;
+              return await getPreviewPluginNode({ appId: template.id });
             }
 
             const baseTemplate = moduleTemplatesFlat.find((item) => item.id === template.id);
@@ -239,7 +228,7 @@ const NodeTemplateList = ({
           } catch (e) {
             toast({
               status: 'error',
-              title: getErrText(e, t('common:core.plugin.Get Plugin Module Detail Failed'))
+              title: t(getErrText(e, t('common:core.plugin.Get Plugin Module Detail Failed')))
             });
             return Promise.reject(e);
           }
@@ -277,12 +266,13 @@ const NodeTemplateList = ({
               .filter((input) => input.deprecated !== true)
               .map((input) => ({
                 ...input,
-                value: defaultValueMap[input.key] ?? input.value,
-                valueDesc: t(input.valueDesc as any),
+                value: defaultValueMap[input.key] ?? input.value ?? input.defaultValue,
+                valueDesc: input.valueDesc ? t(input.valueDesc as any) : undefined,
                 label: t(input.label as any),
-                description: t(input.description as any),
-                debugLabel: t(input.debugLabel as any),
-                toolDescription: t(input.toolDescription as any)
+                description: input.description ? t(input.description as any) : undefined,
+                placeholder: input.placeholder ? t(input.placeholder as any) : undefined,
+                debugLabel: input.debugLabel ? t(input.debugLabel as any) : undefined,
+                toolDescription: input.toolDescription ? t(input.toolDescription as any) : undefined
               })),
             outputs: templateNode.outputs
               .filter((output) => output.deprecated !== true)
@@ -355,7 +345,10 @@ const NodeTemplateList = ({
           });
         }
 
-        const copy: NodeTemplateListType = cloneDeep(workflowNodeTemplateList);
+        const copy: NodeTemplateListType = cloneDeep(workflowNodeTemplateList).map((item) => ({
+          ...item,
+          list: []
+        }));
         templates.forEach((item) => {
           const index = copy.findIndex((template) => template.type === item.templateType);
           if (index === -1) return;

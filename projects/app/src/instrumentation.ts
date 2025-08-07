@@ -14,12 +14,12 @@ export async function register() {
         { initGlobalVariables, getInitConfig, initSystemPluginGroups, initAppTemplateTypes },
         { initVectorStore },
         { initRootUser },
-        { getSystemPluginCb },
         { startMongoWatch },
         { startCron },
         { startTrainingQueue },
         { preLoadWorker },
-        { loadSystemModels }
+        { loadSystemModels },
+        { connectSignoz }
       ] = await Promise.all([
         import('@fastgpt/service/common/mongo/init'),
         import('@fastgpt/service/common/mongo/index'),
@@ -27,13 +27,16 @@ export async function register() {
         import('@/service/common/system'),
         import('@fastgpt/service/common/vectorDB/controller'),
         import('@/service/mongo'),
-        import('@/service/core/app/plugin'),
         import('@/service/common/system/volumnMongoWatch'),
         import('@/service/common/system/cron'),
         import('@/service/core/dataset/training/utils'),
         import('@fastgpt/service/worker/preload'),
-        import('@fastgpt/service/core/ai/config/utils')
+        import('@fastgpt/service/core/ai/config/utils'),
+        import('@fastgpt/service/common/otel/trace/register')
       ]);
+
+      // connect to signoz
+      connectSignoz();
 
       // 执行初始化流程
       systemStartCb();
@@ -55,7 +58,7 @@ export async function register() {
       // 异步加载
       initSystemPluginGroups();
       initAppTemplateTypes();
-      getSystemPluginCb();
+      // getSystemPlugins(true);
       startMongoWatch();
       startCron();
       startTrainingQueue(true);

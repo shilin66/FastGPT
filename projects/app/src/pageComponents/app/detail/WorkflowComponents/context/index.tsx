@@ -1,5 +1,6 @@
 import { postWorkflowDebug } from '@/web/core/workflow/api';
 import {
+  adaptCatchError,
   checkWorkflowNodeAndConnection,
   compareSnapshot,
   storeEdge2RenderEdge,
@@ -7,7 +8,6 @@ import {
 } from '@/web/core/workflow/utils';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
-import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { type RuntimeNodeItemType } from '@fastgpt/global/core/workflow/runtime/type';
 import {
   type FlowNodeItemType,
@@ -18,8 +18,10 @@ import {
   type RuntimeEdgeItemType,
   type StoreEdgeItemType
 } from '@fastgpt/global/core/workflow/type/edge';
-import { type FlowNodeChangeProps } from '@fastgpt/global/core/workflow/type/fe';
-import { type FlowNodeInputItemType } from '@fastgpt/global/core/workflow/type/io';
+import {
+  type FlowNodeOutputItemType,
+  type FlowNodeInputItemType
+} from '@fastgpt/global/core/workflow/type/io';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useMemoizedFn, useUpdateEffect } from 'ahooks';
 import React, {
@@ -56,6 +58,8 @@ import { getAppConfigByDiff } from '@/web/core/app/diff';
 import WorkflowStatusContextProvider from './workflowStatusContext';
 import { type ChatItemType, type UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
 import { type WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
+import { FlowNodeOutputTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
+import { useChatStore } from '@/web/core/chat/context/useChatStore';
 
 /* 
   Context
@@ -97,6 +101,52 @@ export type WorkflowSnapshotsType = WorkflowStateType & {
   state?: WorkflowStateType;
   diff?: any;
 };
+
+type FlowNodeChangeProps = { nodeId: string } & (
+  | {
+      type: 'attr'; // key: attr, value: new value
+      key: string;
+      value: any;
+    }
+  | {
+      type: 'updateInput'; // key: update input key, value: new input value
+      key: string;
+      value: FlowNodeInputItemType;
+    }
+  | {
+      type: 'replaceInput'; // key: old input key, value: new input value
+      key: string;
+      value: FlowNodeInputItemType;
+    }
+  | {
+      type: 'addInput'; // key: null, value: new input value
+      value: FlowNodeInputItemType;
+      index?: number;
+    }
+  | {
+      type: 'delInput'; // key: delete input key, value: null
+      key: string;
+    }
+  | {
+      type: 'updateOutput'; // key: update output key, value: new output value
+      key: string;
+      value: FlowNodeOutputItemType;
+    }
+  | {
+      type: 'replaceOutput'; // key: old output key, value: new output value
+      key: string;
+      value: FlowNodeOutputItemType;
+    }
+  | {
+      type: 'addOutput'; // key: null, value: new output value
+      value: FlowNodeOutputItemType;
+      index?: number;
+    }
+  | {
+      type: 'delOutput'; // key: delete output key, value: null
+      key: string;
+    }
+);
 
 type WorkflowContextType = {
   appId?: string;
@@ -153,6 +203,11 @@ type WorkflowContextType = {
     isTool: boolean;
     toolInputs: FlowNodeInputItemType[];
     commonInputs: FlowNodeInputItemType[];
+  };
+  splitOutput: (outputs: FlowNodeOutputItemType[]) => {
+    successOutputs: FlowNodeOutputItemType[];
+    hiddenOutputs: FlowNodeOutputItemType[];
+    errorOutputs: FlowNodeOutputItemType[];
   };
   initData: (
     e: {
@@ -246,6 +301,13 @@ export const WorkflowContext = createContext<WorkflowContextType>({
     isTool: boolean;
     toolInputs: FlowNodeInputItemType[];
     commonInputs: FlowNodeInputItemType[];
+  } {
+    throw new Error('Function not implemented.');
+  },
+  splitOutput: function (outputs: FlowNodeOutputItemType[]): {
+    successOutputs: FlowNodeOutputItemType[];
+    hiddenOutputs: FlowNodeOutputItemType[];
+    errorOutputs: FlowNodeOutputItemType[];
   } {
     throw new Error('Function not implemented.');
   },
@@ -351,6 +413,8 @@ const WorkflowContextProvider = ({
 }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
+
+  const { chatId } = useChatStore();
 
   const appDetail = useContextSelector(AppContext, (v) => v.appDetail);
   const setAppDetail = useContextSelector(AppContext, (v) => v.setAppDetail);
@@ -541,6 +605,18 @@ const WorkflowContextProvider = ({
     },
     [edges]
   );
+  const splitOutput = useCallback((outputs: FlowNodeOutputItemType[]) => {
+    return {
+      successOutputs: outputs.filter(
+        (item) =>
+          item.type === FlowNodeOutputTypeEnum.dynamic ||
+          item.type === FlowNodeOutputTypeEnum.static ||
+          item.type === FlowNodeOutputTypeEnum.source
+      ),
+      hiddenOutputs: outputs.filter((item) => item.type === FlowNodeOutputTypeEnum.hidden),
+      errorOutputs: outputs.filter((item) => item.type === FlowNodeOutputTypeEnum.error)
+    };
+  }, []);
 
   /* ui flow to store data */
   const { fitView } = useReactFlow();
@@ -905,67 +981,10 @@ const WorkflowContextProvider = ({
       },
       isInit?: boolean
     ) => {
+      adaptCatchError(e.nodes, e.edges);
+
       const nodes = e.nodes?.map((item) => storeNode2FlowNode({ item, t })) || [];
       const edges = e.edges?.map((item) => storeEdge2RenderEdge({ edge: item })) || [];
-
-      // Get storage snapshot，兼容旧版正在编辑的用户，刷新后会把 local 数据存到内存并删除
-      const pastSnapshot = (() => {
-        try {
-          const pastSnapshot = localStorage.getItem(`${appId}-past`);
-          return pastSnapshot ? (JSON.parse(pastSnapshot) as WorkflowSnapshotsType[]) : [];
-        } catch (error) {
-          return [];
-        }
-      })();
-      if (isInit && pastSnapshot.length > 0) {
-        const defaultState = pastSnapshot[pastSnapshot.length - 1].state;
-
-        if (pastSnapshot[0].diff && defaultState) {
-          // 设置旧的历史记录
-          setPast(
-            pastSnapshot
-              .map((item) => {
-                if (item.state) {
-                  return {
-                    title: t(`app:app.version_initial`),
-                    isSaved: item.isSaved,
-                    nodes: item.state.nodes,
-                    edges: item.state.edges,
-                    chatConfig: item.state.chatConfig
-                  };
-                }
-                if (item.diff) {
-                  const currentState = getAppConfigByDiff(defaultState, item.diff);
-                  return {
-                    title: item.title,
-                    isSaved: item.isSaved,
-                    nodes: currentState.nodes,
-                    edges: currentState.edges,
-                    chatConfig: currentState.chatConfig
-                  };
-                }
-                return undefined;
-              })
-              .filter(Boolean) as WorkflowSnapshotsType[]
-          );
-
-          // 设置当前版本
-          const targetState = getAppConfigByDiff(
-            pastSnapshot[pastSnapshot.length - 1].state,
-            pastSnapshot[0].diff
-          ) as WorkflowStateType;
-
-          setNodes(targetState.nodes);
-          setEdges(targetState.edges);
-          setAppDetail((state) => ({
-            ...state,
-            chatConfig: targetState.chatConfig
-          }));
-
-          localStorage.removeItem(`${appId}-past`);
-          return;
-        }
-      }
 
       // 有历史记录，直接用历史记录覆盖
       if (isInit && past.length > 0) {
@@ -995,7 +1014,7 @@ const WorkflowContextProvider = ({
         setAppDetail((state) => ({ ...state, chatConfig: e.chatConfig as AppChatConfigType }));
       }
     },
-    [appDetail.chatConfig, appId, past, setAppDetail, setEdges, setNodes, t]
+    [appDetail.chatConfig, past, setAppDetail, setEdges, setNodes, t]
   );
 
   const value = useMemo(
@@ -1029,6 +1048,7 @@ const WorkflowContextProvider = ({
 
       // function
       splitToolInputs,
+      splitOutput,
       initData,
       flowData2StoreDataAndCheck,
       flowData2StoreData,
@@ -1064,7 +1084,7 @@ const WorkflowContextProvider = ({
       past,
       pushPastSnapshot,
       redo,
-      setPast,
+      splitOutput,
       splitToolInputs,
       undo,
       workflowDebugData
@@ -1074,7 +1094,7 @@ const WorkflowContextProvider = ({
   return (
     <WorkflowContext.Provider value={value}>
       {children}
-      <ChatTest isOpen={isOpenTest} {...workflowTestData} onClose={onCloseTest} />
+      <ChatTest isOpen={isOpenTest} {...workflowTestData} onClose={onCloseTest} chatId={chatId} />
     </WorkflowContext.Provider>
   );
 };

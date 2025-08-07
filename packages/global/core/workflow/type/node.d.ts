@@ -17,17 +17,34 @@ import {
 } from '../../chat/type';
 import { ChatNodeUsageType } from '../../../support/wallet/bill/type';
 import { RuntimeNodeItemType } from '../runtime/type';
-import { PluginTypeEnum } from '../../plugin/constants';
 import { RuntimeEdgeItemType, StoreEdgeItemType } from './edge';
 import { NextApiResponse } from 'next';
 import type { AppDetailType, AppSchema, McpToolConfigType } from '../../app/type';
 import type { ParentIdType } from 'common/parentFolder/type';
 import { AppTypeEnum } from '../../app/constants';
 import type { WorkflowInteractiveResponseType } from '../template/system/interactive/type';
+import type { StoreSecretValueType } from '../../../common/secret/type';
 
 export type NodeToolConfigType = {
-  mcpTool?: McpToolConfigType & {
+  mcpToolSet?: {
+    toolId: string; // ObjectId of the MCP App
     url: string;
+    headerSecret?: StoreSecretValueType;
+    toolList: McpToolConfigType[];
+  };
+  mcpTool?: {
+    toolId: string;
+  };
+  systemTool?: {
+    toolId: string;
+  };
+  systemToolSet?: {
+    toolId: string;
+    toolList: {
+      toolId: string;
+      name: string;
+      description: string;
+    }[];
   };
 };
 
@@ -46,6 +63,7 @@ export type FlowNodeCommonType = {
   isLatestVersion?: boolean; // Just ui show
 
   // data
+  catchError?: boolean;
   inputs: FlowNodeInputItemType[];
   outputs: FlowNodeOutputItemType[];
 
@@ -55,7 +73,12 @@ export type FlowNodeCommonType = {
   pluginData?: PluginDataType;
 
   // tool data
-  toolData?: NodeToolConfigType;
+  toolConfig?: NodeToolConfigType;
+
+  // Not store, just computed
+  currentCost?: number;
+  hasTokenFee?: boolean;
+  hasSystemSecret?: boolean;
 };
 
 export type PluginDataType = {
@@ -78,9 +101,8 @@ export type FlowNodeTemplateType = FlowNodeCommonType & {
   id: string; // node id, unique
   templateType: string;
 
-  // show handle
-  sourceHandle?: HandleType;
-  targetHandle?: HandleType;
+  showSourceHandle?: boolean;
+  showTargetHandle?: boolean;
 
   // info
   isTool?: boolean; // can be connected by tool
@@ -92,6 +114,11 @@ export type FlowNodeTemplateType = FlowNodeCommonType & {
   diagram?: string; // diagram url
   courseUrl?: string; // course url
   userGuide?: string; // user guide
+
+  // @deprecated
+  // show handle
+  sourceHandle?: HandleType;
+  targetHandle?: HandleType;
 };
 
 export type NodeTemplateListItemType = {

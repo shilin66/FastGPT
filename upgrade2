@@ -1,0 +1,180 @@
+curl --location --request POST 'https://ops.zenlayer.ai/api/admin/initv491' \
+--header 'rootkey: sdfeiasdfi3Hasd3DJ8ge34jasd3as2' \
+--header 'Content-Type: application/json'
+
+
+
+curl --location --request POST 'https://ops.zenlayer.ai/api/admin/initv496' \
+--header 'rootkey: sdfeiasdfi3Hasd3DJ8ge34jasd3as2' \
+--header 'Content-Type: application/json'
+
+
+
+[redis_nodes]
+redis1 ansible_host=10.10.4.101 ansible_user=ubuntu
+redis2 ansible_host=10.10.4.102 ansible_user=ubuntu
+redis3 ansible_host=10.10.4.103 ansible_user=ubuntu
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+
+
+
+redis_password: U9dagstAVLnwobxU
+replica_password: ZT5JJ9f6JaPFtYzp
+client_password: TUK1XhxfZDrMp5JR
+
+ansible-playbook -i inventory.ini deploy_redis.yml \
+  -e "redis_password=U9dagstAVLnwobxU" \
+  -e "replica_password=ZT5JJ9f6JaPFtYzp" \
+  -e "client_password=TUK1XhxfZDrMp5JR"
+
+
+backend redis_back
+    mode tcp
+
+    # 自定义 TCP 健康检查，带上 AUTH 和 PING 验证
+    option tcp-check
+    default-server inter 5s fall 3 rise 2
+
+    # 1. 连接后端
+    tcp-check connect
+    # 2. 发送认证命令（替换 masterpass 为你的实际密码）
+    tcp-check send AUTH\ U9dagstAVLnwobxU\r\n
+    # 3. 期待 +OK 响应
+    tcp-check expect +OK
+    # 4. 判断角色
+    tcp-check send INFO\ replication\r\n
+    tcp-check expect -ERR|+role:master
+dao
+    # 列出所有可能成为 master 的节点
+    server redis1 10.10.4.101:9371 check
+    server redis2 10.10.4.102:9371 check
+    server redis3 10.10.4.103:9371 check
+
+
+
+########################################
+# 2. 定义 “resolver” 给 HAProxy 用，向 Sentinel 解析 master
+########################################
+resolvers redis_sentinel
+    nameserver sentinel1 10.10.4.101:29371
+    nameserver sentinel2 10.10.4.102:29371
+    nameserver sentinel3 10.10.4.103:29371
+    resolve_retries       3
+    timeout resolve       1s
+    hold other           30s
+    hold valid           10s
+
+#####################################################
+# 3. frontend：接入客户端请求的统一端口
+#####################################################
+frontend redis_frontend
+    bind *:9371
+    default_backend redis_backend
+
+#####################################################
+# 4. backend：动态解析 master，并做健康检查
+#####################################################
+backend redis_backend
+    mode tcp
+    balance roundrobin       # 虽然只有一个活跃 master
+    option tcp-check         # 启用自定义 TCP 健康检查
+    # 1. 连接后端
+    tcp-check connect
+    # 2. 发送认证命令（替换 masterpass 为你的实际密码）
+    tcp-check send "AUTH U9dagstAVLnwobxU\r\n"
+    # 3. 期待 +OK 响应
+    tcp-check expect string "+OK"
+    # 4.发 Sentinel 命令询问当前 master
+    tcp-check send   "SENTINEL get-master-addr-by-name mymaster\r\n"
+    # Sentinel 返回格式：*2\r\n$<lenIP>\r\n<IP>\r\n$<lenPort>\r\n<Port>\r\n
+    tcp-check expect string "*2"
+    # 取第一行 IP，再设置给后续 server 调用
+    tcp-check lua.set-addr-from-sentinel
+
+    # 定义一个虚拟 server，占位后面由 lua 改写 IP:PORT
+    server redis-mymaster 0.0.0.0:0 resolvers redis_sentinel init-addr none check inter 1s
+
+
+frontend redis_front
+    bind *:9371
+    use_backend redis_backend
+
+backend redis_backend
+    option tcp-check
+    tcp-check connect
+    tcp-check send "AUTH hacheck AF3HMA8pTvXbWPYyi3rZ\r\n"
+    tcp-check expect string "+OK"
+    tcp-check send PING\r\n
+    tcp-check expect string +PONG
+    tcp-check send info\ replication\r\n
+    tcp-check expect string role:master
+    tcp-check send QUIT\r\n
+    tcp-check expect string +OK
+
+    # 初始占位服务器，Lua脚本会动态更新
+    server placeholder 127.0.0.1:9371 check inter 1s
+
+    # 每5秒更新主节点信息
+    http-request lua.update-redis-master if { var(sess.last_redis_master) -m found lt 5 }
+
+
+
+
+local socket = require("socket")
+
+-- 配置哨兵节点列表
+local sentinels = {
+    {ip = "10.10.4.101", port = 29371},
+    {ip = "10.10.4.102", port = 29371},
+    {ip = "10.10.4.103", port = 29371}
+}
+
+-- 主节点集群名称
+local master_name = "mymaster"
+
+-- 查询哨兵获取主节点
+function get_redis_master()
+    for _, sentinel in ipairs(sentinels) do
+        local conn = socket.tcp()
+        conn:settimeout(1)
+        local ok, err = conn:connect(sentinel.ip, sentinel.port)
+        if ok then
+            conn:send("SENTINEL get-master-addr-by-name " .. master_name .. "\r\n")
+            local response = conn:receive("*a")
+            conn:close()
+
+            -- 解析响应格式：*-1\r\n 或 *2\r\n$9\r\n127.0.0.1\r\n$4\r\n6379\r\n
+            if not response:find("*-1") then
+                local ip_line, port_line = response:match("$(%d+)\r\n(.+)\r\n$(%d+)\r\n(%d+)")
+                return ip_line, tonumber(port_line)
+            end
+        end
+    end
+    return nil, nil
+end
+
+-- 动态更新后端服务器
+core.register_action("update-redis-master", { "http-req" }, function(txn)
+    local master_ip, master_port = get_redis_master()
+    if master_ip then
+        local backend = "redis_backend"
+        txn:set_var("sess.last_redis_master", master_ip .. ":" .. master_port)
+
+        -- 清除旧服务器并添加新主节点
+        core.backends[backend].servers = {}
+        core.backends[backend].servers["master"] = { address = master_ip .. ":" .. master_port, check = "enabled" }
+    end
+end)
+
+
+
+a location to  measurement. it is a json string has these keys:
+{
+    "country": //string A two-letter country code based on ISO 3166-1 alpha-2.,
+    "state": //string  A two-letter US state code.,
+    "city": // string A city name in English.,
+    "asn" : // number An autonomous system number (ASN).,
+    "network": // string A network name, such as "Google LLC" or "DigitalOcean, LLC".
+}

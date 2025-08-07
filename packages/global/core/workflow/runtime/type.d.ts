@@ -1,7 +1,6 @@
 import type { ChatNodeUsageType } from '../../../support/wallet/bill/type';
 import type {
   ChatItemType,
-  UserChatItemValueItemType,
   ToolRunResponseItemType,
   AIChatItemValueItemType
 } from '../../chat/type';
@@ -10,7 +9,7 @@ import type { FlowNodeInputItemType, FlowNodeOutputItemType } from '../type/io.d
 import type { NodeToolConfigType, StoreNodeItemType } from '../type/node';
 import type { DispatchNodeResponseKeyEnum } from './constants';
 import type { StoreEdgeItemType } from '../type/edge';
-import type { NodeInputKeyEnum } from '../constants';
+import type { NodeInputKeyEnum, NodeOutputKeyEnum } from '../constants';
 import type { ClassifyQuestionAgentItemType } from '../template/system/classifyQuestion/type';
 import type { NextApiResponse } from 'next';
 import { UserModelSchema } from '../../../support/user/type';
@@ -25,7 +24,10 @@ import type { AiChatQuoteRoleType } from '../template/system/aiChat/type';
 import type { OpenaiAccountType } from '../../../support/user/team/type';
 import { LafAccountType } from '../../../support/user/team/type';
 import type { CompletionFinishReason } from '../../ai/type';
-import type { WorkflowInteractiveResponseType } from '../template/system/interactive/type';
+import type {
+  InteractiveNodeResponseType,
+  WorkflowInteractiveResponseType
+} from '../template/system/interactive/type';
 import type { SearchDataResponseItemType } from '../../dataset/type';
 export type ExternalProviderType = {
   openaiAccount?: OpenaiAccountType;
@@ -96,15 +98,18 @@ export type RuntimeNodeItemType = {
   flowNodeType: StoreNodeItemType['flowNodeType'];
   showStatus?: StoreNodeItemType['showStatus'];
   isEntry?: boolean;
+  version?: string;
 
   inputs: FlowNodeInputItemType[];
   outputs: FlowNodeOutputItemType[];
 
   pluginId?: string; // workflow id / plugin id
-  version?: string;
 
-  // tool
-  toolConfig?: NodeToolConfigType;
+  // Tool
+  toolConfig?: StoreNodeItemType['toolConfig'];
+
+  // catch error
+  catchError?: boolean;
 };
 
 export type RuntimeEdgeItemType = StoreEdgeItemType & {
@@ -117,7 +122,12 @@ export type DispatchNodeResponseType = {
   runningTime?: number;
   query?: string;
   textOutput?: string;
+
+  // Client will toast
   error?: Record<string, any> | string;
+  // Just show
+  errorText?: string;
+
   customInputs?: Record<string, any>;
   customOutputs?: Record<string, any>;
   nodeInputs?: Record<string, any>;
@@ -236,7 +246,7 @@ export type DispatchNodeResponseType = {
   extensionTokens?: number;
 };
 
-export type DispatchNodeResultType<T = {}> = {
+export type DispatchNodeResultType<T = {}, ERR = { [NodeOutputKeyEnum.errorText]?: string }> = {
   [DispatchNodeResponseKeyEnum.skipHandleId]?: string[]; // skip some edge handle id
   [DispatchNodeResponseKeyEnum.nodeResponse]?: DispatchNodeResponseType; // The node response detail
   [DispatchNodeResponseKeyEnum.nodeDispatchUsages]?: ChatNodeUsageType[]; // Node total usage
@@ -247,7 +257,11 @@ export type DispatchNodeResultType<T = {}> = {
   [DispatchNodeResponseKeyEnum.runTimes]?: number;
   [DispatchNodeResponseKeyEnum.newVariables]?: Record<string, any>;
   [DispatchNodeResponseKeyEnum.memories]?: Record<string, any>;
-} & T;
+  [DispatchNodeResponseKeyEnum.interactive]?: InteractiveNodeResponseType;
+
+  data?: T;
+  error?: ERR;
+};
 
 /* Single node props */
 export type AIChatNodeProps = {

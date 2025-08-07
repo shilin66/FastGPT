@@ -14,6 +14,8 @@ import { parseFileExtensionFromUrl } from '@fastgpt/global/common/string/tools';
 import { addLog } from '../../../../common/system/log';
 import { addRawTextBuffer, getRawTextBuffer } from '../../../../common/buffer/rawText/controller';
 import { addMinutes } from 'date-fns';
+import { getNodeErrResponse } from '../utils';
+import { isInternalAddress } from '../../../../common/system/utils';
 
 type Props = ModuleDispatchProps<{
   [NodeInputKeyEnum.fileUrlList]: string[];
@@ -58,31 +60,37 @@ export const dispatchReadFiles = async (props: Props): Promise<Response> => {
   // Get files from histories
   const filesFromHistories = version !== '489' ? [] : getHistoryFileLinks(histories);
 
-  const { text, readFilesResult } = await getFileContentFromLinks({
-    // Concat fileUrlList and filesFromHistories; remove not supported files
-    urls: [...fileUrlList, ...filesFromHistories],
-    requestOrigin,
-    maxFiles,
-    teamId,
-    tmbId,
-    customPdfParse
-  });
+  try {
+    const { text, readFilesResult } = await getFileContentFromLinks({
+      // Concat fileUrlList and filesFromHistories; remove not supported files
+      urls: [...fileUrlList, ...filesFromHistories],
+      requestOrigin,
+      maxFiles,
+      teamId,
+      tmbId,
+      customPdfParse
+    });
 
-  return {
-    [NodeOutputKeyEnum.text]: text,
-    [DispatchNodeResponseKeyEnum.nodeResponse]: {
-      readFiles: readFilesResult.map((item) => ({
-        name: item?.filename || '',
-        url: item?.url || ''
-      })),
-      readFilesResult: readFilesResult
-        .map((item) => item?.nodeResponsePreviewText ?? '')
-        .join('\n******\n')
-    },
-    [DispatchNodeResponseKeyEnum.toolResponses]: {
-      fileContent: text
-    }
-  };
+    return {
+      data: {
+        [NodeOutputKeyEnum.text]: text
+      },
+      [DispatchNodeResponseKeyEnum.nodeResponse]: {
+        readFiles: readFilesResult.map((item) => ({
+          name: item?.filename || '',
+          url: item?.url || ''
+        })),
+        readFilesResult: readFilesResult
+          .map((item) => item?.nodeResponsePreviewText ?? '')
+          .join('\n******\n')
+      },
+      [DispatchNodeResponseKeyEnum.toolResponses]: {
+        fileContent: text
+      }
+    };
+  } catch (error) {
+    return getNodeErrResponse({ error });
+  }
 };
 
 export const getHistoryFileLinks = (histories: ChatItemType[]) => {
@@ -168,6 +176,9 @@ export const getFileContentFromLinks = async ({
         }
 
         try {
+          if (isInternalAddress(url)) {
+            return Promise.reject('Url is invalid');
+          }
           // Get file buffer data
           const response = await axios.get(url, {
             baseURL: serverRequestBaseUrl,

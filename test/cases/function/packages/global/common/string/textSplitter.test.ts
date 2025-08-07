@@ -93,7 +93,7 @@ FastGPT 的能力与优势
 
 FastGPT 是一个基于 LLM 大语言模型的知识库问答系统，提供开箱即用的数据处理、模型调用等能力。同时可以通过 Flow 可视化进行工作流编排，从而实现复杂的问答场景！
 
-FastGPT 在线使用：https://tryfastgpt.ai
+FastGPT 在线使用：https://fastgpt.io
 
 FastGPT 能力 
 1. 专属 AI 客服 
@@ -227,7 +227,7 @@ FastGPT 知识库采用 QA 对(不一定都是问答格式，仅代表两个变�
 通用模板与问答模板对比 
 我们通过一组你是谁的手动数据，对通用模板与问答模板的效果进行对比。此处特意打了个搞笑的答案，通用模板下 GPT35 就变得不那么听话了，`,
     result: [
-      '快速了解 FastGPT\nFastGPT 的能力与优势\n\nFastGPT 是一个基于 LLM 大语言模型的知识库问答系统，提供开箱即用的数据处理、模型调用等能力。同时可以通过 Flow 可视化进行工作流编排，从而实现复杂的问答场景！\n\nFastGPT 在线使用：https://tryfastgpt.ai\n\nFastGPT 能力 \n1. 专属 AI 客服 \n通过导入文档或已有问答对进行训练，让 AI 模型能根据你的文档以交互式对话方式回答问题。\n\n2. 简单易用的可视化界面 \nFastGPT 采用直观的可视化界面设计，为各种应用场景提供了丰富实用的功能。通过简洁易懂的操作步骤，可以轻松完成 AI 客服的创建和训练流程。\n\n3. 自动数据预处理 \n提供手动输入、直接分段、LLM 自动处理和 CSV 等多种数据导入途径，其中“直接分段”支持通过 PDF、WORD、Markdown 和 CSV 文档内容作为上下文。FastGPT 会自动对文本数据进行预处理、向量化和 QA 分割，节省手动训练时间，提升效能。\n\n4. 工作流编排 \n基于 Flow 模块的工作流编排，可以帮助你设计更加复杂的问答流程。例如查询数据库、查询库存、预约实验室等。\n\n5. 强大的 API 集成 \nFastGPT 对外的 API 接口对齐了 OpenAI 官方接口，可以直接接入现有的 GPT 应用，也可以轻松集成到企业微信、公众号、飞书等平台。',
+      '快速了解 FastGPT\nFastGPT 的能力与优势\n\nFastGPT 是一个基于 LLM 大语言模型的知识库问答系统，提供开箱即用的数据处理、模型调用等能力。同时可以通过 Flow 可视化进行工作流编排，从而实现复杂的问答场景！\n\nFastGPT 在线使用：https://fastgpt.io\n\nFastGPT 能力 \n1. 专属 AI 客服 \n通过导入文档或已有问答对进行训练，让 AI 模型能根据你的文档以交互式对话方式回答问题。\n\n2. 简单易用的可视化界面 \nFastGPT 采用直观的可视化界面设计，为各种应用场景提供了丰富实用的功能。通过简洁易懂的操作步骤，可以轻松完成 AI 客服的创建和训练流程。\n\n3. 自动数据预处理 \n提供手动输入、直接分段、LLM 自动处理和 CSV 等多种数据导入途径，其中“直接分段”支持通过 PDF、WORD、Markdown 和 CSV 文档内容作为上下文。FastGPT 会自动对文本数据进行预处理、向量化和 QA 分割，节省手动训练时间，提升效能。\n\n4. 工作流编排 \n基于 Flow 模块的工作流编排，可以帮助你设计更加复杂的问答流程。例如查询数据库、查询库存、预约实验室等。\n\n5. 强大的 API 集成 \nFastGPT 对外的 API 接口对齐了 OpenAI 官方接口，可以直接接入现有的 GPT 应用，也可以轻松集成到企业微信、公众号、飞书等平台。',
       'FastGPT 特点 \n项目开源\n\nFastGPT 遵循附加条件 Apache License 2.0 开源协议，你可以 Fork 之后进行二次开发和发布。FastGPT 社区版将保留核心功能，商业版仅在社区版基础上使用 API 的形式进行扩展，不影响学习使用。\n\n独特的 QA 结构\n\n针对客服问答场景设计的 QA 结构，提高在大量数据场景中的问答准确性。\n\n可视化工作流\n\n通过 Flow 模块展示了从问题输入到模型输出的完整流程，便于调试和设计复杂流程。\n\n无限扩展\n\n基于 API 进行扩展，无需修改 FastGPT 源码，也可快速接入现有的程序中。\n\n便于调试\n\n提供搜索测试、引用修改、完整对话预览等多种调试途径。\n\n支持多种模型\n\n支持 GPT、Claude、文心一言等多种 LLM 模型，未来也将支持自定义的向量模型。\n\n知识库核心流程\n\nFastGPT AI 相关参数配置说明\n\n在 FastGPT 的 AI 对话模块中，有一个 AI 高级配置，里面包含了 AI 模型的参数配置，本文详细介绍这些配置的含义。\n\n返回AI内容（高级编排特有） \n这是一个开关，打开的时候，当 AI 对话模块运行时，会将其输出的内容返回到浏览器（API响应）；如果关闭，AI 输出的内容不会返回到浏览器，但是生成的内容仍可以通过【AI回复】进行输出。你可以将【AI回复】连接到其他模块中。',
       '最大上下文 \n代表模型最多容纳的文字数量。\n\n函数调用 \n支持函数调用的模型，在使用工具时更加准确。\n\n温度 \n越低回答越严谨，少废话（实测下来，感觉差别不大）\n\n回复上限 \n最大回复 token 数量。注意，是回复的Tokens！不是上下文 tokens。\n\n系统提示词 \n被放置在上下文数组的最前面，role 为 system，用于引导模型。\n\n引用模板 & 引用提示词 \n这两个参数与知识库问答场景相关，可以控制知识库相关的提示词。\n\nAI 对话消息组成 \n想使用明白这两个变量，首先要了解传递传递给 AI 模型的消息格式。它是一个数组，FastGPT 中这个数组的组成形式为：\n\n[\n内置提示词（config.json 配置，一般为空）\n系统提示词 （用户输入的提示词）\n历史记录\n问题（由引用提示词、引用模板和用户问题组成）\n]\n🍅\n\nTips: 可以通过点击上下文按键查看完整的上下文组成，便于调试。\n\n引用模板和提示词设计 \n简易模式已移除该功能，仅在工作流中可配置，可点击工作流中AI对话节点内，知识库引用旁边的setting icon进行配置。随着模型的增强，这部分功能将逐步弱化。\n\n引用模板和引用提示词通常是成对出现，引用提示词依赖引用模板。',
       'FastGPT 知识库采用 QA 对(不一定都是问答格式，仅代表两个变量)的格式存储，在转义成字符串时候会根据引用模板来进行格式化。知识库包含多个可用变量： q, a, sourceId（数据的ID）, index(第n个数据), source(数据的集合名、文件名)，score(距离得分，0-1) 可以通过 {{q}} {{a}} {{sourceId}} {{index}} {{source}} {{score}} 按需引入。下面一个模板例子：\n\n可以通过 知识库结构讲解 了解详细的知识库的结构。\n\n引用模板 \n{instruction:"{{q}}",output:"{{a}}",source:"{{source}}"}\n搜索到的知识库，会自动将 q,a,source 替换成对应的内容。每条搜索到的内容，会通过 \n 隔开。例如：\n\n{instruction:"电影《铃芽之旅》的导演是谁？",output:"电影《铃芽之旅》的导演是新海诚。",source:"手动输入"}\n{instruction:"本作的主人公是谁？",output:"本作的主人公是名叫铃芽的少女。",source:""}\n{instruction:"电影《铃芽之旅》男主角是谁？",output:"电影《铃芽之旅》男主角是宗像草太，由松村北斗配音。",source:""}\n{instruction:"电影《铃芽之旅》的编剧是谁？22",output:"新海诚是本片的编剧。",source:"手动输入"}\n引用提示词 \n引用模板需要和引用提示词一起使用，提示词中可以写引用模板的格式说明以及对话的要求等。可以使用 {{quote}} 来使用 引用模板，使用 {{question}} 来引入问题。例如：',
@@ -336,7 +336,7 @@ FastGPT 的能力与优势
 
 FastGPT 是一个基于 LLM 大语言模型的知识库问答系统，提供开箱即用的数据处理、模型调用等能力。同时可以通过 Flow 可视化进行工作流编排，从而实现复杂的问答场景！
 
-FastGPT 在线使用：https://tryfastgpt.ai
+FastGPT 在线使用：https://fastgpt.io
 
 FastGPT 能力 
 1. 专属 AI 客服 
@@ -536,7 +536,7 @@ FastGPT AI 相关参数配置说明
 最大上下文 
 代表模型最多容纳的文字数量。`,
     result: [
-      "这是一个测试的内容，包含代码块\n\n快速了解 FastGPT\nFastGPT 的能力与优势\n\nFastGPT 是一个基于 LLM 大语言模型的知识库问答系统，提供开箱即用的数据处理、模型调用等能力。同时可以通过 Flow 可视化进行工作流编排，从而实现复杂的问答场景！\n\nFastGPT 在线使用：https://tryfastgpt.ai\n\nFastGPT 能力 \n1. 专属 AI 客服 \n通过导入文档或已有问答对进行训练，让 AI 模型能根据你的文档以交互式对话方式回答问题。\n\n2. 简单易用的可视化界面 \nFastGPT 采用直观的可视化界面设计，为各种应用场景提供了丰富实用的功能。通过简洁易懂的操作步骤，可以轻松完成 AI 客服的创建和训练流程。\n\n~~~js\nimport { defaultMaxChunkSize } from '../../core/dataset/training/utils';\nimport { getErrText } from '../error/utils';\n\nconst getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n\n  const getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n\n  const getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n\n  const getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n\n  const getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n~~~",
+      "这是一个测试的内容，包含代码块\n\n快速了解 FastGPT\nFastGPT 的能力与优势\n\nFastGPT 是一个基于 LLM 大语言模型的知识库问答系统，提供开箱即用的数据处理、模型调用等能力。同时可以通过 Flow 可视化进行工作流编排，从而实现复杂的问答场景！\n\nFastGPT 在线使用：https://fastgpt.io\n\nFastGPT 能力 \n1. 专属 AI 客服 \n通过导入文档或已有问答对进行训练，让 AI 模型能根据你的文档以交互式对话方式回答问题。\n\n2. 简单易用的可视化界面 \nFastGPT 采用直观的可视化界面设计，为各种应用场景提供了丰富实用的功能。通过简洁易懂的操作步骤，可以轻松完成 AI 客服的创建和训练流程。\n\n~~~js\nimport { defaultMaxChunkSize } from '../../core/dataset/training/utils';\nimport { getErrText } from '../error/utils';\n\nconst getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n\n  const getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n\n  const getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n\n  const getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n\n  const getOneTextOverlapText = ({ text, step }: { text: string; step: number }): string => {\n    const forbidOverlap = checkForbidOverlap(step);\n    const maxOverlapLen = chunkSize * 0.4;\n\n    // step >= stepReges.length: Do not overlap incomplete sentences\n    if (forbidOverlap || overlapLen === 0 || step >= stepReges.length) return '';\n\n    const splitTexts = getSplitTexts({ text, step });\n    let overlayText = '';\n\n    for (let i = splitTexts.length - 1; i >= 0; i--) {\n      const currentText = splitTexts[i].text;\n      const newText = currentText + overlayText;\n      const newTextLen = newText.length;\n\n      if (newTextLen > overlapLen) {\n        if (newTextLen > maxOverlapLen) {\n          const text = getOneTextOverlapText({ text: newText, step: step + 1 });\n          return text || overlayText;\n        }\n        return newText;\n      }\n\n      overlayText = newText;\n    }\n    return overlayText;\n  };\n~~~",
       '3. 自动数据预处理 \n提供手动输入、直接分段、LLM 自动处理和 CSV 等多种数据导入途径，其中“直接分段”支持通过 PDF、WORD、Markdown 和 CSV 文档内容作为上下文。FastGPT 会自动对文本数据进行预处理、向量化和 QA 分割，节省手动训练时间，提升效能。\n\n4. 工作流编排 \n基于 Flow 模块的工作流编排，可以帮助你设计更加复杂的问答流程。例如查询数据库、查询库存、预约实验室等。\n\n5. 强大的 API 集成 \nFastGPT 对外的 API 接口对齐了 OpenAI 官方接口，可以直接接入现有的 GPT 应用，也可以轻松集成到企业微信、公众号、飞书等平台。\n\nFastGPT 特点 \n项目开源\n\nFastGPT 遵循附加条件 Apache License 2.0 开源协议，你可以 Fork 之后进行二次开发和发布。FastGPT 社区版将保留核心功能，商业版仅在社区版基础上使用 API 的形式进行扩展，不影响学习使用。\n\n独特的 QA 结构\n\n针对客服问答场景设计的 QA 结构，提高在大量数据场景中的问答准确性。\n\n可视化工作流\n\n通过 Flow 模块展示了从问题输入到模型输出的完整流程，便于调试和设计复杂流程。\n\n无限扩展\n\n基于 API 进行扩展，无需修改 FastGPT 源码，也可快速接入现有的程序中。',
       '便于调试\n\n提供搜索测试、引用修改、完整对话预览等多种调试途径。\n\n支持多种模型\n\n支持 GPT、Claude、文心一言等多种 LLM 模型，未来也将支持自定义的向量模型。\n\n知识库核心流程\n\nFastGPT AI 相关参数配置说明\n\n在 FastGPT 的 AI 对话模块中，有一个 AI 高级配置，里面包含了 AI 模型的参数配置，本文详细介绍这些配置的含义。\n\n返回AI内容（高级编排特有） \n这是一个开关，打开的时候，当 AI 对话模块运行时，会将其输出的内容返回到浏览器（API响应）；如果关闭，AI 输出的内容不会返回到浏览器，但是生成的内容仍可以通过【AI回复】进行输出。你可以将【AI回复】连接到其他模块中。\n\n最大上下文 \n代表模型最多容纳的文字数量。'
     ]
@@ -559,9 +559,8 @@ FastGPT AI 相关参数配置说明
 it(`Test splitText2Chunks 9`, () => {
   const mock = {
     text: `测试的呀,第一个表格
-
 | 序号 | 姓名 | 年龄 | 职业 | 城市 |
-|------|------|------|------|------|
+| --- | --- | --- | --- | --- |
 | 1 | 张三 | 25 | 工程师 | 北京 |
 | 2 | 李四 | 30 | 教师 | 上海 |
 | 3 | 王五 | 28 | 医生 | 广州 |
@@ -600,7 +599,7 @@ it(`Test splitText2Chunks 9`, () => {
 这是第二段了，第二表格
 
 | 序号 | 姓名 | 年龄 | 职业 | 城市 |
-|------|------|------|------|------|
+| --- | --- | --- | --- | --- |
 | 1 | 张三 | 25 | 工程师 | 北京 |
 | 6 | 周八 | 32 | 会计 | 成都 |
 | 2 | 李四 | 30 | 教师 | 上海 |
@@ -615,11 +614,10 @@ it(`Test splitText2Chunks 9`, () => {
 | 10004 | 黄末 | 28 | 作家 | 厦门 |
 | 10013 | 杨一 | 34 | 程序员 | 厦门 |
 
-
 结束了
 
 | 序号22 | 姓名 | 年龄 | 职业 | 城市 |
-|------|------|------|------|------|
+| --- | --- | --- | --- | --- |
 | 1 | 张三 | 25 | 工程师 | 北京 |
 | 2 | 李四 | 30 | 教师 | 上海 |
 | 3 | 王五 | 28 | 医生 | 广州 |
@@ -636,7 +634,6 @@ it(`Test splitText2Chunks 9`, () => {
 `,
     result: [
       `测试的呀,第一个表格
-
 | 序号 | 姓名 | 年龄 | 职业 | 城市 |
 | --- | --- | --- | --- | --- |
 | 1 | 张三 | 25 | 工程师 | 北京 |
@@ -655,9 +652,7 @@ it(`Test splitText2Chunks 9`, () => {
 | 1001 | 杨一 | 34 | 程序员 | 厦门 |
 | 1002 | 杨二 | 34 | 程序员 | 厦门 |
 | 1003 | 杨三 | 34 | 程序员 | 厦门 |`,
-      `| 序号 | 姓名 | 年龄 | 职业 | 城市 |
-| --- | --- | --- | --- | --- |
-| 6 | 周八 | 32 | 会计 | 成都 |
+      `| 6 | 周八 | 32 | 会计 | 成都 |
 | 1004 | 杨四 | 34 | 程序员 | 厦门 |
 | 1005 | 杨五 | 34 | 程序员 | 厦门 |
 | 1000 | 黄末 | 28 | 作家 | 厦门 |
@@ -670,15 +665,11 @@ it(`Test splitText2Chunks 9`, () => {
 | 1002 | 杨二 | 34 | 程序员 | 厦门 |
 | 1003 | 杨三 | 34 | 程序员 | 厦门 |
 | 1004 | 杨四 | 34 | 程序员 | 厦门 |
-| 1005 | 杨五 | 34 | 程序员 | 厦门 |`,
-      `| 序号 | 姓名 | 年龄 | 职业 | 城市 |
-| --- | --- | --- | --- | --- |
+| 1005 | 杨五 | 34 | 程序员 | 厦门 |
 | 6 | 周八 | 32 | 会计 | 成都 |
 | 1000 | 黄末 | 28 | 作家 | 厦门 |
-| 1000 | 黄末 | 28 | 作家 | 厦门 |
-| 1000 | 黄末 | 28 | 作家 | 厦门 |
-
-这是第二段了，第二表格
+| 1000 | 黄末 | 28 | 作家 | 厦门 |`,
+      `这是第二段了，第二表格
 
 | 序号 | 姓名 | 年龄 | 职业 | 城市 |
 | --- | --- | --- | --- | --- |
@@ -805,5 +796,156 @@ af da da fda a a`,
   };
 
   const { chunks } = splitText2Chunks({ text: mock.text, chunkSize: 2000, paragraphChunkDeep: 2 });
+  expect(chunks).toEqual(mock.result);
+});
+
+// 表格合并测试
+it(`Test splitText2Chunks 13 - Table split with empty lastText`, () => {
+  const mock = {
+    text: `
+## 4.1、关键假设及盈利预测
+
+公司医药工业产品线按治疗领域分心血管类、补益类、清热类、妇科类和其他药品,商业分部包含自有产品销售,相应有分部间抵消,我们分别给予营收增速和毛利率假设, 如下:
+
+1)心脑血管类：心脑血管类为公司核心优势产品,产品包括安宫牛黄丸、牛黄清心丸、同仁堂大活络丸等,2021-2023 年心脑血管类产品营收增速逐年下滑, 毛利率受主要原材料牛黄和麝香价格涨幅较大影响,毛利率承压。我们分别假设 2024-2026 年,心脑血管类产品营收增速分别为 0%、8%和 10%,2025 年受消费上升带动开始恢复性增长,毛利率分别为 47%、50%和 52%,毛利率逐年提升,反映牛黄进口试点后,牛黄原料成本压力缓解。
+
+2)补益类：补益类是公司第二大产品线,包括六味地黄丸、五子衍宗丸等。 我们分别假设 2024-2026 年补益类产品营收年增长 8%、10%和 12%,毛利率均保持稳定为 37.5%。
+
+3)妇科类：妇科类产品包括乌鸡白凤丸、坤宝丸等,历年销售比较平稳。我们假设 2024-2026 年妇科类产品年增长 5%,毛利率维持稳定在 42%。
+
+4)清热类：清热类产品与流行性疾病相关,2023 年为流感大年,感冒清热类产品销售相对旺盛,基数较高。我们假设 2024-2026 年清热类产品年增长-15%、8% 和 10%, 2024 年负增长, 反映上 2023 年基数较高和 2024 年流行性疾病小年影响, 毛利率稳定为 35.0%。
+
+5)其他产品：我们假设 2024-2026 年其他中药品种营收年增长 5%、10%和 15%, 毛利率稳定保持 41%。
+
+6)医药商业：医药商业营收增长主要是旗下同仁堂商业零售门店带动, 2023-2024H1 门店新开显著提速,2024 年上半年新开 116 家门店。我们假设 2024-2026 年医药商业年均增长 9%,毛利率保持 31%水平不变。
+
+7)分部抵消：公司医药商业销售自产药品比例逐年提升,2023 年分部抵消 34.6 亿元,占医药工业营收 31.3%左右,我们假设 2024-2026 年,分部间抵消占医药工业营收分别为 33%、34%和 35%,毛利率为 -2%。
+
+
+
+表 4：同仁堂主营业务关键假设及营收拆分
+
+| 同仁堂经营拆分： | 单位 | 2021A | 2022A | 2023A | 2024E | 2025E | 2026E |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 合并营业收入 | 亿元 | 146.03 | 153.72 | 178.61 | 187.68 | 203.30 | 222.68 |
+| 同比 | % | 13.86% | 5.27% | 16.19% | 5.08% | 8.33% | 9.53% |
+| 毛利率 | % | 47.62% | 48.80% | 47.29% | 44.53% | 45.50% | 46.46% |
+|   |   |   |   |   |   |   |   |
+| 分产品 |   |   |   |   |   |   |   |
+| 一、医药工业分部 | 亿元 | 88.76 | 98.40 | 110.79 | 113.42 | 123.59 | 138.44 |
+| 同比 | % | 15.99% | 10.86% | 12.59% | 2.38% | 8.96% | 12.02% |
+| 毛利率 | % | 48.13% | 48.95% | 46.96% | 42.50% | 43.63% | 44.32% |
+| 分细分产品: |   |   |   |   |   |   |   |
+| 1、母公司生产：心脑血管类(安宫、清心、大活络等) | 亿元 | 36.29 | 40.63 | 43.88 | 43.88 | 47.39 | 52.13 |
+| 同比 | % | 20.80% | 11.97% | 8.00% | 0.00% | 8.00% | 10.00% |
+| 毛利率 | $ \% $ | 59.96% | 61.20% | 57.62% | 47.00% | 50.00% | 52.00% |
+|   |   |   |   |   |   |   |   |
+| 2、补益类(六味、金匮、五子衍宗) |   | 14.56 | 15.67 | 17.30 | 18.68 | 20.55 | 23.02 |
+| 同比 | % | 2.86% | 7.62% | 10.40% | 8.00% | 10.00% | 12.00% |
+| 毛利率 | $ \% $ | 42.45% | 43.00% | 37.39% | 37.50% | 37.50% | 37.50% |
+|   |   |   |   |   |   |   |   |
+| 3、妇科类(乌鸡白凤丸、坤宝丸) |   | 3.80 | 3.48 | 3.77 | 3.96 | 4.15 | 4.36 |
+| 同比 | % | 23.83% | -8.38% | 8.28% | 5.00% | 5.00% | 5.00% |
+| 毛利率 | % | 40.16% | 38.12% | 42.38% | 42.00% | 42.00% | 42.00% |
+|   |   |   |   |   |   |   |   |
+| 4、清热类(感冒清热颗粒、牛黄解毒) | 亿元 | 5.24 | 5.29 | 6.14 | 5.22 | 5.64 | 6.20 |
+| 同比 | % | 5.19% | 0.86% | 16.07% | -15.00% | 8.00% | 10.00% |
+| 毛利率 | $ \% $ | 36.09% | 34.39% | 34.97% | 35.00% | 35.00% | 35.00% |
+|   |   |   |   |   |   |   |   |
+| 5、其他中药品种 | 亿元 | 28.87 | 33.33 | 39.70 | 41.69 | 45.85 | 52.73 |
+| 同比 | % | 18.90% | 15.45% | 19.11% | 5.00% | 10.00% | 15.00% |
+| 毛利率 | $ \% $ | 39.36% | 40.25% | 41.65% | 41.00% | 41.00% | 41.00% |
+|   |   |   |   |   |   |   |   |
+| 二、商业分部(同仁堂商业) | 亿元 | 82.41 | 84.80 | 102.5 | 111.7 | 121.7 | 132.7 |
+| 同比 | % | 12.64% | 2.90% | 20.83% | 9.00% | 9.00% | 9.00% |
+| 毛利率 | % | 31.51% | 30.95% | 31.11% | 31.00% | 31.00% | 31.00% |
+|   |   |   |   |   |   |   |   |
+| 三、分部间抵消 | 亿元 | -25.14 | (29.48) | (34.64) | (37.43) | (42.02) | (48.45) |
+| 同比 | % | 17.32% | 17.27% | 17.50% | 8.06% | 12.26% | 15.31% |
+| 毛利率 | % | -3.39% | -2.05% | -1.61% | -2.0% | -2.0% | -2.0% |
+| 分部抵消营收占工业比例 | % | 28.32% | 29.96% | 31.27% | 33.0% | 34.0% | 35.0% |
+
+资料来源：Wind, 诚通证券研究所
+
+
+
+综上,我们预测公司 2024-2026 年,营业收入分别为 187.7/203.3/222.7 亿元, 分别同比增 5.1%/8.3%/9.5%；归母净利润分别为 16.7/19.4/22.6 亿元,分别同比增 $ {0.3}\% /{15.8}\% /{16.7}\% $ ; 每股 EPS 分别为 1.22/1.41/1.65 元; 毛利率分别为 44.5%/45.5%/46.5%。`,
+    result: [
+      `## 4.1、关键假设及盈利预测
+
+公司医药工业产品线按治疗领域分心血管类、补益类、清热类、妇科类和其他药品,商业分部包含自有产品销售,相应有分部间抵消,我们分别给予营收增速和毛利率假设, 如下:
+
+1)心脑血管类：心脑血管类为公司核心优势产品,产品包括安宫牛黄丸、牛黄清心丸、同仁堂大活络丸等,2021-2023 年心脑血管类产品营收增速逐年下滑, 毛利率受主要原材料牛黄和麝香价格涨幅较大影响,毛利率承压。我们分别假设 2024-2026 年,心脑血管类产品营收增速分别为 0%、8%和 10%,2025 年受消费上升带动开始恢复性增长,毛利率分别为 47%、50%和 52%,毛利率逐年提升,反映牛黄进口试点后,牛黄原料成本压力缓解。
+
+2)补益类：补益类是公司第二大产品线,包括六味地黄丸、五子衍宗丸等。 我们分别假设 2024-2026 年补益类产品营收年增长 8%、10%和 12%,毛利率均保持稳定为 37.5%。
+
+3)妇科类：妇科类产品包括乌鸡白凤丸、坤宝丸等,历年销售比较平稳。我们假设 2024-2026 年妇科类产品年增长 5%,毛利率维持稳定在 42%。
+
+4)清热类：清热类产品与流行性疾病相关,2023 年为流感大年,感冒清热类产品销售相对旺盛,基数较高。我们假设 2024-2026 年清热类产品年增长-15%、8% 和 10%, 2024 年负增长, 反映上 2023 年基数较高和 2024 年流行性疾病小年影响, 毛利率稳定为 35.0%。
+
+5)其他产品：我们假设 2024-2026 年其他中药品种营收年增长 5%、10%和 15%, 毛利率稳定保持 41%。
+
+6)医药商业：医药商业营收增长主要是旗下同仁堂商业零售门店带动, 2023-2024H1 门店新开显著提速,2024 年上半年新开 116 家门店。我们假设 2024-2026 年医药商业年均增长 9%,毛利率保持 31%水平不变。
+
+7)分部抵消：公司医药商业销售自产药品比例逐年提升,2023 年分部抵消 34.6 亿元,占医药工业营收 31.3%左右,我们假设 2024-2026 年,分部间抵消占医药工业营收分别为 33%、34%和 35%,毛利率为 -2%。
+
+表 4：同仁堂主营业务关键假设及营收拆分`,
+
+      `## 4.1、关键假设及盈利预测
+| 同仁堂经营拆分： | 单位 | 2021A | 2022A | 2023A | 2024E | 2025E | 2026E |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 合并营业收入 | 亿元 | 146.03 | 153.72 | 178.61 | 187.68 | 203.30 | 222.68 |
+| 同比 | % | 13.86% | 5.27% | 16.19% | 5.08% | 8.33% | 9.53% |
+| 毛利率 | % | 47.62% | 48.80% | 47.29% | 44.53% | 45.50% | 46.46% |
+|   |   |   |   |   |   |   |   |
+| 分产品 |   |   |   |   |   |   |   |
+| 一、医药工业分部 | 亿元 | 88.76 | 98.40 | 110.79 | 113.42 | 123.59 | 138.44 |
+| 同比 | % | 15.99% | 10.86% | 12.59% | 2.38% | 8.96% | 12.02% |
+| 毛利率 | % | 48.13% | 48.95% | 46.96% | 42.50% | 43.63% | 44.32% |
+| 分细分产品: |   |   |   |   |   |   |   |
+| 1、母公司生产：心脑血管类(安宫、清心、大活络等) | 亿元 | 36.29 | 40.63 | 43.88 | 43.88 | 47.39 | 52.13 |
+| 同比 | % | 20.80% | 11.97% | 8.00% | 0.00% | 8.00% | 10.00% |
+| 毛利率 | $ \% $ | 59.96% | 61.20% | 57.62% | 47.00% | 50.00% | 52.00% |
+|   |   |   |   |   |   |   |   |
+| 2、补益类(六味、金匮、五子衍宗) |   | 14.56 | 15.67 | 17.30 | 18.68 | 20.55 | 23.02 |
+| 同比 | % | 2.86% | 7.62% | 10.40% | 8.00% | 10.00% | 12.00% |
+| 毛利率 | $ \% $ | 42.45% | 43.00% | 37.39% | 37.50% | 37.50% | 37.50% |
+|   |   |   |   |   |   |   |   |
+| 3、妇科类(乌鸡白凤丸、坤宝丸) |   | 3.80 | 3.48 | 3.77 | 3.96 | 4.15 | 4.36 |
+| 同比 | % | 23.83% | -8.38% | 8.28% | 5.00% | 5.00% | 5.00% |
+| 毛利率 | % | 40.16% | 38.12% | 42.38% | 42.00% | 42.00% | 42.00% |
+|   |   |   |   |   |   |   |   |
+| 4、清热类(感冒清热颗粒、牛黄解毒) | 亿元 | 5.24 | 5.29 | 6.14 | 5.22 | 5.64 | 6.20 |
+| 同比 | % | 5.19% | 0.86% | 16.07% | -15.00% | 8.00% | 10.00% |
+| 毛利率 | $ \% $ | 36.09% | 34.39% | 34.97% | 35.00% | 35.00% | 35.00% |
+|   |   |   |   |   |   |   |   |
+| 5、其他中药品种 | 亿元 | 28.87 | 33.33 | 39.70 | 41.69 | 45.85 | 52.73 |
+| 同比 | % | 18.90% | 15.45% | 19.11% | 5.00% | 10.00% | 15.00% |`,
+
+      `## 4.1、关键假设及盈利预测
+| 同仁堂经营拆分： | 单位 | 2021A | 2022A | 2023A | 2024E | 2025E | 2026E |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 毛利率 | $ \% $ | 39.36% | 40.25% | 41.65% | 41.00% | 41.00% | 41.00% |
+|   |   |   |   |   |   |   |   |
+| 二、商业分部(同仁堂商业) | 亿元 | 82.41 | 84.80 | 102.5 | 111.7 | 121.7 | 132.7 |
+| 同比 | % | 12.64% | 2.90% | 20.83% | 9.00% | 9.00% | 9.00% |
+| 毛利率 | % | 31.51% | 30.95% | 31.11% | 31.00% | 31.00% | 31.00% |
+|   |   |   |   |   |   |   |   |
+| 三、分部间抵消 | 亿元 | -25.14 | (29.48) | (34.64) | (37.43) | (42.02) | (48.45) |
+| 同比 | % | 17.32% | 17.27% | 17.50% | 8.06% | 12.26% | 15.31% |
+| 毛利率 | % | -3.39% | -2.05% | -1.61% | -2.0% | -2.0% | -2.0% |
+| 分部抵消营收占工业比例 | % | 28.32% | 29.96% | 31.27% | 33.0% | 34.0% | 35.0% |
+
+资料来源：Wind, 诚通证券研究所
+
+综上,我们预测公司 2024-2026 年,营业收入分别为 187.7/203.3/222.7 亿元, 分别同比增 5.1%/8.3%/9.5%；归母净利润分别为 16.7/19.4/22.6 亿元,分别同比增 $ {0.3}\% /{15.8}\% /{16.7}\% $ ; 每股 EPS 分别为 1.22/1.41/1.65 元; 毛利率分别为 44.5%/45.5%/46.5%。`
+    ]
+  };
+
+  const { chunks } = splitText2Chunks({
+    text: mock.text,
+    chunkSize: 1000
+  });
+
   expect(chunks).toEqual(mock.result);
 });

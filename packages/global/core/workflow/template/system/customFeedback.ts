@@ -5,19 +5,18 @@ import {
   FlowNodeTemplateTypeEnum,
   NodeInputKeyEnum
 } from '../../constants';
-import { getHandleConfig } from '../utils';
 import { i18nT } from '../../../../../web/i18n/utils';
 
 export const CustomFeedbackNode: FlowNodeTemplateType = {
   id: FlowNodeTypeEnum.customFeedback,
   templateType: FlowNodeTemplateTypeEnum.other,
   flowNodeType: FlowNodeTypeEnum.customFeedback,
-  sourceHandle: getHandleConfig(true, true, true, true),
-  targetHandle: getHandleConfig(true, true, true, true),
+  showSourceHandle: true,
+  showTargetHandle: true,
   avatar: 'core/workflow/template/customFeedback',
   name: i18nT('workflow:custom_feedback'),
   intro: i18nT('workflow:intro_custom_feedback'),
-  courseUrl: '/docs/guide/dashboard/workflow/custom_feedback/',
+  courseUrl: '/docs/introduction/guide/dashboard/workflow/custom_feedback/',
   inputs: [
     {
       key: NodeInputKeyEnum.textareaInput,

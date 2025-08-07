@@ -20,6 +20,7 @@ import ChatRecordContextProvider, {
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import { useContextSelector } from 'use-context-selector';
 import ChatQuoteList from '@/pageComponents/chat/ChatQuoteList';
+import { ChatTypeEnum } from '@/components/core/chat/ChatContainer/ChatBox/constants';
 
 const PluginRunBox = dynamic(() => import('@/components/core/chat/ChatContainer/PluginRunBox'));
 const ChatBox = dynamic(() => import('@/components/core/chat/ChatContainer/ChatBox'));
@@ -133,6 +134,7 @@ const DetailLogsModal = ({ appId, chatId, onClose }: Props) => {
                   totalRecordsCount={totalRecordsCount}
                   title={title || ''}
                   chatModels={chatModels}
+                  chatId={chatId}
                 />
                 <Box flex={1} />
               </>
@@ -164,7 +166,7 @@ const DetailLogsModal = ({ appId, chatId, onClose }: Props) => {
                 feedbackType={'admin'}
                 showMarkIcon
                 showVoiceIcon={false}
-                chatType="log"
+                chatType={ChatTypeEnum.log}
               />
             )}
           </Box>
@@ -210,7 +212,6 @@ const Render = (props: Props) => {
 
   return (
     <ChatItemContextProvider
-      showRouteToAppDetail={true}
       showRouteToDatasetDetail={true}
       isShowReadRawSource={true}
       isResponseDetail={true}

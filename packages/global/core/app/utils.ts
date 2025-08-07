@@ -53,7 +53,7 @@ export const appWorkflow2Form = ({
   nodes.forEach((node) => {
     if (
       node.flowNodeType === FlowNodeTypeEnum.chatNode ||
-      node.flowNodeType === FlowNodeTypeEnum.tools
+      node.flowNodeType === FlowNodeTypeEnum.agent
     ) {
       defaultAppForm.aiSettings.model = findInputValueByKey(node.inputs, NodeInputKeyEnum.aiModel);
       defaultAppForm.aiSettings.systemPrompt = findInputValueByKey(
@@ -158,7 +158,8 @@ export const appWorkflow2Form = ({
         inputs: node.inputs,
         outputs: node.outputs,
         templateType: FlowNodeTemplateTypeEnum.other,
-        pluginData: node.pluginData
+        pluginData: node.pluginData,
+        toolConfig: node.toolConfig
       });
     } else if (node.flowNodeType === FlowNodeTypeEnum.systemConfig) {
       defaultAppForm.chatConfig = getAppChatConfig({

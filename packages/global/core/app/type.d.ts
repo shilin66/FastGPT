@@ -6,7 +6,7 @@ import type {
   VariableInputEnum,
   WorkflowIOValueTypeEnum
 } from '../workflow/constants';
-import type { SelectedDatasetType } from '../workflow/api';
+import type { SelectedDatasetType } from '../workflow/type/io';
 import type { DatasetSearchModeEnum } from '../dataset/constants';
 import { TeamTagSchema as TeamTagsSchemaType } from '@fastgpt/global/support/user/team/type.d';
 import type { StoreEdgeItemType } from '../workflow/type/edge';
@@ -66,6 +66,7 @@ export type AppListItemType = {
   inheritPermission?: boolean;
   private?: boolean;
   sourceMember: SourceMemberType;
+  hasInteractiveNode?: boolean;
 };
 
 export type AppDetailType = AppSchema & {
@@ -145,7 +146,7 @@ export type SettingAIDataType = {
 
 // variable
 export type VariableItemType = {
-  id: string;
+  // id: string;
   key: string;
   label: string;
   type: VariableInputEnum;
@@ -160,6 +161,8 @@ export type VariableItemType = {
   max?: number;
   min?: number;
   // select
+  list?: { label: string; value: string }[];
+  // @deprecated
   enums?: { value: string; label: string }[];
 };
 // tts

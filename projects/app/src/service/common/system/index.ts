@@ -76,7 +76,6 @@ export function initGlobalVariables() {
     };
   }
 
-  global.communityPlugins = [];
   global.qaQueueLen = global.qaQueueLen ?? 0;
   global.vectorQueueLen = global.vectorQueueLen ?? 0;
   initHttpAgent();
@@ -121,7 +120,8 @@ const defaultFeConfigs: FastGPTFeConfigsType = {
   },
   scripts: [],
   favicon: '/favicon.ico',
-  uploadFileMaxSize: 500
+  uploadFileMaxSize: 500,
+  chineseRedirectUrl: process.env.CHINESE_IP_REDIRECT_URL || ''
 };
 
 export async function initSystemConfig() {
