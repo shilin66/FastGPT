@@ -60,7 +60,7 @@ export function reRankRecall({
         Authorization: model.requestAuth ? `Bearer ${model.requestAuth}` : authorization,
         ...headers
       },
-      timeout: 30000
+      timeout: 300000
     }
   )
     .then(async (data) => {
