@@ -98,7 +98,10 @@ const ListItem = () => {
       return delAppById(id);
     },
     {
-      onSuccess() {
+      onSuccess(data) {
+        data.forEach((appId) => {
+          localStorage.removeItem(`app_log_keys_${appId}`);
+        });
         loadMyApps();
       },
       successToast: t('common:delete_success'),
@@ -190,7 +193,7 @@ const ListItem = () => {
                   } else if (app.permission.hasWritePer) {
                     router.push(`/app/detail?appId=${app._id}`);
                   } else {
-                    router.push(`/chat?appId=${app._id}`);
+                    window.open(`/chat?appId=${app._id}`, '_blank');
                   }
                 }}
                 {...getBoxProps({
@@ -268,7 +271,7 @@ const ListItem = () => {
                                         type: 'grayBg' as MenuItemType,
                                         label: t('app:go_to_chat'),
                                         onClick: () => {
-                                          router.push(`/chat?appId=${app._id}`);
+                                          window.open(`/chat?appId=${app._id}`, '_blank');
                                         }
                                       }
                                     ]
@@ -284,7 +287,7 @@ const ListItem = () => {
                                         type: 'grayBg' as MenuItemType,
                                         label: t('app:go_to_run'),
                                         onClick: () => {
-                                          router.push(`/chat?appId=${app._id}`);
+                                          window.open(`/chat?appId=${app._id}`, '_blank');
                                         }
                                       }
                                     ]

@@ -5,7 +5,6 @@ import type { GetDatasetCollectionsProps } from '@/global/core/api/datasetReq';
 import { MongoDatasetCollection } from '@fastgpt/service/core/dataset/collection/schema';
 import { DatasetCollectionTypeEnum } from '@fastgpt/global/core/dataset/constants';
 import { authDataset } from '@fastgpt/service/support/permission/dataset/auth';
-import { startTrainingQueue } from '@/service/core/dataset/training/utils';
 import { NextAPI } from '@/service/middleware/entry';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { readFromSecondary } from '@fastgpt/service/common/mongo/utils';
@@ -15,6 +14,7 @@ import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';
 import { type DatasetCollectionSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoDatasetData } from '@fastgpt/service/core/dataset/data/schema';
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
+import { replaceRegChars } from '@fastgpt/global/common/string/tools';
 
 async function handler(
   req: NextApiRequest
@@ -46,7 +46,7 @@ async function handler(
     ...(selectFolder ? { type: DatasetCollectionTypeEnum.folder } : {}),
     ...(searchText
       ? {
-          name: new RegExp(searchText, 'i')
+          name: new RegExp(`${replaceRegChars(searchText)}`, 'i')
         }
       : {
           parentId: parentId ? new Types.ObjectId(parentId) : null
@@ -175,10 +175,6 @@ async function handler(
       permission
     }))
   );
-
-  if (list.some((item) => item.trainingAmount > 0)) {
-    startTrainingQueue();
-  }
 
   // count collections
   return {

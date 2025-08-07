@@ -11,10 +11,10 @@ import {
 import { checkTimerLock } from '@fastgpt/service/common/system/timerLock/utils';
 import { TimerIdEnum } from '@fastgpt/service/common/system/timerLock/constants';
 import { addHours } from 'date-fns';
-1;
 import { getScheduleTriggerApp } from '@/service/core/app/utils';
 import { clearExpiredRawTextBufferCron } from '@fastgpt/service/common/buffer/rawText/controller';
 import { clearExpiredDatasetImageCron } from '@fastgpt/service/core/dataset/image/controller';
+import { cronRefreshModels } from '@fastgpt/service/core/ai/config/utils';
 import { localCacheManager } from '@fastgpt/service/support/globalCache/cache';
 import { checkCacheLicense } from '@fastgpt/service/common/license/verify';
 
@@ -82,6 +82,7 @@ const scheduleTriggerAppCron = () => {
       getScheduleTriggerApp();
     }
   });
+  getScheduleTriggerApp();
 };
 
 const scheduleClearInvitationLinkCron = () => {
@@ -131,5 +132,6 @@ export const startCron = () => {
   scheduleTriggerAppCron();
   clearExpiredRawTextBufferCron();
   clearExpiredDatasetImageCron();
+  cronRefreshModels();
   scheduleClearInvitationLinkCron();
 };

@@ -47,7 +47,7 @@ import {
   formatChatValue2InputType,
   setUserSelectResultToHistories
 } from './utils';
-import { textareaMinH } from './constants';
+import { ChatTypeEnum, textareaMinH } from './constants';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import ChatProvider, { ChatBoxContext, type ChatProviderProps } from './Provider';
 
@@ -73,7 +73,7 @@ const ReadFeedbackModal = dynamic(() => import('./components/ReadFeedbackModal')
 const SelectMarkCollection = dynamic(() => import('./components/SelectMarkCollection'));
 const Empty = dynamic(() => import('./components/Empty'));
 const WelcomeBox = dynamic(() => import('./components/WelcomeBox'));
-const VariableInput = dynamic(() => import('./components/VariableInput'));
+const VariableInputForm = dynamic(() => import('./components/VariableInputForm'));
 
 enum FeedbackTypeEnum {
   user = 'user',
@@ -155,7 +155,7 @@ const ChatBox = ({
   const isInteractive = useMemo(() => checkIsInteractiveByHistories(chatRecords), [chatRecords]);
 
   const externalVariableList = useMemo(() => {
-    if (chatType === 'chat') {
+    if ([ChatTypeEnum.log, ChatTypeEnum.chat].includes(chatType)) {
       return allVariableList.filter((item) => item.type === VariableInputEnum.custom);
     }
     return [];
@@ -551,10 +551,13 @@ const ChatBox = ({
 
                 // Check node response error
                 const responseData = mergeChatResponseData(item.responseData || []);
-                if (responseData[responseData.length - 1]?.error) {
+                const err =
+                  responseData[responseData.length - 1]?.error ||
+                  responseData[responseData.length - 1]?.errorText;
+                if (err) {
                   toast({
-                    title: t(getErrText(responseData[responseData.length - 1].error)),
-                    status: 'error'
+                    title: t(getErrText(err)),
+                    status: 'warning'
                   });
                 }
 
@@ -851,6 +854,8 @@ const ChatBox = ({
     abortRequest('leave');
   }, [chatId, appId, abortRequest, setValue]);
 
+  const canSendPrompt = onStartChat && chatStarted && active && !isInteractive;
+
   // Add listener
   useEffect(() => {
     const windowMessage = ({ data }: MessageEvent<{ type: 'sendPrompt'; text: string }>) => {
@@ -863,7 +868,9 @@ const ChatBox = ({
     window.addEventListener('message', windowMessage);
 
     const fn: SendPromptFnType = (e) => {
-      sendPrompt(e);
+      if (canSendPrompt || e.isInteractivePrompt) {
+        sendPrompt(e);
+      }
     };
     eventBus.on(EventNameEnum.sendQuestion, fn);
     eventBus.on(EventNameEnum.editQuestion, ({ text }: { text: string }) => {
@@ -876,7 +883,7 @@ const ChatBox = ({
       eventBus.off(EventNameEnum.sendQuestion);
       eventBus.off(EventNameEnum.editQuestion);
     };
-  }, [isReady, resetInputVal, sendPrompt]);
+  }, [isReady, resetInputVal, sendPrompt, canSendPrompt]);
 
   // Auto send prompt
   useDebounceEffect(
@@ -956,7 +963,7 @@ const ChatBox = ({
         w={'100%'}
         overflow={'overlay'}
         px={[4, 0]}
-        pb={3}
+        pb={10}
       >
         <Box id="chat-container" maxW={['100%', '92%']} h={'100%'} mx={'auto'}>
           {/* chat header */}
@@ -965,10 +972,10 @@ const ChatBox = ({
           {/* variable input */}
           {(!!variableList?.length || !!externalVariableList?.length) && (
             <Box id="variable-input">
-              <VariableInput
+              <VariableInputForm
                 chatStarted={chatStarted}
                 chatForm={chatForm}
-                showExternalVariables={chatType === 'chat'}
+                showExternalVariables={[ChatTypeEnum.log, ChatTypeEnum.chat].includes(chatType)}
               />
             </Box>
           )}
@@ -1098,7 +1105,7 @@ const ChatBox = ({
       {/* chat box container */}
       {RenderRecords}
       {/* message input */}
-      {onStartChat && chatStarted && active && !isInteractive && (
+      {canSendPrompt && (
         <ChatInput
           onSendMessage={sendPrompt}
           onStop={() => chatController.current?.abort('stop')}

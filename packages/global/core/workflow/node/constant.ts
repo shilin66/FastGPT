@@ -1,5 +1,5 @@
-import { WorkflowIOValueTypeEnum } from '../constants';
 import { i18nT } from '../../../../web/i18n/utils';
+import { WorkflowIOValueTypeEnum } from '../constants';
 export enum FlowNodeInputTypeEnum { // render ui
   reference = 'reference', // reference to other node output
   input = 'input', // one line input
@@ -99,6 +99,7 @@ export const FlowNodeInputMap: Record<
 
 export enum FlowNodeOutputTypeEnum {
   hidden = 'hidden',
+  error = 'error',
   source = 'source',
   static = 'static',
   dynamic = 'dynamic'
@@ -125,7 +126,7 @@ export enum FlowNodeTypeEnum {
   pluginInput = 'pluginInput',
   pluginOutput = 'pluginOutput',
   queryExtension = 'cfr',
-  tools = 'tools',
+  agent = 'tools',
   stopTool = 'stopTool',
   toolParams = 'toolParams',
   lafModule = 'lafModule',

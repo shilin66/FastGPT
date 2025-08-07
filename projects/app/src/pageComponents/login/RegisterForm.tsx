@@ -16,6 +16,7 @@ import {
   getBdVId,
   getFastGPTSem,
   getInviterId,
+  getMsclkid,
   getSourceDomain,
   removeFastGPTSem
 } from '@/web/support/marketing/utils';
@@ -49,7 +50,7 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
   });
   const username = watch('username');
 
-  const { SendCodeBox } = useSendCode({ type: 'register' });
+  const { SendCodeBox, openCodeAuthModal } = useSendCode({ type: 'register' });
 
   const { runAsync: onclickRegister, loading: requesting } = useRequest2(
     async ({ username, password, code }: RegisterType) => {
@@ -64,6 +65,7 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
         //   password,
         //   inviterId: getInviterId(),
         //   bd_vid: getBdVId(),
+        //   msclkid: getMsclkid(),
         //   fastgpt_sem: getFastGPTSem(),
         //   sourceDomain: getSourceDomain()
         // })
@@ -124,7 +126,7 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
       <Box
         mt={9}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey && !requesting) {
+          if (!openCodeAuthModal && e.key === 'Enter' && !e.shiftKey && !requesting) {
             handleSubmit(onclickRegister, onSubmitErr)();
           }
         }}
@@ -210,7 +212,6 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
           float={'right'}
           fontSize="mini"
           mt={3}
-          mb={'50px'}
           fontWeight={'medium'}
           color={'primary.700'}
           cursor={'pointer'}

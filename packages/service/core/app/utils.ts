@@ -3,11 +3,13 @@ import { getEmbeddingModel } from '../ai/model';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import type { StoreNodeItemType } from '@fastgpt/global/core/workflow/type/node';
-import { getChildAppPreviewNode, splitCombineToolId } from './plugin/controller';
-import { PluginSourceEnum } from '@fastgpt/global/core/plugin/constants';
+import { getChildAppPreviewNode } from './plugin/controller';
+import { PluginSourceEnum } from '@fastgpt/global/core/app/plugin/constants';
 import { authAppByTmbId } from '../../support/permission/app/auth';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { getErrText } from '@fastgpt/global/common/error/utils';
+import { splitCombinePluginId } from '@fastgpt/global/core/app/plugin/utils';
+import type { localeType } from '@fastgpt/global/common/i18n/type';
 
 export async function listAppDatasetDataByTeamIdAndDatasetIds({
   teamId,
@@ -33,12 +35,14 @@ export async function rewriteAppWorkflowToDetail({
   nodes,
   teamId,
   isRoot,
-  ownerTmbId
+  ownerTmbId,
+  lang
 }: {
   nodes: StoreNodeItemType[];
   teamId: string;
   isRoot: boolean;
   ownerTmbId: string;
+  lang?: localeType;
 }) {
   const datasetIdSet = new Set<string>();
 
@@ -46,19 +50,20 @@ export async function rewriteAppWorkflowToDetail({
   await Promise.all(
     nodes.map(async (node) => {
       if (!node.pluginId) return;
-      const { source } = splitCombineToolId(node.pluginId);
+      const { source, pluginId } = splitCombinePluginId(node.pluginId);
 
       try {
         const [preview] = await Promise.all([
           getChildAppPreviewNode({
             appId: node.pluginId,
-            versionId: node.version
+            versionId: node.version,
+            lang
           }),
           ...(source === PluginSourceEnum.personal
             ? [
                 authAppByTmbId({
                   tmbId: ownerTmbId,
-                  appId: node.pluginId,
+                  appId: pluginId,
                   per: ReadPermissionVal
                 })
               ]
@@ -75,6 +80,34 @@ export async function rewriteAppWorkflowToDetail({
         node.versionLabel = preview.versionLabel;
         node.isLatestVersion = preview.isLatestVersion;
         node.version = preview.version;
+
+        node.currentCost = preview.currentCost;
+        node.hasTokenFee = preview.hasTokenFee;
+        node.hasSystemSecret = preview.hasSystemSecret;
+
+        node.toolConfig = preview.toolConfig;
+
+        // Latest version
+        if (!node.version) {
+          const inputsMap = new Map(node.inputs.map((item) => [item.key, item]));
+          const outputsMap = new Map(node.outputs.map((item) => [item.key, item]));
+
+          node.inputs = preview.inputs.map((item) => {
+            const input = inputsMap.get(item.key);
+            return {
+              ...item,
+              value: input?.value,
+              selectedTypeIndex: input?.selectedTypeIndex
+            };
+          });
+          node.outputs = preview.outputs.map((item) => {
+            const output = outputsMap.get(item.key);
+            return {
+              ...item,
+              value: output?.value
+            };
+          });
+        }
       } catch (error) {
         node.pluginData = {
           error: getErrText(error)

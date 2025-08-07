@@ -1,9 +1,13 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import type { AppSchema } from '@fastgpt/global/core/app/type';
 import { type McpToolConfigType } from '@fastgpt/global/core/app/type';
 import { addLog } from '../../common/system/log';
 import { retryFn } from '@fastgpt/global/common/system/utils';
+import { PluginSourceEnum } from '@fastgpt/global/core/app/plugin/constants';
+import { MongoApp } from './schema';
+import type { McpToolDataType } from '@fastgpt/global/core/app/mcpTools/type';
 
 export class MCPClient {
   private client: Client;
@@ -110,10 +114,16 @@ export class MCPClient {
       const client = await this.getConnection();
       addLog.debug(`[MCP Client] Call tool: ${toolName}`, params);
 
-      return await client.callTool({
-        name: toolName,
-        arguments: params
-      });
+      return await client.callTool(
+        {
+          name: toolName,
+          arguments: params
+        },
+        undefined,
+        {
+          timeout: 300000
+        }
+      );
     } catch (error) {
       addLog.error(`[MCP Client] Failed to call tool ${toolName}:`, error);
       return Promise.reject(error);
@@ -122,3 +132,35 @@ export class MCPClient {
     }
   }
 }
+
+export const getMCPChildren = async (app: AppSchema) => {
+  const isNewMcp = !!app.modules[0].toolConfig?.mcpToolSet;
+  const id = String(app._id);
+
+  if (isNewMcp) {
+    return (
+      app.modules[0].toolConfig?.mcpToolSet?.toolList.map((item) => ({
+        ...item,
+        id: `${PluginSourceEnum.mcp}-${id}/${item.name}`,
+        avatar: app.avatar
+      })) ?? []
+    );
+  } else {
+    // Old mcp toolset
+    const children = await MongoApp.find({
+      teamId: app.teamId,
+      parentId: id
+    }).lean();
+
+    return children.map((item) => {
+      const node = item.modules[0];
+      const toolData: McpToolDataType = node.inputs[0].value;
+
+      return {
+        avatar: app.avatar,
+        id: `${PluginSourceEnum.mcp}-${id}/${item.name}`,
+        ...toolData
+      };
+    });
+  }
+};

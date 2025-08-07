@@ -12,7 +12,6 @@ import { type SearchDataResponseItemType } from '@fastgpt/global/core/dataset/ty
 import { type OutLinkChatAuthProps } from '@fastgpt/global/support/permission/chat';
 
 type ContextProps = {
-  showRouteToAppDetail: boolean;
   showRouteToDatasetDetail: boolean;
   isShowReadRawSource: boolean;
   isResponseDetail: boolean;
@@ -20,6 +19,7 @@ type ContextProps = {
   showNodeStatus: boolean;
 };
 type ChatBoxDataType = {
+  chatId?: string;
   appId: string;
   title?: string;
   userAvatar?: string;
@@ -119,7 +119,6 @@ export const ChatItemContext = createContext<ChatItemContextType>({
 */
 const ChatItemContextProvider = ({
   children,
-  showRouteToAppDetail,
   showRouteToDatasetDetail,
   isShowReadRawSource,
   isResponseDetail,
@@ -180,7 +179,6 @@ const ChatItemContextProvider = ({
       setPluginRunTab,
       resetVariables,
       clearChatRecords,
-      showRouteToAppDetail,
       showRouteToDatasetDetail,
       isShowReadRawSource,
       isResponseDetail,
@@ -199,7 +197,6 @@ const ChatItemContextProvider = ({
     pluginRunTab,
     resetVariables,
     clearChatRecords,
-    showRouteToAppDetail,
     showRouteToDatasetDetail,
     isShowReadRawSource,
     isResponseDetail,

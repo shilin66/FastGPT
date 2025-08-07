@@ -23,6 +23,7 @@ import { getMyApps } from '@/web/core/app/api';
 import SelectOneResource from '@/components/common/folder/SelectOneResource';
 import { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
 import VariablePopover from '@/components/core/chat/ChatContainer/ChatBox/components/VariablePopover';
+import { useCopyData } from '@fastgpt/web/hooks/useCopyData';
 
 const ChatHeader = ({
   history,
@@ -59,6 +60,7 @@ const ChatHeader = ({
             totalRecordsCount={totalRecordsCount}
             title={chatData.title || t('common:core.chat.New Chat')}
             chatModels={chatData.app.chatModels}
+            chatId={chatData.chatId || ''}
           />
           <Box flex={1} />
         </>
@@ -201,9 +203,9 @@ const MobileDrawer = ({
         {currentTab === TabEnum.app && (
           <SelectOneResource
             value={appId}
-            onSelect={(id) => {
-              if (!id) return;
-              onclickApp(id);
+            onSelect={(item) => {
+              if (!item) return;
+              onclickApp(item.id);
             }}
             server={getAppList}
           />
@@ -261,19 +263,33 @@ const MobileHeader = ({
 export const PcHeader = ({
   title,
   chatModels,
-  totalRecordsCount
+  totalRecordsCount,
+  chatId
 }: {
   title: string;
   chatModels?: string[];
   totalRecordsCount: number;
+  chatId: string;
 }) => {
   const { t } = useTranslation();
+  const { copyData } = useCopyData();
 
   return (
     <>
-      <Box mr={3} maxW={'200px'} className="textEllipsis" color={'myGray.1000'}>
-        {title}
-      </Box>
+      <MyTooltip label={chatId ? t('common:chat_chatId', { chatId }) : ''}>
+        <Box
+          mr={3}
+          maxW={'200px'}
+          className="textEllipsis"
+          color={'myGray.1000'}
+          cursor={'pointer'}
+          onClick={() => {
+            copyData(chatId);
+          }}
+        >
+          {title}
+        </Box>
+      </MyTooltip>
       <MyTag>
         <MyIcon name={'history'} w={'14px'} />
         <Box ml={1}>

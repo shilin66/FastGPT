@@ -10,20 +10,18 @@ import {
   FlowNodeTemplateTypeEnum,
   NodeInputKeyEnum
 } from '../../constants';
-import { getHandleConfig } from '../utils';
-import { Input_Template_DynamicInput } from '../input';
 import { i18nT } from '../../../../../web/i18n/utils';
 
 export const TextEditorNode: FlowNodeTemplateType = {
   id: FlowNodeTypeEnum.textEditor,
   templateType: FlowNodeTemplateTypeEnum.tools,
   flowNodeType: FlowNodeTypeEnum.textEditor,
-  sourceHandle: getHandleConfig(true, true, true, true),
-  targetHandle: getHandleConfig(true, true, true, true),
+  showSourceHandle: true,
+  showTargetHandle: true,
   avatar: 'core/workflow/template/textConcat',
   name: i18nT('workflow:text_concatenation'),
   intro: i18nT('workflow:intro_text_concatenation'),
-  courseUrl: '/docs/guide/dashboard/workflow/text_editor/',
+  courseUrl: '/docs/introduction/guide/dashboard/workflow/text_editor/',
   inputs: [
     {
       key: NodeInputKeyEnum.textareaInput,

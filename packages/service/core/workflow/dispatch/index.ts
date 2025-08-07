@@ -1,9 +1,21 @@
+import { getNanoid } from '@fastgpt/global/common/string/tools';
+import { getSystemTime } from '@fastgpt/global/common/time/timezone';
+import type {
+  AIChatItemValueItemType,
+  ChatHistoryItemResType,
+  NodeOutputItemType,
+  ToolRunResponseItemType
+} from '@fastgpt/global/core/chat/type.d';
+import type { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
+import {
+  FlowNodeInputTypeEnum,
+  FlowNodeTypeEnum
+} from '@fastgpt/global/core/workflow/node/constant';
 import {
   DispatchNodeResponseKeyEnum,
   SseResponseEventEnum
 } from '@fastgpt/global/core/workflow/runtime/constants';
-import type { NodeOutputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import type {
   ChatDispatchProps,
   DispatchNodeResultType,
@@ -11,71 +23,59 @@ import type {
   SystemVariablesType
 } from '@fastgpt/global/core/workflow/runtime/type';
 import type { RuntimeNodeItemType } from '@fastgpt/global/core/workflow/runtime/type.d';
-import type {
-  AIChatItemValueItemType,
-  ChatHistoryItemResType,
-  NodeOutputItemType,
-  ToolRunResponseItemType
-} from '@fastgpt/global/core/chat/type.d';
-import {
-  FlowNodeInputTypeEnum,
-  FlowNodeTypeEnum
-} from '@fastgpt/global/core/workflow/node/constant';
-import { getNanoid } from '@fastgpt/global/common/string/tools';
-import { getSystemTime } from '@fastgpt/global/common/time/timezone';
-
-import { dispatchWorkflowStart } from './init/workflowStart';
-import { dispatchChatCompletion } from './chat/oneapi';
-import { dispatchDatasetSearch } from './dataset/search';
-import { dispatchDatasetConcat } from './dataset/concat';
-import { dispatchAnswer } from './tools/answer';
-import { dispatchClassifyQuestion } from './agent/classifyQuestion';
-import { dispatchContentExtract } from './agent/extract';
-import { dispatchHttp468Request } from './tools/http468';
-import { dispatchAppRequest } from './abandoned/runApp';
-import { dispatchQueryExtension } from './tools/queryExternsion';
-import { dispatchRunPlugin } from './plugin/run';
-import { dispatchPluginInput } from './plugin/runInput';
-import { dispatchPluginOutput } from './plugin/runOutput';
-import { formatHttpError, removeSystemVariable, rewriteRuntimeWorkFlow } from './utils';
-import { valueTypeFormat } from '@fastgpt/global/core/workflow/runtime/utils';
-import {
-  filterWorkflowEdges,
-  checkNodeRunStatus,
-  textAdaptGptResponse,
-  replaceEditorVariable
-} from '@fastgpt/global/core/workflow/runtime/utils';
-import type { ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type';
-import { dispatchRunTools } from './agent/runTool/index';
+import { getErrText } from '@fastgpt/global/common/error/utils';
 import { ChatItemValueTypeEnum } from '@fastgpt/global/core/chat/constants';
-import type { DispatchFlowResponse } from './type';
-import { dispatchStopToolCall } from './agent/runTool/stopTool';
-import { dispatchLafRequest } from './tools/runLaf';
-import { dispatchIfElse } from './tools/runIfElse';
+import { filterPublicNodeResponseData } from '@fastgpt/global/core/chat/utils';
+import {
+  checkNodeRunStatus,
+  filterWorkflowEdges,
+  getReferenceVariableValue,
+  replaceEditorVariable,
+  textAdaptGptResponse,
+  valueTypeFormat
+} from '@fastgpt/global/core/workflow/runtime/utils';
+import type {
+  InteractiveNodeResponseType,
+  WorkflowInteractiveResponseType
+} from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import type { RuntimeEdgeItemType } from '@fastgpt/global/core/workflow/type/edge';
-import { getReferenceVariableValue } from '@fastgpt/global/core/workflow/runtime/utils';
-import { dispatchSystemConfig } from './init/systemConfig';
-import { dispatchUpdateVariable } from './tools/runUpdateVar';
+import type { ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type';
 import { addLog } from '../../../common/system/log';
 import { surrenderProcess } from '../../../common/system/tools';
-import { dispatchRunCode } from './code/run';
-import { dispatchTextEditor } from './tools/textEditor';
-import { dispatchCustomFeedback } from './tools/customFeedback';
-import { dispatchReadFiles } from './tools/readFiles';
+import { dispatchAppRequest } from './abandoned/runApp';
+import { dispatchClassifyQuestion } from './ai/classifyQuestion';
+import { dispatchContentExtract } from './ai/extract';
+import { dispatchRunTools } from './ai/agent/index';
+import { dispatchStopToolCall } from './ai/agent/stopTool';
+import { dispatchToolParams } from './ai/agent/toolParams';
+import { dispatchChatCompletion } from './ai/chat';
+import { dispatchCodeSandbox } from './tools/codeSandbox';
+import { dispatchDatasetConcat } from './dataset/concat';
+import { dispatchDatasetSearch } from './dataset/search';
+import { dispatchSystemConfig } from './init/systemConfig';
+import { dispatchWorkflowStart } from './init/workflowStart';
+import { dispatchFormInput } from './interactive/formInput';
 import { dispatchUserSelect } from './interactive/userSelect';
-import type {
-  WorkflowInteractiveResponseType,
-  InteractiveNodeResponseType
-} from '@fastgpt/global/core/workflow/template/system/interactive/type';
-import { dispatchRunAppNode } from './plugin/runApp';
 import { dispatchLoop } from './loop/runLoop';
 import { dispatchLoopEnd } from './loop/runLoopEnd';
 import { dispatchLoopStart } from './loop/runLoopStart';
-import { dispatchFormInput } from './interactive/formInput';
-import { dispatchToolParams } from './agent/runTool/toolParams';
-import { getErrText } from '@fastgpt/global/common/error/utils';
-import { filterPublicNodeResponseData } from '@fastgpt/global/core/chat/utils';
-import { dispatchRunTool } from './plugin/runTool';
+import { dispatchRunPlugin } from './plugin/run';
+import { dispatchRunAppNode } from './child/runApp';
+import { dispatchPluginInput } from './plugin/runInput';
+import { dispatchPluginOutput } from './plugin/runOutput';
+import { dispatchRunTool } from './child/runTool';
+import { dispatchAnswer } from './tools/answer';
+import { dispatchCustomFeedback } from './tools/customFeedback';
+import { dispatchHttp468Request } from './tools/http468';
+import { dispatchQueryExtension } from './tools/queryExternsion';
+import { dispatchReadFiles } from './tools/readFiles';
+import { dispatchIfElse } from './tools/runIfElse';
+import { dispatchLafRequest } from './tools/runLaf';
+import { dispatchUpdateVariable } from './tools/runUpdateVar';
+import { dispatchTextEditor } from './tools/textEditor';
+import type { DispatchFlowResponse } from './type';
+import { removeSystemVariable, rewriteRuntimeWorkFlow } from './utils';
+import { getHandleId } from '@fastgpt/global/core/workflow/utils';
 
 const callbackMap: Record<FlowNodeTypeEnum, Function> = {
   [FlowNodeTypeEnum.workflowStart]: dispatchWorkflowStart,
@@ -91,13 +91,13 @@ const callbackMap: Record<FlowNodeTypeEnum, Function> = {
   [FlowNodeTypeEnum.pluginInput]: dispatchPluginInput,
   [FlowNodeTypeEnum.pluginOutput]: dispatchPluginOutput,
   [FlowNodeTypeEnum.queryExtension]: dispatchQueryExtension,
-  [FlowNodeTypeEnum.tools]: dispatchRunTools,
+  [FlowNodeTypeEnum.agent]: dispatchRunTools,
   [FlowNodeTypeEnum.stopTool]: dispatchStopToolCall,
   [FlowNodeTypeEnum.toolParams]: dispatchToolParams,
   [FlowNodeTypeEnum.lafModule]: dispatchLafRequest,
   [FlowNodeTypeEnum.ifElseNode]: dispatchIfElse,
   [FlowNodeTypeEnum.variableUpdate]: dispatchUpdateVariable,
-  [FlowNodeTypeEnum.code]: dispatchRunCode,
+  [FlowNodeTypeEnum.code]: dispatchCodeSandbox,
   [FlowNodeTypeEnum.textEditor]: dispatchTextEditor,
   [FlowNodeTypeEnum.customFeedback]: dispatchCustomFeedback,
   [FlowNodeTypeEnum.readFiles]: dispatchReadFiles,
@@ -116,12 +116,21 @@ const callbackMap: Record<FlowNodeTypeEnum, Function> = {
   [FlowNodeTypeEnum.comment]: () => Promise.resolve(),
   [FlowNodeTypeEnum.toolSet]: () => Promise.resolve(),
 
-  [FlowNodeTypeEnum.runApp]: dispatchAppRequest // abandoned
+  // @deprecated
+  [FlowNodeTypeEnum.runApp]: dispatchAppRequest
 };
 
 type Props = ChatDispatchProps & {
   runtimeNodes: RuntimeNodeItemType[];
   runtimeEdges: RuntimeEdgeItemType[];
+};
+type NodeResponseType = DispatchNodeResultType<{
+  [NodeOutputKeyEnum.answerText]?: string;
+  [NodeOutputKeyEnum.reasoningText]?: string;
+  [key: string]: any;
+}>;
+type NodeResponseCompleteType = Omit<NodeResponseType, 'responseData'> & {
+  [DispatchNodeResponseKeyEnum.nodeResponse]?: ChatHistoryItemResType;
 };
 
 /* running */
@@ -143,7 +152,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
   } = data;
   const startTime = Date.now();
 
-  rewriteRuntimeWorkFlow(runtimeNodes, runtimeEdges);
+  await rewriteRuntimeWorkFlow({ nodes: runtimeNodes, edges: runtimeEdges });
 
   // 初始化深度和自动增加深度，避免无限嵌套
   if (!props.workflowDispatchDeep) {
@@ -171,6 +180,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
   }
 
   let workflowRunTimes = 0;
+  let streamCheckTimer: NodeJS.Timeout | null = null;
 
   // Init
   if (isRootRuntime) {
@@ -189,25 +199,20 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       res.setHeader('Cache-Control', 'no-cache, no-transform');
 
       // 10s sends a message to prevent the browser from thinking that the connection is disconnected
-      const sendStreamTimerSign = () => {
-        setTimeout(() => {
-          props?.workflowStreamResponse?.({
-            event: SseResponseEventEnum.answer,
-            data: textAdaptGptResponse({
-              text: ''
-            })
-          });
-          sendStreamTimerSign();
-        }, 10000);
-      };
-      sendStreamTimerSign();
+      streamCheckTimer = setInterval(() => {
+        props?.workflowStreamResponse?.({
+          event: SseResponseEventEnum.answer,
+          data: textAdaptGptResponse({
+            text: ''
+          })
+        });
+      }, 10000);
     }
 
-    // Add system variables
+    // Get default variables
     variables = {
-      ...getSystemVariable(data),
       ...externalProvider.externalWorkflowVariables,
-      ...variables
+      ...getSystemVariables(data)
     };
   }
 
@@ -229,8 +234,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
   function pushStore(
     { inputs = [] }: RuntimeNodeItemType,
     {
-      answerText = '',
-      reasoningText,
+      data: { answerText = '', reasoningText } = {},
       responseData,
       nodeDispatchUsages,
       toolResponses,
@@ -238,14 +242,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       rewriteHistories,
       runTimes = 1,
       system_memories: newMemories
-    }: Omit<
-      DispatchNodeResultType<{
-        [NodeOutputKeyEnum.answerText]?: string;
-        [NodeOutputKeyEnum.reasoningText]?: string;
-        [DispatchNodeResponseKeyEnum.nodeResponse]?: ChatHistoryItemResType;
-      }>,
-      'nodeResponse'
-    >
+    }: NodeResponseCompleteType
   ) {
     // Add run times
     workflowRunTimes += runTimes;
@@ -316,22 +313,27 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
   /* Pass the output of the node, to get next nodes and update edge status */
   function nodeOutput(
     node: RuntimeNodeItemType,
-    result: Record<string, any> = {}
+    result: NodeResponseCompleteType
   ): {
     nextStepActiveNodes: RuntimeNodeItemType[];
     nextStepSkipNodes: RuntimeNodeItemType[];
   } {
     pushStore(node, result);
 
+    const concatData: Record<string, any> = {
+      ...(result.data ?? {}),
+      ...(result.error ?? {})
+    };
+
     // Assign the output value to the next node
     node.outputs.forEach((outputItem) => {
-      if (result[outputItem.key] === undefined) return;
+      if (concatData[outputItem.key] === undefined) return;
       /* update output value */
-      outputItem.value = result[outputItem.key];
+      outputItem.value = concatData[outputItem.key];
     });
 
     // Get next source edges and update status
-    const skipHandleId = (result[DispatchNodeResponseKeyEnum.skipHandleId] || []) as string[];
+    const skipHandleId = result[DispatchNodeResponseKeyEnum.skipHandleId] || [];
     const targetEdges = filterWorkflowEdges(runtimeEdges).filter(
       (item) => item.source === node.nodeId
     );
@@ -460,7 +462,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
 
     if (!nodeRunResult) return [];
 
-    /* 
+    /*
       特殊情况：
       通过 skipEdges 可以判断是运行了分支节点。
       由于分支节点，可能会实现递归调用（skip 连线往前递归）
@@ -591,7 +593,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
   async function nodeRunWithActive(node: RuntimeNodeItemType): Promise<{
     node: RuntimeNodeItemType;
     runStatus: 'run';
-    result: Record<string, any>;
+    result: NodeResponseCompleteType;
   }> {
     // push run status messages
     if (node.showStatus && !props.isToolCall) {
@@ -625,23 +627,66 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     };
 
     // run module
-    const dispatchRes: Record<string, any> = await (async () => {
+    const dispatchRes: NodeResponseType = await (async () => {
       if (callbackMap[node.flowNodeType]) {
+        const targetEdges = runtimeEdges.filter((item) => item.source === node.nodeId);
+
         try {
-          return await callbackMap[node.flowNodeType](dispatchData);
+          const result = (await callbackMap[node.flowNodeType](dispatchData)) as NodeResponseType;
+          const errorHandleId = getHandleId(node.nodeId, 'source_catch', 'right');
+
+          if (!result.error) {
+            const skipHandleId =
+              targetEdges.find((item) => item.sourceHandle === errorHandleId)?.sourceHandle || '';
+
+            return {
+              ...result,
+              [DispatchNodeResponseKeyEnum.skipHandleId]: (result[
+                DispatchNodeResponseKeyEnum.skipHandleId
+              ]
+                ? [...result[DispatchNodeResponseKeyEnum.skipHandleId], skipHandleId]
+                : [skipHandleId]
+              ).filter(Boolean)
+            };
+          }
+
+          // Run error and not catch error, skip all edges
+          if (!node.catchError) {
+            return {
+              ...result,
+              [DispatchNodeResponseKeyEnum.skipHandleId]: targetEdges.map(
+                (item) => item.sourceHandle
+              )
+            };
+          }
+
+          //  Catch error
+          const skipHandleIds = targetEdges
+            .filter((item) => {
+              if (node.catchError) {
+                return item.sourceHandle !== errorHandleId;
+              }
+              return true;
+            })
+            .map((item) => item.sourceHandle);
+
+          return {
+            ...result,
+            [DispatchNodeResponseKeyEnum.skipHandleId]: result[
+              DispatchNodeResponseKeyEnum.skipHandleId
+            ]
+              ? [...result[DispatchNodeResponseKeyEnum.skipHandleId], ...skipHandleIds].filter(
+                  Boolean
+                )
+              : skipHandleIds
+          };
         } catch (error) {
-          // Get source handles of outgoing edges
-          const targetEdges = runtimeEdges.filter((item) => item.source === node.nodeId);
-          const skipHandleIds = targetEdges.map((item) => item.sourceHandle);
-
-          toolRunResponse = getErrText(error);
-
           // Skip all edges and return error
           return {
             [DispatchNodeResponseKeyEnum.nodeResponse]: {
-              error: formatHttpError(error)
+              error: getErrText(error)
             },
-            [DispatchNodeResponseKeyEnum.skipHandleId]: skipHandleIds
+            [DispatchNodeResponseKeyEnum.skipHandleId]: targetEdges.map((item) => item.sourceHandle)
           };
         }
       }
@@ -649,15 +694,16 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     })();
 
     // format response data. Add modulename and module type
-    const formatResponseData: ChatHistoryItemResType = (() => {
+    const formatResponseData: NodeResponseCompleteType['responseData'] = (() => {
       if (!dispatchRes[DispatchNodeResponseKeyEnum.nodeResponse]) return undefined;
+
       return {
+        ...dispatchRes[DispatchNodeResponseKeyEnum.nodeResponse],
         id: getNanoid(),
         nodeId: node.nodeId,
         moduleName: node.name,
         moduleType: node.flowNodeType,
-        runningTime: +((Date.now() - startTime) / 1000).toFixed(2),
-        ...dispatchRes[DispatchNodeResponseKeyEnum.nodeResponse]
+        runningTime: +((Date.now() - startTime) / 1000).toFixed(2)
       };
     })();
 
@@ -675,11 +721,13 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     }
 
     // Add output default value
-    node.outputs.forEach((item) => {
-      if (!item.required) return;
-      if (dispatchRes[item.key] !== undefined) return;
-      dispatchRes[item.key] = valueTypeFormat(item.defaultValue, item.valueType);
-    });
+    if (dispatchRes.data) {
+      node.outputs.forEach((item) => {
+        if (!item.required) return;
+        if (dispatchRes.data?.[item.key] !== undefined) return;
+        dispatchRes.data![item.key] = valueTypeFormat(item.defaultValue, item.valueType);
+      });
+    }
 
     // Update new variables
     if (dispatchRes[DispatchNodeResponseKeyEnum.newVariables]) {
@@ -691,7 +739,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
 
     // Error
     if (dispatchRes?.responseData?.error) {
-      addLog.warn('workflow error', dispatchRes.responseData.error);
+      addLog.warn('workflow error', { error: dispatchRes.responseData.error });
     }
 
     return {
@@ -706,7 +754,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
   async function nodeRunWithSkip(node: RuntimeNodeItemType): Promise<{
     node: RuntimeNodeItemType;
     runStatus: 'skip';
-    result: Record<string, any>;
+    result: NodeResponseCompleteType;
   }> {
     // Set target edges status to skipped
     const targetEdges = runtimeEdges.filter((item) => item.source === node.nodeId);
@@ -729,7 +777,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       if (
         item.flowNodeType !== FlowNodeTypeEnum.userSelect &&
         item.flowNodeType !== FlowNodeTypeEnum.formInput &&
-        item.flowNodeType !== FlowNodeTypeEnum.tools
+        item.flowNodeType !== FlowNodeTypeEnum.agent
       ) {
         item.isEntry = false;
       }
@@ -790,27 +838,43 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
     };
   } catch (error) {
     return Promise.reject(error);
+  } finally {
+    if (streamCheckTimer) {
+      clearInterval(streamCheckTimer);
+    }
   }
 }
 
 /* get system variable */
-const getSystemVariable = ({
+const getSystemVariables = ({
   timezone,
   runningAppInfo,
   chatId,
   responseChatItemId,
   histories = [],
   uid,
-  chatConfig
+  chatConfig,
+  variables
 }: Props): SystemVariablesType => {
-  const variables = chatConfig?.variables || [];
-  const variablesMap = variables.reduce<Record<string, any>>((acc, item) => {
-    acc[item.key] = valueTypeFormat(item.defaultValue, item.valueType);
+  // Get global variables(Label -> key; Key -> key)
+  const globalVariables = chatConfig?.variables || [];
+  const variablesMap = globalVariables.reduce<Record<string, any>>((acc, item) => {
+    // API
+    if (variables[item.label] !== undefined) {
+      acc[item.key] = valueTypeFormat(variables[item.label], item.valueType);
+    }
+    // Web
+    else if (variables[item.key] !== undefined) {
+      acc[item.key] = valueTypeFormat(variables[item.key], item.valueType);
+    } else {
+      acc[item.key] = valueTypeFormat(item.defaultValue, item.valueType);
+    }
     return acc;
   }, {});
 
   return {
     ...variablesMap,
+    // System var:
     userId: uid,
     appId: String(runningAppInfo.id),
     chatId,

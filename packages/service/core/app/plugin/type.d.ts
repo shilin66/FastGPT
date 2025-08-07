@@ -1,9 +1,6 @@
 import { SystemPluginListItemType } from '@fastgpt/global/core/app/type';
 import { FlowNodeTemplateTypeEnum } from '@fastgpt/global/core/workflow/constants';
-import type {
-  SystemPluginTemplateItemType,
-  WorkflowTemplateBasicType
-} from '@fastgpt/global/core/workflow/type';
+import type { WorkflowTemplateBasicType } from '@fastgpt/global/core/workflow/type';
 
 export type SystemPluginConfigSchemaType = {
   pluginId: string;
@@ -12,8 +9,7 @@ export type SystemPluginConfigSchemaType = {
   currentCost: number;
   hasTokenFee: boolean;
   isActive: boolean;
-  pluginOrder: number;
-  inputConfig?: SystemPluginTemplateItemType['inputConfig'];
+  pluginOrder?: number;
 
   customConfig?: {
     name: string;
@@ -21,12 +17,21 @@ export type SystemPluginConfigSchemaType = {
     intro?: string;
     version: string;
     weight?: number;
-    workflow: WorkflowTemplateBasicType;
     templateType: string;
     associatedPluginId: string;
     userGuide: string;
     author?: string;
   };
+  inputListVal?: Record<string, any>;
+
+  // @deprecated
+  inputConfig?: {
+    // Render config input form. Find the corresponding node and replace the variable directly
+    key: string;
+    label: string;
+    description: string;
+    value?: string;
+  }[];
 };
 
 export type TGroupType = {

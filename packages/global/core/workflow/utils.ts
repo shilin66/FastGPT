@@ -18,6 +18,7 @@ import {
   type ReferenceArrayValueType,
   type ReferenceItemValueType
 } from './type/io.d';
+import type { NodeToolConfigType } from './type/node';
 import { type StoreNodeItemType } from './type/node';
 import type {
   VariableItemType,
@@ -52,7 +53,11 @@ import { ChatRoleEnum } from '../../core/chat/constants';
 import { runtimePrompt2ChatsValue } from '../../core/chat/adapt';
 import { getPluginRunContent } from '../../core/app/plugin/utils';
 
-export const getHandleId = (nodeId: string, type: 'source' | 'target', key: string) => {
+export const getHandleId = (
+  nodeId: string,
+  type: 'source' | 'source_catch' | 'target',
+  key: string
+) => {
   return `${nodeId}-${type}-${key}`;
 };
 
@@ -219,16 +224,14 @@ export const pluginData2FlowNodeIO = ({
         ]
       : [],
     outputs: pluginOutput
-      ? [
-          ...pluginOutput.inputs.map((item) => ({
-            id: item.key,
-            type: FlowNodeOutputTypeEnum.static,
-            key: item.key,
-            valueType: item.valueType,
-            label: item.label || item.key,
-            description: item.description
-          }))
-        ]
+      ? pluginOutput.inputs.map((item) => ({
+          id: item.key,
+          type: FlowNodeOutputTypeEnum.static,
+          key: item.key,
+          valueType: item.valueType,
+          label: item.label || item.key,
+          description: item.description
+        }))
       : []
   };
 };
@@ -274,9 +277,6 @@ export const appData2FlowNodeIO = ({
         };
       });
 
-  // const showFileLink =
-  //   chatConfig?.fileSelectConfig?.canSelectFile || chatConfig?.fileSelectConfig?.canSelectImg;
-
   return {
     inputs: [
       Input_Template_Stream_MODE,
@@ -311,35 +311,25 @@ export const appData2FlowNodeIO = ({
   };
 };
 
-export const toolData2FlowNodeIO = ({
-  nodes
-}: {
-  nodes: StoreNodeItemType[];
-}): {
-  inputs: FlowNodeInputItemType[];
-  outputs: FlowNodeOutputItemType[];
-} => {
+export const toolData2FlowNodeIO = ({ nodes }: { nodes: StoreNodeItemType[] }) => {
   const toolNode = nodes.find((node) => node.flowNodeType === FlowNodeTypeEnum.tool);
 
   return {
     inputs: toolNode?.inputs || [],
-    outputs: toolNode?.outputs || []
+    outputs: toolNode?.outputs || [],
+    toolConfig: toolNode?.toolConfig
   };
 };
 
-export const toolSetData2FlowNodeIO = ({
-  nodes
-}: {
-  nodes: StoreNodeItemType[];
-}): {
-  inputs: FlowNodeInputItemType[];
-  outputs: FlowNodeOutputItemType[];
-} => {
+export const toolSetData2FlowNodeIO = ({ nodes }: { nodes: StoreNodeItemType[] }) => {
   const toolSetNode = nodes.find((node) => node.flowNodeType === FlowNodeTypeEnum.toolSet);
 
   return {
     inputs: toolSetNode?.inputs || [],
-    outputs: toolSetNode?.outputs || []
+    outputs: toolSetNode?.outputs || [],
+    toolConfig: toolSetNode?.toolConfig,
+    showSourceHandle: false,
+    showTargetHandle: false
   };
 };
 
@@ -356,7 +346,7 @@ export const formatEditorVariablePickerIcon = (
 export const isValidReferenceValueFormat = (value: any): value is ReferenceItemValueType => {
   return Array.isArray(value) && value.length === 2 && typeof value[0] === 'string';
 };
-/* 
+/*
   Check whether the value([variableId, outputId]) value is a valid reference value:
   1. The value must be an array of length 2
   2. The first item of the array must be one of VARIABLE_NODE_ID or nodeIds
@@ -370,7 +360,7 @@ export const isValidReferenceValue = (
   const validIdSet = new Set([VARIABLE_NODE_ID, ...nodeIds]);
   return validIdSet.has(value[0]);
 };
-/* 
+/*
   Check whether the value([variableId, outputId][]) value is a valid reference value array:
   1. The value must be an array
   2. The array must contain at least one element
