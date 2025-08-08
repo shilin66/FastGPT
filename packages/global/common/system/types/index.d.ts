@@ -159,16 +159,20 @@ export type SystemEnvType = {
     ['python3']: SandBoxTypeEnum.dify;
   };
 
-  customPdfParse?: customPdfParseType;
+  customPdfParse?: SystemEnvCustomPdfParseType;
 };
 
 export type customPdfParseType = {
+  name: string;
+  desc: string;
   url?: string;
   key?: string;
   doc2xKey?: string;
   price?: number;
   extension?: string;
 };
+
+export type SystemEnvCustomPdfParseType = customPdfParseType[];
 
 export type LicenseDataType = {
   licenseServer: string;

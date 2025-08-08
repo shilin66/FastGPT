@@ -46,7 +46,7 @@ type DatasetCollectionStoreDataType = ChunkSettingsType & {
   parentId?: string;
   metadata?: Record<string, any>;
 
-  customPdfParse?: boolean;
+  customPdfParse?: string;
 };
 
 // create collection params
