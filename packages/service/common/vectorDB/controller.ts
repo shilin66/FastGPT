@@ -2,6 +2,7 @@
 import { PgVectorCtrl } from './pg';
 import { ObVectorCtrl } from './oceanbase';
 import { getVectorsByText } from '../../core/ai/embedding';
+import type { EmbeddingRecallCtrlProps } from './controller.d';
 import { type DelDatasetVectorCtrlProps, type InsertVectorProps } from './controller.d';
 import { type EmbeddingModelItemType } from '@fastgpt/global/core/ai/model.d';
 import { MILVUS_ADDRESS, PG_ADDRESS, OCEANBASE_ADDRESS } from './constants';
@@ -35,7 +36,8 @@ const onIncrCache = (teamId: string) => incrValueToCache(getChcheKey(teamId), 1)
 const Vector = getVectorObj();
 
 export const initVectorStore = Vector.init;
-export const recallFromVectorStore = Vector.embRecall;
+export const recallFromVectorStore = (props: EmbeddingRecallCtrlProps) =>
+  retryFn(() => Vector.embRecall(props));
 export const getVectorDataByTime = Vector.getVectorDataByTime;
 
 export const getVectorCountByTeamId = async (teamId: string) => {
@@ -58,34 +60,34 @@ export const getVectorCountByCollectionId = Vector.getVectorCountByCollectionId;
 
 export const insertDatasetDataVector = async ({
   model,
-  query,
+  inputs,
   ...props
 }: InsertVectorProps & {
-  query: string;
+  inputs: string[];
   model: EmbeddingModelItemType;
 }) => {
-  return retryFn(async () => {
-    const { vectors, tokens } = await getVectorsByText({
-      model,
-      input: query,
-      type: 'db'
-    });
-    const { insertId } = await Vector.insert({
-      ...props,
-      vector: vectors[0]
-    });
-
-    onIncrCache(props.teamId);
-
-    return {
-      tokens,
-      insertId
-    };
+  const { vectors, tokens } = await getVectorsByText({
+    model,
+    input: inputs,
+    type: 'db'
   });
+  const { insertIds } = await retryFn(() =>
+    Vector.insert({
+      ...props,
+      vectors
+    })
+  );
+
+  onIncrCache(props.teamId);
+
+  return {
+    tokens,
+    insertIds
+  };
 };
 
 export const deleteDatasetDataVector = async (props: DelDatasetVectorCtrlProps) => {
-  const result = await Vector.delete(props);
+  const result = await retryFn(() => Vector.delete(props));
   onDelCache(props.teamId);
   return result;
 };
