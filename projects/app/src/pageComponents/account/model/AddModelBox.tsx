@@ -617,19 +617,6 @@ export const ModelEditModal = ({
                   <Tr>
                     <Td>
                       <HStack spacing={1}>
-                        <Box>{t('account:model.tool_choice_stream')}</Box>
-                        <QuestionTip label={t('account:model.tool_choice_stream_tip')} />
-                      </HStack>
-                    </Td>
-                    <Td textAlign={'right'}>
-                      <Flex justifyContent={'flex-end'}>
-                        <Switch {...register('toolChoiceStream')} />
-                      </Flex>
-                    </Td>
-                  </Tr>
-                  <Tr>
-                    <Td>
-                      <HStack spacing={1}>
                         <Box>{t('account:model.vision')}</Box>
                         <QuestionTip label={t('account:model.vision_tip')} />
                       </HStack>
