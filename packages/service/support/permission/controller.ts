@@ -34,6 +34,7 @@ import { MongoApp } from '../../core/app/schema';
 import { MongoDataset } from '../../core/dataset/schema';
 import { AppPermission } from '@fastgpt/global/support/permission/app/controller';
 import { DatasetPermission } from '@fastgpt/global/support/permission/dataset/controller';
+import { sumPer } from '@fastgpt/global/support/permission/utils';
 
 /** get resource permission for a team member
  * If there is no permission for the team member, it will return undefined
@@ -115,7 +116,7 @@ export const getResourcePermission = async ({
       .then((perList) => perList.map((item) => item.permission))
   ]);
 
-  return concatPer([...groupPers, ...orgPers]);
+  return sumPer(...groupPers, ...orgPers);
 };
 
 export async function getResourceClbsAndGroups({
@@ -415,14 +416,6 @@ export const authFileToken = (token?: string) =>
       });
     });
   });
-
-export const concatPer = (perList: PermissionValueType[] = []) => {
-  if (perList.length === 0) {
-    return undefined;
-  }
-
-  return new Permission().addPer(...perList).value;
-};
 
 export async function updateCollaborators(
   updateClbPermissionProps: UpdateClbPermissionProps,

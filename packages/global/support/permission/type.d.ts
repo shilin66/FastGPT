@@ -2,6 +2,9 @@ import type { UserModelSchema } from '../user/type';
 import type { RequireOnlyOne } from '../../common/type/utils';
 import type { TeamMemberSchema } from '../user/team/type';
 import type { MemberGroupSchemaType } from './memberGroup/type';
+import type { TeamMemberWithUserSchema } from '../user/team/type';
+import type { CommonPerKeyEnum, CommonRoleKeyEnum } from './constant';
+import { AuthUserTypeEnum, type CommonPerKeyEnum, type PerResourceTypeEnum } from './constant';
 import { type PermissionKeyEnum, type PerResourceTypeEnum } from './constant';
 import type { OrgSchemaType } from '../user/team/org/type';
 
@@ -10,6 +13,8 @@ import type { OrgSchemaType } from '../user/team/org/type';
 // The lowest 3 bits present the permission of reading, writing and managing.
 // The higher bits are advanced permissions or extended permissions, which could be customized.
 export type PermissionValueType = number;
+export type RoleValueType = number;
+
 export type ResourceType = `${PerResourceTypeEnum}`;
 
 export type PermissionListType<T = {}> = Record<
@@ -21,6 +26,36 @@ export type PermissionListType<T = {}> = Record<
     checkBoxType: 'single' | 'multiple';
   }
 >;
+
+/**
+ * Define the permissions. Each permission is a binary number, only one bit is set to 1.
+ * @example
+ * CommonPerList = {
+ *   read: 0b100,
+ *   write: 0b010,
+ *   manage: 0b001
+ * }
+ * @example_bad
+ * CommonPerList = {
+ *   write: 0b110, // bad, should be 0b010
+ * }
+ */
+export type PermissionListType<T = {}> = Readonly<
+  Record<T | CommonPerKeyEnum, PermissionValueType>
+>;
+
+/**
+ * Define the role-permission map. Each role has a permission.
+ * @key: role (binary number), only one bit is set to 1.
+ * @value: permission (binary number), multiple bits are set to 1.
+ * @example
+ * CommonRolePerMap = {
+ *   0b100: 0b100,
+ *   0b010: 0b110,
+ *   0b001: 0b111
+ * }
+ */
+export type RolePerMapType = Readonly<Map<RoleValueType, PermissionValueType>>;
 
 export type ResourcePermissionType = {
   teamId: string;
@@ -34,7 +69,7 @@ export type ResourcePermissionType = {
 }>;
 
 export type ResourcePerWithTmbWithUser = Omit<ResourcePermissionType, 'tmbId'> & {
-  tmb: TeamMemberSchema & { user: UserModelSchema };
+  tmbId: TeamMemberSchema & { user: UserModelSchema };
 };
 
 export type ResourcePerWithGroup = Omit<ResourcePermissionType, 'groupId'> & {
