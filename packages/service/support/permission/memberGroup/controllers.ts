@@ -204,11 +204,11 @@ export const listMemberGroup = async (
         });
       } else if (member.role === GroupMemberRole.admin) {
         groupPermissionMap[member.groupId] = new Permission({
-          per: memberGroupPermissionList.manage.value
+          role: memberGroupPermissionList.manage.value
         });
       } else {
         groupPermissionMap[member.groupId] = new Permission({
-          per: memberGroupPermissionList.read.value
+          role: memberGroupPermissionList.read.value
         });
       }
     }

@@ -15,33 +15,31 @@ const LoginModal = ({ onSuccess }: LoginModalProps) => {
   return (
     <Flex
       alignItems={'center'}
-      justifyContent={'center'}
-      bg={['white', `url(${getWebReqUrl('/icon/login-bg.svg')}) no-repeat`]}
+      justifyContent={'flex-end'}
+      bg={['white', `url(${getWebReqUrl('/icon/login-bg1.svg')}) no-repeat`]}
       backgroundSize={['cover', 'cover']}
       userSelect={'none'}
       h={'100%'}
+      px={[0, '10vw']}
     >
-      {/* Language selector - login page */}
       {isPc && (
-        <Box position="absolute" top="24px" right="24px" zIndex={10}>
+        <Box position={'absolute'} top={'24px'} right={'50px'}>
           <I18nLngSelector />
         </Box>
       )}
-
       <Flex
         flexDirection={'column'}
-        w={['100%', '560px']}
-        h={['100%', '690px']}
-        bg={[`url(${getWebReqUrl('/icon/login-bg-phone.svg')}) no-repeat`, 'white']}
-        backgroundSize={'cover'}
-        px={['8', '90px']}
-        py={['38px', '90px']}
-        borderRadius={[0, '16px']}
+        w={['100%', 'auto']}
+        h={['100%', '600px']}
+        maxH={['100%', '90vh']}
+        bg={'white'}
+        px={['5vw', '88px']}
+        py={'5vh'}
+        borderRadius={[0, '24px']}
         boxShadow={[
           '',
-          '0px 32px 64px -12px rgba(19, 51, 107, 0.20), 0px 0px 1px 0px rgba(19, 51, 107, 0.20)'
+          '0px 0px 1px 0px rgba(19, 51, 107, 0.20), 0px 32px 64px -12px rgba(19, 51, 107, 0.20)'
         ]}
-        position="relative"
       >
         <LoginContainer onSuccess={onSuccess} />
       </Flex>

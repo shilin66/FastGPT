@@ -181,7 +181,7 @@ export const getClbsAndGroupsWithInfo = async ({
     })
       .populate<{ group: MemberGroupSchemaType }>('group', 'name avatar')
       .lean(),
-    MongoResourcePermission.find({
+    await MongoResourcePermission.find({
       teamId,
       resourceId,
       resourceType,
@@ -495,7 +495,7 @@ export async function listCollaborator(
   const PermissionClass =
     resourceType === PerResourceTypeEnum.app ? AppPermission : DatasetPermission;
   const per = new AppPermission();
-  per.addPer();
+  per.addRole();
   if (resourceType === PerResourceTypeEnum.app) {
     resource = await MongoApp.findById(resourceId);
   } else if (resourceType === PerResourceTypeEnum.dataset) {
@@ -511,13 +511,13 @@ export async function listCollaborator(
         const rpt = per as unknown as ResourcePerWithTmbWithUser;
         result.push({
           teamId: rpt.teamId,
-          tmbId: rpt.tmb._id,
+          tmbId: rpt.tmbId._id,
           permission: new PermissionClass({
-            per: rpt.permission,
-            isOwner: String(resource.tmbId) === String(rpt.tmb._id)
+            role: rpt.permission,
+            isOwner: String(resource.tmbId) === String(rpt.tmbId._id)
           }),
-          name: rpt.tmb.name,
-          avatar: rpt.tmb.avatar
+          name: rpt.tmbId.name,
+          avatar: rpt.tmbId.avatar
         });
       }
       if (per.groupId) {
@@ -526,7 +526,7 @@ export async function listCollaborator(
           teamId: rpg.teamId,
           groupId: rpg.group._id,
           permission: new PermissionClass({
-            per: rpg.permission
+            role: rpg.permission
           }),
           name: rpg.group.name,
           avatar: rpg.group.avatar
@@ -539,7 +539,7 @@ export async function listCollaborator(
           teamId: rpo.teamId,
           orgId: rpo.org._id,
           permission: new PermissionClass({
-            per: rpo.permission
+            role: rpo.permission
           }),
           name: rpo.org.name,
           avatar: rpo.org.avatar || ''

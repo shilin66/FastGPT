@@ -10,7 +10,7 @@ import {
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
 import {
-  TeamDefaultPermissionVal,
+  TeamDefaultRoleVal,
   TeamReadPermissionVal
 } from '@fastgpt/global/support/permission/user/constant';
 import { MongoTeam } from '@fastgpt/service/support/user/team/teamSchema';
@@ -126,7 +126,7 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
       const permission = orgPerList.find((per) => per.orgId === org._id);
 
       org.permission = new TeamPermission({
-        per: permission?.permission || TeamDefaultPermissionVal
+        role: permission?.permission || TeamDefaultRoleVal
       });
     });
   }
