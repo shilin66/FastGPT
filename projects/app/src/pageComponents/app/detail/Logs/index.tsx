@@ -17,7 +17,7 @@ import { AppContext } from '@/pageComponents/app/detail/context';
 const Logs = () => {
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
-  const [viewMode, setViewMode] = useState<'chart' | 'table'>(feConfigs.isPlus ? 'chart' : 'table');
+  const [viewMode, setViewMode] = useState<'chart' | 'table'>(feConfigs.isPlus ? 'table' : 'chart');
   const appId = useContextSelector(AppContext, (v) => v.appId);
 
   const [dateRange, setDateRange] = useState<DateRangeType>({
@@ -52,22 +52,22 @@ const Logs = () => {
           alignItems={'center'}
         >
           <Flex flex={'1 0 0'} gap={2}>
-            <Flex
-              px={2}
-              py={2}
-              cursor={'pointer'}
-              color={viewMode === 'chart' ? 'primary.600' : 'myGray.500'}
-              onClick={() => setViewMode('chart')}
-              borderRadius={'8px'}
-              bg={viewMode === 'chart' ? 'myGray.05' : 'transparent'}
-              _hover={{ bg: 'myGray.05' }}
-            >
-              <MyIcon name={'core/app/logsLight'} w={4} />
-              <Box ml={2} mr={0.5}>
-                {t('app:logs_app_data')}
-              </Box>
-              <ProTag />
-            </Flex>
+            {/*<Flex*/}
+            {/*  px={2}*/}
+            {/*  py={2}*/}
+            {/*  cursor={'pointer'}*/}
+            {/*  color={viewMode === 'chart' ? 'primary.600' : 'myGray.500'}*/}
+            {/*  onClick={() => setViewMode('chart')}*/}
+            {/*  borderRadius={'8px'}*/}
+            {/*  bg={viewMode === 'chart' ? 'myGray.05' : 'transparent'}*/}
+            {/*  _hover={{ bg: 'myGray.05' }}*/}
+            {/*>*/}
+            {/*  <MyIcon name={'core/app/logsLight'} w={4} />*/}
+            {/*  <Box ml={2} mr={0.5}>*/}
+            {/*    {t('app:logs_app_data')}*/}
+            {/*  </Box>*/}
+            {/*  <ProTag />*/}
+            {/*</Flex>*/}
             <Flex
               px={2}
               py={2}
