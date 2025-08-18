@@ -1,6 +1,7 @@
 import { SystemPluginListItemType } from '@fastgpt/global/core/app/type';
 import { FlowNodeTemplateTypeEnum } from '@fastgpt/global/core/workflow/constants';
 import type { WorkflowTemplateBasicType } from '@fastgpt/global/core/workflow/type';
+import type { InputConfigType } from '@fastgpt/global/core/workflow/type/io';
 
 export type SystemPluginConfigSchemaType = {
   pluginId: string;
@@ -10,11 +11,13 @@ export type SystemPluginConfigSchemaType = {
   hasTokenFee: boolean;
   isActive: boolean;
   pluginOrder?: number;
+  systemKeyCost?: number;
 
   customConfig?: {
     name: string;
     avatar: string;
     intro?: string;
+    toolDescription?: string;
     version: string;
     weight?: number;
     templateType: string;

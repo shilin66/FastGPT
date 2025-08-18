@@ -246,7 +246,7 @@ export const runToolWithToolChoice = async (
       type: 'function',
       function: {
         name: item.nodeId,
-        description: item.intro || item.name,
+        description: item.toolDescription || item.intro || item.name,
         parameters: {
           type: 'object',
           properties,
@@ -289,23 +289,12 @@ export const runToolWithToolChoice = async (
       origin: requestOrigin
     })
   ]);
-  const { canStream, toolList } = (() => {
-    if (toolModel.defaultConfig?.stream !== undefined && !toolModel.defaultConfig.stream) {
-      return { canStream: false, toolList: tools };
-    }
-    if (toolModel.toolChoiceStream === undefined || toolModel.toolChoiceStream)
-      return { canStream: true, toolList: tools };
-    if (assistantResponses && assistantResponses.length > 0) {
-      return { canStream: true, toolList: tools };
-    }
-    return { canStream: false, toolList: tools };
-  })();
   const requestBody = llmCompletionsBodyFormat(
     {
       model: toolModel.model,
-      stream: canStream,
+      stream,
       messages: requestMessages,
-      tools: toolList,
+      tools,
       tool_choice: 'auto',
       parallel_tool_calls: true,
       temperature,

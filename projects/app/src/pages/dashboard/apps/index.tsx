@@ -17,7 +17,7 @@ import FolderPath from '@/components/common/folder/Path';
 import { useRouter } from 'next/router';
 import FolderSlideCard from '@/components/common/folder/SlideCard';
 import { delAppById, resumeInheritPer } from '@/web/core/app/api';
-import { AppPermissionList } from '@fastgpt/global/support/permission/app/constant';
+import { AppRoleList } from '@fastgpt/global/support/permission/app/constant';
 import {
   deleteAppCollaborators,
   getCollaboratorList,
@@ -27,7 +27,6 @@ import type { CreateAppType } from '@/pageComponents/dashboard/apps/CreateModal'
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
-import MyIcon from '@fastgpt/web/components/common/Icon';
 import JsonImportModal from '@/pageComponents/dashboard/apps/JsonImportModal';
 import DashboardContainer from '@/pageComponents/dashboard/Container';
 import List from '@/pageComponents/dashboard/apps/List';
@@ -57,7 +56,6 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
     isFetchingApps,
     folderDetail,
     refetchFolderDetail,
-    searchKey,
     setSearchKey
   } = useContextSelector(AppListContext, (v) => v);
   const { userInfo } = useUserStore();
@@ -118,7 +116,8 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
       [AppTypeEnum.httpPlugin]: t('app:type.Http plugin'),
       [AppTypeEnum.folder]: t('common:Folder'),
       [AppTypeEnum.toolSet]: t('app:type.MCP tools'),
-      [AppTypeEnum.tool]: t('app:type.MCP tools')
+      [AppTypeEnum.tool]: t('app:type.MCP tools'),
+      [AppTypeEnum.hidden]: t('app:type.hidden')
     };
     return map[appType] || map['all'];
   }, [appType, t]);
@@ -282,7 +281,7 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
               managePer={{
                 permission: folderDetail.permission,
                 onGetCollaboratorList: () => getCollaboratorList(folderDetail._id),
-                permissionList: AppPermissionList,
+                roleList: AppRoleList,
                 onUpdateCollaborators: (props) =>
                   postUpdateAppCollaborators({
                     ...props,

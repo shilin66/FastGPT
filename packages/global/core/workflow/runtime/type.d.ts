@@ -29,6 +29,7 @@ import type {
   WorkflowInteractiveResponseType
 } from '../template/system/interactive/type';
 import type { SearchDataResponseItemType } from '../../dataset/type';
+import type { localeType } from '../../../common/i18n/type';
 export type ExternalProviderType = {
   openaiAccount?: OpenaiAccountType;
   externalWorkflowVariables?: Record<string, string>;
@@ -37,6 +38,7 @@ export type ExternalProviderType = {
 /* workflow props */
 export type ChatDispatchProps = {
   res?: NextApiResponse;
+  lang?: localeType;
   requestOrigin?: string;
   mode: 'test' | 'chat' | 'debug';
   timezone: string;
@@ -49,6 +51,10 @@ export type ChatDispatchProps = {
     isChildApp?: boolean;
   };
   runningUserInfo: {
+    username: string;
+    teamName: string;
+    memberName: string;
+    contact: string;
     teamId: string;
     tmbId: string;
   };
@@ -95,6 +101,7 @@ export type RuntimeNodeItemType = {
   name: StoreNodeItemType['name'];
   avatar: StoreNodeItemType['avatar'];
   intro?: StoreNodeItemType['intro'];
+  toolDescription?: StoreNodeItemType['toolDescription'];
   flowNodeType: StoreNodeItemType['flowNodeType'];
   showStatus?: StoreNodeItemType['showStatus'];
   isEntry?: boolean;
@@ -247,6 +254,8 @@ export type DispatchNodeResponseType = {
 };
 
 export type DispatchNodeResultType<T = {}, ERR = { [NodeOutputKeyEnum.errorText]?: string }> = {
+  [DispatchNodeResponseKeyEnum.answerText]?: string;
+  [DispatchNodeResponseKeyEnum.reasoningText]?: string;
   [DispatchNodeResponseKeyEnum.skipHandleId]?: string[]; // skip some edge handle id
   [DispatchNodeResponseKeyEnum.nodeResponse]?: DispatchNodeResponseType; // The node response detail
   [DispatchNodeResponseKeyEnum.nodeDispatchUsages]?: ChatNodeUsageType[]; // Node total usage

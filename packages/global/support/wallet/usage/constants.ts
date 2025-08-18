@@ -14,7 +14,8 @@ export enum UsageSourceEnum {
   teams = 'teams',
   pdfParse = 'pdfParse',
   mcp = 'mcp',
-  evaluation = 'evaluation'
+  evaluation = 'evaluation',
+  optimize_prompt = 'optimize_prompt'
 }
 
 export const UsageSourceMap = {
@@ -59,5 +60,8 @@ export const UsageSourceMap = {
   },
   [UsageSourceEnum.evaluation]: {
     label: i18nT('account_usage:evaluation')
+  },
+  [UsageSourceEnum.optimize_prompt]: {
+    label: i18nT('common:support.wallet.usage.Optimize Prompt')
   }
 };

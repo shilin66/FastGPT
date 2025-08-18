@@ -113,13 +113,18 @@ export const loadSystemModels = async (init = false) => {
         const modelData: any = {
           ...model,
           ...dbModel?.metadata,
-          // @ts-ignore
-          defaultConfig: mergeObject(model.defaultConfig, dbModel?.metadata?.defaultConfig),
-          // @ts-ignore
-          fieldMap: mergeObject(model.fieldMap, dbModel?.metadata?.fieldMap),
           provider: getModelProvider(dbModel?.metadata?.provider || (model.provider as any)).id,
           type: dbModel?.metadata?.type || model.type,
-          isCustom: false
+          isCustom: false,
+
+          ...(model.type === ModelTypeEnum.llm && dbModel?.metadata?.type === ModelTypeEnum.llm
+            ? {
+                maxResponse: model.maxTokens ?? dbModel?.metadata?.maxResponse ?? 1000,
+                defaultConfig: mergeObject(model.defaultConfig, dbModel?.metadata?.defaultConfig),
+                fieldMap: mergeObject(model.fieldMap, dbModel?.metadata?.fieldMap),
+                maxTokens: undefined
+              }
+            : {})
         };
         pushModel(modelData);
       })
@@ -168,6 +173,17 @@ export const loadSystemModels = async (init = false) => {
       const providerB = getModelProvider(b.provider);
       return providerA.order - providerB.order;
     });
+    global.systemActiveDesensitizedModels = global.systemActiveModelList.map((model) => ({
+      ...model,
+      defaultSystemChatPrompt: undefined,
+      fieldMap: undefined,
+      defaultConfig: undefined,
+      weight: undefined,
+      dbConfig: undefined,
+      queryConfig: undefined,
+      requestUrl: undefined,
+      requestAuth: undefined
+    })) as SystemModelItemType[];
 
     console.log(
       `Load models success, total: ${global.systemModelList.length}, active: ${global.systemActiveModelList.length}`,

@@ -1,30 +1,28 @@
 ---
-title: 'Docker Compose 快速部署'
-description: '使用 Docker Compose 快速部署 FastGPT'
-icon: ''
-draft: true
-toc: true
-weight: 707
+title: Docker Compose 快速部署
+description: 使用 Docker Compose 快速部署 FastGPT
 ---
+
+import { Alert } from '@/components/docs/Alert';
 
 ## 前置知识
 
-1. 基础的网络知识：端口，防火墙……  
-2. Docker 和 Docker Compose 基础知识  
-3. 大模型相关接口和参数  
+1. 基础的网络知识：端口，防火墙……
+2. Docker 和 Docker Compose 基础知识
+3. 大模型相关接口和参数
 4. RAG 相关知识：向量模型，向量数据库，向量检索
 
 ## 部署架构图
 
 ![](/imgs/sealos-fastgpt.webp)
 
-{{% alert icon="🤖" context="success" %}}
+<Alert icon="🤖" context="success">
 
 - MongoDB：用于存储除了向量外的各类数据
 - PostgreSQL/Milvus：存储向量数据
 - OneAPI: 聚合各类 AI API，支持多模型调用 （任何模型问题，先自行通过 OneAPI 测试校验）
 
-{{% /alert %}}
+</Alert>
 
 ## 推荐配置
 
@@ -32,13 +30,11 @@ weight: 707
 
 非常轻量，适合知识库索引量在 5000 万以下。
 
-{{< table "table-hover table-striped-columns" >}}
-| 环境 | 最低配置（单节点） | 推荐配置 |
-| ---- | ---- | ---- |
-| 测试（可以把计算进程设置少一些） | 2c4g  | 2c8g |
-| 100w 组向量 | 4c8g 50GB | 4c16g 50GB |
-| 500w 组向量 | 8c32g 200GB | 16c64g 200GB |
-{{< /table >}}
+| 环境                             | 最低配置（单节点） | 推荐配置     |
+| -------------------------------- | ------------------ | ------------ |
+| 测试（可以把计算进程设置少一些） | 2c4g               | 2c8g         |
+| 100w 组向量                      | 4c8g 50GB          | 4c16g 50GB   |
+| 500w 组向量                      | 8c32g 200GB        | 16c64g 200GB |
 
 ### Milvus版本
 
@@ -46,13 +42,11 @@ weight: 707
 
 [点击查看 Milvus 官方推荐配置](https://milvus.io/docs/prerequisite-docker.md)
 
-{{< table "table-hover table-striped-columns" >}}
-| 环境 | 最低配置（单节点） | 推荐配置 |
-| ---- | ---- | ---- |
-| 测试 | 2c8g  | 4c16g |
-| 100w 组向量 | 未测试 |  |
-| 500w 组向量 |  |  |
-{{< /table >}}
+| 环境        | 最低配置（单节点） | 推荐配置 |
+| ----------- | ------------------ | -------- |
+| 测试        | 2c8g               | 4c16g    |
+| 100w 组向量 | 未测试             |          |
+| 500w 组向量 |                    |          |
 
 ### zilliz cloud版本
 
@@ -64,14 +58,12 @@ Zilliz Cloud 由 Milvus 原厂打造，是全托管的 SaaS 向量数据库服�
 
 ### 1. 确保网络环境
 
-如果使用`OpenAI`等国外模型接口，请确保可以正常访问，否则会报错：`Connection error` 等。 方案可以参考：[代理方案](/docs/development/proxy/)
+如果使用`OpenAI`等国外模型接口，请确保可以正常访问，否则会报错：`Connection error` 等。 方案可以参考：[代理方案](/docs/introduction/development/proxy/nginx)
 
 ### 2. 准备 Docker 环境
 
-{{< tabs tabTotal="3" >}}
-{{< tab tabName="Linux" >}}
-{{< markdownify >}}
-
+<Tabs items={['Linux','MacOS','Windows']}>
+  <Tab value="Linux">
 ```bash
 # 安装 Docker
 curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
@@ -84,11 +76,8 @@ docker -v
 docker-compose -v
 # 如失效，自行百度~
 ```
-
-{{< /markdownify >}}
-{{< /tab >}}
-{{< tab tabName="MacOS" >}}
-{{< markdownify >}}
+  </Tab>
+  <Tab value="MacOS">
 推荐直接使用 [Orbstack](https://orbstack.dev/)。可直接通过 Homebrew 来安装：
 
 ```bash
@@ -96,20 +85,17 @@ brew install orbstack
 ```
 
 或者直接[下载安装包](https://orbstack.dev/download)进行安装。
-{{< /markdownify >}}
-{{< /tab >}}
-{{< tab tabName="Windows" >}}
-{{< markdownify >}}
 
+  </Tab>
+  <Tab value="Windows">
 我们建议将源代码和其他数据绑定到 Linux 容器中时，将其存储在 Linux 文件系统中，而不是 Windows 文件系统中。
 
 可以选择直接[使用 WSL 2 后端在 Windows 中安装 Docker Desktop](https://docs.docker.com/desktop/wsl/)。
 
 也可以直接[在 WSL 2 中安装命令行版本的 Docker](https://nickjanetakis.com/blog/install-docker-in-wsl-2-without-docker-desktop)。
 
-{{< /markdownify >}}
-{{< /tab >}}
-{{< /tabs >}}
+  </Tab>
+</Tabs>
 
 ## 开始部署
 
@@ -120,11 +106,11 @@ brew install orbstack
 - [config.json](https://raw.githubusercontent.com/labring/FastGPT/refs/heads/main/projects/app/data/config.json)
 - [docker-compose.yml](https://github.com/labring/FastGPT/blob/main/deploy/docker) (注意，不同向量库版本的文件不一样)
 
-{{% alert icon="🤖" context="success" %}}
+<Alert icon="🤖" context="success">
 
-所有 `docker-compose.yml` 配置文件中 `MongoDB` 为 5.x，需要用到AVX指令集，部分 CPU 不支持，需手动更改其镜像版本为 4.4.24**（需要自己在docker hub下载，阿里云镜像没做备份）
+所有 `docker-compose.yml` 配置文件中 `MongoDB` 为 5.x，需要用到AVX指令集，部分 CPU 不支持，需手动更改其镜像版本为 4.4.24\*\*（需要自己在docker hub下载，阿里云镜像没做备份）
 
-{{% /alert %}}
+</Alert>
 
 **Linux 快速脚本**
 
@@ -148,44 +134,28 @@ curl -o docker-compose.yml https://raw.githubusercontent.com/labring/FastGPT/mai
 
 找到 yml 文件中，fastgpt 容器的环境变量进行下面操作：
 
-{{< tabs tabTotal="3" >}}
-{{< tab tabName="PgVector版本" >}}
-{{< markdownify >}}
-
+<Tabs items={['PgVector版本','Oceanbase版本','Milvus版本','Zilliz版本']}>
+  <Tab value="PgVector版本">
 无需操作
-
-{{< /markdownify >}}
-{{< /tab >}}
-{{< tab tabName="Oceanbase版本" >}}
-{{< markdownify >}}
-
+  </Tab>
+  <Tab value="Oceanbase版本">
 无需操作
-
-{{< /markdownify >}}
-{{< /tab >}}
-{{< tab tabName="Milvus版本" >}}
-{{< markdownify >}}
-
+  </Tab>
+  <Tab value="Milvus版本">
 无需操作
-
-{{< /markdownify >}}
-{{< /tab >}}
-{{< tab tabName="Zilliz版本" >}}
-{{< markdownify >}}
-
+  </Tab>
+  <Tab value="Zilliz版本">
 打开 [Zilliz Cloud](https://zilliz.com.cn/), 创建实例并获取相关秘钥。
 
 ![zilliz_key](/imgs/zilliz_key.png)
 
-{{% alert icon="🤖" context="success" %}}
+<Alert icon="🤖" context="success">
 
 1. 修改`MILVUS_ADDRESS`和`MILVUS_TOKEN`链接参数，分别对应 `zilliz` 的 `Public Endpoint` 和 `Api key`，记得把自己ip加入白名单。
 
-{{% /alert %}}
-
-{{< /markdownify >}}
-{{< /tab >}}
-{{< /tabs >}}
+</Alert>
+  </Tab>
+</Tabs>
 
 ### 3. 修改 config.json 配置文件
 
@@ -211,7 +181,7 @@ docker-compose up -d
 ### 6. 配置模型
 
 - 首次登录FastGPT后，系统会提示未配置`语言模型`和`索引模型`，并自动跳转模型配置页面。系统必须至少有这两类模型才能正常使用。
-- 如果系统未正常跳转，可以在`账号-模型提供商`页面，进行模型配置。[点击查看相关教程](/docs/development/modelconfig/ai-proxy)
+- 如果系统未正常跳转，可以在`账号-模型提供商`页面，进行模型配置。[点击查看相关教程](/docs/introduction/development/modelConfig/ai-proxy)
 - 目前已知可能问题：首次进入系统后，整个浏览器 tab 无法响应。此时需要删除该tab，重新打开一次即可。
 
 ## FAQ
@@ -236,7 +206,7 @@ chown 999:root ./mongodb.key
 ```
 
 2. 修改 docker-compose.yml，挂载密钥
-  
+
 ```yml
 mongo:
   #  image: mongo:5.0.18
@@ -267,7 +237,7 @@ docker-compose up -d
 
 ```bash
 # 查看 mongo 容器是否正常运行
-docker ps 
+docker ps
 # 进入容器
 docker exec -it mongo bash
 
@@ -301,20 +271,20 @@ docker-compose up -d
 
 ### 如何更新版本？
 
-1. 查看[更新文档](/docs/development/upgrading/intro/)，确认要升级的版本，避免跨版本升级。
+1. 查看[更新文档](/docs/upgrading)，确认要升级的版本，避免跨版本升级。
 2. 修改镜像 tag 到指定版本
 3. 执行下面命令会自动拉取镜像：
 
-    ```bash
-    docker-compose pull
-    docker-compose up -d
-    ```
+   ```bash
+   docker-compose pull
+   docker-compose up -d
+   ```
 
 4. 执行初始化脚本（如果有）
 
 ### 如何自定义配置文件？
 
-修改`config.json`文件，并执行`docker-compose down`再执行`docker-compose up -d`重起容器。具体配置，参考[配置详解](/docs/development/configuration)。
+修改`config.json`文件，并执行`docker-compose down`再执行`docker-compose up -d`重起容器。具体配置，参考[配置详解](/docs/introduction/development/configuration)。
 
 ### 如何检查自定义配置文件是否挂载
 
