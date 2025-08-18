@@ -174,7 +174,7 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
     pageNum,
     pageSize
   } = usePagination(getDatasetCollections, {
-    pageSize: 20,
+    defaultPageSize: 20,
     params: {
       datasetId,
       parentId,

@@ -4,8 +4,8 @@ import type { TeamMemberSchema } from '../user/team/type';
 import type { MemberGroupSchemaType } from './memberGroup/type';
 import type { TeamMemberWithUserSchema } from '../user/team/type';
 import type { CommonPerKeyEnum, CommonRoleKeyEnum } from './constant';
-import { AuthUserTypeEnum, type CommonPerKeyEnum, type PerResourceTypeEnum } from './constant';
-import { type PermissionKeyEnum, type PerResourceTypeEnum } from './constant';
+import { AuthUserTypeEnum, type PerResourceTypeEnum } from './constant';
+import { type PermissionKeyEnum } from './constant';
 import type { OrgSchemaType } from '../user/team/org/type';
 
 // PermissionValueType, the type of permission's value is a number, which is a bit field actually.
@@ -17,14 +17,19 @@ export type RoleValueType = number;
 
 export type ResourceType = `${PerResourceTypeEnum}`;
 
-export type PermissionListType<T = {}> = Record<
-  T | PermissionKeyEnum,
-  {
-    name: string;
-    description: string;
-    value: PermissionValueType;
-    checkBoxType: 'single' | 'multiple';
-  }
+/**
+ * Define the roles. Each role is a binary number, only one bit is set to 1.
+ */
+export type RoleListType<T = {}> = Readonly<
+  Record<
+    T | CommonRoleKeyEnum,
+    Readonly<{
+      name: string;
+      description: string;
+      value: RoleValueType;
+      checkBoxType: 'single' | 'multiple';
+    }>
+  >
 >;
 
 /**

@@ -81,7 +81,8 @@ export const ChatSourceMap = {
     color: '#FD853A'
   },
   [ChatSourceEnum.teams]: {
-    name: 'Teams'
+    name: 'Teams',
+    color: '#6264A7'
   },
   [ChatSourceEnum.mcp]: {
     name: i18nT('common:core.chat.logs.mcp'),

@@ -91,7 +91,7 @@ const TeamUsageTableList = ({
     Pagination,
     total
   } = usePagination(getTeamUsage, {
-    pageSize: 10,
+    defaultPageSize: 10,
     params: requestParams,
     refreshDeps: [requestParams]
   });

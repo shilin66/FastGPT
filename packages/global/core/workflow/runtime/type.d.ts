@@ -101,6 +101,7 @@ export type RuntimeNodeItemType = {
   name: StoreNodeItemType['name'];
   avatar: StoreNodeItemType['avatar'];
   intro?: StoreNodeItemType['intro'];
+  toolDescription?: StoreNodeItemType['toolDescription'];
   flowNodeType: StoreNodeItemType['flowNodeType'];
   showStatus?: StoreNodeItemType['showStatus'];
   isEntry?: boolean;
@@ -253,6 +254,8 @@ export type DispatchNodeResponseType = {
 };
 
 export type DispatchNodeResultType<T = {}, ERR = { [NodeOutputKeyEnum.errorText]?: string }> = {
+  [DispatchNodeResponseKeyEnum.answerText]?: string;
+  [DispatchNodeResponseKeyEnum.reasoningText]?: string;
   [DispatchNodeResponseKeyEnum.skipHandleId]?: string[]; // skip some edge handle id
   [DispatchNodeResponseKeyEnum.nodeResponse]?: DispatchNodeResponseType; // The node response detail
   [DispatchNodeResponseKeyEnum.nodeDispatchUsages]?: ChatNodeUsageType[]; // Node total usage
