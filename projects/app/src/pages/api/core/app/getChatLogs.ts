@@ -7,15 +7,13 @@ import type { GetAppChatLogsParams } from '@/global/core/api/appReq.d';
 import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { ChatItemCollectionName } from '@fastgpt/service/core/chat/chatItemSchema';
 import { NextAPI } from '@/service/middleware/entry';
-import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { readFromSecondary } from '@fastgpt/service/common/mongo/utils';
 import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';
 import { type PaginationResponse } from '@fastgpt/web/common/fetch/type';
 import { addSourceMember } from '@fastgpt/service/support/user/utils';
-import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
-import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
-import { getI18nAppType } from '@fastgpt/service/support/user/audit/util';
 import { replaceRegChars } from '@fastgpt/global/common/string/tools';
+import { AppReadChatLogPerVal } from '@fastgpt/global/support/permission/app/constant';
+import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 
 async function handler(
   req: NextApiRequest,
@@ -33,26 +31,26 @@ async function handler(
   const { pageSize = 20, offset } = parsePaginationRequest(req);
 
   if (!appId) {
-    throw new Error('缺少参数');
+    return Promise.reject(CommonErrEnum.missingParams);
   }
 
   // 凭证校验
-  const { teamId, tmbId, app } = await authApp({
+  const { teamId } = await authApp({
     req,
     authToken: true,
     appId,
-    per: WritePermissionVal
+    per: AppReadChatLogPerVal
   });
 
   const where = {
     teamId: new Types.ObjectId(teamId),
     appId: new Types.ObjectId(appId),
+    source: sources ? { $in: sources } : { $exists: true },
+    tmbId: tmbIds ? { $in: tmbIds.map((item) => new Types.ObjectId(item)) } : { $exists: true },
     updateTime: {
       $gte: new Date(dateStart),
       $lte: new Date(dateEnd)
     },
-    ...(sources && { source: { $in: sources } }),
-    ...(tmbIds && { tmbId: { $in: tmbIds.map((item) => new Types.ObjectId(item)) } }),
     ...(chatSearch && {
       $or: [
         { chatId: { $regex: new RegExp(`${replaceRegChars(chatSearch)}`, 'i') } },
@@ -76,7 +74,7 @@ async function handler(
         {
           $lookup: {
             from: ChatItemCollectionName,
-            let: { chatId: '$chatId', appId: new Types.ObjectId(appId) },
+            let: { appId: new Types.ObjectId(appId), chatId: '$chatId' },
             pipeline: [
               {
                 $match: {
@@ -242,18 +240,6 @@ async function handler(
   });
 
   const listWithoutTmbId = list.filter((item) => !item.tmbId);
-
-  (async () => {
-    addAuditLog({
-      tmbId,
-      teamId,
-      event: AuditEventEnum.EXPORT_APP_CHAT_LOG,
-      params: {
-        appName: app.name,
-        appType: getI18nAppType(app.type)
-      }
-    });
-  })();
 
   return {
     list: listWithSourceMember.concat(listWithoutTmbId),

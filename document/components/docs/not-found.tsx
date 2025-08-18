@@ -3,13 +3,14 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 const exactMap: Record<string, string> = {
+  '/docs': '/docs/introduction',
   '/docs/intro': '/docs/introduction',
   '/docs/guide/dashboard/workflow/coreferenceresolution':
     '/docs/introduction/guide/dashboard/workflow/coreferenceResolution',
   '/docs/guide/admin/sso_dingtalk':
     '/docs/introduction/guide/admin/sso#/docs/introduction/guide/admin/sso#钉钉',
   '/docs/guide/knowledge_base/rag': '/docs/introduction/guide/knowledge_base/RAG',
-  '/docs/commercial/intro/': '/docs/introduction',
+  '/docs/commercial/intro/': '/docs/introduction/commercial',
   '/docs/upgrading/intro/': '/docs/upgrading',
   '/docs/introduction/shopping_cart/intro/': '/docs/introduction/commercial'
 };
@@ -29,16 +30,16 @@ export default function NotFound() {
   const router = useRouter();
 
   useEffect(() => {
-    const tryRedirect = async () => {
+    (async () => {
       if (exactMap[pathname]) {
-        router.replace(exactMap[pathname]);
+        window.location.replace(exactMap[pathname]);
         return;
       }
 
       for (const [oldPrefix, newPrefix] of Object.entries(prefixMap)) {
         if (pathname.startsWith(oldPrefix)) {
           const rest = pathname.slice(oldPrefix.length);
-          router.replace(newPrefix + rest);
+          window.location.replace(newPrefix + rest);
           return;
         }
       }
@@ -54,17 +55,15 @@ export default function NotFound() {
 
         if (validPage) {
           console.log('validPage', validPage);
-          router.replace(validPage);
+          window.location.replace(validPage);
           return;
         }
       } catch (e) {
         console.warn('meta.json fallback failed:', e);
       }
 
-      router.replace(fallbackRedirect);
-    };
-
-    tryRedirect();
+      window.location.replace(fallbackRedirect);
+    })();
   }, [pathname, router]);
 
   return null;

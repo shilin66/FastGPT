@@ -108,12 +108,14 @@ export async function getInitConfig() {
 const defaultFeConfigs: FastGPTFeConfigsType = {
   show_emptyChat: true,
   show_git: true,
-  docUrl: '',
-  openAPIDocUrl: '',
-  systemPluginCourseUrl: '',
-  appTemplateCourse: '',
-  systemTitle: 'Niubility AI',
-  concatMd: '',
+  docUrl: 'https://doc.fastgpt.io',
+  openAPIDocUrl: 'https://doc.fastgpt.io/docs/introduction/development/openapi',
+  systemPluginCourseUrl: 'https://fael3z0zfze.feishu.cn/wiki/ERZnw9R26iRRG0kXZRec6WL9nwh',
+  appTemplateCourse:
+    'https://fael3z0zfze.feishu.cn/wiki/CX9wwMGyEi5TL6koiLYcg7U0nWb?fromScene=spaceOverview',
+  systemTitle: 'FastGPT',
+  concatMd:
+    '项目开源地址: [FastGPT GitHub](https://github.com/labring/FastGPT)\n交流群: ![](https://oss.laf.run/otnvvf-imgs/fastgpt-feishu1.png)',
   limit: {
     exportDatasetLimitMinutes: 0,
     websiteSyncLimitMinuted: 0
@@ -145,6 +147,7 @@ export async function initSystemConfig() {
       ...defaultFeConfigs,
       ...(fastgptConfig.feConfigs || {}),
       // isPlus: !!licenseData,
+      hideChatCopyrightSetting: process.env.HIDE_CHAT_COPYRIGHT_SETTING === 'true',
       show_aiproxy: !!process.env.AIPROXY_API_ENDPOINT,
       show_coupon: process.env.SHOW_COUPON === 'true',
       show_dataset_enhance: licenseData?.functions?.datasetEnhance,

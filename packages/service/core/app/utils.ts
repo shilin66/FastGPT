@@ -82,10 +82,13 @@ export async function rewriteAppWorkflowToDetail({
         node.version = preview.version;
 
         node.currentCost = preview.currentCost;
+        node.systemKeyCost = preview.systemKeyCost;
         node.hasTokenFee = preview.hasTokenFee;
         node.hasSystemSecret = preview.hasSystemSecret;
+        node.isFolder = preview.isFolder;
 
         node.toolConfig = preview.toolConfig;
+        node.toolDescription = preview.toolDescription;
 
         // Latest version
         if (!node.version) {

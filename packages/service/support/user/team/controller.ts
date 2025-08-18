@@ -26,7 +26,10 @@ import {
   PerResourceTypeEnum
 } from '@fastgpt/global/support/permission/constant';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
-import { TeamDefaultPermissionVal } from '@fastgpt/global/support/permission/user/constant';
+import {
+  TeamDefaultPermissionVal,
+  TeamDefaultRoleVal
+} from '@fastgpt/global/support/permission/user/constant';
 import { MongoMemberGroupModel } from '../../permission/memberGroup/memberGroupSchema';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { DefaultGroupName } from '@fastgpt/global/support/user/team/group/constant';
@@ -65,11 +68,12 @@ async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemTyp
     return Promise.reject('member not exist');
   }
 
-  const Per = await getResourcePermission({
-    resourceType: PerResourceTypeEnum.team,
-    teamId: tmb.teamId,
-    tmbId: tmb._id
-  });
+  const role =
+    (await getResourcePermission({
+      resourceType: PerResourceTypeEnum.team,
+      teamId: tmb.teamId,
+      tmbId: tmb._id
+    })) ?? TeamDefaultRoleVal;
 
   return {
     userId: String(tmb.userId),
@@ -84,7 +88,7 @@ async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemTyp
     role: tmb.role,
     status: tmb.status,
     permission: new TeamPermission({
-      per: Per ?? TeamDefaultPermissionVal,
+      role,
       isOwner: tmb.role === TeamMemberRoleEnum.owner
     }),
     notificationAccount: tmb.team.notificationAccount,
@@ -538,7 +542,7 @@ export async function getTeamMembers(
           updateTime: tmb.updateTime,
           permission: withPermission
             ? new TeamPermission({
-                per: (permissionData[tmbId]?.permission ?? TeamDefaultPermissionVal) as number,
+                role: permissionData[tmbId]?.permission ?? TeamDefaultRoleVal,
                 isOwner: tmb.role === TeamMemberRoleEnum.owner
               })
             : undefined,
@@ -811,13 +815,13 @@ export async function listMemberClbs(teamId: string) {
         const rpt = per as unknown as ResourcePerWithTmbWithUser;
         perList.push({
           teamId: rpt.teamId,
-          tmbId: rpt.tmb._id,
+          tmbId: rpt.tmbId._id,
           permission: new TeamPermission({
-            per: rpt.permission
+            role: rpt.permission
             // isOwner: String(resource.tmbId) === String(rpt.tmb._id)
           }),
-          name: rpt.tmb.name,
-          avatar: rpt.tmb.avatar
+          name: rpt.tmbId.name,
+          avatar: rpt.tmbId.avatar
         });
       }
       if (per.groupId) {
@@ -826,7 +830,7 @@ export async function listMemberClbs(teamId: string) {
           teamId: rpg.teamId,
           groupId: rpg.group._id,
           permission: new TeamPermission({
-            per: rpg.permission
+            role: rpg.permission
           }),
           name: rpg.group.name,
           avatar: rpg.group.avatar
@@ -838,7 +842,7 @@ export async function listMemberClbs(teamId: string) {
           teamId: rpg.teamId,
           orgId: rpg.org._id,
           permission: new TeamPermission({
-            per: rpg.permission
+            role: rpg.permission
           }),
           name: rpg.org.name,
           avatar: rpg.org.avatar || ''

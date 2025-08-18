@@ -545,7 +545,42 @@ const Checkbox = checkBoxMultiStyle({
         borderColor: 'primary.400'
       }
     }
-  })
+  }),
+  sizes: {
+    sm: checkBoxPart({
+      control: {
+        width: '16px',
+        height: '16px',
+        borderWidth: '2px'
+      },
+      icon: {
+        fontSize: '10px'
+      }
+    }),
+    md: checkBoxPart({
+      control: {
+        width: '18px',
+        height: '18px',
+        borderWidth: '2px'
+      },
+      icon: {
+        fontSize: '12px'
+      }
+    }),
+    lg: checkBoxPart({
+      control: {
+        width: '20px',
+        height: '20px',
+        borderWidth: '2px'
+      },
+      icon: {
+        fontSize: '14px'
+      }
+    })
+  },
+  defaultProps: {
+    size: 'sm'
+  }
 });
 
 const Modal = modalMultiStyle({
