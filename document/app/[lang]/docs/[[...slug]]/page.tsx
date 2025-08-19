@@ -51,13 +51,13 @@ export default async function Page({
       tableOfContent={{
         style: 'clerk'
       }}
-      editOnGithub={{
-        owner: 'labring',
-        repo: 'FastGPT',
-        sha: 'main',
-        path: `document/content/docs/${page.file.path}`
-      }}
-      lastUpdate={lastModified ? new Date(lastModified) : undefined}
+      // editOnGithub={{
+      //   owner: 'labring',
+      //   repo: 'FastGPT',
+      //   sha: 'main',
+      //   path: `document/content/docs/${page.file.path}`
+      // }}
+      // lastUpdate={lastModified ? new Date(lastModified) : undefined}
     >
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
