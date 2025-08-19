@@ -3,11 +3,6 @@
   "description": "FastGPT 社区版",
   "icon": "🔧",
   "pages": [
-    "community",
-    "intro",
-    "sealos",
-    "configuration",
-    "docker",
     "faq",
     "modelConfig",
     "openapi",

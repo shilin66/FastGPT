@@ -7,7 +7,6 @@
     "plugins",
     "knowledge_base",
     "team_permissions",
-    "DialogBoxes",
-    "admin"
+    "DialogBoxes"
   ]
 }
