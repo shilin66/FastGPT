@@ -10,7 +10,8 @@ import {
   Td,
   Tbody,
   HStack,
-  Button
+  Button,
+  Input
 } from '@chakra-ui/react';
 import UserBox from '@fastgpt/web/components/common/UserBox';
 import MyIcon from '@fastgpt/web/components/common/Icon';
@@ -51,7 +52,7 @@ const Logs = () => {
   });
 
   const [detailLogsId, setDetailLogsId] = useState<string>();
-  const [logTitle, setLogTitle] = useState<string>();
+  const [chatSearch, setChatSearch] = useState('');
 
   const {
     value: chatSources,
@@ -59,6 +60,13 @@ const Logs = () => {
     isSelectAll: isSelectAllSource,
     setIsSelectAll: setIsSelectAllSource
   } = useMultipleSelect<ChatSourceEnum>(Object.values(ChatSourceEnum), true);
+
+  const {
+    value: selectTmbIds,
+    setValue: setSelectTmbIds,
+    isSelectAll: isSelectAllTmb,
+    setIsSelectAll: setIsSelectAllTmb
+  } = useMultipleSelect<string>([], true);
 
   const sourceList = useMemo(
     () =>
@@ -75,9 +83,19 @@ const Logs = () => {
       dateStart: dateRange.from!,
       dateEnd: dateRange.to!,
       sources: isSelectAllSource ? undefined : chatSources,
-      logTitle
+      tmbIds: isSelectAllTmb ? undefined : selectTmbIds,
+      chatSearch
     }),
-    [appId, chatSources, dateRange.from, dateRange.to, isSelectAllSource, logTitle]
+    [
+      appId,
+      chatSources,
+      dateRange.from,
+      dateRange.to,
+      isSelectAllSource,
+      selectTmbIds,
+      isSelectAllTmb,
+      chatSearch
+    ]
   );
   const {
     data: logs,
@@ -102,7 +120,8 @@ const Logs = () => {
           dateStart: dateRange.from || new Date(),
           dateEnd: addDays(dateRange.to || new Date(), 1),
           sources: isSelectAllSource ? undefined : chatSources,
-          logTitle,
+          tmbIds: isSelectAllTmb ? undefined : selectTmbIds,
+          chatSearch,
 
           title: t('app:logs_export_title'),
           sourcesMap: Object.fromEntries(
@@ -117,7 +136,7 @@ const Logs = () => {
       });
     },
     {
-      refreshDeps: [chatSources, logTitle]
+      refreshDeps: [chatSources]
     }
   );
   console.log(dateRange, 111);
@@ -162,15 +181,36 @@ const Logs = () => {
             }}
           />
         </Flex>
-        <Flex alignItems={'center'} gap={2}>
-          <Box fontSize={'mini'} fontWeight={'medium'} color={'myGray.900'} whiteSpace={'nowrap'}>
-            {t('app:logs_title')}
+        <Flex
+          w={'226px'}
+          h={9}
+          alignItems={'center'}
+          rounded={'8px'}
+          border={'1px solid'}
+          borderColor={'myGray.200'}
+          _focusWithin={{
+            borderColor: 'primary.600',
+            boxShadow: '0 0 0 2.4px rgba(51, 112, 255, 0.15)'
+          }}
+          pl={3}
+        >
+          <Box rounded={'8px'} bg={'white'} fontSize={'sm'} border={'none'} whiteSpace={'nowrap'}>
+            {'会话'}
           </Box>
-          <SearchInput
-            placeholder={t('app:logs_title')}
-            w={'240px'}
-            value={logTitle}
-            onChange={(e) => setLogTitle(e.target.value)}
+          <Box w={'1px'} h={'12px'} bg={'myGray.200'} mx={2} />
+          <Input
+            placeholder={'搜索会话标题或会话ID'}
+            value={chatSearch}
+            onChange={(e) => setChatSearch(e.target.value)}
+            fontSize={'sm'}
+            border={'none'}
+            pl={0}
+            _focus={{
+              boxShadow: 'none'
+            }}
+            _placeholder={{
+              fontSize: 'sm'
+            }}
           />
         </Flex>
         <Box flex={'1'} />
