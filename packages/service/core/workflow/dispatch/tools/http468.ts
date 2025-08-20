@@ -263,6 +263,7 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
         [NodeOutputKeyEnum.httpRawResponse]: rawResponse,
         ...results
       },
+      error: undefined,
       [DispatchNodeResponseKeyEnum.nodeResponse]: {
         totalPoints: 0,
         params: Object.keys(params).length > 0 ? params : undefined,
@@ -282,6 +283,7 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
         data: {
           [NodeOutputKeyEnum.error]: getErrText(error)
         },
+        error: undefined,
         [DispatchNodeResponseKeyEnum.nodeResponse]: {
           params: Object.keys(params).length > 0 ? params : undefined,
           body: Object.keys(formattedRequestBody).length > 0 ? formattedRequestBody : undefined,
