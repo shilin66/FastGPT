@@ -4,9 +4,9 @@ import { type DispatchNodeResultType } from '@fastgpt/global/core/workflow/runti
 import axios from 'axios';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { SandboxCodeTypeEnum } from '@fastgpt/global/core/workflow/template/system/sandbox/constants';
-import { getErrText } from '@fastgpt/global/common/error/utils';
 import { SandBoxTypeEnum } from '@fastgpt/global/common/system/types/index.d';
 import { transformerNodejs, transformerPython3 } from './difySandBoxUtil';
+import { formatHttpError } from '../utils';
 
 type RunCodeType = ModuleDispatchProps<{
   [NodeInputKeyEnum.codeType]: 'python3' | 'js';
@@ -20,7 +20,7 @@ type RunCodeResponse = DispatchNodeResultType<
     [key: string]: any;
   },
   {
-    [NodeOutputKeyEnum.error]: string;
+    [NodeOutputKeyEnum.error]: object;
   }
 >;
 
@@ -105,48 +105,43 @@ const callDifySandBox = async (
         const result = JSON.parse(match[1]);
         const log = runResult.data.stdout.replace(regex, '').trimEnd();
         return {
-          [NodeOutputKeyEnum.rawResponse]: result,
+          data: {
+            [NodeOutputKeyEnum.rawResponse]: result,
+            ...result
+          },
+          error: undefined,
           [DispatchNodeResponseKeyEnum.nodeResponse]: {
             customInputs: variables,
             customOutputs: result,
             codeLog: log
           },
-          [DispatchNodeResponseKeyEnum.toolResponses]: result,
-          ...result
+          [DispatchNodeResponseKeyEnum.toolResponses]: result
         };
+      } else {
+        throw new Error('Run code failed');
       }
     } else {
       return {
-        [NodeOutputKeyEnum.error]: {
-          message: runResult.data.error,
-          data: runResult.data.error,
-          name: 'CodeExcuteError',
-          method: 'post',
-          code: 'Err',
-          status: runResult.code
+        data: undefined,
+        error: {
+          [NodeOutputKeyEnum.error]: runResult
         },
         [DispatchNodeResponseKeyEnum.nodeResponse]: {
           customInputs: variables,
-          error: {
-            message: runResult.data.error,
-            data: runResult.data.error,
-            name: 'CodeExcuteError',
-            method: 'post',
-            code: 'Err',
-            status: runResult.code
-          }
+          errorText: runResult
         }
       };
     }
   } catch (error) {
-    const text = getErrText(error);
-
+    // const text = getErrText(error);
+    const text = formatHttpError(error);
     // @adapt
     if (catchError === undefined) {
       return {
         data: {
-          [NodeOutputKeyEnum.error]: { message: text }
+          [NodeOutputKeyEnum.error]: formatHttpError(error)
         },
+        error: undefined,
         [DispatchNodeResponseKeyEnum.nodeResponse]: {
           customInputs: variables,
           errorText: text
@@ -155,8 +150,9 @@ const callDifySandBox = async (
     }
 
     return {
+      data: undefined,
       error: {
-        [NodeOutputKeyEnum.error]: text
+        [NodeOutputKeyEnum.error]: formatHttpError(error)
       },
       [DispatchNodeResponseKeyEnum.nodeResponse]: {
         customInputs: variables,
@@ -174,8 +170,9 @@ const callFastGptSandBox = async (
 ) => {
   if (!process.env.SANDBOX_URL) {
     return {
+      data: undefined,
       error: {
-        [NodeOutputKeyEnum.error]: 'Can not find SANDBOX_URL in env'
+        [NodeOutputKeyEnum.error]: { message: 'Can not find SANDBOX_URL in env' }
       },
       [DispatchNodeResponseKeyEnum.nodeResponse]: {
         errorText: 'Can not find SANDBOX_URL in env',
@@ -203,6 +200,7 @@ const callFastGptSandBox = async (
           [NodeOutputKeyEnum.rawResponse]: runResult.data.codeReturn,
           ...runResult.data.codeReturn
         },
+        error: undefined,
         [DispatchNodeResponseKeyEnum.nodeResponse]: {
           customInputs: variables,
           customOutputs: runResult.data.codeReturn,
@@ -214,14 +212,15 @@ const callFastGptSandBox = async (
       throw new Error('Run code failed');
     }
   } catch (error) {
-    const text = getErrText(error);
+    const text = formatHttpError(error);
 
     // @adapt
     if (catchError === undefined) {
       return {
         data: {
-          [NodeOutputKeyEnum.error]: { message: text }
+          [NodeOutputKeyEnum.error]: formatHttpError(error)
         },
+        error: undefined,
         [DispatchNodeResponseKeyEnum.nodeResponse]: {
           customInputs: variables,
           errorText: text
@@ -230,8 +229,9 @@ const callFastGptSandBox = async (
     }
 
     return {
+      data: undefined,
       error: {
-        [NodeOutputKeyEnum.error]: text
+        [NodeOutputKeyEnum.error]: formatHttpError(error)
       },
       [DispatchNodeResponseKeyEnum.nodeResponse]: {
         customInputs: variables,
