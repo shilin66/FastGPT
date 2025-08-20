@@ -133,7 +133,7 @@ export type DispatchNodeResponseType = {
   // Client will toast
   error?: Record<string, any> | string;
   // Just show
-  errorText?: string;
+  errorText?: any;
 
   customInputs?: Record<string, any>;
   customOutputs?: Record<string, any>;
