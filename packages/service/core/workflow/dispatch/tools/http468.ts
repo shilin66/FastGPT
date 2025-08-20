@@ -292,6 +292,9 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
     }
 
     return {
+      data: {
+        [NodeOutputKeyEnum.httpRawResponse]: formatHttpError(error)
+      },
       error: {
         [NodeOutputKeyEnum.error]: getErrText(error)
       },
