@@ -137,7 +137,7 @@ export const HttpNode468: FlowNodeTemplateType = {
       id: NodeOutputKeyEnum.error,
       key: NodeOutputKeyEnum.error,
       label: i18nT('workflow:error_text'),
-      valueType: WorkflowIOValueTypeEnum.string,
+      valueType: WorkflowIOValueTypeEnum.object,
       type: FlowNodeOutputTypeEnum.error
     }
   ]
