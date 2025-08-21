@@ -38,7 +38,8 @@ export type AppLogsListItemType = {
   _id: string;
   id: string;
   source: string;
-  time: Date;
+  createTime: Date;
+  updateTime: Date;
   title: string;
   customTitle: string;
   messageCount: number;
