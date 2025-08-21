@@ -18,6 +18,7 @@ import ChatHistorySlider from '@/pageComponents/chat/ChatHistorySlider';
 import { ChatContext } from '@/web/core/chat/context/chatContext';
 import NextHead from '@/components/common/NextHead';
 import { ChatSettingContext } from '@/web/core/chat/context/chatSettingContext';
+import { useSystemStore } from '@/web/common/system/useSystemStore';
 
 const MyApps = () => {
   const { t } = useTranslation();
@@ -33,6 +34,7 @@ const MyApps = () => {
   const onCloseSlider = useContextSelector(ChatContext, (v) => v.onCloseSlider);
   const isOpenSlider = useContextSelector(ChatContext, (v) => v.isOpenSlider);
   const onOpenSlider = useContextSelector(ChatContext, (v) => v.onOpenSlider);
+  const { feConfigs } = useSystemStore();
 
   const map = useMemo(
     () =>
@@ -55,7 +57,10 @@ const MyApps = () => {
 
   return (
     <Flex flexDirection={'column'} h={'100%'} pt={['46px', 0]}>
-      <NextHead title={chatSettings?.homeTabTitle || 'FastGPT'} icon="/icon/logo.svg" />
+      <NextHead
+        title={chatSettings?.homeTabTitle || feConfigs?.systemTitle}
+        icon="/icon/logo.svg"
+      />
 
       {!isPc && (
         <Flex h="46px" w="100vw" top="0" position="absolute" borderBottom="sm" color="myGray.900">

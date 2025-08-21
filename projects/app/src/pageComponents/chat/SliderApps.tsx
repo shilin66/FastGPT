@@ -274,30 +274,30 @@ const NavigationSection = () => {
         <ActionButton isCollapsed icon="core/chat/sidebar/expand" onClick={onTriggerCollapse} />
       </AnimatedSection>
 
-      {isProVersion && (
-        <AnimatePresence mode="wait">
-          {isCollapsed ? (
-            <AnimatedSection show={true}>
-              <ActionButton
-                icon="core/chat/sidebar/home"
-                isCollapsed={true}
-                isActive={isHomeActive}
-                onClick={() => onHomeClick(ChatSidebarPaneEnum.HOME)}
-              />
-            </AnimatedSection>
-          ) : (
-            <AnimatedSection show={true}>
-              <ActionButton
-                icon="core/chat/sidebar/home"
-                text={t('chat:sidebar.home')}
-                isCollapsed={false}
-                isActive={isHomeActive}
-                onClick={() => onHomeClick(ChatSidebarPaneEnum.HOME)}
-              />
-            </AnimatedSection>
-          )}
-        </AnimatePresence>
-      )}
+      {/*{isProVersion && (*/}
+      {/*  <AnimatePresence mode="wait">*/}
+      {/*    {isCollapsed ? (*/}
+      {/*      <AnimatedSection show={true}>*/}
+      {/*        <ActionButton*/}
+      {/*          icon="core/chat/sidebar/home"*/}
+      {/*          isCollapsed={true}*/}
+      {/*          isActive={isHomeActive}*/}
+      {/*          onClick={() => onHomeClick(ChatSidebarPaneEnum.HOME)}*/}
+      {/*        />*/}
+      {/*      </AnimatedSection>*/}
+      {/*    ) : (*/}
+      {/*      <AnimatedSection show={true}>*/}
+      {/*        <ActionButton*/}
+      {/*          icon="core/chat/sidebar/home"*/}
+      {/*          text={t('chat:sidebar.home')}*/}
+      {/*          isCollapsed={false}*/}
+      {/*          isActive={isHomeActive}*/}
+      {/*          onClick={() => onHomeClick(ChatSidebarPaneEnum.HOME)}*/}
+      {/*        />*/}
+      {/*      </AnimatedSection>*/}
+      {/*    )}*/}
+      {/*  </AnimatePresence>*/}
+      {/*)}*/}
 
       <AnimatePresence mode="wait">
         {isCollapsed ? (
@@ -354,37 +354,37 @@ const BottomSection = () => {
         h={isCollapsed ? 'auto' : '40px'}
         minH="40px"
       >
-        {isAdmin && isProVersion && (
-          <MotionBox
-            order={isCollapsed ? 1 : 2}
-            layout={false}
-            w="40px"
-            h="40px"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Flex
-              _hover={{ bg: 'myGray.200' }}
-              bg={isSettingActive ? 'myGray.200' : 'transparent'}
-              borderRadius={'8px'}
-              p={2}
-              cursor={'pointer'}
-              w="40px"
-              h="40px"
-              alignItems="center"
-              justifyContent="center"
-              onClick={() => onSettingClick(ChatSidebarPaneEnum.SETTING)}
-            >
-              <MyIcon
-                w={'20px'}
-                h={'20px'}
-                name={'common/setting'}
-                fill={isSettingActive ? 'primary.500' : 'myGray.400'}
-              />
-            </Flex>
-          </MotionBox>
-        )}
+        {/*{isAdmin && isProVersion && (*/}
+        {/*  <MotionBox*/}
+        {/*    order={isCollapsed ? 1 : 2}*/}
+        {/*    layout={false}*/}
+        {/*    w="40px"*/}
+        {/*    h="40px"*/}
+        {/*    display="flex"*/}
+        {/*    alignItems="center"*/}
+        {/*    justifyContent="center"*/}
+        {/*  >*/}
+        {/*    <Flex*/}
+        {/*      _hover={{ bg: 'myGray.200' }}*/}
+        {/*      bg={isSettingActive ? 'myGray.200' : 'transparent'}*/}
+        {/*      borderRadius={'8px'}*/}
+        {/*      p={2}*/}
+        {/*      cursor={'pointer'}*/}
+        {/*      w="40px"*/}
+        {/*      h="40px"*/}
+        {/*      alignItems="center"*/}
+        {/*      justifyContent="center"*/}
+        {/*      onClick={() => onSettingClick(ChatSidebarPaneEnum.SETTING)}*/}
+        {/*    >*/}
+        {/*      <MyIcon*/}
+        {/*        w={'20px'}*/}
+        {/*        h={'20px'}*/}
+        {/*        name={'common/setting'}*/}
+        {/*        fill={isSettingActive ? 'primary.500' : 'myGray.400'}*/}
+        {/*      />*/}
+        {/*    </Flex>*/}
+        {/*  </MotionBox>*/}
+        {/*)}*/}
 
         <MotionBox
           order={isCollapsed ? 2 : 1}
