@@ -52,7 +52,8 @@ export const ChatSettingContextProvider = ({ children }: { children: React.React
 
   const { data: chatSettings, runAsync: refreshChatSetting } = useRequest2(
     async () => {
-      if (!feConfigs.isPlus) return;
+      // if (!feConfigs.isPlus) return;
+      if (true) return;
       return await getChatSetting();
     },
     {

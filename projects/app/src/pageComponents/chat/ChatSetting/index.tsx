@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { ChatContext } from '@/web/core/chat/context/chatContext';
 import NextHead from '@/components/common/NextHead';
 import { ChatSettingContext } from '@/web/core/chat/context/chatSettingContext';
+import { useSystemStore } from '@/web/common/system/useSystemStore';
 
 const HomepageSetting = dynamic(() => import('@/pageComponents/chat/ChatSetting/HomepageSetting'));
 const LogDetails = dynamic(() => import('@/pageComponents/chat/ChatSetting/LogDetails'));
@@ -28,6 +29,7 @@ const ChatSetting = () => {
   const onCloseSlider = useContextSelector(ChatContext, (v) => v.onCloseSlider);
   const onOpenSlider = useContextSelector(ChatContext, (v) => v.onOpenSlider);
   const chatSettings = useContextSelector(ChatSettingContext, (v) => v.chatSettings);
+  const { feConfigs } = useSystemStore();
 
   const SettingHeader = useCallback(
     ({ children }: { children?: React.ReactNode }) => (
@@ -42,7 +44,10 @@ const ChatSetting = () => {
 
   return (
     <>
-      <NextHead title={chatSettings?.homeTabTitle || 'FastGPT'} icon="/icon/logo.svg" />
+      <NextHead
+        title={chatSettings?.homeTabTitle || feConfigs?.systemTitle}
+        icon="/icon/logo.svg"
+      />
 
       {!isPc && (
         <Flex h="46px" w="100vw" position="absolute" borderBottom="sm" color="myGray.900">
