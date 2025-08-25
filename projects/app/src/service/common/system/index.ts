@@ -24,6 +24,8 @@ import {
   type CreateUsageProps
 } from '@fastgpt/global/support/wallet/usage/api';
 import { isProVersion } from './constants';
+import { MongoSystemMsg } from '@fastgpt/service/support/user/inform/schema';
+import { getNanoid } from '@fastgpt/global/common/string/tools';
 
 export const readConfigData = async (name: string) => {
   const splitName = name.split('.');
@@ -162,7 +164,11 @@ export async function initSystemConfig() {
 
   // set config
   initFastGPTConfig(config);
-
+  // init system msg
+  const count = await MongoSystemMsg.countDocuments();
+  if (count === 0) {
+    await MongoSystemMsg.insertMany([{ content: '# Welcome To AI🎉', id: getNanoid() }]);
+  }
   console.log({
     feConfigs: global.feConfigs,
     systemEnv: global.systemEnv,
