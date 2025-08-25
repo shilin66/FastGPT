@@ -3,12 +3,6 @@
   "description": "FastGPT 社区版",
   "icon": "🔧",
   "pages": [
-    "faq",
-    "modelConfig",
-    "openapi",
-    "custom-models",
-    "proxy",
-    "migration",
-    "design"
+    "openapi"
   ]
 }

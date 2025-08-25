@@ -60,38 +60,38 @@ export default async function Layout({
         ),
         mode: 'top'
       }}
-      links={[
-        {
-          type: 'icon',
-          icon: (
-            <div className="flex flex-row items-center gap-2">
-              <div className="block dark:hidden">
-                <FeishuLogoLight />
-              </div>
-              <div className="hidden dark:block">
-                <FeishuLogoDark />
-              </div>
-            </div>
-          ),
-          url: 'https://oss.laf.run/otnvvf-imgs/fastgpt-feishu1.png',
-          text: '飞书群'
-        },
-        {
-          type: 'icon',
-          icon: (
-            <div className="flex flex-row items-center gap-2">
-              <div className="block dark:hidden">
-                <GithubLogoLight />
-              </div>
-              <div className="hidden dark:block">
-                <GithubLogoDark />
-              </div>
-            </div>
-          ),
-          url: 'https://github.com/labring/FastGPT',
-          text: 'github'
-        }
-      ]}
+      // links={[
+      //   {
+      //     type: 'icon',
+      //     icon: (
+      //       <div className="flex flex-row items-center gap-2">
+      //         <div className="block dark:hidden">
+      //           <FeishuLogoLight />
+      //         </div>
+      //         <div className="hidden dark:block">
+      //           <FeishuLogoDark />
+      //         </div>
+      //       </div>
+      //     ),
+      //     url: 'https://oss.laf.run/otnvvf-imgs/fastgpt-feishu1.png',
+      //     text: '飞书群'
+      //   },
+      //   {
+      //     type: 'icon',
+      //     icon: (
+      //       <div className="flex flex-row items-center gap-2">
+      //         <div className="block dark:hidden">
+      //           <GithubLogoLight />
+      //         </div>
+      //         <div className="hidden dark:block">
+      //           <GithubLogoDark />
+      //         </div>
+      //       </div>
+      //     ),
+      //     url: 'https://github.com/labring/FastGPT',
+      //     text: 'github'
+      //   }
+      // ]}
       tree={source.pageTree[lang]}
       searchToggle={{
         enabled: true
