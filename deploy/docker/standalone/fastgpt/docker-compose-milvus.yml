@@ -1,0 +1,276 @@
+version: '3.3'
+services:
+  mem0:
+    container_name: mem0
+    image: ghcr.io/shilin66/mem0:self
+    ports:
+      - "8889:8000"
+    networks:
+      - fastgpt
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1  # Prevents Python from writing .pyc files
+      - PYTHONUNBUFFERED=1  # Ensures Python output is sent straight to terminal
+      - VECTOR_STORE_PROVIDER=milvus
+      - MILVUS_URL=http://milvusStandalone:19530
+      - MILVUS_TOKEN=none
+      - MILVUS_DB_NAME=mem0
+      - MILVUS_COLLECTION_NAME=memory
+      - OPENAI_EMBEDDING_BASE_URL=
+      - OPENAI_EMBEDDING_API_KEY=
+      - EMBEDDING_MODEL=
+      - EMBEDDING_DIMS=4096
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_DATABASE=mem0
+      - API_KEY=sk-vDDd8dLjAg73N0CjRBUzmmk51244JhyvGmA
+      - OPENAI_LLM_BASE_URL=
+      - OPENAI_LLM_API_KEY=
+      - LLM_MODEL=
+      - LLM_TEMPERATURE=0.5
+      - MONGODB_URI=mongodb://ai_shzl:nue8He7H3aqq@mongo:27017/mem0?authSource=admin&directConnection=true
+  neo4j:
+    container_name: neo4j
+    image: ghcr.io/shilin66/neo4j:self
+    networks:
+      - fastgpt
+    healthcheck:
+      test: wget http://localhost:7687 || exit 1
+      interval: 1s
+      timeout: 10s
+      retries: 20
+      start_period: 3s
+    ports:
+      - "7474:7474" # HTTP
+      - "7687:7687" # Bolt
+    volumes:
+      - ./neo4j/data:/data
+    environment:
+      - NEO4J_AUTH=neo4j/mem0graph
+      - NEO4J_PLUGINS=["apoc"]  # Add this line to install APOC
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+  # milvus
+  milvusEtcd:
+    container_name: milvusEtcd
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    networks:
+      - fastgpt
+    volumes:
+      - ./milvus/etcd:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ['CMD', 'etcdctl', 'endpoint', 'health']
+      interval: 30s
+      timeout: 20s
+      retries: 3
+  milvusAttu:
+    container_name: milvusAttu
+    image: zilliz/attu:v2.6
+    ports:
+      - "3004:3000"
+    environment:
+      -  MILVUS_URL=http://milvusStandalone:19530
+    networks:
+      - fastgpt
+    depends_on:
+      - 'milvusStandalone'
+  milvusStandalone:
+    container_name: milvusStandalone
+    image: milvusdb/milvus:v2.4.3
+    command: ['milvus', 'run', 'standalone']
+    ports:
+      - "19530:19530"
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: milvusEtcd:2379
+      MINIO_ADDRESS: fastgpt-minio:9000
+    networks:
+      - fastgpt
+    volumes:
+      - ./milvus/data:/var/lib/milvus
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9091/healthz']
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    depends_on:
+      - 'milvusEtcd'
+      - 'fastgpt-minio'
+  mongo:
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/mongo:5.0.18 # dockerhub
+    container_name: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    networks:
+      - fastgpt
+    command: mongod --keyFile /data/mongodb.key --replSet rs0
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=ai_shzl
+      - MONGO_INITDB_ROOT_PASSWORD=nue8He7H3aqq
+    volumes:
+      - ./mongo/data:/data/db
+    entrypoint:
+      - bash
+      - -c
+      - |
+        openssl rand -base64 128 > /data/mongodb.key
+        chmod 400 /data/mongodb.key
+        chown 999:999 /data/mongodb.key
+        echo 'const isInited = rs.status().ok === 1
+        if(!isInited){
+          rs.initiate({
+              _id: "rs0",
+              members: [
+                  { _id: 0, host: "mongo:27017" }
+              ]
+          })
+        }' > /data/initReplicaSet.js
+        # 启动MongoDB服务
+        exec docker-entrypoint.sh "$$@" &
+
+        # 等待MongoDB服务启动
+        until mongo -u ai_shzl -p nue8He7H3aqq --authenticationDatabase admin --eval "print('waited for connection')"; do
+          echo "Waiting for MongoDB to start..."
+          sleep 2
+        done
+
+        # 执行初始化副本集的脚本
+        mongo -u ai_shzl -p nue8He7H3aqq --authenticationDatabase admin /data/initReplicaSet.js
+
+        # 等待docker-entrypoint.sh脚本执行的MongoDB服务进程
+        wait $$!
+  sandbox:
+    container_name: sandbox
+    image: ghcr.io/labring/fastgpt-sandbox:v4.12.0 # git
+    networks:
+      - fastgpt
+    ports:
+      - 3009:3000
+    restart: always
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - fastgpt
+    restart: always
+    command: |
+      redis-server --requirepass nue8He7H3aqq --loglevel warning --maxclients 10000 --appendonly yes --save 60 10 --maxmemory 4gb --maxmemory-policy noeviction
+    volumes:
+      - ./redis/data:/data
+  fastgpt-minio:
+    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+    container_name: fastgpt-minio
+    restart: always
+    networks:
+      - fastgpt
+    ports: # comment out if you do not need to expose the port (in production environment, you should not expose the port)
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - ./fastgpt-minio:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 20s
+      retries: 3
+  fastgpt-mcp-server:
+    container_name: fastgpt-mcp-server
+    image: ghcr.io/labring/fastgpt-mcp_server:v4.12.0
+    ports:
+      - 3005:3000
+    networks:
+      - fastgpt
+    restart: always
+    environment:
+      - FASTGPT_ENDPOINT=http://fastgpt:3000
+  fastgpt:
+    container_name: fastgpt
+    image: ghcr.io/shilin66/fastgpt:poc-dev
+    ports:
+      - 3000:3000
+    networks:
+      - fastgpt
+    depends_on:
+      - mongo
+      - milvusStandalone
+      - sandbox
+    restart: always
+    environment:
+      - FE_DOMAIN=
+      - REDIS_URL=redis://default:nue8He7H3aqq@redis:6379/1
+        #- REDIS_SENTINEL_NODES=
+        #- REDIS_SENTINEL_PASSWORD=FV5E1n9ptgBb4kwGN7zM
+      # - REDIS_MASTER_NAME=mymaster
+      #- REDIS_USERNAME=
+      # - REDIS_PASSWORD=TUK1XhxfZDrMp5JR
+      #- REDIS_DB=1
+      # root 密码，用户名为: root
+      - DEFAULT_ROOT_PSW=Uehfy.123@
+      - DB_MAX_LINK=30 # database max link
+      - TOKEN_KEY=any
+      - ROOT_KEY=root_key
+      - FILE_TOKEN_KEY=filetoken
+      # mongo 配置，不需要改. 用户名myname,密码mypassword。
+      - MONGODB_URI=mongodb://ai_shzl:nue8He7H3aqq@mongo:27017/fastgpt?authSource=admin
+      - MILVUS_ADDRESS=http://milvusStandalone:19530
+      - MILVUS_TOKEN=none
+      # sandbox 地址
+      - SANDBOX_URL=http://sandbox:3000
+      - WORKFLOW_MAX_LOOP_TIMES=150
+      # plugin 地址
+      - PLUGIN_BASE_URL=http://fastgpt-plugin:3000
+      - PLUGIN_TOKEN=fastgpt-plugin-Hyeh2Ue6hBVpop03
+    volumes:
+      - ./config.json:/app/data/config.json
+      - ./fastgpt/tmp:/app/tmp
+  fastgpt-plugin:
+    image: ghcr.io/shilin66/fastgpt-plugin:s-dev # git
+    container_name: fastgpt-plugin
+    restart: always
+    ports:
+      - 3006:3000
+    networks:
+      - fastgpt
+    environment:
+      - AUTH_TOKEN=fastgpt-plugin-Hyeh2Ue6hBVpop03 # disable authentication token if you do not set this variable
+      # 改成 minio 可访问地址，例如 https://192.168.2.2:9000
+      # - MINIO_CUSTOM_ENDPOINT=https://192.168.2.2:9000
+      - MINIO_ENDPOINT=fastgpt-minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=fastgpt-plugins
+    depends_on:
+      fastgpt-minio:
+        condition: service_healthy
+  fastdoc:
+    image: ghcr.io/shilin66/fastdoc:dev
+    container_name: fastdoc
+    restart: always
+    networks:
+      - fastgpt
+    ports:
+      - 3007:3000
+    environment:
+      - FASTGPT_HOME_DOMAIN=http://fastgpt:3000
+networks:
+  fastgpt:
