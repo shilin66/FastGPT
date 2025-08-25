@@ -3,6 +3,7 @@
   "description": "FastGPT 社区版",
   "icon": "🔧",
   "pages": [
-    "openapi"
+    "openapi",
+    "modelConfig"
   ]
 }
