@@ -1,0 +1,1 @@
+MINERU_MODE=vlm MINERU_VLM_BACKEND=vlm-sglang-engine nohup python new.py &> pdf.log &
