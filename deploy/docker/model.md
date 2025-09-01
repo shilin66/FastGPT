@@ -39,9 +39,17 @@ pip install vllm -i https://pypi.tuna.tsinghua.edu.cn/simple --extra-index-url h
 
 #!/bin/bash
 CUDA_VISIBLE_DEVICES=0,1
-nohup vllm serve /data/ai/models/Qwen3-32B-FP8 -tp 2  --port 38589 --api-key sk-jH6jShOekAcK1m9H2c397b44153f4fD6B9FeAb6c9f1fD311  --enable-reasoning --reasoning-parser qwen3 --served-model-name Qwen3-32B --dtype auto --max-num-batched-tokens 4096 --enable-reasoning --enable-prefix-caching --max-num-batched-tokens 4096  --enable-chunked-prefill --rope-scaling '{"factor": 4.0,"original_max_position_embeddings": 32768,"rope_type": "yarn"}'  --rope-theta 1000000.0 --tokenizer /ai/models/Qwen3-32B --tool-call-parser hermes --enable-auto-tool-choice  > qwen3.out 2>&1 &```
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+nohup vllm serve /data/models/qwen3-32b -tp 8  --port 38589 --api-key sk-jH6jShOekAcK1m9H2c397b44153f4fD6B9FeAb6c9f1fD311  --reasoning-parser qwen3 --served-model-name qwen3-32b --dtype auto --enable-prefix-caching --max-num-batched-tokens 4096  --enable-chunked-prefill --rope-scaling '{"factor": 4.0,"original_max_position_embeddings": 32768,"rope_type": "yarn"}'  --rope-theta 1000000.0 --tokenizer /data/models/qwen3-32b --tool-call-parser hermes --enable-auto-tool-choice  > qwen3.out 2>&1 &```
 ```
 
+## GLM
+
+```shell
+
+#!/bin/bash
+CUDA_VISIBLE_DEVICES=4,5,6,7 nohup vllm serve /data/models/GLM-4.1V-9B-Thinking  --port 38588 -tp 2 -dp 2 --api-key sk-W4auYmuBwDQv2d2aryLfV1wXqqdV2gxU1PnZJsgMZnqsN2Fb --enable-prefix-caching --max-num-batched-tokens 4096 --served-model-name GLM-4.1V-9B-Thinking --dtype auto  --enable-chunked-prefill --seed 8181 --chat-template chat_template.jinja  --chat-template-content-format openai  > vlm.out 2>&1 &
+```
 
 ## Xinference
 ```bash
@@ -59,4 +67,11 @@ pip install "mineru[all]"==2.1.4 -i https://mirrors.aliyun.com/pypi/simple
 
 export MINERU_MODEL_SOURCE=modelscope
 mineru-models-download
+```
+
+## marker pdf
+
+```shell
+pip install marker-pdf[full]
+
 ```
