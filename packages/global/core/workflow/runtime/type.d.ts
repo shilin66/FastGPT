@@ -64,8 +64,9 @@ export type ChatDispatchProps = {
   maxRunTimes: number;
   isToolCall?: boolean;
   workflowStreamResponse?: WorkflowResponseType;
-  workflowDispatchDeep?: number;
   version?: 'v1' | 'v2';
+
+  workflowDispatchDeep: number;
 
   responseAllData?: boolean;
   responseDetail?: boolean;
@@ -105,6 +106,9 @@ export type RuntimeNodeItemType = {
 
   // tool
   toolConfig?: NodeToolConfigType;
+
+  // catch error
+  catchError?: boolean;
 };
 
 export type RuntimeEdgeItemType = StoreEdgeItemType & {
@@ -117,12 +121,16 @@ export type DispatchNodeResponseType = {
   runningTime?: number;
   query?: string;
   textOutput?: string;
-  error?: Record<string, any> | string;
   customInputs?: Record<string, any>;
   customOutputs?: Record<string, any>;
   nodeInputs?: Record<string, any>;
   nodeOutputs?: Record<string, any>;
   mergeSignId?: string;
+
+  // Client will toast
+  error?: Record<string, any> | string;
+  // Just show
+  errorText?: string;
 
   // bill
   tokens?: number; // deprecated

@@ -86,10 +86,8 @@ async function handler(
   });
 
   return {
-    ...debugResponse,
-    newVariables,
-    flowResponses,
-    workflowInteractiveResponse
+    ...debugResponse!,
+    newVariables
   };
 }
 

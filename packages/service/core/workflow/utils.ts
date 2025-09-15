@@ -1,6 +1,13 @@
 import { type SearchDataResponseItemType } from '@fastgpt/global/core/dataset/type';
 import { countPromptTokens } from '../../common/string/tiktoken/index';
 
+export const getHandleId = (
+  nodeId: string,
+  type: 'source' | 'source_catch' | 'target',
+  key: string
+) => {
+  return `${nodeId}-${type}-${key}`;
+};
 /* filter search result */
 export const filterSearchResultsByMaxChars = async (
   list: SearchDataResponseItemType[],

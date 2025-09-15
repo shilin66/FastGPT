@@ -101,6 +101,7 @@ export enum FlowNodeOutputTypeEnum {
   hidden = 'hidden',
   source = 'source',
   static = 'static',
+  error = 'error',
   dynamic = 'dynamic'
 }
 

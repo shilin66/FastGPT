@@ -16,6 +16,17 @@ import {
   type WorkflowInteractiveResponseType
 } from '../template/system/interactive/type';
 
+export const checkIsBranchNode = (node: RuntimeNodeItemType) => {
+  if (node.catchError) return true;
+
+  const map: Record<any, boolean> = {
+    [FlowNodeTypeEnum.classifyQuestion]: true,
+    [FlowNodeTypeEnum.userSelect]: true,
+    [FlowNodeTypeEnum.ifElseNode]: true
+  };
+  return !!map[node.flowNodeType];
+};
+
 export const extractDeepestInteractive = (
   interactive: WorkflowInteractiveResponseType
 ): WorkflowInteractiveResponseType => {
@@ -273,81 +284,130 @@ export const filterWorkflowEdges = (edges: RuntimeEdgeItemType[]) => {
   2. 起始线全部非 waiting 执行，或递归线全部非 waiting 执行
 */
 export const checkNodeRunStatus = ({
+  nodesMap,
   node,
   runtimeEdges
 }: {
+  nodesMap: Map<string, RuntimeNodeItemType>;
   node: RuntimeNodeItemType;
   runtimeEdges: RuntimeEdgeItemType[];
 }) => {
-  /* 
-    区分普通连线和递归连线
-    递归连线：可以通过往上查询 nodes，最终追溯到自身
-  */
-  const splitEdges2WorkflowEdges = ({
-    sourceEdges,
-    allEdges,
-    currentNode
-  }: {
-    sourceEdges: RuntimeEdgeItemType[];
-    allEdges: RuntimeEdgeItemType[];
-    currentNode: RuntimeNodeItemType;
-  }) => {
+  const filterRuntimeEdges = filterWorkflowEdges(runtimeEdges);
+  // console.log('filterRuntimeEdges', JSON.stringify(filterRuntimeEdges, null, 2));
+  const splitNodeEdges = (targetNode: RuntimeNodeItemType) => {
+    // console.log('splitNodeEdges', JSON.stringify(targetNode, null, 2));
     const commonEdges: RuntimeEdgeItemType[] = [];
-    const recursiveEdges: RuntimeEdgeItemType[] = [];
+    const recursiveEdgeGroupsMap = new Map<string, RuntimeEdgeItemType[]>();
 
-    const checkIsCircular = (edge: RuntimeEdgeItemType, visited: Set<string>): boolean => {
-      if (edge.source === currentNode.nodeId) {
-        return true; // 检测到环,并且环中包含当前节点
-      }
-      if (visited.has(edge.source)) {
-        return false; // 检测到环,但不包含当前节点(子节点成环)
-      }
-      visited.add(edge.source);
+    const getEdgeLastBranchHandle = ({
+      startEdge,
+      targetNodeId
+    }: {
+      startEdge: RuntimeEdgeItemType;
+      targetNodeId: string;
+    }): string | '' | undefined => {
+      const stack: Array<{
+        edge: RuntimeEdgeItemType;
+        visited: Set<string>;
+        lasestBranchHandle?: string;
+      }> = [
+        {
+          edge: startEdge,
+          visited: new Set([targetNodeId])
+        }
+      ];
 
-      // 递归检测后面的 edge，如果有其中一个成环，则返回 true
-      const nextEdges = allEdges.filter((item) => item.target === edge.source);
-      return nextEdges.some((nextEdge) => checkIsCircular(nextEdge, new Set(visited)));
+      const MAX_DEPTH = 3000;
+      let iterations = 0;
+
+      while (stack.length > 0 && iterations < MAX_DEPTH) {
+        iterations++;
+        const { edge, visited, lasestBranchHandle } = stack.pop()!;
+
+        // Circle
+        if (edge.source === targetNode.nodeId) {
+          // 检查自身是否为分支节点
+          const node = nodesMap.get(edge.source);
+          if (!node) return '';
+          const isBranch = checkIsBranchNode(node);
+          if (isBranch) return edge.sourceHandle;
+
+          // 检测到环,并且环中包含当前节点. 空字符代表是一个无分支循环，属于死循环，则忽略这个边。
+          return lasestBranchHandle ?? '';
+        }
+
+        if (visited.has(edge.source)) {
+          continue; // 已访问过此节点，跳过（避免子环干扰）
+        }
+
+        const newVisited = new Set(visited);
+        newVisited.add(edge.source);
+
+        // 查找目标节点的 source edges 并加入栈中
+        const nextEdges = filterRuntimeEdges.filter((item) => item.target === edge.source);
+        for (const nextEdge of nextEdges) {
+          const node = nodesMap.get(nextEdge.target);
+          if (!node) continue;
+          const isBranch = checkIsBranchNode(node);
+
+          stack.push({
+            edge: nextEdge,
+            visited: newVisited,
+            lasestBranchHandle: isBranch ? edge.sourceHandle : lasestBranchHandle
+          });
+        }
+      }
+
+      return;
     };
 
+    const sourceEdges = filterRuntimeEdges.filter((item) => item.target === targetNode.nodeId);
     sourceEdges.forEach((edge) => {
-      if (checkIsCircular(edge, new Set([currentNode.nodeId]))) {
-        recursiveEdges.push(edge);
-      } else {
+      const lastBranchHandle = getEdgeLastBranchHandle({
+        startEdge: edge,
+        targetNodeId: targetNode.nodeId
+      });
+
+      // 无效的循环，这条边则忽略
+      if (lastBranchHandle === '') return;
+
+      // 有效循环，则加入递归组
+      if (lastBranchHandle) {
+        recursiveEdgeGroupsMap.set(lastBranchHandle, [
+          ...(recursiveEdgeGroupsMap.get(lastBranchHandle) || []),
+          edge
+        ]);
+      }
+      // 无循环的连线，则加入普通组
+      else {
         commonEdges.push(edge);
       }
     });
 
-    return { commonEdges, recursiveEdges };
+    return { commonEdges, recursiveEdgeGroups: Array.from(recursiveEdgeGroupsMap.values()) };
   };
 
-  const runtimeNodeSourceEdge = filterWorkflowEdges(runtimeEdges).filter(
-    (item) => item.target === node.nodeId
-  );
+  // Classify edges
+  const { commonEdges, recursiveEdgeGroups } = splitNodeEdges(node);
 
   // Entry
-  if (runtimeNodeSourceEdge.length === 0) {
+  if (commonEdges.length === 0 && recursiveEdgeGroups.length === 0) {
     return 'run';
   }
 
-  // Classify edges
-  const { commonEdges, recursiveEdges } = splitEdges2WorkflowEdges({
-    sourceEdges: runtimeNodeSourceEdge,
-    allEdges: runtimeEdges,
-    currentNode: node
-  });
-
   // check active（其中一组边，至少有一个 active，且没有 waiting 即可运行）
   if (
-    commonEdges.length > 0 &&
     commonEdges.some((item) => item.status === 'active') &&
     commonEdges.every((item) => item.status !== 'waiting')
   ) {
     return 'run';
   }
   if (
-    recursiveEdges.length > 0 &&
-    recursiveEdges.some((item) => item.status === 'active') &&
-    recursiveEdges.every((item) => item.status !== 'waiting')
+    recursiveEdgeGroups.some(
+      (item) =>
+        item.some((item) => item.status === 'active') &&
+        item.every((item) => item.status !== 'waiting')
+    )
   ) {
     return 'run';
   }
@@ -356,7 +416,10 @@ export const checkNodeRunStatus = ({
   if (commonEdges.length > 0 && commonEdges.every((item) => item.status === 'skipped')) {
     return 'skip';
   }
-  if (recursiveEdges.length > 0 && recursiveEdges.every((item) => item.status === 'skipped')) {
+  if (
+    recursiveEdgeGroups.length > 0 &&
+    recursiveEdgeGroups.some((item) => item.every((item) => item.status === 'skipped'))
+  ) {
     return 'skip';
   }
 
@@ -445,23 +508,58 @@ export const formatVariableValByType = (val: any, valueType?: WorkflowIOValueTyp
 export function replaceEditorVariable({
   text,
   nodes,
-  variables
+  variables,
+  depth = 0
 }: {
   text: any;
   nodes: RuntimeNodeItemType[];
   variables: Record<string, any>; // global variables
+  depth?: number;
 }) {
   if (typeof text !== 'string') return text;
+  if (text === '') return text;
+
+  const MAX_REPLACEMENT_DEPTH = 10;
+  const processedVariables = new Set<string>();
+
+  // Prevent infinite recursion
+  if (depth > MAX_REPLACEMENT_DEPTH) {
+    return text;
+  }
 
   text = replaceVariable(text, variables);
+
+  // Check for circular references in variable values
+  const hasCircularReference = (value: any, targetKey: string): boolean => {
+    if (typeof value !== 'string') return false;
+
+    // Check if the value contains the target variable pattern (direct self-reference)
+    const selfRefPattern = new RegExp(
+      `\\{\\{\\$${targetKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\$\\}\\}`,
+      'g'
+    );
+    return selfRefPattern.test(value);
+  };
 
   const variablePattern = /\{\{\$([^.]+)\.([^$]+)\$\}\}/g;
   const matches = [...text.matchAll(variablePattern)];
   if (matches.length === 0) return text;
 
-  matches.forEach((match) => {
+  let result = text;
+  let hasReplacements = false;
+
+  // Build replacement map first to avoid modifying string during iteration
+  const replacements: Array<{ pattern: string; replacement: string }> = [];
+
+  for (const match of matches) {
     const nodeId = match[1];
     const id = match[2];
+    const variableKey = `${nodeId}.${id}`;
+
+    // Skip if already processed to avoid immediate circular reference
+    if (processedVariables.has(variableKey)) {
+      continue;
+    }
 
     const variableVal = (() => {
       if (nodeId === VARIABLE_NODE_ID) {
@@ -479,13 +577,35 @@ export function replaceEditorVariable({
       if (input) return getReferenceVariableValue({ value: input.value, nodes, variables });
     })();
 
-    const formatVal = valToStr(variableVal);
+    // Check for direct circular reference
+    if (hasCircularReference(String(variableVal), variableKey)) {
+      continue;
+    }
 
-    const regex = new RegExp(`\\{\\{\\$(${nodeId}\\.${id})\\$\\}\\}`, 'g');
-    text = text.replace(regex, () => formatVal);
+    const formatVal = valToStr(variableVal);
+    const escapedNodeId = nodeId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    replacements.push({
+      pattern: `\\{\\{\\$(${escapedNodeId}\\.${escapedId})\\$\\}\\}`,
+      replacement: formatVal
+    });
+
+    processedVariables.add(variableKey);
+    hasReplacements = true;
+  }
+
+  // Apply all replacements
+  replacements.forEach(({ pattern, replacement }) => {
+    result = result.replace(new RegExp(pattern, 'g'), replacement);
   });
 
-  return text || '';
+  // If we made replacements and there might be nested variables, recursively process
+  if (hasReplacements && /\{\{\$[^.]+\.[^$]+\$\}\}/.test(result)) {
+    result = replaceEditorVariable({ text: result, nodes, variables, depth: depth + 1 });
+  }
+
+  return result || '';
 }
 
 export const textAdaptGptResponse = ({
