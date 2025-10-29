@@ -65,15 +65,15 @@ const AccountContainer = ({
           }
         ]
       : []),
-    ...(feConfigs?.show_pay && userInfo?.team?.permission.hasManagePer
-      ? [
-          {
-            icon: 'support/bill/payRecordLight',
-            label: t('account:bills_and_invoices'),
-            value: TabEnum.bill
-          }
-        ]
-      : []),
+    // ...(feConfigs?.show_pay && userInfo?.team?.permission.hasManagePer
+    //   ? [
+    //       {
+    //         icon: 'support/bill/payRecordLight',
+    //         label: t('account:bills_and_invoices'),
+    //         value: TabEnum.bill
+    //       }
+    //     ]
+    //   : []),
     // {
     //   icon: 'common/thirdParty',
     //   label: t('account:third_party'),
