@@ -12,7 +12,7 @@ import base64
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, UploadFile, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, BackgroundTasks, File, Form
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -21,6 +21,8 @@ from mineru.cli.common import aio_do_parse, read_fn, pdf_suffixes, image_suffixe
 from mineru.utils.cli_parser import arg_parse
 from mineru.utils.enum_class import MakeMode
 from mineru.version import __version__
+from mineru.utils.models_download_utils import auto_download_and_get_model_root_path
+from mineru.backend.vlm.custom_logits_processors import enable_custom_logits_processors
 
 # Global configuration
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
@@ -30,11 +32,11 @@ CLEANUP_DELAY = 60  # 1 minute delay for cleanup (reduced to prevent resource bu
 # Runtime mode configuration - only one mode can be active at a time
 RUNTIME_MODE = os.environ.get("MINERU_MODE", "pipeline").lower()  # pipeline or vlm
 SERVER_URL = os.environ.get("MINERU_SERVER_URL", None)  # For VLM client mode
-VLM_BACKEND = os.environ.get("MINERU_VLM_BACKEND", "vlm-sglang-engine")  # Default VLM backend
+VLM_BACKEND = os.environ.get("MINERU_VLM_BACKEND", "vllm-async-engine")  # Default VLM backend
 
 # Backend configurations
 PIPELINE_BACKENDS = ["pipeline"]
-VLM_BACKENDS = ["vlm-transformers", "vlm-sglang-engine", "vlm-sglang-client"]
+VLM_BACKENDS = ["vlm-transformers", "vllm-async-engine"]
 
 # Determine active backends based on runtime mode
 if RUNTIME_MODE == "pipeline":
@@ -42,7 +44,7 @@ if RUNTIME_MODE == "pipeline":
     DEFAULT_BACKEND = "pipeline"
     logger.info("Running in PIPELINE mode")
 elif RUNTIME_MODE == "vlm":
-    ACTIVE_BACKENDS = [VLM_BACKEND] if VLM_BACKEND in VLM_BACKENDS else ["vlm-sglang-engine"]
+    ACTIVE_BACKENDS = [VLM_BACKEND] if VLM_BACKEND in VLM_BACKENDS else ["vllm-async-engine"]
     DEFAULT_BACKEND = ACTIVE_BACKENDS[0]
     logger.info(f"Running in VLM mode with backend: {DEFAULT_BACKEND}")
 else:
@@ -73,7 +75,7 @@ BACKEND_CONFIGS = {
         "supports_ocr_lang": False,
         "requires_gpu": True,
     },
-    "vlm-sglang-engine": {
+    "vllm-async-engine": {
         "supports_parse_method": False,
         "supports_formula_table": False,
         "default_parse_method": "vlm",
@@ -81,17 +83,7 @@ BACKEND_CONFIGS = {
         "model_output_suffix": "_model_output.txt",
         "supports_ocr_lang": False,
         "requires_gpu": True,
-        "supports_server_params": True,
-    },
-    "vlm-sglang-client": {
-        "supports_parse_method": False,
-        "supports_formula_table": False,
-        "default_parse_method": "vlm",
-        "result_subdir": lambda method: "vlm",
-        "model_output_suffix": "_model_output.txt",
-        "supports_ocr_lang": False,
-        "requires_server_url": True,
-        "supports_server_params": True,
+        "supports_server_params": True,        
     }
 }
 
@@ -209,194 +201,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/health")
-async def health_check():
-    """Enhanced health check endpoint"""
-    try:
-        # Check if temp directory can be created
-        test_dir = tempfile.mkdtemp(prefix="health_check_")
-        safe_cleanup_directory(test_dir)
-
-        health_info = {
-            "status": "healthy",
-            "version": __version__,
-            "runtime_mode": RUNTIME_MODE,
-            "active_backends": ACTIVE_BACKENDS,
-            "default_backend": DEFAULT_BACKEND,
-            "max_file_size_mb": MAX_FILE_SIZE / (1024*1024),
-            "supported_extensions": SUPPORTED_EXTENSIONS
-        }
-
-        # Add VLM-specific health info
-        if RUNTIME_MODE == "vlm":
-            health_info["vlm_backend"] = DEFAULT_BACKEND
-            if SERVER_URL:
-                health_info["server_url"] = SERVER_URL
-                health_info["server_configured"] = True
-            else:
-                health_info["server_configured"] = False
-                if DEFAULT_BACKEND == "vlm-sglang-client":
-                    health_info["warning"] = "VLM client mode requires server_url"
-
-        return health_info
-
-    except Exception as e:
-        return JSONResponse(
-            content={
-                "status": "unhealthy",
-                "error": str(e),
-                "version": __version__,
-                "runtime_mode": RUNTIME_MODE
-            },
-            status_code=503
-        )
-
-@app.get("/")
-async def root():
-    """Root endpoint with API information"""
-    return {
-        "message": "MinerU Document Parsing API - Unified Interface",
-        "version": __version__,
-        "runtime_mode": RUNTIME_MODE,
-        "active_backends": ACTIVE_BACKENDS,
-        "default_backend": DEFAULT_BACKEND,
-        "parse_endpoint": "/v2/parse/file",
-        "docs": "/docs",
-        "health": "/health",
-        "features": {
-            "unified_interface": True,
-            "no_concurrency_limits": True,
-            "supports_all_backends": True,
-            "supports_all_file_types": SUPPORTED_EXTENSIONS
-        },
-        "mode_info": {
-            "current_mode": RUNTIME_MODE,
-            "description": "Pipeline OCR-based processing" if RUNTIME_MODE == "pipeline" else f"VLM-based processing using {DEFAULT_BACKEND}",
-            "available_backends": ACTIVE_BACKENDS,
-            "environment_variables": {
-                "MINERU_MODE": "Set to 'pipeline' or 'vlm' to choose processing mode",
-                "MINERU_VLM_BACKEND": "Choose VLM backend (vlm-transformers, vlm-sglang-engine, vlm-sglang-client)",
-                "MINERU_SERVER_URL": "Server URL for VLM client mode (e.g., http://127.0.0.1:30000)"
-            }
-        }
-    }
-
-@app.get("/backends")
-async def get_backends():
-    """Get detailed backend information"""
-    return {
-        "runtime_mode": RUNTIME_MODE,
-        "active_backends": ACTIVE_BACKENDS,
-        "default_backend": DEFAULT_BACKEND,
-        "all_backends": ALL_BACKENDS,
-        "pipeline_backends": PIPELINE_BACKENDS,
-        "vlm_backends": VLM_BACKENDS,
-        "backend_configs": {k: v for k, v in BACKEND_CONFIGS.items() if k in ACTIVE_BACKENDS},
-        "inactive_backends": [b for b in ALL_BACKENDS if b not in ACTIVE_BACKENDS],
-        "server_url": SERVER_URL if RUNTIME_MODE == "vlm" else None
-    }
-
-@app.get("/backends/{backend}/config")
-async def get_backend_config(backend: str):
-    """Get configuration details for a specific backend"""
-    if backend not in ALL_BACKENDS:
-        return JSONResponse(
-            status_code=404,
-            content={"error": f"Backend '{backend}' not found. All backends: {ALL_BACKENDS}"}
-        )
-
-    if backend not in ACTIVE_BACKENDS:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "error": f"Backend '{backend}' not available in {RUNTIME_MODE} mode",
-                "active_backends": ACTIVE_BACKENDS,
-                "runtime_mode": RUNTIME_MODE,
-                "note": f"To use '{backend}', restart server with appropriate MINERU_MODE environment variable"
-            }
-        )
-
-    config = BACKEND_CONFIGS[backend]
-
-    # Build parameter recommendations
-    recommended_params = {
-        "required": [],
-        "optional": [],
-        "not_supported": []
-    }
-
-    # Common parameters
-    common_params = ["start_page_id", "end_page_id", "tp_size", "dp_size", "enable_torch_compile"]
-    recommended_params["optional"].extend(common_params)
-
-    # Backend-specific parameters
-    if config.get("requires_server_url"):
-        recommended_params["required"].append("server_url")
-    elif "server_url" not in recommended_params["required"]:
-        recommended_params["optional"].append("server_url")
-
-    if config.get("supports_parse_method"):
-        recommended_params["optional"].append("parse_method")
-        recommended_params["parse_methods"] = ["auto", "txt", "ocr"]
-    else:
-        recommended_params["not_supported"].append("parse_method")
-        recommended_params["fixed_parse_method"] = config["default_parse_method"]
-
-    if config.get("supports_formula_table"):
-        recommended_params["optional"].extend(["formula_enable", "table_enable"])
-    else:
-        recommended_params["not_supported"].extend(["formula_enable", "table_enable"])
-
-    if config.get("supports_ocr_lang"):
-        recommended_params["optional"].append("lang")
-        recommended_params["supported_languages"] = ["ch", "en", "korean", "japan", "chinese_cht", "ta", "te", "ka"]
-    else:
-        recommended_params["not_supported"].append("lang")
-
-    if config.get("supports_server_params"):
-        vlm_params = ["temperature", "top_p", "top_k", "repetition_penalty",
-                      "presence_penalty", "no_repeat_ngram_size", "max_new_tokens"]
-        recommended_params["optional"].extend(vlm_params)
-    else:
-        vlm_params = ["temperature", "top_p", "top_k", "repetition_penalty",
-                      "presence_penalty", "no_repeat_ngram_size", "max_new_tokens"]
-        recommended_params["not_supported"].extend(vlm_params)
-
-    return {
-        "backend": backend,
-        "config": config,
-        "parameters": recommended_params,
-        "example_usage": {
-            "basic": f"POST /v2/parse/file with backend={backend}",
-            "with_params": get_example_params(backend, config)
-        }
-    }
-
-def get_example_params(backend: str, config: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate example parameters for a backend"""
-    example = {"backend": backend}
-
-    if config.get("supports_parse_method"):
-        example["parse_method"] = "auto"
-
-    if config.get("supports_formula_table"):
-        example["formula_enable"] = True
-        example["table_enable"] = True
-
-    if config.get("supports_ocr_lang"):
-        example["lang"] = "ch"
-
-    if config.get("requires_server_url"):
-        example["server_url"] = "http://127.0.0.1:30000"
-
-    if config.get("supports_server_params"):
-        example.update({
-            "temperature": 0.0001,
-            "top_p": 0.8,
-            "max_new_tokens": 8192
-        })
-
-    return example
 
 def encode_image(image_path: str) -> Optional[str]:
     """Encode image using base64 with error handling"""
@@ -537,8 +341,8 @@ def prepare_backend_params(backend: str, **kwargs) -> Dict[str, Any]:
 
     # Common parameters
     common_params = [
-        "start_page_id", "end_page_id", "tp_size", "dp_size",
-        "enable_torch_compile", "server_url", "mem_fraction_static",
+        "start_page_id", "end_page_id", "tensor_parallel_size", "data_parallel_size",
+        "enable_torch_compile", "server_url",
     ]
 
     for param in common_params:
@@ -549,12 +353,22 @@ def prepare_backend_params(backend: str, **kwargs) -> Dict[str, Any]:
     if backend in VLM_BACKENDS and config.get("supports_server_params"):
         # VLM backends support additional generation parameters
         vlm_params = [
-            "temperature", "top_p", "top_k", "repetition_penalty",
-            "presence_penalty", "no_repeat_ngram_size", "max_new_tokens"
+            "gpu_memory_utilization", "port", "logits_processors"
         ]
         for param in vlm_params:
             if param in kwargs:
                 params[param] = kwargs[param]
+        
+        # 添加VLLM默认参数
+        if backend in ["vllm-async-engine"]:
+            # 检查是否需要添加logits_processors
+            custom_logits_processors = enable_custom_logits_processors()
+            if custom_logits_processors and "logits_processors" not in params:
+                try:
+                    from mineru_vl_utils import MinerULogitsProcessor
+                    params["logits_processors"] = [MinerULogitsProcessor]
+                except ImportError:
+                    logger.warning("Failed to import MinerULogitsProcessor, custom logits processors will not be used")
 
     # Pipeline-specific parameters
     if backend in PIPELINE_BACKENDS:
@@ -578,8 +392,11 @@ def get_mime_type(image_path):
 async def file_parse(
         background_tasks: BackgroundTasks,
         file: UploadFile,
+        output_dir: str = Form("./output"),
         backend: str = DEFAULT_BACKEND,
-        parse_method: str = "auto",
+        #parse_method: str = "auto",
+        #backend: str = Form("vllm-async-engine"),
+        parse_method: str = Form("auto"),
         lang: str = "ch",
         formula_enable: bool = True,
         table_enable: bool = True,
@@ -589,19 +406,10 @@ async def file_parse(
         return_content_list: bool = True,
         return_images: bool = True,
         start_page_id: int = 0,
-        tp_size: int = 1,
-        dp_size: int = 2,
-        enable_torch_compile: bool = True,
+        tensor_parallel_size: int = 1,
+        data_parallel_size: int = 2,
         end_page_id: int = 99999,
         server_url: Optional[str] = None,
-        temperature: float = 0.0001,
-        top_p: float = 0.8,
-        top_k: int = 20,
-        mem_fraction_static: float= 0.3,
-        repetition_penalty: float = 1.05,
-        presence_penalty: float = 0.0,
-        no_repeat_ngram_size: int = 100,
-        max_new_tokens: int = 8192,
 ):
     """
     Unified document parsing interface with enhanced robustness and resource management.
@@ -630,7 +438,7 @@ async def file_parse(
                 status_code=400,
                 content={"success": False, "error": str(e)}
             )
-
+        file_info['suffix'] = file_info.get('suffix', '').lstrip('.').lower()
         # Validate file type
         if file_info['suffix'] not in SUPPORTED_EXTENSIONS:
             return JSONResponse(
@@ -692,20 +500,12 @@ async def file_parse(
             actual_backend,
             start_page_id=start_page_id,
             end_page_id=end_page_id,
-            tp=tp_size,
-            dp=dp_size,
-            #enable_torch_compile=enable_torch_compile,
+            tensor_parallel_size=tensor_parallel_size,
+            data_parallel_size=data_parallel_size,
             server_url=actual_server_url,
             formula_enable=formula_enable,
             table_enable=table_enable,
-            #temperature=temperature,
-            #top_p=top_p,
-            #top_k=top_k,
-            #repetition_penalty=repetition_penalty,
-            #presence_penalty=presence_penalty,
-            #no_repeat_ngram_size=no_repeat_ngram_size,
-            #mem_fraction_static=mem_fraction_static,
-            #max_new_tokens=max_new_tokens,
+            gpu_memory_utilization=0.9,
         )
 
         # Adjust language parameter for backend compatibility
@@ -727,6 +527,7 @@ async def file_parse(
             f_dump_model_output=return_model_output,
             f_dump_orig_pdf=False,
             f_dump_content_list=return_content_list,
+            table_enable=table_enable,
             **backend_params
         )
         logger.info(f"[{request_id}] Document parsing completed")
@@ -843,99 +644,6 @@ async def file_parse(
             },
             status_code=500
         )
-
-
-
-@app.get("/metrics")
-async def get_metrics():
-    """Basic metrics endpoint"""
-    try:
-        import psutil
-        async with connection_lock:
-            active_conn_count = len(active_connections)
-
-        return {
-            "cpu_percent": psutil.cpu_percent(),
-            "memory_percent": psutil.virtual_memory().percent,
-            "disk_usage": psutil.disk_usage('/').percent,
-            "active_connections": active_conn_count,
-            "version": __version__,
-            "max_file_size_mb": MAX_FILE_SIZE / (1024*1024),
-            "supported_extensions": SUPPORTED_EXTENSIONS
-        }
-    except ImportError:
-        async with connection_lock:
-            active_conn_count = len(active_connections)
-
-        return {
-            "active_connections": active_conn_count,
-            "version": __version__,
-            "max_file_size_mb": MAX_FILE_SIZE / (1024*1024),
-            "supported_extensions": SUPPORTED_EXTENSIONS,
-            "note": "Install psutil for system metrics"
-        }
-
-@app.post("/admin/cleanup")
-async def force_cleanup():
-    """Force cleanup of resources (admin endpoint)"""
-    try:
-        # Force garbage collection
-        import gc
-        gc.collect()
-
-        # Get connection count
-        async with connection_lock:
-            conn_count = len(active_connections)
-
-        return {
-            "success": True,
-            "message": "Cleanup completed",
-            "active_connections": conn_count
-        }
-    except Exception as e:
-        return JSONResponse(
-            content={"success": False, "error": str(e)},
-            status_code=500
-        )
-
-@app.get("/mode/switch")
-async def get_mode_switch_info():
-    """Get information about switching modes"""
-    return {
-        "current_mode": RUNTIME_MODE,
-        "active_backends": ACTIVE_BACKENDS,
-        "switch_instructions": {
-            "to_pipeline": {
-                "command": "MINERU_MODE=pipeline python mineru.py",
-                "description": "Switch to traditional OCR-based processing",
-                "features": ["formula", "table", "multiple_parse_methods", "ocr_languages"]
-            },
-            "to_vlm": {
-                "command": "MINERU_MODE=vlm MINERU_VLM_BACKEND=vlm-sglang-engine python mineru.py",
-                "description": "Switch to VLM-based processing",
-                "features": ["advanced_reasoning", "complex_layouts", "generation_parameters"],
-                "backends": VLM_BACKENDS,
-                "note": "May require GPU and/or server URL"
-            }
-        },
-        "environment_variables": {
-            "MINERU_MODE": {
-                "description": "Set processing mode",
-                "values": ["pipeline", "vlm"],
-                "current": RUNTIME_MODE
-            },
-            "MINERU_VLM_BACKEND": {
-                "description": "Choose VLM backend when in VLM mode",
-                "values": VLM_BACKENDS,
-                "current": VLM_BACKEND if RUNTIME_MODE == "vlm" else None
-            },
-            "MINERU_SERVER_URL": {
-                "description": "Server URL for VLM client mode",
-                "example": "http://127.0.0.1:30000",
-                "current": SERVER_URL
-            }
-        }
-    }
 
 if __name__ == "__main__":
     # Configure logging

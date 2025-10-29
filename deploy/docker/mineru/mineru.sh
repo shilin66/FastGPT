@@ -1,1 +1,1 @@
-MINERU_MODE=vlm MINERU_VLM_BACKEND=vlm-sglang-engine nohup python new.py &> pdf.log &
+export MINERU_MODEL_SOURCE=modelscopeexport CUDA_VISIBLE_DEVICES=4MINERU_MODE=vlm MINERU_VLM_BACKEND=vlm-sglang-engine nohup python new.py &> pdf.log &
