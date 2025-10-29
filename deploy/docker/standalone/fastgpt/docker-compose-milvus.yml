@@ -2,7 +2,7 @@ version: '3.3'
 services:
   mem0:
     container_name: mem0
-    image: ghcr.io/shilin66/mem0:self
+    image: ghcr.nju.edu.cn/shilin66/mem0:self
     ports:
       - "8889:8000"
     networks:
@@ -33,7 +33,7 @@ services:
       - MONGODB_URI=mongodb://ai_shzl:nue8He7H3aqq@mongo:27017/mem0?authSource=admin&directConnection=true
   neo4j:
     container_name: neo4j
-    image: ghcr.io/shilin66/neo4j:self
+    image: ghcr.nju.edu.cn/shilin66/neo4j:self
     networks:
       - fastgpt
     healthcheck:
@@ -56,7 +56,7 @@ services:
   # milvus
   milvusEtcd:
     container_name: milvusEtcd
-    image: quay.io/coreos/etcd:v3.5.5
+    image: quay.m.daocloud.io/coreos/etcd:v3.5.5
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
       - ETCD_AUTO_COMPACTION_RETENTION=1000
@@ -74,7 +74,7 @@ services:
       retries: 3
   milvusAttu:
     container_name: milvusAttu
-    image: zilliz/attu:v2.6
+    image: docker.m.daocloud.io/zilliz/attu:v2.6
     ports:
       - "3004:3000"
     environment:
@@ -85,7 +85,7 @@ services:
       - 'milvusStandalone'
   milvusStandalone:
     container_name: milvusStandalone
-    image: milvusdb/milvus:v2.4.3
+    image: docker.m.daocloud.io/milvusdb/milvus:v2.4.3
     command: ['milvus', 'run', 'standalone']
     ports:
       - "19530:19530"
@@ -153,14 +153,14 @@ services:
         wait $$!
   sandbox:
     container_name: sandbox
-    image: ghcr.io/labring/fastgpt-sandbox:v4.12.0 # git
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-sandbox:v4.12.0 # git
     networks:
       - fastgpt
     ports:
       - 3009:3000
     restart: always
   redis:
-    image: redis:7.2-alpine
+    image: docker.m.daocloud.io/redis:7.2-alpine
     container_name: redis
     ports:
       - "6379:6379"
@@ -172,7 +172,7 @@ services:
     volumes:
       - ./redis/data:/data
   fastgpt-minio:
-    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+    image: docker.m.daocloud.io/minio/minio:RELEASE.2025-07-23T15-54-02Z
     container_name: fastgpt-minio
     restart: always
     networks:
@@ -193,7 +193,7 @@ services:
       retries: 3
   fastgpt-mcp-server:
     container_name: fastgpt-mcp-server
-    image: ghcr.io/labring/fastgpt-mcp_server:v4.12.0
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-mcp_server:v4.12.0
     ports:
       - 3005:3000
     networks:
@@ -203,7 +203,7 @@ services:
       - FASTGPT_ENDPOINT=http://fastgpt:3000
   fastgpt:
     container_name: fastgpt
-    image: ghcr.io/shilin66/fastgpt:poc-dev
+    image: ghcr.nju.edu.cn/shilin66/fastgpt:poc-dev
     ports:
       - 3000:3000
     networks:
@@ -242,7 +242,7 @@ services:
       - ./config.json:/app/data/config.json
       - ./fastgpt/tmp:/app/tmp
   fastgpt-plugin:
-    image: ghcr.io/shilin66/fastgpt-plugin:s-dev # git
+    image: ghcr.nju.edu.cn/shilin66/fastgpt-plugin:s-dev # git
     container_name: fastgpt-plugin
     restart: always
     ports:
@@ -263,7 +263,7 @@ services:
       fastgpt-minio:
         condition: service_healthy
   fastdoc:
-    image: ghcr.io/shilin66/fastdoc:dev
+    image: ghcr.nju.edu.cn/shilin66/fastdoc:dev
     container_name: fastdoc
     restart: always
     networks:
