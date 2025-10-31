@@ -3,7 +3,6 @@ import {
   type MemberGroupSchemaType
 } from '@fastgpt/global/support/permission/memberGroup/type';
 import { MongoGroupMemberModel } from './groupMemberSchema';
-import { parseHeaderCert } from '../controller';
 import { MongoMemberGroupModel } from './memberGroupSchema';
 import { DefaultGroupName } from '@fastgpt/global/support/user/team/group/constant';
 import { type ClientSession } from 'mongoose';
@@ -15,6 +14,7 @@ import { type AuthModeType, type AuthResponseType } from '../type';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
 import { getTmbInfoByTmbId } from '../../user/team/controller';
+import { parseHeaderCert } from '../auth/common';
 import { MongoResourcePermission } from '../schema';
 import { type TeamMemberSchema } from '@fastgpt/global/support/user/team/type';
 import { Permission } from '@fastgpt/global/support/permission/controller';

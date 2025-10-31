@@ -45,12 +45,9 @@ export const getRedisCache = async (key: string) => {
 
 // Add value to cache
 export const incrValueToCache = async (key: string, increment: number) => {
-  if (!increment || increment === 0) return;
+  if (typeof increment !== 'number' || increment === 0) return;
   const redis = getGlobalRedisConnection();
   try {
-    const exists = await redis.exists(getCacheKey(key));
-    if (!exists) return;
-
     await retryFn(() => redis.incrbyfloat(getCacheKey(key), increment));
   } catch (error) {}
 };
@@ -58,4 +55,21 @@ export const incrValueToCache = async (key: string, increment: number) => {
 export const delRedisCache = async (key: string) => {
   const redis = getGlobalRedisConnection();
   await retryFn(() => redis.del(getCacheKey(key)));
+};
+
+export const appendRedisCache = async (
+  key: string,
+  value: string | Buffer | number,
+  expireSeconds?: number
+) => {
+  try {
+    const redis = getGlobalRedisConnection();
+    await retryFn(() => redis.append(getCacheKey(key), value));
+    if (expireSeconds) {
+      await redis.expire(getCacheKey(key), expireSeconds);
+    }
+  } catch (error) {
+    addLog.error('Append cache error:', error);
+    return Promise.reject(error);
+  }
 };

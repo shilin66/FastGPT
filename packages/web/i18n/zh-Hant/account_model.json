@@ -7,6 +7,7 @@
   "avg_ttfb": "平均首字時長 (秒)",
   "azure": "Azure",
   "base_url": "代理地址",
+  "batch_size": "並發請求數",
   "channel_name": "管道名稱",
   "channel_priority": "優先順序",
   "channel_priority_tip": "優先順序越高的管道，越容易被請求到",
@@ -88,5 +89,6 @@
   "vlm_model": "圖片理解模型",
   "vlm_model_tip": "用於知識庫中對文件中的圖片進行額外的索引生成",
   "volunme_of_failed_calls": "調用失敗量",
-  "waiting_test": "等待測試"
+  "waiting_test": "等待測試",
+  "model_permission_config_hint": "若無協作者，默認全部成員可用"
 }

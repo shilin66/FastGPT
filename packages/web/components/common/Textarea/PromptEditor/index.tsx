@@ -1,19 +1,19 @@
 import { Box, Button, ModalBody, ModalFooter, useDisclosure } from '@chakra-ui/react';
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { editorStateToText } from './utils';
 import type { EditorProps } from './Editor';
 import Editor from './Editor';
 import MyModal from '../../MyModal';
 import { useTranslation } from 'next-i18next';
 import type { EditorState, LexicalEditor } from 'lexical';
-import type { FormPropsType } from './type.d';
-import { useCallback } from 'react';
+import type { FormPropsType } from './type';
 
 const PromptEditor = ({
   showOpenModal = true,
   value,
   onChange,
   onBlur,
+  onKeyDown,
   title,
   isDisabled,
   ...props
@@ -34,18 +34,27 @@ const PromptEditor = ({
     },
     [onChange]
   );
+
   const onBlurInput = useCallback(
     (editor: LexicalEditor) => {
-      const text = editorStateToText(editor);
-      onBlur?.(text);
+      if (onBlur) {
+        const text = editorStateToText(editor);
+        onBlur(text);
+      }
     },
     [onBlur]
   );
+
   const formattedValue = useMemo(() => {
     if (typeof value === 'object') {
       return JSON.stringify(value);
     }
-    return value;
+
+    if (value === undefined || value === null) {
+      return '';
+    }
+
+    return String(value || '');
   }, [value]);
 
   return (
@@ -59,6 +68,7 @@ const PromptEditor = ({
           onChange={onChangeInput}
           onChangeText={onChange}
           onBlur={onBlurInput}
+          onKeyDown={onKeyDown}
         />
         {isDisabled && (
           <Box
@@ -74,6 +84,7 @@ const PromptEditor = ({
           />
         )}
       </Box>
+
       <MyModal
         isOpen={isOpen}
         onClose={onClose}
@@ -87,10 +98,11 @@ const PromptEditor = ({
             minH={400}
             maxH={400}
             showOpenModal={false}
-            value={value}
+            value={formattedValue}
             onChange={onChangeInput}
             onChangeText={onChange}
             onBlur={onBlurInput}
+            onKeyDown={onKeyDown}
           />
         </ModalBody>
         <ModalFooter>
@@ -102,4 +114,5 @@ const PromptEditor = ({
     </>
   );
 };
+
 export default React.memo(PromptEditor);

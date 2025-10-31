@@ -23,7 +23,6 @@ import {
   postRestoreMember
 } from '@/web/support/user/team/api';
 import Tag from '@fastgpt/web/components/common/Tag';
-import Icon from '@fastgpt/web/components/common/Icon';
 import { useContextSelector } from 'use-context-selector';
 import { TeamContext } from './context';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
@@ -60,7 +59,7 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
   const { toast } = useToast();
   const { userInfo } = useUserStore();
   const { feConfigs } = useSystemStore();
-  const isSyncMember = feConfigs?.register_method?.includes('sync');
+  const isSyncMode = feConfigs?.register_method?.includes('sync');
 
   const { myTeams, onSwitchTeam } = useContextSelector(TeamContext, (v) => v);
 
@@ -76,8 +75,16 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
     },
     {
       label: t('account_team:leave'),
-      value: 'inactive'
-    }
+      value: 'leave'
+    },
+    ...(isSyncMode
+      ? [
+          {
+            label: t('account_team:forbidden'),
+            value: 'forbidden'
+          }
+        ]
+      : [])
   ];
   const [status, setStatus] = useState<string>();
 
@@ -193,7 +200,7 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
           {/*    {t('account_team:label_sync')}*/}
           {/*  </Button>*/}
           {/*)}*/}
-          {userInfo?.team.permission.hasManagePer && isSyncMember && (
+          {userInfo?.team.permission.hasManagePer && isSyncMode && (
             <Button
               variant={'primary'}
               size="md"
@@ -207,7 +214,7 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
               {t('account_team:sync_immediately')}
             </Button>
           )}
-          {userInfo?.team.permission.hasManagePer && !isSyncMember && (
+          {userInfo?.team.permission.hasManagePer && !isSyncMode && (
             <Button
               variant={'primary'}
               size="md"
@@ -219,7 +226,7 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
               {t('account_team:user_team_invite_member')}
             </Button>
           )}
-          {userInfo?.team.permission.isOwner && isSyncMember && (
+          {userInfo?.team.permission.isOwner && isSyncMode && (
             <Button
               variant={'whitePrimary'}
               size="md"
@@ -237,6 +244,7 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
             </Button>
           )}
           {!userInfo?.team.permission.isOwner &&
+            !isSyncMode &&
             userInfo?.team.teamName !== feConfigs.userDefaultTeam && (
               <PopoverConfirm
                 Trigger={
@@ -287,7 +295,9 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
                           {member.memberName}
                           {member.status !== 'active' && (
                             <Tag ml="2" colorSchema="gray" bg={'myGray.100'} color={'myGray.700'}>
-                              {t('account_team:leave')}
+                              {member.status === 'forbidden'
+                                ? t('account_team:forbidden')
+                                : t('account_team:leave')}
                             </Tag>
                           )}
                         </Box>

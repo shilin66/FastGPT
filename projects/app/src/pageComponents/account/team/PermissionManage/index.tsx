@@ -19,7 +19,8 @@ import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import {
   deleteMemberPermission,
   getTeamClbs,
-  updateMemberPermission
+  updateMemberPermission,
+  updateOneMemberPermission
 } from '@/web/support/user/team/api';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
@@ -51,6 +52,7 @@ import { GetSearchUserGroupOrg } from '@/web/support/user/api';
 import { type PermissionValueType } from '@fastgpt/global/support/permission/type';
 import { type CollaboratorItemType } from '@fastgpt/global/support/permission/collaborator';
 import type { Permission } from '@fastgpt/global/support/permission/controller';
+import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
 
 function PermissionManage({
   Tabs,
@@ -66,13 +68,13 @@ function PermissionManage({
     CollaboratorContext,
     (state) => state.collaboratorList
   );
-  const onUpdateCollaborators = useContextSelector(
-    CollaboratorContext,
-    (state) => state.onUpdateCollaborators
-  );
   const onDelOneCollaborator = useContextSelector(
     CollaboratorContext,
     (state) => state.onDelOneCollaborator
+  );
+  const refetchCollaborators = useContextSelector(
+    CollaboratorContext,
+    (state) => state.refetchCollaboratorList
   );
 
   const [isExpandMember, setExpandMember] = useToggle(true);
@@ -127,17 +129,26 @@ function PermissionManage({
         permission.removeRole(per);
       }
 
-      return onUpdateCollaborators({
-        ...(clb.tmbId && { members: [clb.tmbId] }),
-        ...(clb.groupId && { groups: [clb.groupId] }),
-        ...(clb.orgId && { orgs: [clb.orgId] }),
+      return updateOneMemberPermission({
+        tmbId: clb.tmbId,
+        groupId: clb.groupId,
+        orgId: clb.orgId,
         permission: permission.role
       });
+    },
+    {
+      onSuccess: refetchCollaborators
     }
   );
 
-  const { runAsync: onDeleteMemberPermission, loading: deleteLoading } =
-    useRequest2(onDelOneCollaborator);
+  const { runAsync: onDeleteMemberPermission, loading: deleteLoading } = useRequest2(
+    async (props) => {
+      if (onDelOneCollaborator) {
+        return await onDelOneCollaborator(props);
+      }
+      return Promise.resolve();
+    }
+  );
 
   const userManage = userInfo?.permission.hasManagePer;
   const hasDeletePer = (per: Permission) => {
@@ -200,10 +211,9 @@ function PermissionManage({
             size="md"
             borderRadius={'md'}
             ml={3}
-            leftIcon={<MyIcon name="common/add2" w={'14px'} />}
             onClick={onOpenAddMember}
           >
-            {t('user:permission.Add')}
+            {t('account_team:manage_per')}
           </Button>
         )}
       </Flex>
@@ -268,25 +278,25 @@ function PermissionManage({
                         </HStack>
                       </Td>
                       <PermissionCheckBox
-                        isDisabled={member.permission.isOwner || !userManage}
+                        isDisabled={member.permission.hasManagePer && !userInfo?.permission.isOwner}
                         role={TeamAppCreateRoleVal}
                         clbPer={member.permission}
                         id={member.tmbId!}
                       />
                       <PermissionCheckBox
-                        isDisabled={member.permission.isOwner || !userManage}
+                        isDisabled={member.permission.hasManagePer && !userInfo?.permission.isOwner}
                         role={TeamDatasetCreateRoleVal}
                         clbPer={member.permission}
                         id={member.tmbId!}
                       />
                       <PermissionCheckBox
-                        isDisabled={member.permission.isOwner || !userManage}
+                        isDisabled={member.permission.hasManagePer && !userInfo?.permission.isOwner}
                         role={TeamApikeyCreateRoleVal}
                         clbPer={member.permission}
                         id={member.tmbId!}
                       />
                       <PermissionCheckBox
-                        isDisabled={member.permission.isOwner || !userInfo?.permission.isOwner}
+                        isDisabled={!userInfo?.permission.isOwner}
                         role={TeamManageRoleVal}
                         clbPer={member.permission}
                         id={member.tmbId!}
@@ -436,6 +446,7 @@ export const Render = ({ Tabs }: { Tabs: React.ReactNode }) => {
 
   return userInfo?.team ? (
     <CollaboratorContextProvider
+      defaultRole={ReadRoleVal}
       permission={userInfo?.team.permission}
       roleList={TeamRoleList}
       onGetCollaboratorList={getTeamClbs}
@@ -444,7 +455,9 @@ export const Render = ({ Tabs }: { Tabs: React.ReactNode }) => {
       refreshDeps={[userInfo?.team.teamId]}
       addPermissionOnly={true}
     >
-      {({ onOpenAddMember }) => <PermissionManage Tabs={Tabs} onOpenAddMember={onOpenAddMember} />}
+      {({ onOpenManageModal }) => (
+        <PermissionManage Tabs={Tabs} onOpenAddMember={onOpenManageModal} />
+      )}
     </CollaboratorContextProvider>
   ) : null;
 };

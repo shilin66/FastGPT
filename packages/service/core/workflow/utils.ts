@@ -3,7 +3,6 @@ import { countPromptTokens } from '../../common/string/tiktoken/index';
 import type { RuntimeNodeItemType } from '@fastgpt/global/core/workflow/runtime/type';
 import { getSystemPluginByIdAndVersionId, getSystemTools } from '../app/plugin/controller';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
-import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { parseI18nString } from '@fastgpt/global/common/i18n/utils';
 import type { localeType } from '@fastgpt/global/common/i18n/type';
@@ -48,7 +47,7 @@ export async function getSystemToolRunTimeNodeFromSystemToolset({
     (item) => item.parentId === systemToolId && item.isActive !== false
   );
   const nodes = await Promise.all(
-    children.map(async (child) => {
+    children.map(async (child, index) => {
       const toolListItem = toolSetNode.toolConfig?.systemToolSet?.toolList.find(
         (item) => item.toolId === child.id
       );
@@ -70,7 +69,7 @@ export async function getSystemToolRunTimeNodeFromSystemToolset({
         name: toolListItem?.name || parseI18nString(tool.name, lang),
         intro: toolListItem?.description || parseI18nString(tool.intro, lang),
         flowNodeType: FlowNodeTypeEnum.tool,
-        nodeId: getNanoid(),
+        nodeId: `${toolSetNode.nodeId}${index}`,
         toolConfig: {
           systemTool: {
             toolId: child.id

@@ -64,6 +64,33 @@ const addCommonMiddleware = (schema: mongoose.Schema) => {
       }
       next();
     });
+
+    // Convert _id to string
+    schema.post(/^find/, function (docs) {
+      if (!docs) return;
+
+      const convertObjectIds = (obj: any) => {
+        if (!obj) return;
+
+        // Convert _id
+        if (obj._id && obj._id.toString) {
+          obj._id = obj._id.toString();
+        }
+
+        // Convert other ObjectId fields
+        Object.keys(obj).forEach((key) => {
+          if (obj[key] && obj[key]._bsontype === 'ObjectId') {
+            obj[key] = obj[key].toString();
+          }
+        });
+      };
+
+      if (Array.isArray(docs)) {
+        docs.forEach((doc) => convertObjectIds(doc));
+      } else {
+        convertObjectIds(docs);
+      }
+    });
   });
 
   return schema;
@@ -96,12 +123,19 @@ export const getMongoLogModel = <T>(name: string, schema: mongoose.Schema) => {
 };
 
 const syncMongoIndex = async (model: Model<any>) => {
-  if (process.env.SYNC_INDEX !== '0' && process.env.NODE_ENV !== 'test') {
-    try {
-      model.syncIndexes({ background: true });
-    } catch (error) {
-      addLog.error('Create index error', error);
-    }
+  if (
+    process.env.NODE_ENV === 'test' ||
+    process.env.SYNC_INDEX === '0' ||
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    !MONGO_URL
+  ) {
+    return;
+  }
+
+  try {
+    await model.syncIndexes({ background: true });
+  } catch (error) {
+    addLog.error('Create index error', error);
   }
 };
 

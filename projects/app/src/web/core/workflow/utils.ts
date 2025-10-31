@@ -35,6 +35,7 @@ import { VariableConditionEnum } from '@fastgpt/global/core/workflow/template/sy
 import { type AppChatConfigType } from '@fastgpt/global/core/app/type';
 import { cloneDeep, isEqual } from 'lodash';
 import { workflowSystemVariables } from '../app/utils';
+import type { WorkflowDataContextType } from '@/pageComponents/app/detail/WorkflowComponents/context/workflowInitContext';
 
 /* ====== node ======= */
 export const nodeTemplate2FlowNode = ({
@@ -87,7 +88,9 @@ export const storeNode2FlowNode = ({
     moduleTemplatesFlat.find((template) => template.flowNodeType === storeNode.flowNodeType) ||
     EmptyNode;
 
-  const templateInputs = template.inputs.filter((input) => !input.canEdit);
+  const templateInputs = template.inputs.filter(
+    (input) => !input.canEdit && input.deprecated !== true
+  );
   const templateOutputs = template.outputs.filter(
     (output) => output.type !== FlowNodeOutputTypeEnum.dynamic
   );
@@ -225,11 +228,13 @@ export const getInputComponentProps = (input: FlowNodeInputItemType) => {
 /* ====== Reference ======= */
 export const getRefData = ({
   variable,
-  nodeList,
+  getNodeById,
+  systemConfigNode,
   chatConfig
 }: {
   variable?: ReferenceItemValueType;
-  nodeList: FlowNodeItemType[];
+  getNodeById: WorkflowDataContextType['getNodeById'];
+  systemConfigNode?: StoreNodeItemType;
   chatConfig: AppChatConfigType;
 }) => {
   if (!variable)
@@ -238,8 +243,8 @@ export const getRefData = ({
       required: false
     };
 
-  const node = nodeList.find((node) => node.nodeId === variable[0]);
-  const systemVariables = getWorkflowGlobalVariables({ nodes: nodeList, chatConfig });
+  const node = getNodeById(variable[0]);
+  const systemVariables = getWorkflowGlobalVariables({ systemConfigNode, chatConfig });
 
   if (!node) {
     const globalVariable = systemVariables.find((item) => item.key === variable?.[1]);
@@ -332,19 +337,21 @@ export const filterWorkflowNodeOutputsByType = (
 
 export const getNodeAllSource = ({
   nodeId,
-  nodes,
+  systemConfigNode,
+  getNodeById,
   edges,
   chatConfig,
   t
 }: {
   nodeId: string;
-  nodes: FlowNodeItemType[];
+  systemConfigNode?: StoreNodeItemType;
+  getNodeById: (nodeId: string | null | undefined) => FlowNodeItemType | undefined;
   edges: Edge[];
   chatConfig: AppChatConfigType;
   t: TFunction;
 }): FlowNodeItemType[] => {
   // get current node
-  const node = nodes.find((item) => item.nodeId === nodeId);
+  const node = getNodeById(nodeId);
   if (!node) {
     return [];
   }
@@ -355,7 +362,7 @@ export const getNodeAllSource = ({
   const findSourceNode = (nodeId: string) => {
     const targetEdges = edges.filter((item) => item.target === nodeId || item.target === parentId);
     targetEdges.forEach((edge) => {
-      const sourceNode = nodes.find((item) => item.nodeId === edge.source);
+      const sourceNode = getNodeById(edge.source);
       if (!sourceNode) return;
 
       // 去重
@@ -371,7 +378,7 @@ export const getNodeAllSource = ({
   sourceNodes.set(
     'system_global_variable',
     getGlobalVariableNode({
-      nodes,
+      systemConfigNode,
       t,
       chatConfig
     })
@@ -381,6 +388,11 @@ export const getNodeAllSource = ({
 };
 
 /* ====== Connection ======= */
+// Connectivity check result type
+type ConnectivityIssue = {
+  nodeId: string;
+  issue: 'isolated' | 'no_input' | 'unreachable_from_start';
+};
 export const checkWorkflowNodeAndConnection = ({
   nodes,
   edges
@@ -388,7 +400,7 @@ export const checkWorkflowNodeAndConnection = ({
   nodes: Node<FlowNodeItemType, string | undefined>[];
   edges: Edge<any>[];
 }): string[] | undefined => {
-  // 1. reference check. Required value
+  // Node check
   for (const node of nodes) {
     const data = node.data;
     const inputs = data.inputs;
@@ -453,6 +465,15 @@ export const checkWorkflowNodeAndConnection = ({
         return [data.nodeId];
       }
     }
+    if (data.flowNodeType === FlowNodeTypeEnum.agent) {
+      const toolConnections = edges.filter(
+        (edge) =>
+          edge.source === data.nodeId && edge.sourceHandle === NodeOutputKeyEnum.selectedTools
+      );
+      if (toolConnections.length === 0) {
+        return [data.nodeId];
+      }
+    }
 
     // check node input
     if (
@@ -506,7 +527,7 @@ export const checkWorkflowNodeAndConnection = ({
       return [data.nodeId];
     }
 
-    // filter tools node edge
+    // Check node has invalid edge
     const edgeFilted = edges.filter(
       (edge) =>
         !(
@@ -514,7 +535,7 @@ export const checkWorkflowNodeAndConnection = ({
           edge.sourceHandle === NodeOutputKeyEnum.selectedTools
         )
     );
-    // check node has edge
+    // Check node has edge
     const hasEdge = edgeFilted.some(
       (edge) => edge.source === data.nodeId || edge.target === data.nodeId
     );
@@ -522,21 +543,121 @@ export const checkWorkflowNodeAndConnection = ({
       return [data.nodeId];
     }
   }
+
+  // Edge check
+
+  /**
+   * Check graph connectivity and identify connectivity issues
+   */
+  const checkConnectivity = (
+    nodes: Node<FlowNodeItemType, string | undefined>[],
+    edges: Edge<any>[]
+  ): string[] => {
+    // Find start node
+    const startNode = nodes.find(
+      (node) =>
+        node.data.flowNodeType === FlowNodeTypeEnum.workflowStart ||
+        node.data.flowNodeType === FlowNodeTypeEnum.pluginInput
+    );
+
+    if (!startNode) {
+      // No start node found - this is a critical issue
+      return nodes.map((node) => node.data.nodeId);
+    }
+
+    const issues: ConnectivityIssue[] = [];
+
+    // Build adjacency lists for both directions
+    const outgoing = new Map<string, string[]>();
+    const incoming = new Map<string, string[]>();
+
+    nodes.forEach((node) => {
+      outgoing.set(node.data.nodeId, []);
+      incoming.set(node.data.nodeId, []);
+    });
+
+    edges.forEach((edge) => {
+      const outList = outgoing.get(edge.source) || [];
+      outList.push(edge.target);
+      outgoing.set(edge.source, outList);
+
+      const inList = incoming.get(edge.target) || [];
+      inList.push(edge.source);
+      incoming.set(edge.target, inList);
+    });
+
+    // Check reachability from start node（Start node/Loop start 可以到达的地方）
+    const reachableFromStart = new Set<string>();
+    const dfsFromStart = (nodeId: string) => {
+      if (reachableFromStart.has(nodeId)) return;
+      reachableFromStart.add(nodeId);
+
+      const neighbors = outgoing.get(nodeId) || [];
+      neighbors.forEach((neighbor) => dfsFromStart(neighbor));
+    };
+    dfsFromStart(startNode.data.nodeId);
+    nodes.forEach((node) => {
+      if (node.data.flowNodeType === FlowNodeTypeEnum.loopStart) {
+        dfsFromStart(node.data.nodeId);
+      }
+    });
+
+    // Check each node for connectivity issues
+    for (const node of nodes) {
+      const nodeId = node.data.nodeId;
+      const nodeType = node.data.flowNodeType;
+
+      // Skip system nodes that don't need connectivity checks
+      if (
+        nodeType === FlowNodeTypeEnum.systemConfig ||
+        nodeType === FlowNodeTypeEnum.pluginConfig ||
+        nodeType === FlowNodeTypeEnum.comment ||
+        nodeType === FlowNodeTypeEnum.globalVariable ||
+        nodeType === FlowNodeTypeEnum.emptyNode
+      ) {
+        continue;
+      }
+
+      const hasIncoming = (incoming.get(nodeId) || []).length > 0;
+      const hasOutgoing = (outgoing.get(nodeId) || []).length > 0;
+      const isStartNode = [
+        FlowNodeTypeEnum.workflowStart,
+        FlowNodeTypeEnum.pluginInput,
+        FlowNodeTypeEnum.loopStart
+      ].includes(nodeType);
+
+      // Check if node is reachable from start
+      if (!isStartNode && !reachableFromStart.has(nodeId)) {
+        issues.push({
+          nodeId,
+          issue: 'unreachable_from_start'
+        });
+        break;
+      }
+    }
+
+    return issues.map((issue) => issue.nodeId);
+  };
+
+  const connectivityIssues = checkConnectivity(nodes, edges);
+  if (connectivityIssues.length > 0) {
+    return connectivityIssues;
+  }
 };
 
 /* ====== Variables ======= */
 /* get workflowStart output to global variables */
 export const getWorkflowGlobalVariables = ({
-  nodes,
+  systemConfigNode,
   chatConfig
 }: {
-  nodes: FlowNodeItemType[];
+  systemConfigNode?: StoreNodeItemType;
   chatConfig: AppChatConfigType;
 }): EditorVariablePickerType[] => {
   const globalVariables = formatEditorVariablePickerIcon(
     getAppChatConfig({
       chatConfig,
-      systemConfigNode: getGuideModule(nodes),
+      systemConfigNode,
       isPublicFetch: true
     })?.variables || []
   );

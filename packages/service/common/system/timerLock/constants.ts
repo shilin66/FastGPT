@@ -9,6 +9,7 @@ export enum TimerIdEnum {
 
   clearExpiredRawTextBuffer = 'clearExpiredRawTextBuffer',
   clearExpiredDatasetImage = 'clearExpiredDatasetImage',
+  clearExpiredMinioFiles = 'clearExpiredMinioFiles',
   clearInvalidInvitationLink = 'clearInvalidInvitationLink'
 }
 

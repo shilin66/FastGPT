@@ -13,7 +13,7 @@ import { generateImageParse } from '@/service/core/dataset/queues/generateImageP
 export const createDatasetTrainingMongoWatch = () => {
   const changeStream = MongoDatasetTraining.watch();
 
-  changeStream.on('change', async (change) => {
+  return changeStream.on('change', async (change) => {
     try {
       if (change.operationType === 'insert') {
         const fullDocument = change.fullDocument as DatasetTrainingSchemaType;

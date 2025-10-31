@@ -1,6 +1,7 @@
 import { GET, POST, PUT, DELETE } from '@/web/common/api/request';
 import type {
   CollaboratorItemType,
+  CollaboratorListType,
   DeletePermissionQuery,
   UpdateClbPermissionProps
 } from '@fastgpt/global/support/permission/collaborator';
@@ -30,6 +31,7 @@ import type {
   InvitationLinkCreateType,
   InvitationType
 } from '@fastgpt/service/support/user/team/invitationLink/type';
+import type { PermissionValueType } from '@fastgpt/global/support/permission/type';
 
 /* --------------- team  ---------------- */
 export const getTeamList = (status: `${TeamMemberSchema['status']}`) =>
@@ -89,10 +91,15 @@ export const putForbidInvitationLink = (linkId: string) =>
   PUT<string>(`/support/user/team/invitationLink/forbid`, { linkId });
 
 /* -------------- team collaborator -------------------- */
-export const getTeamClbs = () =>
-  GET<CollaboratorItemType[]>(`/support/user/team/collaborator/list`);
+export const getTeamClbs = () => GET<CollaboratorListType>(`/support/user/team/collaborator/list`);
 export const updateMemberPermission = (data: UpdateClbPermissionProps) =>
-  PUT('/support/user/team/collaborator/update', data);
+  POST('/support/user/team/collaborator/update', data);
+export const updateOneMemberPermission = (data: {
+  tmbId?: string;
+  orgId?: string;
+  groupId?: string;
+  permission: PermissionValueType;
+}) => PUT('/proApi/support/user/team/collaborator/updateOne', data);
 export const deleteMemberPermission = (id: DeletePermissionQuery) =>
   DELETE('/support/user/team/collaborator/delete', id);
 

@@ -18,7 +18,6 @@ import {
   type ReferenceArrayValueType,
   type ReferenceItemValueType
 } from './type/io.d';
-import type { NodeToolConfigType } from './type/node';
 import { type StoreNodeItemType } from './type/node';
 import type {
   VariableItemType,
@@ -28,7 +27,8 @@ import type {
   ChatInputGuideConfigType,
   AppChatConfigType,
   AppAutoExecuteConfigType,
-  AppQGConfigType
+  AppQGConfigType,
+  AppSchema
 } from '../app/type';
 import { type EditorVariablePickerType } from '../../../web/components/common/Textarea/PromptEditor/type';
 import {
@@ -69,8 +69,8 @@ export const checkInputIsReference = (input: FlowNodeInputItemType) => {
 };
 
 /* node  */
-export const getGuideModule = (modules: StoreNodeItemType[]) =>
-  modules.find(
+export const getGuideModule = (nodes: StoreNodeItemType[]) =>
+  nodes.find(
     (item) =>
       item.flowNodeType === FlowNodeTypeEnum.systemConfig ||
       // @ts-ignore (adapt v1)
@@ -247,7 +247,7 @@ export const appData2FlowNodeIO = ({
   const variableInput = !chatConfig?.variables
     ? []
     : chatConfig.variables.map((item) => {
-        const renderTypeMap = {
+        const renderTypeMap: Record<VariableInputEnum, FlowNodeInputTypeEnum[]> = {
           [VariableInputEnum.input]: [FlowNodeInputTypeEnum.input, FlowNodeInputTypeEnum.reference],
           [VariableInputEnum.textarea]: [
             FlowNodeInputTypeEnum.textarea,
@@ -255,22 +255,28 @@ export const appData2FlowNodeIO = ({
           ],
           [VariableInputEnum.numberInput]: [FlowNodeInputTypeEnum.numberInput],
           [VariableInputEnum.select]: [FlowNodeInputTypeEnum.select],
-          [VariableInputEnum.custom]: [
-            FlowNodeInputTypeEnum.input,
-            FlowNodeInputTypeEnum.reference
-          ],
-          default: [FlowNodeInputTypeEnum.reference]
+          [VariableInputEnum.multipleSelect]: [FlowNodeInputTypeEnum.multipleSelect],
+          [VariableInputEnum.JSONEditor]: [FlowNodeInputTypeEnum.JSONEditor],
+          [VariableInputEnum.timePointSelect]: [FlowNodeInputTypeEnum.timePointSelect],
+          [VariableInputEnum.timeRangeSelect]: [FlowNodeInputTypeEnum.timeRangeSelect],
+          [VariableInputEnum.switch]: [FlowNodeInputTypeEnum.switch],
+          [VariableInputEnum.password]: [FlowNodeInputTypeEnum.password],
+          [VariableInputEnum.file]: [FlowNodeInputTypeEnum.fileSelect],
+          [VariableInputEnum.modelSelect]: [FlowNodeInputTypeEnum.selectLLMModel],
+          [VariableInputEnum.datasetSelect]: [FlowNodeInputTypeEnum.selectDataset],
+          [VariableInputEnum.internal]: [FlowNodeInputTypeEnum.hidden],
+          [VariableInputEnum.custom]: [FlowNodeInputTypeEnum.input, FlowNodeInputTypeEnum.reference]
         };
 
         return {
           key: item.key,
-          renderTypeList: renderTypeMap[item.type] || renderTypeMap.default,
+          renderTypeList: renderTypeMap[item.type] || [FlowNodeInputTypeEnum.reference],
           label: item.label,
           debugLabel: item.label,
           description: '',
           valueType: WorkflowIOValueTypeEnum.any,
           required: item.required,
-          list: item.enums?.map((enumItem) => ({
+          list: (item.list || item.enums)?.map((enumItem) => ({
             label: enumItem.value,
             value: enumItem.value
           }))
@@ -435,4 +441,25 @@ export const getPluginRunUserQuery = ({
       files
     })
   };
+};
+
+export const removeUnauthModels = async ({
+  modules,
+  allowedModels = new Set()
+}: {
+  modules: AppSchema['modules'];
+  allowedModels?: Set<string>;
+}) => {
+  if (modules) {
+    modules.forEach((module) => {
+      module.inputs.forEach((input) => {
+        if (input.key === 'model') {
+          if (!allowedModels.has(input.value)) {
+            input.value = undefined;
+          }
+        }
+      });
+    });
+  }
+  return modules;
 };

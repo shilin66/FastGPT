@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Grid, Flex, IconButton, HStack } from '@chakra-ui/react';
+import { Box, Grid, IconButton, HStack } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
 import { delAppById, putAppById, resumeInheritPer, changeOwner } from '@/web/core/app/api';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
@@ -29,22 +29,22 @@ import AppTypeTag from './TypeTag';
 const EditResourceModal = dynamic(() => import('@/components/common/Modal/EditResourceModal'));
 const ConfigPerModal = dynamic(() => import('@/components/support/permission/ConfigPerModal'));
 
-import type { EditHttpPluginProps } from './HttpPluginEditModal';
 import { postCopyApp } from '@/web/core/app/api/app';
 import { formatTimeToChatTime } from '@fastgpt/global/common/string/time';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import { useChatStore } from '@/web/core/chat/context/useChatStore';
 import { type RequireOnlyOne } from '@fastgpt/global/common/type/utils';
 import UserBox from '@fastgpt/web/components/common/UserBox';
-import { type PermissionValueType } from '@fastgpt/global/support/permission/type';
 import { ChatSidebarPaneEnum } from '@/pageComponents/chat/constants';
-const HttpEditModal = dynamic(() => import('./HttpPluginEditModal'));
+import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
+import { useToast } from '@fastgpt/web/hooks/useToast';
 
 const ListItem = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const { parentId = null } = router.query;
   const { isPc } = useSystem();
+  const { toast } = useToast();
 
   const { openConfirm: openMoveConfirm, ConfirmModal: MoveConfirmModal } = useConfirm({
     type: 'common',
@@ -52,13 +52,10 @@ const ListItem = () => {
     content: t('app:move.hint')
   });
 
-  const { myApps, loadMyApps, onUpdateApp, setMoveAppId, folderDetail } = useContextSelector(
-    AppListContext,
-    (v) => v
-  );
+  const { myApps, loadMyApps, onUpdateApp, setMoveAppId, folderDetail, setSearchKey } =
+    useContextSelector(AppListContext, (v) => v);
 
   const [editedApp, setEditedApp] = useState<EditResourceInfoFormType>();
-  const [editHttpPlugin, setEditHttpPlugin] = useState<EditHttpPluginProps>();
   const [editPerAppId, setEditPerAppId] = useState<string>();
 
   const editPerApp = useMemo(
@@ -185,6 +182,7 @@ const ListItem = () => {
                 }}
                 onClick={() => {
                   if (AppFolderTypeList.includes(app.type)) {
+                    setSearchKey('');
                     router.push({
                       query: {
                         ...router.query,
@@ -314,21 +312,17 @@ const ListItem = () => {
                                         label: t('common:dataset.Edit Info'),
                                         onClick: () => {
                                           if (app.type === AppTypeEnum.httpPlugin) {
-                                            setEditHttpPlugin({
-                                              id: app._id,
-                                              name: app.name,
-                                              avatar: app.avatar,
-                                              intro: app.intro,
-                                              pluginData: app.pluginData
-                                            });
-                                          } else {
-                                            setEditedApp({
-                                              id: app._id,
-                                              avatar: app.avatar,
-                                              name: app.name,
-                                              intro: app.intro
+                                            toast({
+                                              title: t('app:type.Http plugin_deprecated'),
+                                              status: 'warning'
                                             });
                                           }
+                                          setEditedApp({
+                                            id: app._id,
+                                            avatar: app.avatar,
+                                            name: app.name,
+                                            intro: app.intro
+                                          });
                                         }
                                       },
                                       ...(folderDetail?.type === AppTypeEnum.httpPlugin &&
@@ -360,6 +354,7 @@ const ListItem = () => {
                             ...(!app.permission?.hasWritePer ||
                             app.type === AppTypeEnum.toolSet ||
                             app.type === AppTypeEnum.folder ||
+                            app.type === AppTypeEnum.httpToolSet ||
                             app.type === AppTypeEnum.httpPlugin
                               ? []
                               : [
@@ -436,15 +431,11 @@ const ListItem = () => {
           avatar={editPerApp.avatar}
           name={editPerApp.name}
           managePer={{
+            defaultRole: ReadRoleVal,
             permission: editPerApp.permission,
             onGetCollaboratorList: () => getCollaboratorList(editPerApp._id),
             roleList: AppRoleList,
-            onUpdateCollaborators: (props: {
-              members?: string[];
-              groups?: string[];
-              orgs?: string[];
-              permission: PermissionValueType;
-            }) =>
+            onUpdateCollaborators: (props) =>
               postUpdateAppCollaborators({
                 ...props,
                 appId: editPerApp._id
@@ -463,12 +454,6 @@ const ListItem = () => {
             refreshDeps: [editPerApp.inheritPermission]
           }}
           onClose={() => setEditPerAppId(undefined)}
-        />
-      )}
-      {!!editHttpPlugin && (
-        <HttpEditModal
-          defaultPlugin={editHttpPlugin}
-          onClose={() => setEditHttpPlugin(undefined)}
         />
       )}
       <MoveConfirmModal />
