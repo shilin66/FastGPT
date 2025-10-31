@@ -22,7 +22,7 @@ import {
 import { getMyApps } from '@/web/core/app/api';
 import SelectOneResource from '@/components/common/folder/SelectOneResource';
 import { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
-import VariablePopover from '@/components/core/chat/ChatContainer/ChatBox/components/VariablePopover';
+import VariablePopover from '@/components/core/chat/ChatContainer/components/VariablePopover';
 import { useCopyData } from '@fastgpt/web/hooks/useCopyData';
 import { ChatSettingContext } from '@/web/core/chat/context/chatSettingContext';
 import {
@@ -31,13 +31,23 @@ import {
 } from '@/pageComponents/chat/constants';
 import { useChatStore } from '@/web/core/chat/context/useChatStore';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
+import { usePathname } from 'next/navigation';
+import type { ChatSettingType } from '@fastgpt/global/core/chat/setting/type';
+
+import { ChatTypeEnum } from '@/components/core/chat/ChatContainer/ChatBox/constants';
 
 const ChatHeader = ({
   history,
   showHistory,
   apps,
-  totalRecordsCount
+  totalRecordsCount,
+
+  pane,
+  chatSettings
 }: {
+  pane: ChatSidebarPaneEnum;
+  chatSettings?: ChatSettingType;
+
   history: ChatItemType[];
   showHistory?: boolean;
   apps?: AppListItemType[];
@@ -46,15 +56,15 @@ const ChatHeader = ({
   const { t } = useTranslation();
   const { isPc } = useSystem();
   const { feConfigs } = useSystemStore();
+  const pathname = usePathname();
+  const { source } = useChatStore();
+
   const chatData = useContextSelector(ChatItemContext, (v) => v.chatBoxData);
   const isVariableVisible = useContextSelector(ChatItemContext, (v) => v.isVariableVisible);
 
-  const pane = useContextSelector(ChatSettingContext, (v) => v.pane);
-  const chatSettings = useContextSelector(ChatSettingContext, (v) => v.chatSettings);
-
   const isPlugin = chatData.app.type === AppTypeEnum.plugin;
-  const router = useRouter();
-  const isChat = router.pathname === '/chat';
+  const isShare = source === 'share';
+  const chatType = isShare ? ChatTypeEnum.share : ChatTypeEnum.chat;
 
   return isPc && isPlugin ? null : (
     <Flex
@@ -80,12 +90,12 @@ const ChatHeader = ({
           apps={apps}
           appId={chatData.appId}
           name={
-            pane === ChatSidebarPaneEnum.HOME
-              ? chatSettings?.homeTabTitle || feConfigs?.systemTitle || 'FastGpt'
+            pane === ChatSidebarPaneEnum.HOME && !isShare
+              ? chatSettings?.homeTabTitle || feConfigs?.systemTitle || 'FastGPT'
               : chatData.app.name
           }
           avatar={
-            pane === ChatSidebarPaneEnum.HOME
+            pane === ChatSidebarPaneEnum.HOME && !isShare
               ? chatSettings?.squareLogoUrl || DEFAULT_LOGO_BANNER_COLLAPSED_URL
               : chatData.app.avatar
           }
@@ -94,7 +104,7 @@ const ChatHeader = ({
       )}
 
       <Flex gap={2} alignItems={'center'}>
-        {!isVariableVisible && <VariablePopover showExternalVariables={isChat} />}
+        {!isVariableVisible && <VariablePopover chatType={chatType} />}
 
         {/* control */}
         {!isPlugin && <ToolMenu history={history} />}

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Box, Button, Flex } from '@chakra-ui/react';
+import { Box, Flex } from '@chakra-ui/react';
 import { Controller, useForm, type UseFormHandleSubmit } from 'react-hook-form';
 import Markdown from '@/components/Markdown';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
@@ -12,6 +12,7 @@ import {
 import InputRender from '@/components/core/app/formRender';
 import { nodeInputTypeToInputType } from '@/components/core/app/formRender/utils';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
+import LeftRadio from '@fastgpt/web/components/common/Radio/LeftRadio';
 
 const DescriptionBox = React.memo(function DescriptionBox({
   description
@@ -38,33 +39,26 @@ export const SelectOptionsComponent = React.memo(function SelectOptionsComponent
   return (
     <Box maxW={'100%'}>
       <DescriptionBox description={description} />
-      <Flex flexDirection={'column'} gap={3} w={'250px'}>
-        {userSelectOptions.map((option: UserSelectOptionItemType) => {
-          const selected = option.value === userSelectedVal;
-
-          return (
-            <Button
-              key={option.key}
-              variant={'whitePrimary'}
-              whiteSpace={'pre-wrap'}
-              isDisabled={!!userSelectedVal}
-              {...(selected
-                ? {
-                    _disabled: {
-                      cursor: 'default',
-                      borderColor: 'primary.300',
-                      bg: 'primary.50 !important',
-                      color: 'primary.600'
-                    }
-                  }
-                : {})}
-              onClick={() => onSelect(option.value)}
-            >
-              {option.value}
-            </Button>
-          );
-        })}
-      </Flex>
+      <Box w={'250px'}>
+        <LeftRadio<string>
+          py={3.5}
+          gridGap={3}
+          align={'center'}
+          list={userSelectOptions.map((option: UserSelectOptionItemType) => ({
+            title: (
+              <Box fontSize={'sm'} whiteSpace={'pre-wrap'} wordBreak={'break-word'}>
+                {option.value}
+              </Box>
+            ),
+            value: option.value
+          }))}
+          value={userSelectedVal || ''}
+          defaultBg={'white'}
+          activeBg={'white'}
+          onChange={(val) => onSelect(val)}
+          isDisabled={!!userSelectedVal}
+        />
+      </Box>
     </Box>
   );
 });
@@ -85,12 +79,12 @@ export const FormInputComponent = React.memo(function FormInputComponent({
   });
 
   const RenderFormInput = useCallback(
-    ({ input }: { input: UserInputFormItemType }) => {
+    ({ input, index }: { input: UserInputFormItemType; index: number }) => {
       return (
         <Controller
           key={input.label}
           control={control}
-          name={input.label}
+          name={`field_${index}`}
           rules={{ required: input.required }}
           render={({ field: { onChange, value }, fieldState: { error } }) => {
             const inputType = nodeInputTypeToInputType([input.type]);
@@ -100,7 +94,6 @@ export const FormInputComponent = React.memo(function FormInputComponent({
                 inputType={inputType}
                 value={value}
                 onChange={onChange}
-                placeholder={input.description}
                 isDisabled={submitted}
                 isInvalid={!!error}
                 maxLength={input.maxLength}
@@ -120,14 +113,14 @@ export const FormInputComponent = React.memo(function FormInputComponent({
     <Box>
       <DescriptionBox description={description} />
       <Flex flexDirection={'column'} gap={3}>
-        {inputForm.map((input) => (
+        {inputForm.map((input, index) => (
           <Box key={input.label}>
             <Flex alignItems={'center'} mb={1}>
               {input.required && <Box color={'red.500'}>*</Box>}
               <FormLabel>{input.label}</FormLabel>
               {input.description && <QuestionTip ml={1} label={input.description} />}
             </Flex>
-            <RenderFormInput input={input} />
+            <RenderFormInput input={input} index={index} />
           </Box>
         ))}
       </Flex>

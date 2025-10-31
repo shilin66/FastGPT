@@ -9,7 +9,7 @@ import {
   type RerankModelItemType
 } from '@fastgpt/global/core/ai/model.d';
 import { debounce } from 'lodash';
-import { getModelProvider } from '@fastgpt/global/core/ai/provider';
+import { getModelProvider } from '../../../core/app/provider/controller';
 import { findModelFromAlldata } from '../model';
 import {
   reloadFastGPTConfigBuffer,
@@ -18,8 +18,11 @@ import {
 import { delay } from '@fastgpt/global/common/system/utils';
 import { pluginClient } from '../../../thirdProvider/fastgptPlugin';
 import { setCron } from '../../../common/system/cron';
+import { preloadModelProviders } from '../../../core/app/provider/controller';
+import { refreshVersionKey } from '../../../common/cache';
+import { SystemCacheKeyEnum } from '../../../common/cache/type';
 
-export const loadSystemModels = async (init = false) => {
+export const loadSystemModels = async (init = false, language = 'en') => {
   const pushModel = (model: SystemModelItemType) => {
     global.systemModelList.push(model);
 
@@ -77,6 +80,13 @@ export const loadSystemModels = async (init = false) => {
 
   if (!init && global.systemModelList) return;
 
+  try {
+    await preloadModelProviders();
+  } catch (error) {
+    console.log('Load systen model error, please check fastgpt-plugin', error);
+    return Promise.reject(error);
+  }
+
   global.systemModelList = [];
   global.systemActiveModelList = [];
   global.llmModelMap = new Map<string, LLMModelItemType>();
@@ -109,11 +119,13 @@ export const loadSystemModels = async (init = false) => {
         };
 
         const dbModel = dbModels.find((item) => item.model === model.model);
+        const provider = getModelProvider(dbModel?.metadata?.provider || model.provider, language);
 
         const modelData: any = {
           ...model,
           ...dbModel?.metadata,
-          provider: getModelProvider(dbModel?.metadata?.provider || (model.provider as any)).id,
+          provider: provider.id,
+          avatar: provider.avatar,
           type: dbModel?.metadata?.type || model.type,
           isCustom: false,
 
@@ -169,8 +181,8 @@ export const loadSystemModels = async (init = false) => {
 
     // Sort model list
     global.systemActiveModelList.sort((a, b) => {
-      const providerA = getModelProvider(a.provider);
-      const providerB = getModelProvider(b.provider);
+      const providerA = getModelProvider(a.provider, language);
+      const providerB = getModelProvider(b.provider, language);
       return providerA.order - providerB.order;
     });
     global.systemActiveDesensitizedModels = global.systemActiveModelList.map((model) => ({
@@ -229,7 +241,7 @@ export const getSystemModelConfig = async (model: string): Promise<SystemModelIt
 export const watchSystemModelUpdate = () => {
   const changeStream = MongoSystemModel.watch();
 
-  changeStream.on(
+  return changeStream.on(
     'change',
     debounce(async () => {
       try {
@@ -248,6 +260,7 @@ export const updatedReloadSystemModel = async () => {
   await loadSystemModels(true);
   // 2. 更新缓存（仅主节点触发）
   await updateFastGPTConfigBuffer();
+  await refreshVersionKey(SystemCacheKeyEnum.modelPermission, '*');
   // 3. 延迟1秒，等待其他节点刷新
   await delay(1000);
 };

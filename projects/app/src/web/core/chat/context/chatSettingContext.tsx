@@ -1,4 +1,5 @@
 import { useSystemStore } from '@/web/common/system/useSystemStore';
+import type { ChatSettingTabOptionEnum } from '@/pageComponents/chat/constants';
 import {
   ChatSidebarPaneEnum,
   defaultCollapseStatus,
@@ -6,22 +7,24 @@ import {
 } from '@/pageComponents/chat/constants';
 import { getChatSetting } from '@/web/core/chat/api';
 import { useChatStore } from '@/web/core/chat/context/useChatStore';
-import type { ChatSettingSchema } from '@fastgpt/global/core/chat/setting/type';
+import type { ChatSettingType } from '@fastgpt/global/core/chat/setting/type';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createContext } from 'use-context-selector';
 
-type ChatSettingReturnType = ChatSettingSchema | undefined;
-
 export type ChatSettingContextValue = {
   pane: ChatSidebarPaneEnum;
-  handlePaneChange: (pane: ChatSidebarPaneEnum, _id?: string) => void;
+  handlePaneChange: (
+    pane: ChatSidebarPaneEnum,
+    _id?: string,
+    _tab?: ChatSettingTabOptionEnum
+  ) => void;
   collapse: CollapseStatusType;
   onTriggerCollapse: () => void;
-  chatSettings: ChatSettingSchema | undefined;
-  refreshChatSetting: () => Promise<ChatSettingReturnType>;
-  logos: Pick<ChatSettingSchema, 'wideLogoUrl' | 'squareLogoUrl'>;
+  chatSettings: ChatSettingType | undefined;
+  refreshChatSetting: () => Promise<ChatSettingType | undefined>;
+  logos: { wideLogoUrl?: string; squareLogoUrl?: string };
 };
 
 export const ChatSettingContext = createContext<ChatSettingContextValue>({
@@ -30,12 +33,9 @@ export const ChatSettingContext = createContext<ChatSettingContextValue>({
   collapse: defaultCollapseStatus,
   onTriggerCollapse: () => {},
   chatSettings: undefined,
-  refreshChatSetting: function (): Promise<ChatSettingReturnType> {
+  logos: { wideLogoUrl: '', squareLogoUrl: '' },
+  refreshChatSetting: function (): Promise<ChatSettingType | undefined> {
     throw new Error('Function not implemented.');
-  },
-  logos: {
-    wideLogoUrl: '',
-    squareLogoUrl: ''
   }
 });
 
@@ -59,11 +59,19 @@ export const ChatSettingContextProvider = ({ children }: { children: React.React
     {
       manual: false,
       refreshDeps: [feConfigs.isPlus],
-      onSuccess(data) {
+      onSuccess: (data) => {
         if (!data) return;
 
-        // Reset home page appId
-        if (pane === ChatSidebarPaneEnum.HOME && appId !== data.appId) {
+        if (!data.enableHome && pane === ChatSidebarPaneEnum.HOME) {
+          handlePaneChange(ChatSidebarPaneEnum.TEAM_APPS);
+          return;
+        }
+
+        if (
+          pane === ChatSidebarPaneEnum.HOME &&
+          appId !== data.appId &&
+          data.quickAppList.every((q) => q._id !== appId)
+        ) {
           handlePaneChange(ChatSidebarPaneEnum.HOME, data.appId);
         }
       }
@@ -71,8 +79,8 @@ export const ChatSettingContextProvider = ({ children }: { children: React.React
   );
 
   const handlePaneChange = useCallback(
-    async (newPane: ChatSidebarPaneEnum, id?: string) => {
-      if (newPane === pane && !id) return;
+    async (newPane: ChatSidebarPaneEnum, id?: string, tab?: ChatSettingTabOptionEnum) => {
+      if (newPane === pane && !id && !tab) return;
 
       const _id = (() => {
         if (id) return id;
@@ -87,8 +95,10 @@ export const ChatSettingContextProvider = ({ children }: { children: React.React
 
       await router.replace({
         query: {
+          ...router.query,
           appId: _id,
-          pane: newPane
+          pane: newPane,
+          tab
         }
       });
 
@@ -102,9 +112,9 @@ export const ChatSettingContextProvider = ({ children }: { children: React.React
     if (!Object.values(ChatSidebarPaneEnum).includes(pane)) {
       handlePaneChange(ChatSidebarPaneEnum.HOME);
     }
-  }, [pane]);
+  }, [pane, handlePaneChange]);
 
-  const logos: Pick<ChatSettingSchema, 'wideLogoUrl' | 'squareLogoUrl'> = useMemo(
+  const logos: Pick<ChatSettingType, 'wideLogoUrl' | 'squareLogoUrl'> = useMemo(
     () => ({
       wideLogoUrl: chatSettings?.wideLogoUrl,
       squareLogoUrl: chatSettings?.squareLogoUrl

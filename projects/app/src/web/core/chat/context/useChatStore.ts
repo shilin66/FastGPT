@@ -187,6 +187,7 @@ const createStorageListener = (store: any) => {
 
   return () => {};
 };
+
 // 初始化存储事件监听器
 if (typeof window !== 'undefined') {
   createStorageListener(useChatStore);

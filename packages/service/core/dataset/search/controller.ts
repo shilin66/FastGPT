@@ -32,11 +32,14 @@ import type { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { datasetSearchQueryExtension } from './utils';
 import type { RerankModelItemType } from '@fastgpt/global/core/ai/model.d';
 import { formatDatasetDataValue } from '../data/controller';
+import { pushTrack } from '../../../common/middle/tracks/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 
 export type SearchDatasetDataProps = {
   histories: ChatItemType[];
   teamId: string;
+  uid?: string;
+  tmbId?: string;
   model: string;
   datasetIds: string[];
   reRankQuery: string;
@@ -793,10 +796,10 @@ export async function searchDatasetData(
 
     // rrf concat
     const rrfEmbRecall = datasetSearchResultConcat(
-      embeddingRecallResults.map((list) => ({ k: 60, list }))
+      embeddingRecallResults.map((list) => ({ weight: 1, list }))
     ).slice(0, embeddingLimit);
     const rrfFTRecall = datasetSearchResultConcat(
-      fullTextRecallResults.map((list) => ({ k: 60, list }))
+      fullTextRecallResults.map((list) => ({ weight: 1, list }))
     ).slice(0, fullTextLimit);
 
     return {
@@ -858,25 +861,17 @@ export async function searchDatasetData(
     }
   })();
 
-  // embedding recall and fullText recall rrf concat
-  const baseK = 120;
-  const embK = Math.round(baseK * (1 - embeddingWeight)); // 搜索结果的 k 值
-  const fullTextK = Math.round(baseK * embeddingWeight); // rerank 结果的 k 值
-
   const rrfSearchResult = datasetSearchResultConcat([
-    { k: embK, list: embeddingRecallResults },
-    { k: fullTextK, list: fullTextRecallResults }
+    { weight: embeddingWeight, list: embeddingRecallResults },
+    { weight: 1 - embeddingWeight, list: fullTextRecallResults }
   ]);
   const rrfConcatResults = (() => {
     if (reRankResults.length === 0) return rrfSearchResult;
     if (rerankWeight === 1) return reRankResults;
 
-    const searchK = Math.round(baseK * rerankWeight); // 搜索结果的 k 值
-    const rerankK = Math.round(baseK * (1 - rerankWeight)); // rerank 结果的 k 值
-
     return datasetSearchResultConcat([
-      { k: searchK, list: rrfSearchResult },
-      { k: rerankK, list: reRankResults }
+      { weight: 1 - rerankWeight, list: rrfSearchResult },
+      { weight: rerankWeight, list: reRankResults }
     ]);
   })();
 
@@ -916,6 +911,8 @@ export async function searchDatasetData(
 
   // token filter
   const filterMaxTokensResult = await filterDatasetDataByMaxTokens(scoreFilter, maxTokens);
+
+  pushTrack.datasetSearch({ datasetIds, teamId });
 
   return {
     searchRes: filterMaxTokensResult,

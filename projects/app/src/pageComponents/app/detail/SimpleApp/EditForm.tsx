@@ -31,7 +31,6 @@ import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 import VariableTip from '@/components/common/Textarea/MyTextarea/VariableTip';
 import { getWebLLMModel } from '@/web/common/system/utils';
 import ToolSelect from './components/ToolSelect';
-import { useSystemStore } from '@/web/common/system/useSystemStore';
 import OptimizerPopover from '@/components/common/PromptEditor/OptimizerPopover';
 
 const DatasetSelectModal = dynamic(() => import('@/components/core/app/DatasetSelectModal'));
@@ -71,7 +70,6 @@ const EditForm = ({
   const { appDetail } = useContextSelector(AppContext, (v) => v);
   const selectDatasets = useMemo(() => appForm?.dataset?.datasets, [appForm]);
   const [, startTst] = useTransition();
-  const { llmModelList, defaultModels } = useSystemStore();
 
   const {
     isOpen: isOpenDatasetSelect,
@@ -221,6 +219,7 @@ const EditForm = ({
                 placeholder={t('common:core.app.tip.systemPromptTip')}
                 title={t('common:core.ai.Prompt')}
                 ExtensionPopover={[OptimizerPopverComponent]}
+                isRichText={true}
               />
             </Box>
           </Box>

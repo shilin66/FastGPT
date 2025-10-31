@@ -20,16 +20,19 @@ import {
 } from '@fastgpt/global/core/workflow/constants';
 import { checkInputIsReference } from '@fastgpt/global/core/workflow/utils';
 import { useContextSelector } from 'use-context-selector';
-import { WorkflowContext } from '../../context';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { AppContext } from '../../../context';
 import LightRowTabs from '@fastgpt/web/components/common/Tabs/LightRowTabs';
-import { WorkflowNodeEdgeContext } from '../../context/workflowInitContext';
+import { WorkflowBufferDataContext } from '../../context/workflowInitContext';
 import LabelAndFormRender from '@/components/core/app/formRender/LabelAndForm';
 import {
   nodeInputTypeToInputType,
   variableInputTypeToInputType
 } from '@/components/core/app/formRender/utils';
+import { useSafeTranslation } from '@fastgpt/web/hooks/useSafeTranslation';
+import { WorkflowUtilsContext } from '../../context/workflowUtilsContext';
+import { WorkflowActionsContext } from '../../context/workflowActionsContext';
+import { WorkflowDebugContext } from '../../context/workflowDebugContext';
 
 const MyRightDrawer = dynamic(
   () => import('@fastgpt/web/components/common/MyDrawer/MyRightDrawer')
@@ -41,22 +44,27 @@ enum TabEnum {
 }
 
 export const useDebug = () => {
-  const { t } = useTranslation();
+  const { t } = useSafeTranslation();
   const { toast } = useToast();
 
-  const setNodes = useContextSelector(WorkflowNodeEdgeContext, (v) => v.setNodes);
-  const getNodes = useContextSelector(WorkflowNodeEdgeContext, (v) => v.getNodes);
-  const edges = useContextSelector(WorkflowNodeEdgeContext, (v) => v.edges);
-  const onUpdateNodeError = useContextSelector(WorkflowContext, (v) => v.onUpdateNodeError);
-  const onStartNodeDebug = useContextSelector(WorkflowContext, (v) => v.onStartNodeDebug);
+  const setNodes = useContextSelector(WorkflowBufferDataContext, (v) => v.setNodes);
+  const getNodes = useContextSelector(WorkflowBufferDataContext, (v) => v.getNodes);
+  const edges = useContextSelector(WorkflowBufferDataContext, (v) => v.edges);
+  const { onUpdateNodeError, onRemoveError } = useContextSelector(WorkflowActionsContext, (v) => v);
+  const onStartNodeDebug = useContextSelector(WorkflowDebugContext, (v) => v.onStartNodeDebug);
 
   const appDetail = useContextSelector(AppContext, (v) => v.appDetail);
 
-  const { filteredVar, customVar, variables } = useMemo(() => {
+  const { filteredVar, customVar, internalVar, variables } = useMemo(() => {
     const variables = appDetail.chatConfig?.variables || [];
     return {
-      filteredVar: variables.filter((item) => item.type !== VariableInputEnum.custom) || [],
+      filteredVar:
+        variables.filter(
+          (item) =>
+            item.type !== VariableInputEnum.custom && item.type !== VariableInputEnum.internal
+        ) || [],
       customVar: variables.filter((item) => item.type === VariableInputEnum.custom) || [],
+      internalVar: variables.filter((item) => item.type === VariableInputEnum.internal) || [],
       variables
     };
   }, [appDetail.chatConfig?.variables]);
@@ -80,6 +88,7 @@ export const useDebug = () => {
 
     const checkResults = checkWorkflowNodeAndConnection({ nodes, edges });
     if (!checkResults) {
+      onRemoveError();
       const storeNodes = uiWorkflow2StoreWorkflow({ nodes, edges });
 
       return JSON.stringify(storeNodes);
@@ -92,7 +101,7 @@ export const useDebug = () => {
       });
       return Promise.reject();
     }
-  }, [edges, getNodes, onUpdateNodeError, t, toast]);
+  }, [edges, getNodes, onRemoveError, onUpdateNodeError, t, toast]);
 
   const openDebugNode = useCallback(
     async ({ entryNodeId }: { entryNodeId: string }) => {
@@ -216,14 +225,14 @@ export const useDebug = () => {
 
     const onCheckRunError = useCallback((e: FieldErrors<Record<string, any>>) => {
       const hasRequiredNodeVar =
-        e.nodeVariables && Object.values(e.nodeVariables).some((item) => item.type === 'required');
+        e.nodeVariables && Object.values(e.nodeVariables).some((item) => item.type === 'validate');
 
       if (hasRequiredNodeVar) {
         return setCurrentTab(TabEnum.node);
       }
 
       const hasRequiredGlobalVar =
-        e.variables && Object.values(e.variables).some((item) => item.type === 'required');
+        e.variables && Object.values(e.variables).some((item) => item.type === 'validate');
 
       if (hasRequiredGlobalVar) {
         setCurrentTab(TabEnum.global);
@@ -234,8 +243,8 @@ export const useDebug = () => {
       <MyRightDrawer
         onClose={onClose}
         iconSrc="core/workflow/debugBlue"
-        title={t('common:core.workflow.Debug Node')}
-        maxW={['90vw', '35vw']}
+        title={t('workflow:debug_test')}
+        maxW={['90vw', '40vw']}
         px={0}
       >
         <Box flex={'1 0 0'} overflow={'auto'} px={6}>
@@ -253,39 +262,54 @@ export const useDebug = () => {
               onChange={setCurrentTab}
             />
           )}
+          <Box display={currentTab === TabEnum.node ? 'block' : 'none'}>
+            {renderInputs.map((item) => (
+              <LabelAndFormRender
+                key={item.key}
+                label={item.label}
+                required={item.required}
+                placeholder={t(item.placeholder || item.description)}
+                inputType={nodeInputTypeToInputType(item.renderTypeList)}
+                form={variablesForm}
+                fieldName={`nodeVariables.${item.key}`}
+                bg={'myGray.50'}
+              />
+            ))}
+          </Box>
           <Box display={currentTab === TabEnum.global ? 'block' : 'none'}>
             {customVar.map((item) => (
               <LabelAndFormRender
-                {...item}
                 key={item.key}
-                formKey={`variables.${item.key}`}
-                placeholder={item.description}
+                label={item.label}
+                required={item.required}
+                placeholder={t(item.description)}
                 inputType={variableInputTypeToInputType(item.type)}
-                variablesForm={variablesForm}
+                form={variablesForm}
+                fieldName={`variables.${item.key}`}
+                bg={'myGray.50'}
+              />
+            ))}
+            {internalVar.map((item) => (
+              <LabelAndFormRender
+                key={item.key}
+                label={item.label}
+                required={item.required}
+                placeholder={t(item.description)}
+                inputType={variableInputTypeToInputType(item.type)}
+                form={variablesForm}
+                fieldName={`variables.${item.key}`}
                 bg={'myGray.50'}
               />
             ))}
             {filteredVar.map((item) => (
               <LabelAndFormRender
-                {...item}
                 key={item.key}
-                formKey={`variables.${item.key}`}
+                label={item.label}
+                required={item.required}
                 placeholder={item.description}
                 inputType={variableInputTypeToInputType(item.type)}
-                variablesForm={variablesForm}
-                bg={'myGray.50'}
-              />
-            ))}
-          </Box>
-          <Box display={currentTab === TabEnum.node ? 'block' : 'none'}>
-            {renderInputs.map((item) => (
-              <LabelAndFormRender
-                {...item}
-                key={item.key}
-                formKey={`nodeVariables.${item.key}`}
-                placeholder={item.placeholder || item.description}
-                inputType={nodeInputTypeToInputType(item.renderTypeList)}
-                variablesForm={variablesForm}
+                form={variablesForm}
+                fieldName={`variables.${item.key}`}
                 bg={'myGray.50'}
               />
             ))}
@@ -303,6 +327,7 @@ export const useDebug = () => {
     t,
     variables.length,
     customVar,
+    internalVar,
     filteredVar,
     runtimeNodeId,
     onStartNodeDebug

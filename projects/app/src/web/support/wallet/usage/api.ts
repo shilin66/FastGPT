@@ -6,11 +6,14 @@ import type {
   GetUsageDashboardResponseItem,
   GetUsageProps
 } from '@fastgpt/global/support/wallet/usage/api.d';
-import type { TeamUsageItemType, UsageItemType } from '@fastgpt/global/support/wallet/usage/type';
+import type {
+  TeamUsageItemType,
+  UsageListItemType
+} from '@fastgpt/global/support/wallet/usage/type';
 import type { PaginationProps, PaginationResponse } from '@fastgpt/web/common/fetch/type';
 
 export const getUserUsages = (data: PaginationProps<GetUsageProps>) =>
-  POST<PaginationResponse<UsageItemType>>(`/support/wallet/usage/getUsage`, data);
+  POST<PaginationResponse<UsageListItemType>>(`/support/wallet/usage/getUsage`, data);
 
 export const getDashboardData = (data: GetUsageDashboardProps) =>
   POST<GetUsageDashboardResponseItem[]>(`/support/wallet/usage/getDashboardData`, data);

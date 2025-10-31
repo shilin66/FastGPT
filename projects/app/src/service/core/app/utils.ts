@@ -1,6 +1,4 @@
-import { getUserChatInfoAndAuthTeamPoints } from '@fastgpt/service/support/permission/auth/team';
-import { getRunningUserInfoByTmbId } from '@fastgpt/service/support/user/team/utils';
-import { createChatUsage } from '@fastgpt/service/support/wallet/usage/controller';
+import { getErrText } from '@fastgpt/global/common/error/utils';
 import { getNextTimeByCronStringAndTimezone } from '@fastgpt/global/common/string/time';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { delay, retryFn } from '@fastgpt/global/common/system/utils';
@@ -9,6 +7,8 @@ import {
   ChatRoleEnum,
   ChatSourceEnum
 } from '@fastgpt/global/core/chat/constants';
+import { type UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
+import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import {
   getWorkflowEntryNodeIds,
   storeEdges2RuntimeEdges,
@@ -17,13 +17,13 @@ import {
 import { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
 import { addLog } from '@fastgpt/service/common/system/log';
 import { MongoApp } from '@fastgpt/service/core/app/schema';
+import { getAppLatestVersion } from '@fastgpt/service/core/app/version/controller';
+import { saveChat } from '@fastgpt/service/core/chat/saveChat';
 import { WORKFLOW_MAX_RUN_TIMES } from '@fastgpt/service/core/workflow/constants';
 import { dispatchWorkFlow } from '@fastgpt/service/core/workflow/dispatch';
-import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
-import { type UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
-import { saveChat } from '@fastgpt/service/core/chat/saveChat';
-import { getAppLatestVersion } from '@fastgpt/service/core/app/version/controller';
-import { getErrText } from '@fastgpt/global/common/error/utils';
+import { getUserChatInfo } from '@fastgpt/service/support/user/team/utils';
+import { getRunningUserInfoByTmbId } from '@fastgpt/service/support/user/team/utils';
+import { createChatUsageRecord } from '@fastgpt/service/support/wallet/usage/controller';
 
 export const getScheduleTriggerApp = async () => {
   addLog.info('Schedule trigger app');
@@ -43,9 +43,6 @@ export const getScheduleTriggerApp = async () => {
       const chatId = getNanoid();
       // random delay 0 ~ 60s
       await delay(Math.floor(Math.random() * 60 * 1000));
-      const { timezone, externalProvider } = await retryFn(() =>
-        getUserChatInfoAndAuthTeamPoints(app.tmbId)
-      );
 
       // Get app latest version
       const { nodes, edges, chatConfig } = await retryFn(() => getAppLatestVersion(app._id, app));
@@ -58,16 +55,26 @@ export const getScheduleTriggerApp = async () => {
         }
       ];
 
+      const usageId = await retryFn(() =>
+        createChatUsageRecord({
+          appName: app.name,
+          appId: app._id,
+          teamId: app.teamId,
+          tmbId: app.tmbId,
+          source: UsageSourceEnum.cronJob
+        })
+      );
+
       try {
         const { flowUsages, assistantResponses, flowResponses, durationSeconds, system_memories } =
           await retryFn(async () => {
             return dispatchWorkFlow({
               chatId,
-              timezone,
-              externalProvider,
               mode: 'chat',
+              usageId,
               runningAppInfo: {
                 id: String(app._id),
+                name: app.name,
                 teamId: String(app.teamId),
                 tmbId: String(app.tmbId)
               },
@@ -98,28 +105,18 @@ export const getScheduleTriggerApp = async () => {
           isUpdateUseTime: false, // owner update use time
           newTitle: 'Cron Job',
           source: ChatSourceEnum.cronJob,
-          content: [
-            {
-              obj: ChatRoleEnum.Human,
-              value: userQuery
-            },
-            {
-              obj: ChatRoleEnum.AI,
-              value: assistantResponses,
-              [DispatchNodeResponseKeyEnum.nodeResponse]: flowResponses,
-              memories: system_memories
-            }
-          ],
+          userContent: {
+            obj: ChatRoleEnum.Human,
+            value: userQuery
+          },
+          aiContent: {
+            obj: ChatRoleEnum.AI,
+            value: assistantResponses,
+            [DispatchNodeResponseKeyEnum.nodeResponse]: flowResponses,
+            memories: system_memories
+          },
           durationSeconds,
           errorMsg: getErrText(error)
-        });
-        createChatUsage({
-          appName: app.name,
-          appId: app._id,
-          teamId: String(app.teamId),
-          tmbId: String(app.tmbId),
-          source: UsageSourceEnum.cronJob,
-          flowUsages
         });
       } catch (error) {
         addLog.error('Schedule trigger error', error);
@@ -135,17 +132,15 @@ export const getScheduleTriggerApp = async () => {
           isUpdateUseTime: false, // owner update use time
           newTitle: 'Cron Job',
           source: ChatSourceEnum.cronJob,
-          content: [
-            {
-              obj: ChatRoleEnum.Human,
-              value: userQuery
-            },
-            {
-              obj: ChatRoleEnum.AI,
-              value: [],
-              [DispatchNodeResponseKeyEnum.nodeResponse]: []
-            }
-          ],
+          userContent: {
+            obj: ChatRoleEnum.Human,
+            value: userQuery
+          },
+          aiContent: {
+            obj: ChatRoleEnum.AI,
+            value: [],
+            [DispatchNodeResponseKeyEnum.nodeResponse]: []
+          },
           durationSeconds: 0,
           errorMsg: getErrText(error)
         });

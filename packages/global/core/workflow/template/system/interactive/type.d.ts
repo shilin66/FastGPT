@@ -8,11 +8,14 @@ type InteractiveBasicType = {
   entryNodeIds: string[];
   memoryEdges: RuntimeEdgeItemType[];
   nodeOutputs: NodeOutputItemType[];
+  skipNodeQueue?: { id: string; skippedNodeIdList: string[] }[]; // 需要记录目前在 queue 里的节点
   toolParams?: {
     entryNodeIds: string[]; // 记录工具中，交互节点的 Id，而不是起始工作流的入口
     memoryMessages: ChatCompletionMessageParam[]; // 这轮工具中，产生的新的 messages
     toolCallId: string; // 记录对应 tool 的id，用于后续交互节点可以替换掉 tool 的 response
   };
+
+  usageId?: string;
 };
 
 type InteractiveNodeType = {

@@ -4,6 +4,7 @@ import { type DispatchNodeResultType } from '@fastgpt/global/core/workflow/runti
 import axios from 'axios';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { SandboxCodeTypeEnum } from '@fastgpt/global/core/workflow/template/system/sandbox/constants';
+import { getErrText } from '@fastgpt/global/common/error/utils';
 import { SandBoxTypeEnum } from '@fastgpt/global/common/system/types/index.d';
 import { transformerNodejs, transformerPython3 } from './difySandBoxUtil';
 import { formatHttpError } from '../utils';

@@ -70,6 +70,7 @@ export type FastGPTFeConfigsType = {
   show_dataset_yuque?: boolean;
   show_publish_feishu?: boolean;
   show_publish_dingtalk?: boolean;
+  show_publish_wecom?: boolean;
   show_publish_offiaccount?: boolean;
 
   show_dataset_enhance?: boolean;
@@ -143,10 +144,12 @@ export type MicrosoftType = {
 
 export type SystemEnvType = {
   openapiPrefix?: string;
+  tokenWorkers: number; // token count max worker
+
+  datasetParseMaxProcess: number;
   vectorMaxProcess: number;
   qaMaxProcess: number;
   vlmMaxProcess: number;
-  tokenWorkers: number; // token count max worker
 
   hnswEfSearch: number;
   hnswMaxScanTuples: number;

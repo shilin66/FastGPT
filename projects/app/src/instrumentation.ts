@@ -19,7 +19,10 @@ export async function register() {
         { startTrainingQueue },
         { preLoadWorker },
         { loadSystemModels },
-        { connectSignoz }
+        { connectSignoz },
+        { getSystemTools },
+        { trackTimerProcess },
+        { initS3Buckets }
       ] = await Promise.all([
         import('@fastgpt/service/common/mongo/init'),
         import('@fastgpt/service/common/mongo/index'),
@@ -32,7 +35,10 @@ export async function register() {
         import('@/service/core/dataset/training/utils'),
         import('@fastgpt/service/worker/preload'),
         import('@fastgpt/service/core/ai/config/utils'),
-        import('@fastgpt/service/common/otel/trace/register')
+        import('@fastgpt/service/common/otel/trace/register'),
+        import('@fastgpt/service/core/app/plugin/controller'),
+        import('@fastgpt/service/common/middle/tracks/processor'),
+        import('@fastgpt/service/common/s3')
       ]);
 
       // connect to signoz
@@ -42,26 +48,33 @@ export async function register() {
       systemStartCb();
       initGlobalVariables();
 
+      // init s3 buckets
+      initS3Buckets();
+
       // Connect to MongoDB
-      await connectMongo(connectionMongo, MONGO_URL);
-      connectMongo(connectionLogMongo, MONGO_LOG_URL);
+      await connectMongo({
+        db: connectionMongo,
+        url: MONGO_URL,
+        connectedCb: () => startMongoWatch()
+      });
+      connectMongo({
+        db: connectionLogMongo,
+        url: MONGO_LOG_URL
+      });
 
       //init system config；init vector database；init root user
       await Promise.all([getInitConfig(), initVectorStore(), initRootUser(), loadSystemModels()]);
 
-      try {
-        await preLoadWorker();
-      } catch (error) {
-        console.error('Preload worker error', error);
-      }
+      await Promise.all([
+        preLoadWorker().catch(),
+        getSystemTools(),
+        initSystemPluginGroups(),
+        initAppTemplateTypes()
+      ]);
 
-      // 异步加载
-      initSystemPluginGroups();
-      initAppTemplateTypes();
-      // getSystemPlugins(true);
-      startMongoWatch();
       startCron();
       startTrainingQueue(true);
+      trackTimerProcess();
 
       console.log('Init system success');
     }

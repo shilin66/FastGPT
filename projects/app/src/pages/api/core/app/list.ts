@@ -106,7 +106,9 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
     // Filter apps by permission, if not owner, only get apps that I have permission to access
     const idList = { _id: { $in: myPerList.map((item) => item.resourceId) } };
     const appPerQuery = teamPer.isOwner
-      ? {}
+      ? {
+          parentId: parentId ? parseParentIdInMongo(parentId) : null
+        }
       : parentId
         ? {
             $or: [idList, parseParentIdInMongo(parentId)]
@@ -138,6 +140,7 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
         ...searchMatch,
         type: _type
       };
+
       // @ts-ignore
       delete data.parentId;
       return data;
@@ -176,7 +179,7 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
           const tmbRole = myPerList.find(
             (item) => String(item.resourceId) === appId && !!item.tmbId
           )?.permission;
-          const groupRole = sumPer(
+          const groupAndOrgRole = sumPer(
             ...myPerList
               .filter(
                 (item) => String(item.resourceId) === appId && (!!item.groupId || !!item.orgId)
@@ -185,7 +188,7 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
           );
 
           return new AppPermission({
-            role: tmbRole ?? groupRole,
+            role: tmbRole ?? groupAndOrgRole,
             isOwner: String(app.tmbId) === String(tmbId) || teamPer.isOwner
           });
         };
@@ -194,19 +197,17 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
           return roleList.filter((item) => String(item.resourceId) === String(appId)).length;
         };
 
-        // Inherit app, check parent folder clb
+        // Inherit app, check parent folder clb and it's own clb
         if (!AppFolderTypeList.includes(app.type) && app.parentId && app.inheritPermission) {
           return {
-            Per: getPer(String(app.parentId)),
+            Per: getPer(String(app.parentId)).addRole(getPer(String(app._id)).role),
             privateApp: getClbCount(String(app.parentId)) <= 1
           };
         }
 
         return {
           Per: getPer(String(app._id)),
-          privateApp: AppFolderTypeList.includes(app.type)
-            ? getClbCount(String(app._id)) <= 1
-            : getClbCount(String(app._id)) === 0
+          privateApp: getClbCount(String(app._id)) <= 1
         };
       })();
 
@@ -217,6 +218,7 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
 
       return {
         ...rest,
+        parentId: app.parentId,
         permission: Per,
         private: privateApp,
         hasInteractiveNode

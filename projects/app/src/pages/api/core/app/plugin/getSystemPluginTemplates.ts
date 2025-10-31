@@ -3,17 +3,17 @@ import { NextAPI } from '@/service/middleware/entry';
 import { type ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { type ApiRequestProps } from '@fastgpt/service/type/next';
 import { replaceRegChars } from '@fastgpt/global/common/string/tools';
-import { FlowNodeTemplateTypeEnum } from '@fastgpt/global/core/workflow/constants';
 import { parseI18nString } from '@fastgpt/global/common/i18n/utils';
 import { getLocale } from '@fastgpt/service/common/middle/i18n';
 import { authCert } from '@fastgpt/service/support/permission/auth/common';
 import type { NextApiResponse } from 'next';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { getSystemTools } from '@fastgpt/service/core/app/plugin/controller';
+import { FlowNodeTemplateTypeEnum } from '@fastgpt/global/core/workflow/constants';
 
 export type GetSystemPluginTemplatesBody = {
   searchKey?: string;
-  parentId: ParentIdType;
+  parentId?: ParentIdType;
 };
 
 async function handler(
@@ -37,13 +37,13 @@ async function handler(
       name: parseI18nString(plugin.name, lang),
       intro: parseI18nString(plugin.intro ?? '', lang),
       instructions: parseI18nString(plugin.userGuide ?? '', lang),
-      toolDescription: plugin.toolDescription
+      toolDescription: plugin.toolDescription,
+      toolSource: plugin.toolSource
     }))
     .filter((item) => {
       if (searchKey) {
-        if (item.isFolder) return false;
-        const regx = new RegExp(`${replaceRegChars(searchKey)}`, 'i');
-        return regx.test(String(item.name)) || regx.test(String(item.intro || ''));
+        const regex = new RegExp(`${replaceRegChars(searchKey)}`, 'i');
+        return regex.test(String(item.name)) || regex.test(String(item.intro || ''));
       }
       return item.parentId === formatParentId;
     });

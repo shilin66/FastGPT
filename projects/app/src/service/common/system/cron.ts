@@ -15,6 +15,7 @@ import { getScheduleTriggerApp } from '@/service/core/app/utils';
 import { clearExpiredRawTextBufferCron } from '@fastgpt/service/common/buffer/rawText/controller';
 import { clearExpiredDatasetImageCron } from '@fastgpt/service/core/dataset/image/controller';
 import { cronRefreshModels } from '@fastgpt/service/core/ai/config/utils';
+import { clearExpiredS3FilesCron } from '@fastgpt/service/common/s3/controller';
 import { localCacheManager } from '@fastgpt/service/support/globalCache/cache';
 import { checkCacheLicense } from '@fastgpt/service/common/license/verify';
 
@@ -133,5 +134,6 @@ export const startCron = () => {
   clearExpiredRawTextBufferCron();
   clearExpiredDatasetImageCron();
   cronRefreshModels();
+  clearExpiredS3FilesCron();
   scheduleClearInvitationLinkCron();
 };

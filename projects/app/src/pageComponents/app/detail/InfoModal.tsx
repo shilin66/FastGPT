@@ -1,7 +1,6 @@
 import CollaboratorContextProvider from '@/components/support/permission/MemberManager/context';
 import ResumeInherit from '@/components/support/permission/ResumeInheritText';
 import { AppContext } from './context';
-import { useSelectFile } from '@/web/common/file/hooks/useSelectFile';
 import { resumeInheritPer } from '@/web/core/app/api';
 import {
   deleteAppCollaborators,
@@ -21,7 +20,6 @@ import {
 import type { RequireOnlyOne } from '@fastgpt/global/common/type/utils';
 import type { AppSchema } from '@fastgpt/global/core/app/type.d';
 import { AppRoleList } from '@fastgpt/global/support/permission/app/constant';
-import type { PermissionValueType } from '@fastgpt/global/support/permission/type';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import MyModal from '@fastgpt/web/components/common/MyModal';
@@ -31,20 +29,19 @@ import { useTranslation } from 'next-i18next';
 import React, { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { useContextSelector } from 'use-context-selector';
+import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
+import { useUploadAvatar } from '@fastgpt/web/common/file/hooks/useUploadAvatar';
+import { getUploadAvatarPresignedUrl } from '@/web/common/file/api';
 
 const InfoModal = ({ onClose }: { onClose: () => void }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { updateAppDetail, appDetail, reloadApp } = useContextSelector(AppContext, (v) => v);
 
-  const {
-    File,
-    onOpen: onOpenSelectFile,
-    onSelectImage
-  } = useSelectFile({
-    fileType: '.jpg,.png',
-    multiple: false
-  });
+  const { Component: AvatarUploader, handleFileSelectorOpen: handleAvatarSelectorOpen } =
+    useUploadAvatar(getUploadAvatarPresignedUrl, {
+      onSuccess: (avatar) => setValue('avatar', avatar)
+    });
 
   const {
     register,
@@ -100,25 +97,6 @@ const InfoModal = ({ onClose }: { onClose: () => void }) => {
     [handleSubmit, onClose, saveSubmitError, saveSubmitSuccess]
   );
 
-  const onUpdateCollaborators = ({
-    members,
-    groups,
-    orgs,
-    permission
-  }: {
-    members?: string[];
-    groups?: string[];
-    orgs?: string[];
-    permission: PermissionValueType;
-  }) =>
-    postUpdateAppCollaborators({
-      members,
-      groups,
-      permission,
-      orgs,
-      appId: appDetail._id
-    });
-
   const onDelCollaborator = async (
     props: RequireOnlyOne<{ tmbId: string; groupId: string; orgId: string }>
   ) =>
@@ -152,7 +130,7 @@ const InfoModal = ({ onClose }: { onClose: () => void }) => {
             borderRadius={'md'}
             mr={4}
             title={t('common:set_avatar')}
-            onClick={() => onOpenSelectFile()}
+            onClick={handleAvatarSelectorOpen}
           />
           <FormControl>
             <Input
@@ -185,15 +163,14 @@ const InfoModal = ({ onClose }: { onClose: () => void }) => {
             )}
             <Box mt={6}>
               <CollaboratorContextProvider
+                defaultRole={ReadRoleVal}
                 permission={appDetail.permission}
                 onGetCollaboratorList={() => getCollaboratorList(appDetail._id)}
                 roleList={AppRoleList}
-                onUpdateCollaborators={async (props) =>
-                  onUpdateCollaborators({
-                    permission: props.permission,
-                    members: props.members,
-                    groups: props.groups,
-                    orgs: props.orgs
+                onUpdateCollaborators={async ({ collaborators }) =>
+                  postUpdateAppCollaborators({
+                    collaborators,
+                    appId: appDetail._id
                   })
                 }
                 onDelOneCollaborator={onDelCollaborator}
@@ -201,7 +178,7 @@ const InfoModal = ({ onClose }: { onClose: () => void }) => {
                 isInheritPermission={appDetail.inheritPermission}
                 hasParent={!!appDetail.parentId}
               >
-                {({ MemberListCard, onOpenManageModal, onOpenAddMember }) => {
+                {({ MemberListCard, onOpenManageModal }) => {
                   return (
                     <>
                       <Flex
@@ -211,24 +188,14 @@ const InfoModal = ({ onClose }: { onClose: () => void }) => {
                         w="full"
                       >
                         <Box fontSize={'sm'}>{t('common:permission.Collaborator')}</Box>
-                        <Flex flexDirection="row" gap="2">
-                          <Button
-                            size="sm"
-                            variant="whitePrimary"
-                            leftIcon={<MyIcon w="4" name="common/settingLight" />}
-                            onClick={onOpenManageModal}
-                          >
-                            {t('common:permission.Manage')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="whitePrimary"
-                            leftIcon={<MyIcon w="4" name="support/permission/collaborator" />}
-                            onClick={onOpenAddMember}
-                          >
-                            {t('common:Add')}
-                          </Button>
-                        </Flex>
+                        <Button
+                          size="sm"
+                          variant="whitePrimary"
+                          leftIcon={<MyIcon w="4" name="common/settingLight" />}
+                          onClick={onOpenManageModal}
+                        >
+                          {t('common:permission.Manage')}
+                        </Button>
                       </Flex>
                       <MemberListCard mt={2} p={1.5} bg="myGray.100" borderRadius="md" />
                     </>
@@ -249,15 +216,7 @@ const InfoModal = ({ onClose }: { onClose: () => void }) => {
         </Button>
       </ModalFooter>
 
-      <File
-        onSelect={(e) =>
-          onSelectImage(e, {
-            maxH: 300,
-            maxW: 300,
-            callback: (e) => setValue('avatar', e)
-          })
-        }
-      />
+      <AvatarUploader />
     </MyModal>
   );
 };
