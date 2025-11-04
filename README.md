@@ -1,8 +1,8 @@
 <div align="center">
 
-<a href="https://fastgpt.io/"><img src="/.github/imgs/logo.svg" width="120" height="120" alt="fastgpt logo"></a>
+<a href="https://OmniCockpit.io/"><img src="/.github/imgs/logo.svg" width="120" height="120" alt="OmniCockpit logo"></a>
 
-# FastGPT
+# OmniCockpit
 
 <p align="center">
   <a href="./README_en.md">English</a> |
@@ -10,18 +10,18 @@
   <a href="./README_ja.md">日语</a>
 </p>
 
-FastGPT 是一个 AI Agent 构建平台，提供开箱即用的数据处理、模型调用等能力，同时可以通过 Flow 可视化进行工作流编排，从而实现复杂的应用场景！
+OmniCockpit 是一个 AI Agent 构建平台，提供开箱即用的数据处理、模型调用等能力，同时可以通过 Flow 可视化进行工作流编排，从而实现复杂的应用场景！
 
 </div>
 
 <p align="center">
-  <a href="https://fastgpt.io/">
+  <a href="https://OmniCockpit.io/">
     <img height="21" src="https://img.shields.io/badge/在线使用-d4eaf7?style=flat-square&logo=spoj&logoColor=7d09f1" alt="cloud">
   </a>
-  <a href="https://doc.fastgpt.io/docs/introduction">
+  <a href="https://doc.OmniCockpit.io/docs/introduction">
     <img height="21" src="https://img.shields.io/badge/相关文档-7d09f1?style=flat-square" alt="document">
   </a>
-  <a href="https://doc.fastgpt.io/docs/introduction/development/intro">
+  <a href="https://doc.OmniCockpit.io/docs/introduction/development/intro">
     <img height="21" src="https://img.shields.io/badge/本地开发-%23d4eaf7?style=flat-square&logo=xcode&logoColor=7d09f1" alt="development">
   </a>
   <a href="/#-%E7%9B%B8%E5%85%B3%E9%A1%B9%E7%9B%AE">
@@ -29,11 +29,11 @@ FastGPT 是一个 AI Agent 构建平台，提供开箱即用的数据处理、�
   </a>
 </p>
 
-https://github.com/labring/FastGPT/assets/15308462/7d3a38df-eb0e-4388-9250-2409bd33f6d4
+https://github.com/labring/OmniCockpit/assets/15308462/7d3a38df-eb0e-4388-9250-2409bd33f6d4
 
 ## 🛸 在线使用
 
-- 🌍 国际版：[fastgpt.io](https://fastgpt.io/)
+- 🌍 国际版：[OmniCockpit.io](https://OmniCockpit.io/)
 
 |                                    |                                    |
 | ---------------------------------- | ---------------------------------- |
@@ -101,15 +101,15 @@ https://github.com/labring/FastGPT/assets/15308462/7d3a38df-eb0e-4388-9250-2409b
 
   > 使用 [Sealos](https://sealos.io) 服务，无需采购服务器、无需域名，支持高并发 & 动态伸缩，并且数据库应用采用 kubeblocks 的数据库，在 IO 性能方面，远超于简单的 Docker 容器部署。
 
-  [点击查看 Sealos 一键部署 FastGPT 教程](https://doc.fastgpt.io/docs/introduction/development/sealos/)
+  [点击查看 Sealos 一键部署 OmniCockpit 教程](https://doc.OmniCockpit.io/docs/introduction/development/sealos/)
 
-* [快速开始本地开发](https://doc.fastgpt.io/docs/introduction/development/intro/)
-* [部署 FastGPT](https://doc.fastgpt.io/docs/introduction/development/sealos/)
-* [系统配置文件说明](https://doc.fastgpt.io/docs/introduction/development/configuration/)
-* [多模型配置方案](https://doc.fastgpt.io/docs/introduction/development/modelConfig/one-api/)
-* [版本更新/升级介绍](https://doc.fastgpt.io/docs/introduction/development/upgrading/index)
-* [OpenAPI API 文档](https://doc.fastgpt.io/docs/introduction/development/openapi/)
-* [知识库结构详解](https://doc.fastgpt.io/docs/introduction/guide/knowledge_base/RAG/)
+* [快速开始本地开发](https://doc.OmniCockpit.io/docs/introduction/development/intro/)
+* [部署 OmniCockpit](https://doc.OmniCockpit.io/docs/introduction/development/sealos/)
+* [系统配置文件说明](https://doc.OmniCockpit.io/docs/introduction/development/configuration/)
+* [多模型配置方案](https://doc.OmniCockpit.io/docs/introduction/development/modelConfig/one-api/)
+* [版本更新/升级介绍](https://doc.OmniCockpit.io/docs/introduction/development/upgrading/index)
+* [OpenAPI API 文档](https://doc.OmniCockpit.io/docs/introduction/development/openapi/)
+* [知识库结构详解](https://doc.OmniCockpit.io/docs/introduction/guide/knowledge_base/RAG/)
 
 <a href="#readme">
     <img src="https://img.shields.io/badge/-返回顶部-7d09f1.svg" alt="#" align="right">
@@ -117,11 +117,11 @@ https://github.com/labring/FastGPT/assets/15308462/7d3a38df-eb0e-4388-9250-2409b
 
 ## 🏘️ 加入我们
 
-我们正在寻找志同道合的小伙伴，加速 FastGPT 的发展。你可以通过 [FastGPT 2025 招聘](https://fael3z0zfze.feishu.cn/wiki/P7FOwEmPziVcaYkvVaacnVX1nvg)了解 FastGPT 的招聘信息。
+我们正在寻找志同道合的小伙伴，加速 OmniCockpit 的发展。你可以通过 [OmniCockpit 2025 招聘](https://fael3z0zfze.feishu.cn/wiki/P7FOwEmPziVcaYkvVaacnVX1nvg)了解 OmniCockpit 的招聘信息。
 
 ## 💪 相关项目
 
-- [FastGPT-plugin](https://github.com/labring/fastgpt-plugin)
+- [OmniCockpit-plugin](https://github.com/labring/OmniCockpit-plugin)
 - [Laf：3 分钟快速接入三方应用](https://github.com/labring/laf)
 - [Sealos：快速部署集群应用](https://github.com/labring/sealos)
 - [One API：多模型管理，支持 Azure、文心一言等](https://github.com/songquanpeng/one-api)
@@ -131,8 +131,8 @@ https://github.com/labring/FastGPT/assets/15308462/7d3a38df-eb0e-4388-9250-2409b
 </a>
 
 ## 🌿 第三方生态
-- [PPIO 派欧云：一键调用高性价比的开源模型 API 和 GPU 容器](https://ppinfra.com/user/register?invited_by=VITYVU&utm_source=github_fastgpt)
-- [AI Proxy：国内模型聚合服务](https://sealos.run/aiproxy/?k=fastgpt-github/)
+- [PPIO 派欧云：一键调用高性价比的开源模型 API 和 GPU 容器](https://ppinfra.com/user/register?invited_by=VITYVU&utm_source=github_OmniCockpit)
+- [AI Proxy：国内模型聚合服务](https://sealos.run/aiproxy/?k=OmniCockpit-github/)
 - [SiliconCloud (硅基流动) —— 开源模型在线体验平台](https://cloud.siliconflow.cn/i/TR9Ym0c4)
 
 <a href="#readme">
@@ -143,7 +143,7 @@ https://github.com/labring/FastGPT/assets/15308462/7d3a38df-eb0e-4388-9250-2409b
 
 扫码加入飞书话题群：
 
-![](https://oss.laf.run/otnvvf-imgs/fastgpt-feishu2.png)
+![](https://oss.laf.run/otnvvf-imgs/OmniCockpit-feishu2.png)
 
 <a href="#readme">
     <img src="https://img.shields.io/badge/-返回顶部-7d09f1.svg" alt="#" align="right">
@@ -151,7 +151,7 @@ https://github.com/labring/FastGPT/assets/15308462/7d3a38df-eb0e-4388-9250-2409b
 
 ## 👀 其他
 
-- [保姆级 FastGPT 教程](https://www.bilibili.com/video/BV1n34y1A7Bo/?spm_id_from=333.999.0.0)
+- [保姆级 OmniCockpit 教程](https://www.bilibili.com/video/BV1n34y1A7Bo/?spm_id_from=333.999.0.0)
 - [接入飞书](https://www.bilibili.com/video/BV1Su4y1r7R3/?spm_id_from=333.999.0.0)
 - [接入企微](https://www.bilibili.com/video/BV1Tp4y1n72T/?spm_id_from=333.999.0.0)
 
@@ -161,13 +161,13 @@ https://github.com/labring/FastGPT/assets/15308462/7d3a38df-eb0e-4388-9250-2409b
 
 ## 🤝 参与贡献
 
-我们非常欢迎各种形式的贡献。如果你对贡献代码感兴趣，可以查看我们的 GitHub [Issues](https://github.com/labring/FastGPT/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc)，大展身手，向我们展示你的奇思妙想。
+我们非常欢迎各种形式的贡献。如果你对贡献代码感兴趣，可以查看我们的 GitHub [Issues](https://github.com/labring/OmniCockpit/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc)，大展身手，向我们展示你的奇思妙想。
 
-<a href="https://github.com/labring/FastGPT/graphs/contributors" target="_blank">
+<a href="https://github.com/labring/OmniCockpit/graphs/contributors" target="_blank">
   <table>
     <tr>
       <th colspan="2">
-        <br><img src="https://contrib.rocks/image?repo=labring/FastGPT"><br><br>
+        <br><img src="https://contrib.rocks/image?repo=labring/OmniCockpit"><br><br>
       </th>
     </tr>
     <tr>
@@ -197,11 +197,11 @@ https://github.com/labring/FastGPT/assets/15308462/7d3a38df-eb0e-4388-9250-2409b
 
 ## 🌟 Star History
 
-<a href="https://github.com/labring/FastGPT/stargazers" target="_blank" style="display: block" align="center">
+<a href="https://github.com/labring/OmniCockpit/stargazers" target="_blank" style="display: block" align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=labring/FastGPT&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=labring/FastGPT&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=labring/FastGPT&type=Date" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=labring/OmniCockpit&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=labring/OmniCockpit&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=labring/OmniCockpit&type=Date" />
   </picture>
 </a>
 
@@ -211,9 +211,9 @@ https://github.com/labring/FastGPT/assets/15308462/7d3a38df-eb0e-4388-9250-2409b
 
 ## 使用协议
 
-本仓库遵循 [FastGPT Open Source License](./LICENSE) 开源协议。
+本仓库遵循 [OmniCockpit Open Source License](./LICENSE) 开源协议。
 
 1. 允许作为后台服务直接商用，但不允许提供 SaaS 服务。
 2. 未经商业授权，任何形式的商用服务均需保留相关版权信息。
-3. 完整请查看 [FastGPT Open Source License](./LICENSE)
-4. 联系方式：Dennis@sealos.io，[点击查看商业版定价策略](https://doc.fastgpt.io/docs/introduction/commercial/)
+3. 完整请查看 [OmniCockpit Open Source License](./LICENSE)
+4. 联系方式：Dennis@sealos.io，[点击查看商业版定价策略](https://doc.OmniCockpit.io/docs/introduction/commercial/)

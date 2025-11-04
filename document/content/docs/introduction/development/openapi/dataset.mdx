@@ -1,11 +1,11 @@
 ---
 title: 知识库接口
-description: FastGPT OpenAPI 知识库接口
+description: OmniCockpit OpenAPI 知识库接口
 ---
 
 | 如何获取知识库ID（datasetId） | 如何获取文件集合ID（collection_id） |
 | ----------------------------- | ----------------------------------- |
-| ![](/imgs/getDatasetId.jpg)   | ![](/imgs/getfile_id.webp)          |
+| ![](/imgs/getDatasetId.jpg)   | ![](/imgs/getfile_id.png)          |
 
 ## 创建训练订单
 
@@ -20,7 +20,7 @@ curl --location --request POST 'http://localhost:3000/api/support/wallet/usage/c
 --header 'Content-Type: application/json' \
 --data-raw '{
     "datasetId": "知识库 ID",
-    "name": "可选，自定义订单名称，例如：文档训练-fastgpt.docx"
+    "name": "可选，自定义订单名称，例如：文档训练-OmniCockpit.docx"
 }'
 ```
 
@@ -187,7 +187,7 @@ curl --location --request GET 'http://localhost:3000/api/core/dataset/detail?id=
     "type": "dataset",
     "status": "active",
     "avatar": "/icon/logo.svg",
-    "name": "FastGPT test",
+    "name": "OmniCockpit test",
     "vectorModel": {
       "model": "text-embedding-ada-002",
       "name": "Embedding-2",
@@ -261,8 +261,8 @@ curl --location --request DELETE 'http://localhost:3000/api/core/dataset/delete?
 | trainingType     | 数据处理方式。chunk: 按文本长度进行分割;qa: 问答对提取                                                      | ✅   |
 | indexPrefixTitle | 是否自动生成标题索引                                                                                        |      |
 | customPdfParse | 是否开启PDF增强解析, 默认 false: 关闭;true: 开启;                                                             |      |
-| autoIndexes      | 是否自动生成索引(仅商业版支持)                                                                              |      |
-| imageIndex       | 是否自动生成图片索引(仅商业版支持)                                                                          |      |
+| autoIndexes      | 是否自动生成索引                                                                              |      |
+| imageIndex       | 是否自动生成图片索引                                                                         |      |
 | chunkSettingMode | 分块参数模式。auto: 系统默认参数; custom: 手动指定参数                                                      |      |
 | chunkSplitMode   | 分块拆分模式。size: 按长度拆分; char: 按字符拆分。chunkSettingMode=auto时不生效。                           |      |
 | chunkSize        | 分块大小，默认 1500。chunkSettingMode=auto时不生效。                                                        |      |
@@ -402,7 +402,7 @@ curl --location --request POST 'http://localhost:3000/api/core/dataset/collectio
 --header 'Authorization: Bearer {{authorization}}' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-    "link":"https://doc.fastgpt.io/docs/course/quick-start/",
+    "link":"https://localhost:3000/docs/course/quick-start/",
     "datasetId":"6593e137231a2be9c5603ba7",
     "parentId": null,
 
@@ -464,7 +464,7 @@ data 为集合的 ID。
 ```bash
 curl --location --request POST 'http://localhost:3000/api/core/dataset/collection/create/localFile' \
 --header 'Authorization: Bearer {{authorization}}' \
---form 'file=@"C:\\Users\\user\\Desktop\\fastgpt测试文件\\index.html"' \
+--form 'file=@"C:\\Users\\user\\Desktop\\OmniCockpit测试文件\\index.html"' \
 --form 'data="{\"datasetId\":\"6593e137231a2be9c5603ba7\",\"parentId\":null,\"trainingType\":\"chunk\",\"chunkSize\":512,\"chunkSplitter\":\"\",\"qaPrompt\":\"\",\"metadata\":{}}"'
 ```
 
@@ -515,7 +515,7 @@ data 为集合的 ID。
 
 ```bash
 curl --location --request POST 'http://localhost:3000/api/core/dataset/collection/create/apiCollection' \
---header 'Authorization: Bearer fastgpt-xxx' \
+--header 'Authorization: Bearer api-xxx' \
 --header 'Content-Type: application/json' \
 --data-raw '{
   "name": "A Quick Guide to Building a Discord Bot.pdf",
@@ -573,7 +573,7 @@ data 为集合的 ID。
 </Tab>
 </Tabs>
 
-### 创建一个外部文件库集合（商业版）
+### 创建一个外部文件库集合
 
 <Tabs items={['请求示例','参数说明','响应示例']}>
   <Tab value="请求示例" >
@@ -584,7 +584,7 @@ curl --location --request POST 'http://localhost:3000/api/proApi/core/dataset/co
 --header 'User-Agent: Apifox/1.0.0 (https://apifox.com)' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-    "externalFileUrl":"https://image.xxxxx.com/fastgpt-dev/%E6%91%82.pdf",
+    "externalFileUrl":"https://image.xxxxx.com/dev/%E6%91%82.pdf",
     "externalFileId":"1111",
     "createTime": "2024-05-01T00:00:00.000Z",
     "filename":"自定义文件名.pdf",
@@ -703,8 +703,8 @@ curl --location --request POST 'http://localhost:3000/api/core/dataset/collectio
         "parentId": null,
         "tmbId": "65422be6aa44b7da77729ec9",
         "type": "link",
-        "name": "快速上手 | FastGPT",
-        "rawLink": "https://doc.fastgpt.io/docs/course/quick-start/",
+        "name": "快速上手 | OmniCockpit",
+        "rawLink": "http://localhost:3000/docs/course/quick-start/",
         "updateTime": "2024-01-20T13:54:53.031Z",
         "dataAmount": 3,
         "trainingAmount": 0,
@@ -769,7 +769,7 @@ curl --location --request GET 'http://localhost:3000/api/core/dataset/collection
       "type": "dataset",
       "status": "active",
       "avatar": "/icon/logo.svg",
-      "name": "FastGPT test",
+      "name": "OmniCockpit test",
       "vectorModel": "text-embedding-ada-002",
       "agentModel": "gpt-3.5-turbo-16k",
       "intro": "",
@@ -946,7 +946,7 @@ curl --location --request POST 'https://localhost:3000/api/core/dataset/data/pus
     "data": [
         {
             "q": "你是谁？",
-            "a": "我是FastGPT助手"
+            "a": "我是OmniCockpit助手"
         },
         {
             "q": "你会什么？",
@@ -1239,7 +1239,7 @@ curl --location --request DELETE 'http://localhost:3000/api/core/dataset/data/de
 
 ```bash
 curl --location --request POST 'https://localhost:3000/api/core/dataset/searchTest' \
---header 'Authorization: Bearer fastgpt-xxxxx' \
+--header 'Authorization: Bearer api-xxxxx' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "datasetId": "知识库的ID",
@@ -1285,7 +1285,7 @@ curl --location --request POST 'https://localhost:3000/api/core/dataset/searchTe
     {
         "id": "65599c54a5c814fb803363cb",
         "q": "你是谁",
-        "a": "我是FastGPT助手",
+        "a": "我是OmniCockpit助手",
         "datasetId": "6554684f7f9ed18a39a4d15c",
         "collectionId": "6556cd795e4b663e770bb66d",
         "sourceName": "GBT 15104-2021 装饰单板贴面人造板.pdf",

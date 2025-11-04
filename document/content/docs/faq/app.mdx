@@ -1,6 +1,6 @@
 ---
 title: 应用使用问题
-description: FastGPT 常见应用使用问题，包括简易应用、工作流和插件
+description: OmniCockpit 常见应用使用问题，包括简易应用、工作流和插件
 ---
 
 ## 多轮对话中如何使连续问题被问题分类节点正确的归类
@@ -53,10 +53,10 @@ A: 通常是由于上下文不一致导致，可以在对话日志中，找到�
 
 做个判断器，如果是初次开始对话也就是历史记录为0，就走问题分类；不为零直接走知识库和ai。
 
-## 实时对话，设置 fastgpt 定时，比如每隔 3000MS 去拿一次 webhook发送过来的消息到AI页面
+## 实时对话，设置 OmniCockpit 定时，比如每隔 3000MS 去拿一次 webhook发送过来的消息到AI页面
 
 定时执行没有这么高频率的去拿信息的，想要实现在企微里面的实时对话的机器人，
-目前通过低代码的工作流构建应该是不行的，只能自己写代码，然后去调用 FastGPT 的 APIKey 回复。企业微信似乎没有提供「自动监听」群聊消息的接口（或是通过 at 机器人这种触发消息推送）。应该只能发消息给应用，接收这个 https://developer.work.weixin.qq.com/document/path/90238 文档中的消息推送实现实时对话。或者是定时去拿群聊消息，通过这个文档所示的接口https://developer.work.weixin.qq.com/document/path/98914，然后用这个接口 https://developer.work.weixin.qq.com/document/path/90248 去推送消息。
+目前通过低代码的工作流构建应该是不行的，只能自己写代码，然后去调用 OmniCockpit 的 APIKey 回复。企业微信似乎没有提供「自动监听」群聊消息的接口（或是通过 at 机器人这种触发消息推送）。应该只能发消息给应用，接收这个 https://developer.work.weixin.qq.com/document/path/90238 文档中的消息推送实现实时对话。或者是定时去拿群聊消息，通过这个文档所示的接口https://developer.work.weixin.qq.com/document/path/98914，然后用这个接口 https://developer.work.weixin.qq.com/document/path/90248 去推送消息。
 
 ## 工作流连接数据库
 

@@ -10,10 +10,10 @@ import { i18n } from '@/lib/i18n';
  */
 export const baseOptions = (locale: string): BaseLayoutProps => {
   return {
-    themeSwitch: {
-      enabled: true,
-      mode: 'light-dark'
-    },
+    // themeSwitch: {
+    //   enabled: true,
+    //   mode: 'light-dark'
+    // },
     nav: {
       title: (
         <div className="flex flex-col">

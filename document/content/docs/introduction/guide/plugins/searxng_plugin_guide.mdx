@@ -1,33 +1,17 @@
 ---
 title: SearXNG 搜索插件配置与使用说明
-description: FastGPT SearXNG 搜索插件配置指南
+description: OmniCockpit SearXNG 搜索插件配置指南
 ---
 
-[SearXNG](https://github.com/searxng/searxng)是一款免费的互联网元搜索引擎，它汇总了来自各种搜索服务和数据库的结果。它不会跟踪或分析用户。用户可以自行部署它进行使用。本文介绍 Searxng 的部署以及接入 FastGPT 插件。
+[SearXNG](https://github.com/searxng/searxng)是一款免费的互联网元搜索引擎，它汇总了来自各种搜索服务和数据库的结果。它不会跟踪或分析用户。用户可以自行部署它进行使用。本文介绍 Searxng 的部署以及接入 OmniCockpit 插件。
 
 
 ## 1. 部署应用
 
-这里介绍在 Sealos 中部署 SearXNG 的方法。Docker 部署，可以直接参考 [SearXNG 官方教程](https://github.com/searxng/searxng)。
-
-点击打开 [Sealos 北京区](https://bja.sealos.run?uid=fnWRt09fZP)，点击应用部署，并新建一个应用：
-
-| 打开应用部署 | 点击新建应用 |
-| --- | --- |
-| ![](/imgs/searxng_plugin_guide1.png) | ![alt text](/imgs/image-45.png) |
+Docker 部署，可以直接参考 [SearXNG 官方教程](https://github.com/searxng/searxng)。
 
 ## 2. 部署配置
 
-把下面参数，填入配置中：
-
-* 镜像名: searxng/searxng:latest
-* CPU: 0.2
-* 内存: 512M
-* 容器暴露端口: 8080
-* 开启公网访问
-* 点击高级配置，填写环境变量和配置文件
-
-![alt text](/imgs/image-50.png)
 
 **环境变量**
 
@@ -126,7 +110,7 @@ doi_resolvers:
 default_doi_resolver: 'oadoi.org'
 ```
 
-国内目前只有 Bing 引擎可以正常用，所以上面的配置只配置了 bing 引擎。如果在海外部署，可以使用[Sealos 新加坡可用区](https://cloud.sealos.io?uid=fnWRt09fZP)，并配置其他搜索引擎，可以参考[SearXNG 默认配置文件](https://github.com/searxng/searxng/blob/master/searx/settings.yml), 从里面复制一些 engine 配置。例如：
+国内目前只有 Bing 引擎可以正常用，所以上面的配置只配置了 bing 引擎。其他搜索引擎，可以参考[SearXNG 默认配置文件](https://github.com/searxng/searxng/blob/master/searx/settings.yml), 从里面复制一些 engine 配置。例如：
 
 ```
   - name: duckduckgo
@@ -138,13 +122,10 @@ default_doi_resolver: 'oadoi.org'
     shortcut: go
 ```
 
-## 3. FastGPT 使用
+## 3. OmniCockpit 使用
 
-复制 Sealos 部署后提供的公网地址，填入 FastGPT 的 SearXNG 插件的 URL 中。
+将Searxng地址，填入 OmniCockpit 的 SearXNG 插件的 URL 中。
 
-| 复制公网地址| 填入 URL |
-| --- | --- |
-| ![alt text](/imgs/image-48.png) | ![alt text](/imgs/image-49.png) |
 
 ## 返回格式
 

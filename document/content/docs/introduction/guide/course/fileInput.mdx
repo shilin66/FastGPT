@@ -1,9 +1,9 @@
 ---
 title: 文件输入功能介绍
-description: FastGPT 文件输入功能介绍
+description: OmniCockpit 文件输入功能介绍
 ---
 
-从 4.8.9 版本起，FastGPT 支持在`简易模式`和`工作流`中，配置用户上传文件、图片功能。下面先简单介绍下如何使用文件输入功能，最后是介绍下文件解析的工作原理。
+从 4.8.9 版本起，OmniCockpit 支持在`简易模式`和`工作流`中，配置用户上传文件、图片功能。下面先简单介绍下如何使用文件输入功能，最后是介绍下文件解析的工作原理。
 
 
 ## 简易模式中使用
@@ -44,7 +44,7 @@ description: FastGPT 文件输入功能介绍
 
 ### 上传的文件如何存储在数据库中
 
-FastGPT 的对话记录存储结构中，role=user 的消息，value 值会按以下结构存储：
+OmniCockpit 的对话记录存储结构中，role=user 的消息，value 值会按以下结构存储：
 
 ```ts
 type UserChatItemValueItemType = {

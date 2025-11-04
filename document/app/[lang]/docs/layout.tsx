@@ -26,10 +26,10 @@ export default async function Layout({
       title: t('common:introduction', lang),
       url: lang === 'zh-CN' ? '/docs/introduction' : '/en/docs/introduction'
     },
-    {
-      title: t('common:use-cases', lang),
-      url: lang === 'zh-CN' ? '/docs/use-cases' : '/en/docs/use-cases'
-    },
+    // {
+    //   title: t('common:use-cases', lang),
+    //   url: lang === 'zh-CN' ? '/docs/use-cases' : '/en/docs/use-cases'
+    // },
     {
       title: t('common:faq', lang),
       url: lang === 'zh-CN' ? '/docs/faq' : '/en/docs/faq'
