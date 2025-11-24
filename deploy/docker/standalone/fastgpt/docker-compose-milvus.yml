@@ -2,9 +2,7 @@ version: '3.3'
 services:
   mem0:
     container_name: mem0
-    image: ghcr.io/shilin66/mem0:self
-    ports:
-      - "8889:8000"
+    image: ghcr.nju.edu.cn/shilin66/mem0:self
     networks:
       - fastgpt
     depends_on:
@@ -19,21 +17,21 @@ services:
       - MILVUS_TOKEN=none
       - MILVUS_DB_NAME=mem0
       - MILVUS_COLLECTION_NAME=memory
-      - OPENAI_EMBEDDING_BASE_URL=
-      - OPENAI_EMBEDDING_API_KEY=
-      - EMBEDDING_MODEL=
+      - OPENAI_EMBEDDING_BASE_URL=http://192.168.16.2:9997/v1
+      - OPENAI_EMBEDDING_API_KEY=sk-72tkvudyGLPMi
+      - EMBEDDING_MODEL=bge-m3
       - EMBEDDING_DIMS=4096
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_DATABASE=mem0
       - API_KEY=sk-vDDd8dLjAg73N0CjRBUzmmk51244JhyvGmA
-      - OPENAI_LLM_BASE_URL=
-      - OPENAI_LLM_API_KEY=
-      - LLM_MODEL=
+      - OPENAI_LLM_BASE_URL=http://192.168.16.3:38589/v1
+      - OPENAI_LLM_API_KEY=sk-jH6jShOekAcK1m9H2c397b44153f4fD6B9FeAb6c9f1fD311
+      - LLM_MODEL=Qwen3-32B
       - LLM_TEMPERATURE=0.5
       - MONGODB_URI=mongodb://ai_shzl:nue8He7H3aqq@mongo:27017/mem0?authSource=admin&directConnection=true
   neo4j:
     container_name: neo4j
-    image: ghcr.io/shilin66/neo4j:self
+    image: ghcr.nju.edu.cn/shilin66/neo4j:self
     networks:
       - fastgpt
     healthcheck:
@@ -42,9 +40,9 @@ services:
       timeout: 10s
       retries: 20
       start_period: 3s
-    ports:
-      - "7474:7474" # HTTP
-      - "7687:7687" # Bolt
+#    ports:
+#      - "7474:7474" # HTTP
+#      - "7687:7687" # Bolt
     volumes:
       - ./neo4j/data:/data
     environment:
@@ -56,7 +54,7 @@ services:
   # milvus
   milvusEtcd:
     container_name: milvusEtcd
-    image: quay.io/coreos/etcd:v3.5.5
+    image: quay.m.daocloud.io/coreos/etcd:v3.5.5
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
       - ETCD_AUTO_COMPACTION_RETENTION=1000
@@ -74,7 +72,7 @@ services:
       retries: 3
   milvusAttu:
     container_name: milvusAttu
-    image: zilliz/attu:v2.6
+    image: docker.m.daocloud.io/zilliz/attu:v2.6
     ports:
       - "3004:3000"
     environment:
@@ -85,7 +83,7 @@ services:
       - 'milvusStandalone'
   milvusStandalone:
     container_name: milvusStandalone
-    image: milvusdb/milvus:v2.4.3
+    image: docker.m.daocloud.io/milvusdb/milvus:v2.4.3
     command: ['milvus', 'run', 'standalone']
     ports:
       - "19530:19530"
@@ -153,14 +151,14 @@ services:
         wait $$!
   sandbox:
     container_name: sandbox
-    image: ghcr.io/labring/fastgpt-sandbox:v4.12.0 # git
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-sandbox:v4.12.0 # git
     networks:
       - fastgpt
     ports:
       - 3009:3000
     restart: always
   redis:
-    image: redis:7.2-alpine
+    image: docker.m.daocloud.io/redis:7.2-alpine
     container_name: redis
     ports:
       - "6379:6379"
@@ -172,7 +170,7 @@ services:
     volumes:
       - ./redis/data:/data
   fastgpt-minio:
-    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+    image: docker.m.daocloud.io/minio/minio:RELEASE.2025-07-23T15-54-02Z
     container_name: fastgpt-minio
     restart: always
     networks:
@@ -193,7 +191,7 @@ services:
       retries: 3
   fastgpt-mcp-server:
     container_name: fastgpt-mcp-server
-    image: ghcr.io/labring/fastgpt-mcp_server:v4.12.0
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-mcp_server:v4.12.0
     ports:
       - 3005:3000
     networks:
@@ -203,7 +201,7 @@ services:
       - FASTGPT_ENDPOINT=http://fastgpt:3000
   fastgpt:
     container_name: fastgpt
-    image: ghcr.io/shilin66/fastgpt:poc-dev
+    image: ghcr.nju.edu.cn/shilin66/fastgpt:poc-dev-hk
     ports:
       - 3000:3000
     networks:
@@ -214,10 +212,11 @@ services:
       - sandbox
     restart: always
     environment:
-      - FE_DOMAIN=
+      - VECTOR_DB_DIM=4096
+      - FE_DOMAIN=http://123.184.7.234:3000
       - REDIS_URL=redis://default:nue8He7H3aqq@redis:6379/1
         #- REDIS_SENTINEL_NODES=
-        #- REDIS_SENTINEL_PASSWORD=FV5E1n9ptgBb4kwGN7zM
+      #- REDIS_SENTINEL_PASSWORD=FV5E1n9ptgBb4kwGN7zM
       # - REDIS_MASTER_NAME=mymaster
       #- REDIS_USERNAME=
       # - REDIS_PASSWORD=TUK1XhxfZDrMp5JR
@@ -242,7 +241,7 @@ services:
       - ./config.json:/app/data/config.json
       - ./fastgpt/tmp:/app/tmp
   fastgpt-plugin:
-    image: ghcr.io/shilin66/fastgpt-plugin:s-dev # git
+    image: ghcr.nju.edu.cn/shilin66/fastgpt-plugin:s-dev # git
     container_name: fastgpt-plugin
     restart: always
     ports:
@@ -263,7 +262,7 @@ services:
       fastgpt-minio:
         condition: service_healthy
   fastdoc:
-    image: ghcr.io/shilin66/fastdoc:dev
+    image: ghcr.nju.edu.cn/shilin66/fastgpt-doc:ocpit
     container_name: fastdoc
     restart: always
     networks:
