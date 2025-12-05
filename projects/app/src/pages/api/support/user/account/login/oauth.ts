@@ -7,13 +7,13 @@ import {
 import type { OauthLoginProps } from '@fastgpt/global/support/user/api';
 import axios from 'axios';
 import { MongoUser } from '@fastgpt/service/support/user/schema';
-import { setCookie } from '@fastgpt/service/support/permission/controller';
 import type { Configuration } from '@azure/msal-node';
 import { ConfidentialClientApplication, LogLevel } from '@azure/msal-node';
 import { OAuthEnum } from '@fastgpt/global/support/user/constant';
 import { createUserSession } from '@fastgpt/service/support/user/session';
 import requestIp from 'request-ip';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
+import { setCookie } from '@fastgpt/service/support/permission/auth/common';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {

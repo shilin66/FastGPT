@@ -1,14 +1,11 @@
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
 import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
-import { createChatCompletion } from '@fastgpt/service/core/ai/config';
 import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/type.d';
 import { addLog } from '@fastgpt/service/common/system/log';
 import type { PushDatasetDataChunkProps } from '@fastgpt/global/core/dataset/api.d';
 import { getLLMModel } from '@fastgpt/service/core/ai/model';
 import { checkTeamAiPointsAndLock } from './utils';
 import { addMinutes } from 'date-fns';
-import { loadRequestMessages } from '@fastgpt/service/core/chat/utils';
-import { llmCompletionsBodyFormat, formatLLMResponse } from '@fastgpt/service/core/ai/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 import { ImageParsePromptDefault } from '@fastgpt/global/core/ai/prompt/agent';
 import { getImageBase64 } from '@fastgpt/service/common/file/image/utils';
@@ -18,6 +15,8 @@ import { countGptMessagesTokens, countPromptTokens } from '@fastgpt/service/comm
 import { pushLLMTrainingUsage } from '@fastgpt/service/support/wallet/usage/controller';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { getDatasetImagePreviewUrl } from '@fastgpt/service/core/dataset/image/utils';
+import { UsageItemTypeEnum } from '@fastgpt/global/support/wallet/usage/constants';
+import { createLLMResponse } from '@fastgpt/service/core/ai/llm/request';
 
 const reduceQueue = () => {
   global.qaQueueLen = global.qaQueueLen > 0 ? global.qaQueueLen - 1 : 0;
@@ -181,20 +180,17 @@ export async function generateImageParse(): Promise<any> {
         }
       ];
 
-      const { response: chatResponse } = await createChatCompletion({
-        body: llmCompletionsBodyFormat(
-          {
-            model: modelData.model,
-            temperature: 0.3,
-            messages: await loadRequestMessages({ messages, useVision: true }),
-            stream: true
-          },
-          modelData
-        )
+      const {
+        answerText: answer,
+        usage: { inputTokens, outputTokens }
+      } = await createLLMResponse({
+        body: {
+          model: modelData.model,
+          temperature: 0.3,
+          messages,
+          stream: true
+        }
       });
-      const { text: answer, usage } = await formatLLMResponse(chatResponse);
-      const inputTokens = usage?.prompt_tokens || (await countGptMessagesTokens(messages));
-      const outputTokens = usage?.completion_tokens || (await countPromptTokens(answer));
 
       const { summary, desc, index } = extractData(answer);
 
@@ -203,7 +199,7 @@ export async function generateImageParse(): Promise<any> {
         summaryLength: summary?.length,
         descLength: desc?.length,
         indexLength: index?.length,
-        usage
+        usage: { inputTokens, outputTokens }
       });
 
       const newData: PushDatasetDataChunkProps = {
@@ -248,12 +244,11 @@ export async function generateImageParse(): Promise<any> {
       // add bill
       pushLLMTrainingUsage({
         teamId: data.teamId,
-        tmbId: data.tmbId,
         inputTokens,
         outputTokens,
-        billId: data.billId,
+        usageId: data.billId,
         model: modelData.model,
-        mode: 'imageParse'
+        type: UsageItemTypeEnum.training_imageParse
       });
     }
 

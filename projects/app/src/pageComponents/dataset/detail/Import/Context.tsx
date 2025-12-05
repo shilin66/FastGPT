@@ -202,7 +202,7 @@ const DatasetImportContextProvider = ({ children }: { children: React.ReactNode 
   const [localCustomPdfParse, setLocalCustomPdfParse] = useLocalStorageState(
     'dataset_customPdfParse',
     {
-      defaultValue: true
+      defaultValue: 'default'
     }
   );
   const processParamsForm = useForm<ImportFormType>({

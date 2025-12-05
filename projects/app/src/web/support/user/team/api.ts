@@ -99,7 +99,7 @@ export const updateOneMemberPermission = (data: {
   orgId?: string;
   groupId?: string;
   permission: PermissionValueType;
-}) => PUT('/proApi/support/user/team/collaborator/updateOne', data);
+}) => PUT('/support/user/team/collaborator/updateOne', data);
 export const deleteMemberPermission = (id: DeletePermissionQuery) =>
   DELETE('/support/user/team/collaborator/delete', id);
 

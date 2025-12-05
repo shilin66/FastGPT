@@ -13,6 +13,8 @@ async function handler(req: NextApiRequest, _res: NextApiResponse) {
 
   await global.s3BucketMap[S3Buckets.public].client.removeBucketLifecycle(S3Buckets.public);
   await global.s3BucketMap[S3Buckets.private].client.removeBucketLifecycle(S3Buckets.private);
+
+  // 将usage中的list数据迁移到usage_item表中
   return {};
 }
 

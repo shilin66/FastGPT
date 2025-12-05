@@ -40,7 +40,7 @@ export const postSimpleRegister = ({
   username: string;
   password: string;
 }) =>
-  POST<ResLogin>(`support/user/account/register/simple`, {
+  POST<LoginSuccessResponse>(`support/user/account/register/simple`, {
     username,
     password: hashStr(password)
   });

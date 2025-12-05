@@ -2,7 +2,7 @@ import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import type { NextApiRequest } from 'next';
 import { leaveTeam } from '@fastgpt/service/support/user/team/controller';
-import { parseHeaderCert } from '@fastgpt/service/support/permission/controller';
+import { parseHeaderCert } from '@fastgpt/service/support/permission/auth/common';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
   const { userId, teamId } = await parseHeaderCert({ req, authToken: true });
