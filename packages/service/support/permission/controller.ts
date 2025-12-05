@@ -1,32 +1,24 @@
 import type { ClientSession, AnyBulkWriteOperation } from '../../common/mongo';
-import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
+import type { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
 import { ManageRoleVal, OwnerRoleVal } from '@fastgpt/global/support/permission/constant';
 import { MongoResourcePermission } from './schema';
 import type { ResourcePermissionType, ResourceType } from '@fastgpt/global/support/permission/type';
-import {
-  type PermissionValueType,
-  type ResourcePerWithGroup,
-  type ResourcePerWithOrg,
-  type ResourcePerWithTmbWithUser
-} from '@fastgpt/global/support/permission/type';
+import { type PermissionValueType } from '@fastgpt/global/support/permission/type';
 import { getGroupsByTmbId } from './memberGroup/controllers';
 import { Permission } from '@fastgpt/global/support/permission/controller';
 import { type ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { getOrgIdSetWithParentByTmbId } from './org/controllers';
-import { AppPermission } from '@fastgpt/global/support/permission/app/controller';
-import { DatasetPermission } from '@fastgpt/global/support/permission/dataset/controller';
 import { getCollaboratorId, sumPer } from '@fastgpt/global/support/permission/utils';
 import { type SyncChildrenPermissionResourceType } from './inheritPermission';
 import { pickCollaboratorIdFields } from './utils';
 import type {
   CollaboratorItemDetailType,
   UpdateClbPermissionProps,
-  CollaboratorItemType
+  CollaboratorItemType,
+  CollaboratorListType
 } from '@fastgpt/global/support/permission/collaborator';
 import { MongoTeamMember } from '../../support/user/team/teamMemberSchema';
 import { MongoOrgModel } from './org/orgSchema';
-import { MongoApp } from '../../core/app/schema';
-import { MongoDataset } from '../../core/dataset/schema';
 import { MongoMemberGroupModel } from './memberGroup/memberGroupSchema';
 import { DEFAULT_ORG_AVATAR, DEFAULT_TEAM_AVATAR } from '@fastgpt/global/common/system/constants';
 
@@ -91,7 +83,7 @@ export const getTmbPermission = async ({
           'permission'
         ).lean()
       )
-      .then((perList) => perList.map((item) => item.permission)),
+      .then((perList) => perList.map((item: any) => item.permission)),
     getOrgIdSetWithParentByTmbId({ tmbId, teamId })
       .then((item) => Array.from(item))
       .then((orgIds) =>
@@ -107,7 +99,7 @@ export const getTmbPermission = async ({
           'permission'
         ).lean()
       )
-      .then((perList) => perList.map((item) => item.permission))
+      .then((perList) => perList.map((item: any) => item.permission))
   ]);
 
   return sumPer(...groupPers, ...orgPers);
@@ -212,8 +204,8 @@ export const createResourceDefaultCollaborators = async ({
 
   const collaborators: CollaboratorItemType[] = [
     ...parentClbs
-      .filter((item) => item.tmbId !== tmbId)
-      .map((clb) => {
+      .filter((item: any) => item.tmbId !== tmbId)
+      .map((clb: any) => {
         if (clb.permission === OwnerRoleVal) {
           clb.permission = ManageRoleVal;
         }
@@ -254,56 +246,32 @@ export async function updateCollaborators(
   resourceId: string,
   teamId: string
 ) {
-  const { members, groups, orgs, permission } = updateClbPermissionProps;
+  const { collaborators } = updateClbPermissionProps;
+  if (collaborators && collaborators.length > 0) {
+    // 使用 Promise.all 并行处理所有更新操作
+    await Promise.all(
+      collaborators.map(async (clb) => {
+        // 根据不同的ID类型构建查询条件
+        const filter: any = {
+          resourceType,
+          resourceId,
+          teamId
+        };
 
-  if (members && members.length > 0) {
-    await Promise.all(
-      members.map(async (tmbId) => {
-        await MongoResourcePermission.updateOne(
+        // 添加对应的ID字段到查询条件
+        if (clb.tmbId) {
+          filter.tmbId = clb.tmbId;
+        } else if (clb.groupId) {
+          filter.groupId = clb.groupId;
+        } else if (clb.orgId) {
+          filter.orgId = clb.orgId;
+        }
+
+        // 执行更新操作
+        return MongoResourcePermission.updateOne(
+          filter,
           {
-            resourceType,
-            resourceId,
-            tmbId,
-            teamId
-          },
-          {
-            $set: { permission }
-          },
-          { upsert: true }
-        );
-      })
-    );
-  }
-  if (groups && groups.length > 0) {
-    await Promise.all(
-      groups.map(async (groupId) => {
-        await MongoResourcePermission.updateOne(
-          {
-            resourceType,
-            resourceId,
-            groupId,
-            teamId
-          },
-          {
-            $set: { permission }
-          },
-          { upsert: true }
-        );
-      })
-    );
-  }
-  if (orgs && orgs.length > 0) {
-    await Promise.all(
-      orgs.map(async (orgId) => {
-        await MongoResourcePermission.updateOne(
-          {
-            resourceType,
-            resourceId,
-            orgId,
-            teamId
-          },
-          {
-            $set: { permission }
+            $set: { permission: clb.permission }
           },
           { upsert: true }
         );
@@ -313,72 +281,44 @@ export async function updateCollaborators(
 }
 
 export async function listCollaborator(
+  teamId: string,
   resourceType: PerResourceTypeEnum,
   resourceId: string,
-  teamId: string
-): Promise<CollaboratorItemType[]> {
-  const permissionTypes = await getClbsAndGroupsWithInfo({
-    resourceType,
+  resourceOwnerTmbId: string,
+  parentId?: string,
+  parentOwnerTmbId?: string
+): Promise<CollaboratorListType> {
+  const resourceClbs = await getResourceOwnedClbs({
     resourceId,
+    resourceType,
     teamId
   });
-  let resource: any = {};
-  const PermissionClass =
-    resourceType === PerResourceTypeEnum.app ? AppPermission : DatasetPermission;
-  const per = new AppPermission();
-  per.addRole();
-  if (resourceType === PerResourceTypeEnum.app) {
-    resource = await MongoApp.findById(resourceId);
-  } else if (resourceType === PerResourceTypeEnum.dataset) {
-    resource = await MongoDataset.findById(resourceId);
-  } else {
-    return [];
-  }
-  const result: CollaboratorItemType[] = [];
-  permissionTypes.map((item) => {
-    //  判断item是ResourcePerWithTmbWithUser[]类型
-    item.map((per) => {
-      if (per.tmbId) {
-        const rpt = per as unknown as ResourcePerWithTmbWithUser;
-        result.push({
-          teamId: rpt.teamId,
-          tmbId: rpt.tmbId._id,
-          permission: new PermissionClass({
-            role: rpt.permission,
-            isOwner: String(resource.tmbId) === String(rpt.tmbId._id)
-          }),
-          name: rpt.tmbId.name,
-          avatar: rpt.tmbId.avatar
-        });
-      }
-      if (per.groupId) {
-        const rpg = per as unknown as ResourcePerWithGroup;
-        result.push({
-          teamId: rpg.teamId,
-          groupId: rpg.group._id,
-          permission: new PermissionClass({
-            role: rpg.permission
-          }),
-          name: rpg.group.name,
-          avatar: rpg.group.avatar
-        });
-      }
-
-      if (per.orgId) {
-        const rpo = per as ResourcePerWithOrg;
-        result.push({
-          teamId: rpo.teamId,
-          orgId: rpo.org._id,
-          permission: new PermissionClass({
-            role: rpo.permission
-          }),
-          name: rpo.org.name,
-          avatar: rpo.org.avatar || ''
-        });
-      }
-    });
+  const resourceClbsDetailInfo = await getClbsInfo({
+    clbs: resourceClbs,
+    teamId,
+    ownerTmbId: resourceOwnerTmbId
   });
-  return result;
+  if (parentId) {
+    const parentClbs = await getResourceOwnedClbs({
+      resourceId: parentId,
+      resourceType,
+      teamId
+    });
+    const parentClbsDetailInfo = await getClbsInfo({
+      clbs: parentClbs,
+      teamId,
+      ownerTmbId: parentOwnerTmbId
+    });
+    return {
+      clbs: resourceClbsDetailInfo,
+      parentClbs: parentClbsDetailInfo
+    };
+  } else {
+    return {
+      clbs: resourceClbsDetailInfo,
+      parentClbs: []
+    };
+  }
 }
 
 export async function deleteCollaborators(

@@ -6,16 +6,34 @@ import { type ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type
 import type {
   PushUsageItemsProps,
   ConcatUsageProps,
-  CreateUsageProps
+  CreateUsageProps,
+  GetTeamUsageProps,
+  GetUsageProps,
+  GetUsageDashboardProps,
+  GetUsageDashboardResponseItem
 } from '@fastgpt/global/support/wallet/usage/api';
 import { i18nT } from '../../../../web/i18n/utils';
 import { formatModelChars2Points } from './utils';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { MongoUsageItem } from './usageItemSchema';
+import { MongoTeam } from '../../user/team/teamSchema';
+import type { TeamSchema } from '@fastgpt/global/support/user/team/type';
+import type { PaginationResponse } from '../../../../web/common/fetch/type';
+import type {
+  TeamUsageItemType,
+  UsageItemType,
+  UsageListItemType,
+  UsageSchemaType
+} from '@fastgpt/global/support/wallet/usage/type';
+import { MongoUser } from '../../user/schema';
+import type { UserModelSchema } from '@fastgpt/global/support/user/type';
+import { TeamMemberStatusEnum } from '@fastgpt/global/support/user/team/constant';
+import { MongoTeamMember } from '../../user/team/teamMemberSchema';
+import { get } from 'lodash';
 
 export async function createUsage(data: CreateUsageProps) {
   try {
-    return await MongoUsage.create([
+    const [{ _id: usageId }] = await MongoUsage.create([
       {
         teamId: data.teamId,
         tmbId: data.tmbId,
@@ -23,64 +41,71 @@ export async function createUsage(data: CreateUsageProps) {
         appId: data.appId,
         pluginId: data.pluginId,
         totalPoints: data.totalPoints,
-        source: data.source,
-        list: data.list
+        source: data.source
+        // list: data.list
       }
     ]);
+    await pushUsageItems({
+      teamId: data.teamId,
+      usageId,
+      list: data.list as UsageItemType[]
+    });
   } catch (error) {
     addLog.error('createUsage error', error);
   }
 }
 
 export async function concatUsage(data: ConcatUsageProps) {
-  const {
-    billId,
-    teamId,
-    tmbId,
-    inputTokens = 0,
-    outputTokens = 0,
-    totalPoints = 0,
-    listIndex = -1
-  } = data;
-
-  // listIndex 非法时直接返回
-  if (listIndex < 0) {
-    console.warn('concatUsage: 无效的 listIndex', listIndex);
-    return;
-  }
-
-  // 构造要更新的字段路径
-  const baseKey = `list.${listIndex}`;
-  const incOps: Record<string, number> = {
-    totalPoints,
-    // MongoDB 自动在不存在时初始化为 0 并累加
-    [`${baseKey}.inputTokens`]: inputTokens,
-    [`${baseKey}.outputTokens`]: outputTokens
-  };
+  const { usageId, teamId, inputTokens = 0, outputTokens = 0, totalPoints = 0, itemType } = data;
 
   try {
-    const updated = await MongoUsage.findOneAndUpdate(
-      { _id: billId, teamId, tmbId, [baseKey]: { $exists: true } },
-      { $inc: incOps },
-      { new: true, lean: true }
-    ).exec();
+    // 根据itemType和usageId 获取usageItem，累加inputTokens，outputTokens， totalPoints 并更新
+    await MongoUsageItem.updateOne(
+      { usageId, itemType },
+      {
+        $inc: {
+          inputTokens,
+          outputTokens,
+          amount: totalPoints
+        }
+      }
+    );
 
-    if (!updated) {
-      console.warn('concatUsage: 未找到匹配文档或 listIndex 越界', {
-        billId,
-        teamId,
-        tmbId,
-        listIndex
-      });
-      return;
-    }
+    // 更新主usage记录的totalPoints
+    await MongoUsage.updateOne(
+      { _id: usageId },
+      {
+        $inc: {
+          totalPoints
+        }
+      }
+    );
   } catch (error) {
     addLog.error('concatUsage error', error);
   }
 }
 export async function pushUsageItems(data: PushUsageItemsProps) {
   try {
-    await global.pushUsageItemsHandler(data);
+    const { teamId, usageId, list } = data;
+    // 将list 添加到 MongoUsageItem
+    if (list.length === 0) return;
+
+    const itemsToInsert = list.map((item) => ({
+      teamId,
+      usageId,
+      name: item.moduleName,
+      amount: item.amount,
+      itemType: item.itemType,
+      model: item.model,
+      inputTokens: item.inputTokens,
+      outputTokens: item.outputTokens,
+      charsLength: item.charsLength,
+      duration: item.duration,
+      pages: item.pages,
+      count: item.count
+    }));
+
+    await MongoUsageItem.insertMany(itemsToInsert);
   } catch (error) {
     addLog.error('pushUsageItems error', error);
   }
@@ -90,15 +115,17 @@ export const createPdfParseUsage = async ({
   teamId,
   tmbId,
   pages,
+  parserName,
   usageId
 }: {
   teamId: string;
   tmbId: string;
   pages: number;
+  parserName?: string;
   usageId?: string;
 }) => {
-  const parsers = global.systemEnv?.customPdfParse || [];
-  const selectedParser = parserName ? parsers.find((p) => p.name === parserName) : parsers[0];
+  const parsers = (global as any).systemEnv?.customPdfParse || [];
+  const selectedParser = parserName ? parsers.find((p: any) => p.name === parserName) : parsers[0];
   const unitPrice = selectedParser?.price || 0;
   const totalPoints = pages * unitPrice;
 
@@ -449,7 +476,7 @@ export const getTeamUsage = async (
       .sort({ _id: 1 }) // 可根据业务需求调整排序字段
       .skip(offset)
       .limit(pageSize)
-      .lean<TeamSchema[]>(),
+      .lean() as unknown as TeamSchema[],
     MongoTeam.countDocuments(teamMatch)
   ]);
 
@@ -468,9 +495,20 @@ export const getTeamUsage = async (
   }
 
   // 查询当前页团队 ID 范围内的所有 usage 记录
-  const usageList = await MongoUsage.find(usageMatch).lean<UsageSchemaType[]>();
+  const usageList = (await MongoUsage.find(usageMatch).lean()) as unknown as UsageSchemaType[];
 
-  // 内存中统计每个 teamId 的 totalPoints
+  // 获取所有 usage 记录的 IDs
+  const usageIds = usageList.map((usage) => usage._id);
+
+  // 根据 usageIds 查询对应的 usageItem 记录
+  let usageItemList: any[] = [];
+  if (usageIds.length > 0) {
+    usageItemList = await MongoUsageItem.find({
+      usageId: { $in: usageIds }
+    }).lean();
+  }
+
+  // 内存中统计每个 teamId 的 totalPoints 和模型使用情况
   const usageMap: Record<
     string,
     {
@@ -489,10 +527,27 @@ export const getTeamUsage = async (
     }
   > = {};
 
-  usageList.forEach((usage) => {
+  // 初始化 usageMap，确保所有团队都有条目
+  usageList.forEach((usage: any) => {
     const teamId = usage.teamId;
-    const models = usage.list || [];
+    if (!usageMap[teamId]) {
+      usageMap[teamId] = {
+        totalPoints: 0,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        models: []
+      };
+    }
+    // 累加总的 points
+    usageMap[teamId].totalPoints += usage.totalPoints || 0;
+  });
 
+  // 处理 usageItem 数据
+  usageItemList.forEach((usageItem: any) => {
+    const usage = usageList.find((u) => u._id.toString() === usageItem.usageId.toString());
+    if (!usage) return;
+
+    const teamId = usage.teamId;
     if (!usageMap[teamId]) {
       usageMap[teamId] = {
         totalPoints: 0,
@@ -503,48 +558,43 @@ export const getTeamUsage = async (
     }
 
     const teamStats = usageMap[teamId];
+    const {
+      model,
+      inputTokens = 0,
+      outputTokens = 0,
+      amount = 0,
+      charsLength = 0,
+      duration = 0,
+      pages = 0
+    } = usageItem;
 
-    teamStats.totalPoints += usage.totalPoints || 0;
+    if (!model) return;
 
-    models.forEach((modelUsage) => {
-      const {
-        model,
-        inputTokens = 0,
-        outputTokens = 0,
-        amount = 0,
-        charsLength = 0,
-        duration = 0,
-        pages = 0
-      } = modelUsage;
+    // 累加团队总 token
+    teamStats.totalInputTokens += inputTokens;
+    teamStats.totalOutputTokens += outputTokens;
 
-      if (!model) return;
+    // 查找该模型是否已存在
+    const existingModel = teamStats.models.find((m) => m.name === model);
 
-      // 累加团队总 token
-      teamStats.totalInputTokens += inputTokens;
-      teamStats.totalOutputTokens += outputTokens;
-
-      // 查找该模型是否已存在
-      const existingModel = teamStats.models.find((m) => m.name === model);
-
-      if (existingModel) {
-        existingModel.input += inputTokens;
-        existingModel.output += outputTokens;
-        existingModel.amount += amount;
-        existingModel.charsLength += charsLength;
-        existingModel.pages += pages;
-        existingModel.duration += duration;
-      } else {
-        teamStats.models.push({
-          name: model,
-          input: inputTokens,
-          output: outputTokens,
-          amount,
-          charsLength,
-          pages,
-          duration
-        });
-      }
-    });
+    if (existingModel) {
+      existingModel.input += inputTokens;
+      existingModel.output += outputTokens;
+      existingModel.amount += amount;
+      existingModel.charsLength += charsLength;
+      existingModel.pages += pages;
+      existingModel.duration += duration;
+    } else {
+      teamStats.models.push({
+        name: model,
+        input: inputTokens,
+        output: outputTokens,
+        amount,
+        charsLength,
+        pages,
+        duration
+      });
+    }
   });
 
   // 获取团队的ownerIdList,并且去重
@@ -556,7 +606,7 @@ export const getTeamUsage = async (
 
   // 2. 构建用户信息Map
   const userMap = ownerUsers.reduce(
-    (acc, user) => {
+    (acc: any, user: any) => {
       acc[user._id] = user;
       return acc;
     },
@@ -621,7 +671,7 @@ export const getUsages = async (
   teamId: string,
   offset: number,
   pageSize: number
-): Promise<PaginationResponse<UsageItemType>> => {
+): Promise<PaginationResponse<UsageListItemType>> => {
   const match: any = {
     teamId
   };
@@ -656,9 +706,31 @@ export const getUsages = async (
         .sort({ time: -1 })
         .skip(offset)
         .limit(pageSize)
-        .lean<UsageSchemaType[]>(),
+        .lean() as unknown as UsageSchemaType[],
       MongoUsage.countDocuments(match)
     ]);
+
+    // 根据查询到的usage记录IDs，去MongoUsageItem中查询详细的记录详情
+    let usageDetailsMap: Record<string, any[]> = {};
+    if (usages?.length) {
+      const usageIds = usages.map((usage) => usage._id);
+      const usageItems = await MongoUsageItem.find({
+        usageId: { $in: usageIds }
+      }).lean();
+
+      // 将usage items按usageId分组
+      usageDetailsMap = usageItems.reduce(
+        (acc: any, item: any) => {
+          const usageId = item.usageId.toString();
+          if (!acc[usageId]) {
+            acc[usageId] = [];
+          }
+          acc[usageId].push(item);
+          return acc;
+        },
+        {} as Record<string, any[]>
+      );
+    }
 
     // 查询团队成员信息
     let teamMembersMap: {
@@ -673,7 +745,7 @@ export const getUsages = async (
         .lean();
 
       teamMembersMap = teamMembers.reduce(
-        (acc, member) => {
+        (acc: any, member: any) => {
           acc[member._id] = {
             name: member.name,
             avatar: member.avatar,
@@ -692,13 +764,34 @@ export const getUsages = async (
           avatar: '',
           status: TeamMemberStatusEnum.active
         };
+
+        // 合并usage主记录和从MongoUsageItem查询到的详细记录
+        const usageDetails = usageDetailsMap[usage._id.toString()] || [];
+        const usageDetailItems = usageDetails.map((item) => ({
+          moduleName: item.name,
+          amount: item.amount,
+          model: item.model,
+          inputTokens: item.inputTokens,
+          outputTokens: item.outputTokens,
+          count: item.count,
+          charsLength: item.charsLength,
+          duration: item.duration,
+          pages: item.pages
+        }));
+
+        // 如果 usage.list 存在且需要合并，请确保它也符合 Omit<UsageItemType, "itemType"> 结构
+        const usageListItems = Array.isArray(usage.list)
+          ? usage.list.map(({ itemType, ...rest }) => rest)
+          : [];
+
+        const usageList = [...usageDetailItems, ...usageListItems];
         return {
           id: String(usage._id),
           time: usage.time,
           appName: usage.appName,
           source: usage.source,
           totalPoints: usage.totalPoints,
-          list: usage.list,
+          list: usageList,
           sourceMember: {
             name: teamMember.name,
             avatar: teamMember.avatar,
@@ -766,7 +859,7 @@ export const getUsageDashboardData = async (
       { $sort: { '_id.date': 1 } }
     ]);
 
-    return result.map((item) => ({
+    return result.map((item: any) => ({
       date: new Date(item._id.date),
       totalPoints: item.totalPoints
     }));

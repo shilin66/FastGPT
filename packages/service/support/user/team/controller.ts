@@ -7,38 +7,52 @@ import {
 } from '@fastgpt/global/support/user/team/type';
 import { type ClientSession, Types } from '../../../common/mongo';
 import {
+  notLeaveStatus,
   TeamMemberRoleEnum,
-  TeamMemberStatusEnum,
-  notLeaveStatus
+  TeamMemberStatusEnum
 } from '@fastgpt/global/support/user/team/constant';
 import { MongoTeamMember } from './teamMemberSchema';
 import { MongoTeam } from './teamSchema';
+import type {
+  CreateTeamProps,
+  InviteMemberProps,
+  InviteMemberResponse,
+  UpdateInviteProps
+} from '@fastgpt/global/support/user/team/controller';
 import { type UpdateTeamProps } from '@fastgpt/global/support/user/team/controller';
-import { getTmbPermission } from '../../permission/controller';
-import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
-import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
+import { getClbsInfo, getResourceOwnedClbs, getTmbPermission } from '../../permission/controller';
 import {
-  TeamDefaultPermissionVal,
-  TeamDefaultRoleVal
-} from '@fastgpt/global/support/permission/user/constant';
+  OwnerPermissionVal,
+  PerResourceTypeEnum
+} from '@fastgpt/global/support/permission/constant';
+import { TeamPermission } from '@fastgpt/global/support/permission/user/controller';
+import { TeamDefaultRoleVal } from '@fastgpt/global/support/permission/user/constant';
 import { MongoMemberGroupModel } from '../../permission/memberGroup/memberGroupSchema';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { DefaultGroupName } from '@fastgpt/global/support/user/team/group/constant';
 import { MongoResourcePermission } from '../../permission/schema';
 import { getUserDetail } from '../controller';
 import { MongoUser } from '../schema';
-import type {
-  ResourcePerWithGroup,
-  ResourcePerWithOrg,
-  ResourcePerWithTmbWithUser
-} from '@fastgpt/global/support/permission/type';
 import { MongoGroupMemberModel } from '../../permission/memberGroup/groupMemberSchema';
 import { MongoDataset } from '../../../core/dataset/schema';
 import { MongoApp } from '../../../core/app/schema';
 import { GroupMemberRole } from '@fastgpt/global/support/permission/memberGroup/constant';
 import { getAIApi } from '../../../core/ai/config';
-import { createRootOrg } from '../../permission/org/controllers';
+import {
+  createRootOrg,
+  getRootOrgByTeamId,
+  listOrgPathByTeamId
+} from '../../permission/org/controllers';
 import { getS3AvatarSource } from '../../../common/s3/sources/avatar';
+import { MongoOrgModel } from '../../permission/org/orgSchema';
+import type { PaginationResponse } from '../../../../web/common/fetch/type';
+import { MongoOrgMemberModel } from '../../permission/org/orgMemberSchema';
+import { createUserSession } from '../session';
+import type {
+  CollaboratorListType,
+  DeletePermissionQuery,
+  UpdateClbPermissionProps
+} from '@fastgpt/global/support/permission/collaborator';
 
 async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemType> {
   const tmb = await MongoTeamMember.findOne(match).populate<{ team: TeamSchema }>('team').lean();
@@ -175,7 +189,7 @@ export async function updateTeam({
   openaiAccount,
   externalWorkflowVariable
 }: UpdateTeamProps & { teamId: string }) {
-  if (global.feConfigs?.userDefaultTeam === name) {
+  if ((global as any).feConfigs?.userDefaultTeam === name) {
     return Promise.reject('The team name is not allowed');
   }
   // auth openai key
@@ -381,7 +395,7 @@ export async function getTeamMembers(
 ): Promise<PaginationResponse<TeamMemberItemType>> {
   const getTmbIdsByOrgId = async (orgId: string): Promise<string[]> => {
     const orgMembers = await MongoOrgMemberModel.find({ orgId }, 'tmbId').lean();
-    return orgMembers.map((member) => member.tmbId);
+    return orgMembers.map((member: any) => member.tmbId);
   };
 
   const getTmbIdsByGroupId = async () => {
@@ -389,7 +403,7 @@ export async function getTeamMembers(
 
     // 单次遍历提取数据和构建映射
     const [tmbIds, tmbIdRoleMap] = groupMembers.reduce(
-      (acc, member) => {
+      (acc: any, member: any) => {
         acc[0].push(member.tmbId);
         acc[1][member.tmbId] = member.role;
         return acc;
@@ -581,7 +595,7 @@ async function changeResourceOwner(teamId: string, userId: string) {
   }).lean();
   // 转移mongo group 的所有者
   await Promise.all(
-    ownerGroups.map(async (group) => {
+    ownerGroups.map(async (group: any) => {
       await MongoGroupMemberModel.updateOne(
         {
           groupId: group.groupId,
@@ -627,7 +641,7 @@ export async function inviteTeamMember({
   const userList = await MongoUser.find({ username: { $in: usernames } });
   // convert userList to userMap key username value id
   const userMap = new Map<string, string>();
-  userList.forEach((user) => {
+  userList.forEach((user: any) => {
     userMap.set(user.username, String(user._id));
   });
 
@@ -735,41 +749,32 @@ export async function updatePermission(
   updateClbPermissionProps: UpdateClbPermissionProps,
   teamId: String
 ) {
-  const per = updateClbPermissionProps.permission;
-  const memberIds = updateClbPermissionProps.members;
-  const groupIds = updateClbPermissionProps.groups;
-  const orgIds = updateClbPermissionProps.orgs;
-
-  if (memberIds && memberIds.length > 0) {
+  const { collaborators } = updateClbPermissionProps;
+  if (collaborators && collaborators.length > 0) {
+    // 使用 Promise.all 并行处理所有更新操作
     await Promise.all(
-      memberIds.map(async (memberId) => {
-        await MongoResourcePermission.updateOne(
-          { teamId, tmbId: memberId, resourceType: PerResourceTypeEnum.team },
-          { $set: { permission: per } },
-          { upsert: true }
-        );
-      })
-    );
-  }
+      collaborators.map(async (clb) => {
+        // 根据不同的ID类型构建查询条件
+        const filter: any = {
+          resourceType: PerResourceTypeEnum.team,
+          teamId
+        };
 
-  if (groupIds && groupIds.length > 0) {
-    await Promise.all(
-      groupIds.map(async (groupId) => {
-        await MongoResourcePermission.updateOne(
-          { teamId, groupId: groupId, resourceType: PerResourceTypeEnum.team },
-          { $set: { permission: per, groupId: groupId } },
-          { upsert: true }
-        );
-      })
-    );
-  }
+        // 添加对应的ID字段到查询条件
+        if (clb.tmbId) {
+          filter.tmbId = clb.tmbId;
+        } else if (clb.groupId) {
+          filter.groupId = clb.groupId;
+        } else if (clb.orgId) {
+          filter.orgId = clb.orgId;
+        }
 
-  if (orgIds && orgIds.length > 0) {
-    await Promise.all(
-      orgIds.map(async (orgId) => {
-        await MongoResourcePermission.updateOne(
-          { teamId, orgId: orgId, resourceType: PerResourceTypeEnum.team },
-          { $set: { permission: per, orgId: orgId } },
+        // 执行更新操作
+        return MongoResourcePermission.updateOne(
+          filter,
+          {
+            $set: { permission: clb.permission }
+          },
           { upsert: true }
         );
       })
@@ -777,58 +782,13 @@ export async function updatePermission(
   }
 }
 
-export async function listMemberClbs(teamId: string) {
-  const permissionTypes = await getClbsAndGroupsWithInfo({
-    teamId,
-    resourceType: PerResourceTypeEnum.team
+export async function listMemberClbs(teamId: string, tmbId: string): Promise<CollaboratorListType> {
+  const resourceClbs = await getResourceOwnedClbs({
+    resourceType: PerResourceTypeEnum.team,
+    teamId
   });
-  if (!permissionTypes) {
-    return [];
-  }
-  const perList: CollaboratorItemType[] = [];
-  permissionTypes.map((item) => {
-    //  判断item是ResourcePerWithTmbWithUser[]类型
-    item.map((per) => {
-      if (per.tmbId) {
-        const rpt = per as unknown as ResourcePerWithTmbWithUser;
-        perList.push({
-          teamId: rpt.teamId,
-          tmbId: rpt.tmbId._id,
-          permission: new TeamPermission({
-            role: rpt.permission
-            // isOwner: String(resource.tmbId) === String(rpt.tmb._id)
-          }),
-          name: rpt.tmbId.name,
-          avatar: rpt.tmbId.avatar
-        });
-      }
-      if (per.groupId) {
-        const rpg = per as ResourcePerWithGroup;
-        perList.push({
-          teamId: rpg.teamId,
-          groupId: rpg.group._id,
-          permission: new TeamPermission({
-            role: rpg.permission
-          }),
-          name: rpg.group.name,
-          avatar: rpg.group.avatar
-        });
-      }
-      if (per.orgId) {
-        const rpg = per as ResourcePerWithOrg;
-        perList.push({
-          teamId: rpg.teamId,
-          orgId: rpg.org._id,
-          permission: new TeamPermission({
-            role: rpg.permission
-          }),
-          name: rpg.org.name,
-          avatar: rpg.org.avatar || ''
-        });
-      }
-    });
-  });
-  return perList;
+
+  return { clbs: await getClbsInfo({ clbs: resourceClbs, teamId, ownerTmbId: tmbId }) };
 }
 
 export async function deleteMemberPermission(deletePermissionQuery: DeletePermissionQuery) {

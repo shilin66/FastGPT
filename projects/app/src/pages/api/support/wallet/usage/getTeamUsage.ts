@@ -4,7 +4,7 @@ import type { GetTeamUsageProps } from '@fastgpt/global/support/wallet/usage/api
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';
 import { getTeamUsage } from '@fastgpt/service/support/wallet/usage/controller';
-import { parseHeaderCert } from '@fastgpt/service/support/permission/controller';
+import { parseHeaderCert } from '@fastgpt/service/support/permission/auth/common';
 
 async function handler(
   req: ApiRequestProps<PaginationProps<GetTeamUsageProps>>,

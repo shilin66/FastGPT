@@ -5,9 +5,9 @@ import { MongoTeam } from '@fastgpt/service/support/user/team/teamSchema';
 import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
 import { TeamMemberStatusEnum } from '@fastgpt/global/support/user/team/constant';
 import { getUserDetail } from '@fastgpt/service/support/user/controller';
-import { setCookie } from '@fastgpt/service/support/permission/controller';
 import requestIp from 'request-ip';
 import { createUserSession } from '@fastgpt/service/support/user/session';
+import { setCookie } from '@fastgpt/service/support/permission/auth/common';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
   try {

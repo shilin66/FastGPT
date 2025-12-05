@@ -432,16 +432,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    // add record
-    const { totalPoints } = createChatUsage({
-      appName: app.name,
-      appId: app._id,
-      teamId,
-      tmbId: tmbId,
-      source: getUsageSourceByAuthType({ outLinkType, shareId, authType }),
-      flowUsages
-    });
-
     const totalPoints = flowUsages.reduce((sum, item) => sum + (item.totalPoints || 0), 0);
     if (shareId) {
       pushResult2Remote({ outLinkUid, shareId, appName: app.name, flowResponses });

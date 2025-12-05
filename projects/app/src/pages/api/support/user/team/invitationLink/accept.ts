@@ -1,6 +1,5 @@
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
-import { parseHeaderCert } from '@fastgpt/service/support/permission/controller';
 import { MongoUser } from '@fastgpt/service/support/user/schema';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { UserErrEnum } from '@fastgpt/global/common/error/code/user';
@@ -8,6 +7,7 @@ import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSc
 import { TeamMemberStatusEnum } from '@fastgpt/global/support/user/team/constant';
 import { MongoTeam } from '@fastgpt/service/support/user/team/teamSchema';
 import { MongoInvitationLink } from '@fastgpt/service/support/user/team/invitationLink/schema';
+import { parseHeaderCert } from '@fastgpt/service/support/permission/auth/common';
 
 async function handler(req: ApiRequestProps<{ linkId: string }>, res: ApiResponseType<any>) {
   const { linkId } = req.body;

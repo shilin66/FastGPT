@@ -1,7 +1,7 @@
 import { NextAPI } from '@/service/middleware/entry';
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { usageStats } from '@fastgpt/service/support/wallet/usage/controller';
-import { parseHeaderCert } from '@fastgpt/service/support/permission/controller';
+import { parseHeaderCert } from '@fastgpt/service/support/permission/auth/common';
 
 async function handler(
   req: ApiRequestProps<{

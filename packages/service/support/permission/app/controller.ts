@@ -5,32 +5,40 @@ import {
   OwnerPermissionVal,
   PerResourceTypeEnum
 } from '@fastgpt/global/support/permission/constant';
-import type { CollaboratorItemType } from '@fastgpt/global/support/permission/collaborator';
+import type { CollaboratorListType } from '@fastgpt/global/support/permission/collaborator';
 import { deleteCollaborators, listCollaborator, updateCollaborators } from '../controller';
 import { MongoResourcePermission } from '../schema';
 
 export async function updateAppCollaborators(updateAppCollaboratorBody: UpdateAppCollaboratorBody) {
-  const { appId, members, groups, orgs, permission } = updateAppCollaboratorBody;
+  const { appId, collaborators } = updateAppCollaboratorBody;
 
   const app = await MongoApp.findById(appId).lean();
   if (!app) {
     return Promise.reject(AppErrEnum.unExist);
   }
 
-  await updateCollaborators(
-    { members, groups, orgs, permission },
-    PerResourceTypeEnum.app,
-    appId,
-    app.teamId
-  );
+  await updateCollaborators({ collaborators }, PerResourceTypeEnum.app, appId, app.teamId);
 }
 
-export async function listAppCollaborator(appId: string): Promise<CollaboratorItemType[]> {
+export async function listAppCollaborator(appId: string): Promise<CollaboratorListType> {
   const app = await MongoApp.findById(appId).lean();
   if (!app) {
     return Promise.reject(AppErrEnum.unExist);
   }
-  return await listCollaborator(PerResourceTypeEnum.app, appId, app.teamId);
+  if (app.parentId) {
+    const parentApp = await MongoApp.findById(app.parentId).lean();
+    if (parentApp) {
+      return await listCollaborator(
+        app.teamId,
+        PerResourceTypeEnum.app,
+        appId,
+        app.tmbId,
+        app.parentId,
+        parentApp.tmbId
+      );
+    }
+  }
+  return await listCollaborator(app.teamId, PerResourceTypeEnum.app, appId, app.tmbId);
 }
 
 export async function deleteAppCollaborators(appId: string, tmbId: string, groupId: string) {

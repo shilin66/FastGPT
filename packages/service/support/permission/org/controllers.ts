@@ -17,14 +17,13 @@ export const getOrgIdSetWithParentByTmbId = async ({
 }) => {
   const orgMembers = await MongoOrgMemberModel.find({ teamId, tmbId }, 'orgId').lean();
 
-  const orgIds = Array.from(new Set(orgMembers.map((item) => String(item.orgId))));
+  const orgIds = Array.from(new Set(orgMembers.map((item: any) => String(item.orgId))));
   const orgs = await MongoOrgModel.find({ _id: { $in: orgIds } }, 'path').lean();
 
   const pathIdList = new Set<string>(
     orgs
-      .map((org) => {
-        const pathIdList = org.path.split('/').filter(Boolean);
-        return pathIdList;
+      .map((org: any) => {
+        return org.path.split('/').filter(Boolean);
       })
       .flat()
   );
@@ -35,7 +34,7 @@ export const getOrgIdSetWithParentByTmbId = async ({
     },
     '_id'
   ).lean();
-  const parentOrgIds = parentOrgs.map((item) => String(item._id));
+  const parentOrgIds = parentOrgs.map((item: any) => String(item._id));
 
   return new Set([...orgIds, ...parentOrgIds]);
 };
@@ -98,11 +97,11 @@ export const listOrgPathByTeamId = async (teamId: string) => {
   const orgs = await MongoOrgModel.find({ teamId }).lean();
   // 将 org中path 字段为 /pathIdA/pathIdB 的数据，转换为 /pathNameA/pathNameB 的形式, 并且返回record类型 key是orgId, value是转换后的pathname
   return orgs.reduce(
-    (acc, cur) => {
+    (acc: any, cur: any) => {
       if (cur.path.startsWith('/')) {
         const pathArr = cur.path.split('/');
-        const pathNameArr = pathArr.map((pathId) => {
-          const org = orgs.find((org) => org.pathId === pathId);
+        const pathNameArr = pathArr.map((pathId: any) => {
+          const org = orgs.find((org: any) => org.pathId === pathId);
           return org?.name || pathId;
         });
         acc[cur._id.toString()] = pathNameArr.join('/') + `/${cur.name}`;

@@ -32,7 +32,6 @@ const MyApps = () => {
   const chatSettings = useContextSelector(ChatSettingContext, (v) => v.chatSettings);
 
   const onOpenSlider = useContextSelector(ChatContext, (v) => v.onOpenSlider);
-  const { feConfigs } = useSystemStore();
 
   const map = useMemo(
     () =>

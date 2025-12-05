@@ -2,8 +2,8 @@ import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/nex
 import { NextAPI } from '@/service/middleware/entry';
 import type { CreateTeamProps } from '@fastgpt/global/support/user/team/controller';
 import { createTeam } from '@fastgpt/service/support/user/team/controller';
-import { parseHeaderCert } from '@fastgpt/service/support/permission/controller';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
+import { parseHeaderCert } from '@fastgpt/service/support/permission/auth/common';
 
 export type createBody = {};
 

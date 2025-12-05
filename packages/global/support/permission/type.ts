@@ -4,6 +4,7 @@ import type { CommonRoleKeyEnum } from './constant';
 import { type CommonPerKeyEnum, type PerResourceTypeEnum } from './constant';
 import type { CollaboratorIdType } from './collaborator';
 import type { OrgSchemaType } from '../user/team/org/type';
+import type { MemberGroupSchemaType } from './memberGroup/type';
 
 // PermissionValueType, the type of permission's value is a number, which is a bit field actually.
 // It is spired by the permission system in Linux.

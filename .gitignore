@@ -38,5 +38,10 @@ files/helm/fastgpt/charts/*.tgz
 tmp/
 coverage
 document/.source
+/deploy/docker/aiproxy_pg/
+/deploy/docker/fastgpt-minio/
+/deploy/docker/mongo/
+/deploy/docker/pg/
+/deploy/docker/redis/
 
 projects/app/worker/

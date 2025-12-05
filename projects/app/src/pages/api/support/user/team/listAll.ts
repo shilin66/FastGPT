@@ -2,8 +2,8 @@ import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { listAllTeam } from '@fastgpt/service/support/user/team/controller';
 import type { NextApiRequest } from 'next';
-import { parseHeaderCert } from '@fastgpt/service/support/permission/controller';
 import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';
+import { parseHeaderCert } from '@fastgpt/service/support/permission/auth/common';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
   const { pageSize = 10, offset } = parsePaginationRequest(req);
