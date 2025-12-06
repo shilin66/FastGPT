@@ -43,7 +43,8 @@ const ChatHeader = ({
   totalRecordsCount,
 
   pane,
-  chatSettings
+  chatSettings,
+  reserveSpace
 }: {
   pane: ChatSidebarPaneEnum;
   chatSettings?: ChatSettingType;
@@ -52,6 +53,7 @@ const ChatHeader = ({
   showHistory?: boolean;
   apps?: AppListItemType[];
   totalRecordsCount: number;
+  reserveSpace?: boolean;
 }) => {
   const { t } = useTranslation();
   const { isPc } = useSystem();
@@ -62,7 +64,7 @@ const ChatHeader = ({
   const chatData = useContextSelector(ChatItemContext, (v) => v.chatBoxData);
   const isVariableVisible = useContextSelector(ChatItemContext, (v) => v.isVariableVisible);
 
-  const isPlugin = chatData.app.type === AppTypeEnum.plugin;
+  const isPlugin = chatData.app.type === AppTypeEnum.workflowTool;
   const isShare = source === 'share';
   const chatType = isShare ? ChatTypeEnum.share : ChatTypeEnum.chat;
 
@@ -107,7 +109,7 @@ const ChatHeader = ({
         {!isVariableVisible && <VariablePopover chatType={chatType} />}
 
         {/* control */}
-        {!isPlugin && <ToolMenu history={history} />}
+        {!isPlugin && <ToolMenu history={history} reserveSpace={reserveSpace} />}
       </Flex>
     </Flex>
   );

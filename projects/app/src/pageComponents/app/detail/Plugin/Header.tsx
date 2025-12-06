@@ -106,13 +106,17 @@ const Header = () => {
           )
         );
       }
+    },
+    {
+      manual: true,
+      refreshDeps: [onSaveApp, setPast, flowData2StoreData, appDetail.chatConfig]
     }
   );
 
   const onBack = useCallback(async () => {
     leaveSaveSign.current = false;
     router.push({
-      pathname: '/dashboard/apps',
+      pathname: '/dashboard/tool',
       query: {
         parentId: appDetail.parentId,
         type: lastAppListRouteType
@@ -157,8 +161,7 @@ const Header = () => {
             <IconButton
               icon={<MyIcon name={'common/leftArrowLight'} color={'myGray.600'} w={'0.8rem'} />}
               aria-label={''}
-              size={'xs'}
-              w={'1rem'}
+              size={'xsSquare'}
               variant={'ghost'}
               onClick={isSaved ? onBack : onOpenBackConfirm}
             />

@@ -3,13 +3,15 @@ import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import type { NodeTemplateListItemType } from '@fastgpt/global/core/workflow/type/node';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
-import { getTeamPlugTemplates, getSystemPlugTemplates } from '@/web/core/app/api/plugin';
+import { getTeamAppTemplates, getAppToolTemplates } from '@/web/core/app/api/tool';
 import { TemplateTypeEnum } from './header';
 import { useContextSelector } from 'use-context-selector';
 import { WorkflowBufferDataContext } from '../../../context/workflowInitContext';
 import type { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { useDebounceEffect } from 'ahooks';
 import { AppContext } from '@/pageComponents/app/detail/context';
+import { getPluginToolTags } from '@/web/core/plugin/toolTag/api';
+import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
 
 export const useNodeTemplates = () => {
   const { feConfigs } = useSystemStore();
@@ -25,6 +27,11 @@ export const useNodeTemplates = () => {
     WorkflowBufferDataContext,
     (v) => v
   );
+
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const { data: toolTags = [] } = useRequest2(getPluginToolTags, {
+    manual: false
+  });
 
   const { data: basicNodes } = useRequest2(
     async () => {
@@ -72,31 +79,47 @@ export const useNodeTemplates = () => {
   );
 
   const {
-    data: teamAndSystemApps,
+    data: teamAndSystemTools,
     loading: templatesIsLoading,
     runAsync: loadNodeTemplates
   } = useRequest2(
     async ({
       parentId,
       type = templateType,
-      searchVal
+      searchVal,
+      tags
     }: {
       parentId?: ParentIdType;
       type?: TemplateTypeEnum;
       searchVal?: string;
+      tags?: string[];
     }) => {
-      if (type === TemplateTypeEnum.teamPlugin) {
+      if (type === TemplateTypeEnum.myTools) {
         // app, workflow-plugin, mcp
-        return getTeamPlugTemplates({
+        return getTeamAppTemplates({
           parentId,
-          searchKey: searchVal
+          searchKey: searchVal,
+          type: [
+            AppTypeEnum.toolFolder,
+            AppTypeEnum.workflowTool,
+            AppTypeEnum.mcpToolSet,
+            AppTypeEnum.httpToolSet
+          ]
         }).then((res) => res.filter((app) => app.id !== appId));
       }
-      if (type === TemplateTypeEnum.systemPlugin) {
-        // systemTool
-        return getSystemPlugTemplates({
+      if (type === TemplateTypeEnum.agent) {
+        return getTeamAppTemplates({
+          parentId,
           searchKey: searchVal,
-          parentId
+          type: [AppTypeEnum.folder, AppTypeEnum.simple, AppTypeEnum.workflow]
+        }).then((res) => res.filter((app) => app.id !== appId));
+      }
+      if (type === TemplateTypeEnum.systemTools) {
+        // systemTool
+        return getAppToolTemplates({
+          searchKey: searchVal,
+          parentId,
+          tags
         });
       }
     },
@@ -113,7 +136,7 @@ export const useNodeTemplates = () => {
         return;
       }
 
-      loadNodeTemplates({ parentId, searchVal: searchKey });
+      loadNodeTemplates({ parentId, searchVal: searchKey, tags: selectedTagIds });
     },
     [searchKey],
     {
@@ -135,18 +158,26 @@ export const useNodeTemplates = () => {
       searchKeyLock.current = true;
       setSearchKey('');
       setParentId('');
+      setSelectedTagIds([]);
       setTemplateType(type);
       loadNodeTemplates({ type });
     },
     [loadNodeTemplates]
+  );
+  const onUpdateSelectedTagIds = useCallback(
+    (tags: string[]) => {
+      setSelectedTagIds(tags);
+      loadNodeTemplates({ parentId, searchVal: searchKey, tags });
+    },
+    [loadNodeTemplates, parentId, searchKey]
   );
 
   const templates = useMemo(() => {
     if (templateType === TemplateTypeEnum.basic) {
       return basicNodes || [];
     }
-    return teamAndSystemApps || [];
-  }, [basicNodes, teamAndSystemApps, templateType]);
+    return teamAndSystemTools || [];
+  }, [basicNodes, teamAndSystemTools, templateType]);
 
   return {
     templateType,
@@ -156,6 +187,9 @@ export const useNodeTemplates = () => {
     onUpdateParentId,
     onUpdateTemplateType,
     searchKey,
-    setSearchKey
+    setSearchKey,
+    selectedTagIds,
+    setSelectedTagIds: onUpdateSelectedTagIds,
+    toolTags
   };
 };

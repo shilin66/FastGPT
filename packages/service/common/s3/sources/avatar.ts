@@ -31,7 +31,10 @@ class S3AvatarSource {
   }) {
     return this.bucket.createPostPresignedUrl(
       { filename, teamId, source: S3Sources.avatar },
-      { expiredHours: autoExpired ? 1 : undefined } // 1 Hourse
+      {
+        expiredHours: autoExpired ? 1 : undefined, // 1 Hours
+        maxFileSize: 5 // 5MB
+      }
     );
   }
 
@@ -62,6 +65,23 @@ class S3AvatarSource {
       // 2. delete the avatar in S3
       await this.deleteAvatar(oldAvatar, session);
     }
+  }
+
+  async copyAvatar({
+    key,
+    teamId,
+    filename,
+    temporary = false
+  }: {
+    key: string;
+    teamId: string;
+    filename: string;
+    temporary: boolean;
+  }) {
+    const from = key.slice(this.prefix.length);
+    const to = `${S3Sources.avatar}/${teamId}/${filename}`;
+    await this.bucket.copy({ from, to, options: { temporary } });
+    return this.prefix.concat(to);
   }
 }
 

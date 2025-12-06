@@ -55,7 +55,7 @@ const MarkdownRender = ({
 }: Props) => {
   const components = useCreation(() => {
     return {
-      img: Image,
+      img: (props: any) => <Image {...props} alt={props.alt} chatAuthData={chatAuthData} />,
       pre: RewritePre,
       code: Code,
       a: (props: any) => (
@@ -146,9 +146,17 @@ function Code(e: any) {
   return Component;
 }
 
-const Image = React.memo(function Image({ src, ...props }: { src?: string; [key: string]: any }) {
-  return <MdImage src={src} {...props} />;
-});
+function Image({
+  src,
+  chatAuthData,
+  ...props
+}: {
+  src?: string;
+  chatAuthData?: AProps['chatAuthData'];
+  [key: string]: any;
+}) {
+  return <MdImage src={src} chatAuthData={chatAuthData} {...props} />;
+}
 
 function RewritePre({ children }: any) {
   const modifiedChildren = React.Children.map(children, (child) => {
