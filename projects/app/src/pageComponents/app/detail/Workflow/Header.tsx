@@ -84,7 +84,6 @@ const Header = () => {
       versionName?: string;
     }) => {
       const data = flowData2StoreData();
-
       if (data) {
         await onSaveApp({
           ...data,
@@ -106,13 +105,17 @@ const Header = () => {
           )
         );
       }
+    },
+    {
+      manual: true,
+      refreshDeps: [onSaveApp, setPast, flowData2StoreData, appDetail.chatConfig]
     }
   );
 
   const onBack = useCallback(async () => {
     leaveSaveSign.current = false;
     router.push({
-      pathname: '/dashboard/apps',
+      pathname: '/dashboard/agent',
       query: {
         parentId: appDetail.parentId,
         type: lastAppListRouteType

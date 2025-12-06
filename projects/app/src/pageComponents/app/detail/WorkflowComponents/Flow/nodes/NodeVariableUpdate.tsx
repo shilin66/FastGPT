@@ -6,7 +6,11 @@ import { useTranslation } from 'next-i18next';
 import { Box, Button, Flex } from '@chakra-ui/react';
 import { type TUpdateListItem } from '@fastgpt/global/core/workflow/template/system/variableUpdate/type';
 import type { WorkflowIOValueTypeEnum } from '@fastgpt/global/core/workflow/constants';
-import { NodeInputKeyEnum, VARIABLE_NODE_ID } from '@fastgpt/global/core/workflow/constants';
+import {
+  NodeInputKeyEnum,
+  VARIABLE_NODE_ID,
+  VariableInputEnum
+} from '@fastgpt/global/core/workflow/constants';
 import { useContextSelector } from 'use-context-selector';
 import {
   FlowNodeInputMap,
@@ -23,12 +27,8 @@ import {
 import { ReferSelector, useReference } from './render/RenderInput/templates/Reference';
 import { getRefData } from '@/web/core/workflow/utils';
 import { AppContext } from '@/pageComponents/app/detail/context';
-import { useCreation, useMemoizedFn } from 'ahooks';
 import { getEditorVariables } from '../../utils';
-import {
-  WorkflowBufferDataContext,
-  WorkflowNodeDataContext
-} from '../../context/workflowInitContext';
+import { WorkflowBufferDataContext } from '../../context/workflowInitContext';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import InputRender from '@/components/core/app/formRender';
 import {
@@ -38,6 +38,7 @@ import {
 import { InputTypeEnum } from '@/components/core/app/formRender/constant';
 import { WorkflowActionsContext } from '../../context/workflowActionsContext';
 import { useMemoEnhance } from '@fastgpt/web/hooks/useMemoEnhance';
+import { useMemoizedFn } from 'ahooks';
 
 const NodeVariableUpdate = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
   const { inputs = [], nodeId } = data;
@@ -123,12 +124,31 @@ const NodeVariableUpdate = ({ data, selected }: NodeProps<FlowNodeItemType>) => 
           const variableList = appDetail.chatConfig.variables || [];
           const variable = variableList.find((item) => item.key === value[1]);
           if (variable) {
+            // 文件类型在变量更新节点中使用文本框,因为不在运行时上下文中,无法使用文件选择器
+            const inputType =
+              variable.type === VariableInputEnum.file
+                ? InputTypeEnum.textarea
+                : variableInputTypeToInputType(variable.type);
+
             return {
-              inputType: variableInputTypeToInputType(variable.type),
+              inputType,
               formParams: {
+                // 获取变量中一些表单配置
+                maxLength: variable.maxLength,
+                minLength: variable.minLength,
                 min: variable.min,
                 max: variable.max,
-                list: variable.list
+                list: variable.list,
+                timeGranularity: variable.timeGranularity,
+                timeRangeStart: variable.timeRangeStart,
+                timeRangeEnd: variable.timeRangeEnd,
+                maxFiles: variable.maxFiles,
+                canSelectFile: variable.canSelectFile,
+                canSelectImg: variable.canSelectImg,
+                canSelectVideo: variable.canSelectVideo,
+                canSelectAudio: variable.canSelectAudio,
+                canSelectCustomFileExtension: variable.canSelectCustomFileExtension,
+                customFileExtensionList: variable.customFileExtensionList
               }
             };
           }
@@ -268,11 +288,11 @@ const NodeVariableUpdate = ({ data, selected }: NodeProps<FlowNodeItemType>) => 
               }
 
               return (
-                <Box w={'300px'} borderRadius={'sm'}>
+                <Box minW={'250px'} maxW={'400px'} borderRadius={'sm'}>
                   <InputRender
-                    // @ts-ignore
                     inputType={inputType}
                     {...formParams}
+                    isRichText={false}
                     variables={[...variables, ...externalProviderWorkflowVariables]}
                     variableLabels={variables}
                     value={updateItem.value?.[1]}

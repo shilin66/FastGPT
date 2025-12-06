@@ -121,8 +121,8 @@ const AccountContainer = ({
     //     ]
     //   : []),
     {
-      icon: 'common/settingLight',
-      label: t('common:Setting'),
+      icon: 'support/usage/usageRecordLight',
+      label: t('account:language'),
       value: TabEnum.setting
     },
     {

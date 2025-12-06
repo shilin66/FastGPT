@@ -7,25 +7,27 @@ import {
   ModalBody,
   useDisclosure,
   HStack,
-  Switch,
   ModalFooter,
-  type BoxProps
+  type BoxProps,
+  Checkbox,
+  VStack
 } from '@chakra-ui/react';
-import React, { useMemo } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import type { AppFileSelectConfigType } from '@fastgpt/global/core/app/type.d';
 import MyModal from '@fastgpt/web/components/common/MyModal';
-import MySlider from '@/components/Slider';
 import ChatFunctionTip from './Tip';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 import { useMount } from 'ahooks';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import MyTag from '@fastgpt/web/components/common/Tag/index';
-import MyDivider from '@fastgpt/web/components/common/MyDivider';
 import { defaultAppSelectFileConfig } from '@fastgpt/global/core/app/constants';
 import { usePdfParsers } from '@/web/common/system/hooks/usePdfParsers';
 import MySelect from '@fastgpt/web/components/common/MySelect';
+import InputSlider from '@fastgpt/web/components/common/MySlider/InputSlider';
+import { FileTypeSelectorPanel } from '@fastgpt/web/components/core/app/FileTypeSelector';
+import MyDivider from '@fastgpt/web/components/common/MyDivider';
 
 const FileSelect = ({
   forbidVision = false,
@@ -60,13 +62,17 @@ const FileSelect = ({
     [pdfParsers, t]
   );
 
-  const formLabel = useMemo(
-    () =>
-      value.canSelectFile || value.canSelectImg
-        ? t('common:core.app.whisper.Open')
-        : t('common:core.app.whisper.Close'),
-    [t, value.canSelectFile, value.canSelectImg]
-  );
+  const [localValue, setLocalValue] = useState(value);
+
+  const canUploadFile =
+    value.canSelectFile ||
+    value.canSelectImg ||
+    value.canSelectVideo ||
+    value.canSelectAudio ||
+    value.canSelectCustomFileExtension;
+  const formLabel = canUploadFile
+    ? t('common:core.app.whisper.Open')
+    : t('common:core.app.whisper.Close');
 
   // Close select img switch when vision is forbidden
   useMount(() => {
@@ -93,7 +99,10 @@ const FileSelect = ({
           size={'sm'}
           mr={'-5px'}
           color={'myGray.600'}
-          onClick={onOpen}
+          onClick={() => {
+            setLocalValue(value);
+            onOpen();
+          }}
         >
           {formLabel}
         </Button>
@@ -103,21 +112,48 @@ const FileSelect = ({
         title={t('app:file_upload')}
         isOpen={isOpen}
         onClose={onClose}
+        w={'500px'}
       >
         <ModalBody>
-          <HStack>
-            <FormLabel flex={'1 0 0'}>{t('app:document_upload')}</FormLabel>
-            <Switch
-              isChecked={value.canSelectFile}
-              onChange={(e) => {
-                onChange({
-                  ...value,
-                  canSelectFile: e.target.checked
-                });
-              }}
-            />
-          </HStack>
-          {value.canSelectFile && feConfigs.showCustomPdfParse && (
+          <Box>
+            <HStack spacing={1}>
+              <FormLabel>{t('app:upload_file_max_amount')}</FormLabel>
+              <QuestionTip label={t('app:upload_file_max_amount_tip')} />
+            </HStack>
+
+            <Box mt={2} alignItems={'center'} gap={5}>
+              <InputSlider
+                min={1}
+                max={maxSelectFiles}
+                step={1}
+                value={localValue.maxFiles ?? 5}
+                onChange={(e) => {
+                  setLocalValue((state) => ({
+                    ...state,
+                    maxFiles: e
+                  }));
+                }}
+              />
+            </Box>
+          </Box>
+
+          <VStack spacing={2} alignItems={'flex-start'} mt={6}>
+            <FormLabel>{t('app:upload_file_extension_types')}</FormLabel>
+
+            <VStack
+              w="full"
+              spacing={3}
+              alignItems={'flex-start'}
+              border="1px solid"
+              borderColor="myGray.200"
+              borderRadius="md"
+              p={4}
+            >
+              <FileTypeSelectorPanel value={localValue} onChange={setLocalValue} />
+            </VStack>
+          </VStack>
+
+          {localValue.canSelectFile && feConfigs.showCustomPdfParse && (
             <>
               <Box mt={2}>
                 <HStack spacing={1} mb={2}>
@@ -125,7 +161,7 @@ const FileSelect = ({
                   <QuestionTip label={t('app:pdf_enhance_parse_tips')} />
                 </HStack>
                 <MySelect
-                  value={value.customPdfParse || ''}
+                  value={localValue.customPdfParse || ''}
                   list={pdfParserOptions}
                   onChange={(val) => {
                     onChange({
@@ -136,7 +172,7 @@ const FileSelect = ({
                   size={'sm'}
                   h={'32px'}
                 />
-                {value.customPdfParse && feConfigs?.show_pay && (
+                {localValue.customPdfParse && feConfigs?.show_pay && (
                   <MyTag
                     type={'borderSolid'}
                     borderColor={'myGray.200'}
@@ -149,7 +185,8 @@ const FileSelect = ({
                     mt={2}
                   >
                     {t('app:pdf_enhance_parse_price', {
-                      price: pdfParsers.find((p) => p.value === value.customPdfParse)?.price || 0
+                      price:
+                        pdfParsers.find((p) => p.value === localValue.customPdfParse)?.price || 0
                     })}
                   </MyTag>
                 )}
@@ -157,60 +194,15 @@ const FileSelect = ({
               <MyDivider my={2} />
             </>
           )}
-          <HStack mt={6}>
-            <FormLabel flex={'1 0 0'}>{t('app:image_upload')}</FormLabel>
-            {forbidVision ? (
-              <Box fontSize={'sm'} color={'myGray.500'}>
-                {t('app:llm_not_support_vision')}
-              </Box>
-            ) : (
-              <Switch
-                isChecked={value.canSelectImg}
-                onChange={(e) => {
-                  onChange({
-                    ...value,
-                    canSelectImg: e.target.checked
-                  });
-                }}
-              />
-            )}
-          </HStack>
-          {!forbidVision && (
-            <Flex mt={2} color={'myGray.500'}>
-              <Box fontSize={'xs'}>{t('app:image_upload_tip')}</Box>
-              <ChatFunctionTip type="visionModel" />
-            </Flex>
-          )}
-
-          <Box mt={6}>
-            <HStack spacing={1}>
-              <FormLabel>{t('app:upload_file_max_amount')}</FormLabel>
-              <QuestionTip label={t('app:upload_file_max_amount_tip')} />
-            </HStack>
-
-            <Box mt={5}>
-              <MySlider
-                markList={[
-                  { label: '1', value: 1 },
-                  { label: `${maxSelectFiles}`, value: maxSelectFiles }
-                ]}
-                width={'100%'}
-                min={1}
-                max={maxSelectFiles}
-                step={1}
-                value={value.maxFiles ?? 5}
-                onChange={(e) => {
-                  onChange({
-                    ...value,
-                    maxFiles: e
-                  });
-                }}
-              />
-            </Box>
-          </Box>
         </ModalBody>
         <ModalFooter>
-          <Button onClick={onClose} px={8}>
+          <Button
+            onClick={() => {
+              onChange(localValue);
+              onClose();
+            }}
+            px={8}
+          >
             {t('common:Confirm')}
           </Button>
         </ModalFooter>

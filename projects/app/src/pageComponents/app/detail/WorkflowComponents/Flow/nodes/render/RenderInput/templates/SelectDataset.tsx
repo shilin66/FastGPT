@@ -36,8 +36,8 @@ export const SelectDatasetRender = React.memo(function SelectDatasetRender({
   } = useDisclosure();
 
   const selectedDatasets = useMemo(() => {
-    if (Array.isArray(item.value)) return item.value as SelectedDatasetType;
-    return [] as SelectedDatasetType;
+    if (Array.isArray(item.value)) return item.value as SelectedDatasetType[];
+    return [] as SelectedDatasetType[];
   }, [item.value]);
 
   useEffect(() => {
@@ -95,7 +95,6 @@ export const SelectDatasetRender = React.memo(function SelectDatasetRender({
         </Grid>
         {isOpenDatasetSelect && (
           <DatasetSelectModal
-            isOpen={isOpenDatasetSelect}
             defaultSelectedDatasets={selectedDatasets.map((item) => ({
               datasetId: item.datasetId,
               vectorModel: item.vectorModel,
