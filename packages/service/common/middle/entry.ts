@@ -3,6 +3,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { withNextCors } from './cors';
 import { type ApiRequestProps } from '../../type/next';
 import { addLog } from '../system/log';
+import { ZodError } from 'zod';
+
 import { verifyDbLicense } from '../license/verify';
 export type NextApiHandler<T = any> = (
   req: ApiRequestProps,
@@ -21,7 +23,7 @@ export const NextEntry = ({
 
       try {
         await Promise.all([
-          apiVerifyLicense(req),
+          // apiVerifyLicense(req),
           withNextCors(req, res),
           ...beforeCallback.map((item) => item(req, res))
         ]);
@@ -50,6 +52,18 @@ export const NextEntry = ({
           });
         }
       } catch (error) {
+        // Handle Zod validation errors
+        if (error instanceof ZodError) {
+          return jsonRes(res, {
+            code: 400,
+            error: {
+              message: 'Validation error',
+              details: error.message
+            },
+            url: req.url
+          });
+        }
+
         return jsonRes(res, {
           code: 500,
           error,

@@ -55,7 +55,9 @@ import type {
 } from '@fastgpt/global/support/permission/collaborator';
 
 async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemType> {
-  const tmb = await MongoTeamMember.findOne(match).populate<{ team: TeamSchema }>('team').lean();
+  const tmb = (await MongoTeamMember.findOne(match)
+    .populate('team')
+    .lean()) as TeamMemberWithTeamAndUserSchema | null;
   if (!tmb) {
     return Promise.reject('member not exist');
   }

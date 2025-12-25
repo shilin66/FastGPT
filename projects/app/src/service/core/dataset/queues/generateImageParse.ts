@@ -5,7 +5,7 @@ import { addLog } from '@fastgpt/service/common/system/log';
 import type { PushDatasetDataChunkProps } from '@fastgpt/global/core/dataset/api.d';
 import { getLLMModel } from '@fastgpt/service/core/ai/model';
 import { checkTeamAiPointsAndLock } from './utils';
-import { addMinutes } from 'date-fns';
+import { addHours, addMinutes } from 'date-fns';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 import { ImageParsePromptDefault } from '@fastgpt/global/core/ai/prompt/agent';
 import { getImageBase64 } from '@fastgpt/service/common/file/image/utils';
@@ -14,9 +14,10 @@ import type { DatasetDataSchemaType } from '@fastgpt/global/core/dataset/type';
 import { countGptMessagesTokens, countPromptTokens } from '@fastgpt/service/common/string/tiktoken';
 import { pushLLMTrainingUsage } from '@fastgpt/service/support/wallet/usage/controller';
 import { getErrText } from '@fastgpt/global/common/error/utils';
-import { getDatasetImagePreviewUrl } from '@fastgpt/service/core/dataset/image/utils';
 import { UsageItemTypeEnum } from '@fastgpt/global/support/wallet/usage/constants';
 import { createLLMResponse } from '@fastgpt/service/core/ai/llm/request';
+import { getS3ChatSource } from '@fastgpt/service/common/s3/sources/chat';
+import { jwtSignS3ObjectKey } from '@fastgpt/service/common/s3/utils';
 
 const reduceQueue = () => {
   global.qaQueueLen = global.qaQueueLen > 0 ? global.qaQueueLen - 1 : 0;
@@ -153,13 +154,16 @@ export async function generateImageParse(): Promise<any> {
     const imageId = data.imageId;
 
     if (imageId) {
-      const imageUrl = getDatasetImagePreviewUrl({
-        imageId,
-        teamId: data.teamId,
-        datasetId: data.datasetId,
-        expiredMinutes: 30
-      });
-      const base64img = (await getImageBase64(imageUrl)).completeBase64;
+      const url = jwtSignS3ObjectKey(imageId, addHours(new Date(), 1));
+      const { completeBase64: base64img } = await getImageBase64(url);
+
+      // const imageUrl = getDatasetImagePreviewUrl({
+      //   imageId,
+      //   teamId: data.teamId,
+      //   datasetId: data.datasetId,
+      //   expiredMinutes: 30
+      // });
+      // const base64img = (await getImageBase64(imageUrl)).completeBase64;
 
       // request LLM to get QA
       const messages: ChatCompletionMessageParam[] = [

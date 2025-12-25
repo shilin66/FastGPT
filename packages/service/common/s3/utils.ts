@@ -131,7 +131,7 @@ export async function uploadImage2S3Bucket(
   if (expiredTime && isAfter(expiredTime, now)) {
     await MongoS3TTL.create({
       minioKey: uploadKey,
-      bucketName: bucket.name,
+      bucketName: bucket.bucketName,
       expiredTime: expiredTime
     });
   }
@@ -170,6 +170,17 @@ export const getFileS3Key = {
         `${formatedFilename}${extension ? `.${extension}` : ''}`
       ].join('/'),
       fileParsedPrefix: [S3Sources.temp, teamId, `${formatedFilename}-parsed`].join('/')
+    };
+  },
+
+  avatar: ({ teamId, filename }: { teamId: string; filename?: string }) => {
+    const { formatedFilename, extension } = getFormatedFilename(filename);
+    return {
+      fileKey: [
+        S3Sources.avatar,
+        teamId,
+        `${formatedFilename}${extension ? `.${extension}` : ''}`
+      ].join('/')
     };
   },
 
@@ -215,6 +226,10 @@ export const getFileS3Key = {
       fileKey: key,
       fileParsedPrefix: prefix
     };
+  },
+
+  rawText: ({ hash, customPdfParse }: { hash: string; customPdfParse?: string }) => {
+    return [S3Sources.rawText, `${hash}${customPdfParse ? customPdfParse : ''}`].join('/');
   }
 };
 

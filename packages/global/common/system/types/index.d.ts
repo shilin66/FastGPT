@@ -65,6 +65,7 @@ export type FastGPTFeConfigsType = {
   show_compliance_copywriting?: boolean;
   show_aiproxy?: boolean;
   show_coupon?: boolean;
+  show_discount_coupon?: boolean;
   concatMd?: string;
 
   show_dataset_feishu?: boolean;
@@ -124,23 +125,22 @@ export type FastGPTFeConfigsType = {
     alipay?: boolean;
     bank?: boolean;
   };
-  oss3Url?: string;
-  oss2Url?: string;
+  fileUrlWhitelist?: string[];
+  customDomain?: {
+    enable?: boolean;
+    domain?: {
+      aliyun?: string;
+      tencent?: string;
+      volcengine?: string;
+    };
+  };
+
+  ip_whitelist?: string;
+
   autoIndexPrompt?: string;
   imageIndexPrompt?: string;
   markdownIframeSandbox?: string;
   checkLicenseCron?: string;
-};
-
-export type GithubType = {
-  clientId: string;
-  clientSecret: string;
-};
-
-export type MicrosoftType = {
-  clientId: string;
-  tenantId: string;
-  clientSecret?: string;
 };
 
 export type SystemEnvType = {
@@ -165,6 +165,31 @@ export type SystemEnvType = {
   };
 
   customPdfParse?: SystemEnvCustomPdfParseType;
+  fileUrlWhitelist?: string[];
+  customDomain?: customDomainType;
+};
+
+export type customDomainType = {
+  kc?: {
+    aliyun?: string;
+    tencent?: string;
+    volcengine?: string;
+  };
+  domain?: {
+    aliyun?: string;
+    tencent?: string;
+    volcengine?: string;
+  };
+  issuerServiceName?: {
+    aliyun?: string;
+    tencent?: string;
+    volcengine?: string;
+  };
+  nginxServiceName?: {
+    aliyun?: string;
+    tencent?: string;
+    volcengine?: string;
+  };
 };
 
 export type customPdfParseType = {

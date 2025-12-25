@@ -3,15 +3,13 @@
 */
 import type { NextApiRequest } from 'next';
 import { authDatasetCollection } from '@fastgpt/service/support/permission/dataset/auth';
-import { BucketNameEnum } from '@fastgpt/global/common/file/constants';
-import { getFileById } from '@fastgpt/service/common/file/gridfs/controller';
 import { getCollectionSourceData } from '@fastgpt/global/core/dataset/collection/utils';
 import { NextAPI } from '@/service/middleware/entry';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { type DatasetCollectionItemType } from '@fastgpt/global/core/dataset/type';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import { collectionTagsToTagLabel } from '@fastgpt/service/core/dataset/collection/utils';
-import { getVectorCountByCollectionId } from '@fastgpt/service/common/vectorDB/controller';
+import { getVectorCount } from '@fastgpt/service/common/vectorDB/controller';
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
 import { readFromSecondary } from '@fastgpt/service/common/mongo/utils';
 import { getS3DatasetSource } from '@fastgpt/service/common/s3/sources/dataset';
@@ -34,16 +32,17 @@ async function handler(req: NextApiRequest): Promise<DatasetCollectionItemType> 
   });
 
   const fileId = collection?.fileId;
+  if (fileId && !isS3ObjectKey(fileId, 'dataset')) {
+    return Promise.reject('Invalid dataset file key');
+  }
+
   const [file, indexAmount, errorCount] = await Promise.all([
-    fileId
-      ? isS3ObjectKey(fileId, 'dataset')
-        ? getS3DatasetSource().getFileMetadata(fileId)
-        : (async () => {
-            const file = await getFileById({ bucketName: BucketNameEnum.dataset, fileId });
-            return { filename: file?.filename, contentLength: file?.length };
-          })()
-      : undefined,
-    getVectorCountByCollectionId(collection.teamId, collection.datasetId, collection._id),
+    fileId ? getS3DatasetSource().getFileMetadata(fileId) : undefined,
+    getVectorCount({
+      teamId: collection.teamId,
+      datasetId: collection.datasetId,
+      collectionId: collection._id
+    }),
     MongoDatasetTraining.countDocuments(
       {
         teamId: collection.teamId,

@@ -160,7 +160,7 @@ async function handler(
             chunkSplitMode: DataChunkSplitModeEnum.paragraph,
             chunkSize: 1024,
             indexSize: 512,
-            customPdfParse: false
+            customPdfParse: ''
           },
           session
         });

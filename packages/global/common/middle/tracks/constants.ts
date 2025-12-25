@@ -9,5 +9,11 @@ export enum TrackEnum {
   datasetSearch = 'datasetSearch',
   readSystemAnnouncement = 'readSystemAnnouncement',
   clickOperationalAd = 'clickOperationalAd',
-  closeOperationalAd = 'closeOperationalAd'
+  closeOperationalAd = 'closeOperationalAd',
+  teamChatQPM = 'teamChatQPM',
+  subscriptionDeleted = 'subscriptionDeleted',
+  freeAccountCleanup = 'freeAccountCleanup',
+
+  // web tracks
+  clientError = 'clientError'
 }

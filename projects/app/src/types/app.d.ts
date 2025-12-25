@@ -14,6 +14,7 @@ import type { AppSchema } from '@fastgpt/global/core/app/type';
 import { ChatModelType } from '@/constants/model';
 import { TeamMemberStatusEnum } from '@fastgpt/global/support/user/team/constant';
 import type { SourceMember } from '@fastgpt/global/support/user/type';
+import type { LocationName } from '@fastgpt/service/common/geo/type';
 
 export interface ShareAppItem {
   _id: string;
@@ -31,25 +32,4 @@ export type AppItemType = {
   name: string;
   modules: StoreNodeItemType[];
   edges: StoreEdgeItemType[];
-};
-
-export type AppLogsListItemType = {
-  _id: string;
-  id: string;
-  source: string;
-  createTime: Date;
-  updateTime: Date;
-  title: string;
-  customTitle: string;
-  messageCount: number;
-  userGoodFeedbackCount: number;
-  userBadFeedbackCount: number;
-  customFeedbacksCount: number;
-  markCount: number;
-  averageResponseTime: number;
-  errorCount: number;
-  totalPoints: number;
-  outLinkUid?: string;
-  tmbId: string;
-  sourceMember: SourceMember;
 };
