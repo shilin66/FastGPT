@@ -33,8 +33,8 @@ import { datasetSearchQueryExtension } from './utils';
 import type { RerankModelItemType } from '@fastgpt/global/core/ai/model.d';
 import { formatDatasetDataValue } from '../data/controller';
 import { pushTrack } from '../../../common/middle/tracks/utils';
+import { replaceS3KeyToPreviewUrl } from '../../../core/dataset/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
-import { replaceDatasetQuoteTextWithJWT } from '../../../core/dataset/utils';
 import { addDays, addHours } from 'date-fns';
 
 export type SearchDatasetDataProps = {
@@ -82,9 +82,11 @@ export type SearchDatasetDataResponse = {
   usingSimilarityFilter: boolean;
 
   queryExtensionResult?: {
-    model: string;
+    llmModel: string;
+    embeddingModel: string;
     inputTokens: number;
     outputTokens: number;
+    embeddingTokens: number;
     query: string;
   };
   deepSearchResult?: { model: string; inputTokens: number; outputTokens: number };
@@ -557,8 +559,6 @@ export async function searchDatasetData(
               id: String(data._id),
               updateTime: data.updateTime,
               ...formatDatasetDataValue({
-                teamId,
-                datasetId: data.datasetId,
                 q: data.q,
                 a: data.a,
                 summary,
@@ -733,8 +733,6 @@ export async function searchDatasetData(
             collectionId: String(data.collectionId),
             updateTime: data.updateTime,
             ...formatDatasetDataValue({
-              teamId,
-              datasetId: data.datasetId,
               q: data.q,
               a: data.a,
               summary,
@@ -915,7 +913,7 @@ export async function searchDatasetData(
   const filterMaxTokensResult = await filterDatasetDataByMaxTokens(scoreFilter, maxTokens);
 
   const finalResult = filterMaxTokensResult.map((item) => {
-    item.q = replaceDatasetQuoteTextWithJWT(item.q, addDays(new Date(), 90));
+    item.q = replaceS3KeyToPreviewUrl(item.q, addDays(new Date(), 90));
     return item;
   });
 
@@ -947,32 +945,32 @@ export const defaultSearchDatasetData = async ({
   const query = props.queries[0];
   const histories = props.histories;
 
-  const extensionModel = datasetSearchUsingExtensionQuery
-    ? getLLMModel(datasetSearchExtensionModel)
-    : undefined;
-
-  const { concatQueries, extensionQueries, rewriteQuery, aiExtensionResult } =
-    await datasetSearchQueryExtension({
-      query,
-      extensionModel,
-      extensionBg: datasetSearchExtensionBg,
-      histories
-    });
+  const { searchQueries, reRankQuery, aiExtensionResult } = await datasetSearchQueryExtension({
+    query,
+    llmModel: datasetSearchUsingExtensionQuery
+      ? getLLMModel(datasetSearchExtensionModel).model
+      : undefined,
+    embeddingModel: props.model,
+    extensionBg: datasetSearchExtensionBg,
+    histories
+  });
 
   const result = await searchDatasetData({
     ...props,
-    reRankQuery: rewriteQuery,
-    queries: concatQueries
+    reRankQuery: reRankQuery,
+    queries: searchQueries
   });
 
   return {
     ...result,
     queryExtensionResult: aiExtensionResult
       ? {
-          model: aiExtensionResult.model,
+          llmModel: aiExtensionResult.llmModel,
           inputTokens: aiExtensionResult.inputTokens,
           outputTokens: aiExtensionResult.outputTokens,
-          query: extensionQueries.join('\n')
+          embeddingModel: aiExtensionResult.embeddingModel,
+          embeddingTokens: aiExtensionResult.embeddingTokens,
+          query: searchQueries.join('\n')
         }
       : undefined
   };

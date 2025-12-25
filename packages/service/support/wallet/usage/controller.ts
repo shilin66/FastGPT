@@ -39,7 +39,6 @@ export async function createUsage(data: CreateUsageProps) {
         tmbId: data.tmbId,
         appName: data.appName,
         appId: data.appId,
-        pluginId: data.pluginId,
         totalPoints: data.totalPoints,
         source: data.source
         // list: data.list
@@ -104,7 +103,6 @@ export async function pushUsageItems(data: PushUsageItemsProps) {
       pages: item.pages,
       count: item.count
     }));
-
     await MongoUsageItem.insertMany(itemsToInsert);
   } catch (error) {
     addLog.error('pushUsageItems error', error);

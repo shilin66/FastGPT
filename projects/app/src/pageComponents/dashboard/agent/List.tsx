@@ -96,7 +96,7 @@ const List = () => {
       borderColor: 'primary.600'
     },
     onDrop: (dragId: string, targetId: string) => {
-      openMoveConfirm(async () => onPutAppById(dragId, { parentId: targetId }))();
+      openMoveConfirm({ onConfirm: async () => onPutAppById(dragId, { parentId: targetId }) })();
     }
   });
 
@@ -237,15 +237,15 @@ const List = () => {
                     isFolder: app.type === AppTypeEnum.folder || app.type === AppTypeEnum.toolFolder
                   })}
                 >
-                  <HStack>
+                  <Grid templateColumns="auto 1fr auto" alignItems="center" width="100%" gap={2}>
                     <Avatar src={app.avatar} borderRadius={'sm'} w={'1.5rem'} />
-                    <Box flex={'1 0 0'} color={'myGray.900'} fontWeight={'medium'}>
-                      {app.name}
+                    <Box color={'myGray.900'} fontWeight={'medium'} minWidth={0} overflow="hidden">
+                      <Box className={'textEllipsis'}>{app.name}</Box>
                     </Box>
-                    <Box mr={-5}>
+                    <Box justifySelf="end" mr={-5}>
                       <AppTypeTag type={app.type} />
                     </Box>
-                  </HStack>
+                  </Grid>
                   <Box
                     flex={'1 0 56px'}
                     mt={3}
@@ -397,7 +397,9 @@ const List = () => {
                                           type: 'grayBg' as MenuItemType,
                                           label: t('app:copy_one_app'),
                                           onClick: () =>
-                                            openConfirmCopy(() => onclickCopy({ appId: app._id }))()
+                                            openConfirmCopy({
+                                              onConfirm: () => onclickCopy({ appId: app._id })
+                                            })()
                                         }
                                       ]
                                     }
@@ -411,13 +413,14 @@ const List = () => {
                                           icon: 'delete',
                                           label: t('common:Delete'),
                                           onClick: () =>
-                                            openConfirmDel(
-                                              () => onclickDelApp(app._id),
-                                              undefined,
-                                              app.type === AppTypeEnum.folder
-                                                ? t('app:confirm_delete_folder_tip')
-                                                : t('app:confirm_del_app_tip', { name: app.name })
-                                            )()
+                                            openConfirmDel({
+                                              onConfirm: () => onclickDelApp(app._id),
+                                              inputConfirmText: app.name,
+                                              customContent:
+                                                app.type === AppTypeEnum.folder
+                                                  ? t('app:confirm_delete_folder_tip')
+                                                  : t('app:confirm_del_app_tip')
+                                            })()
                                         }
                                       ]
                                     }
@@ -499,8 +502,11 @@ const CreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
   const router = useRouter();
   const parentId = router.query.parentId;
   const createAppType =
-    createAppTypeMap[appType as CreateAppType]?.type ||
-    (router.pathname.includes('/agent') ? AppTypeEnum.workflow : AppTypeEnum.workflowTool);
+    appType !== 'all' && appType in createAppTypeMap
+      ? createAppTypeMap[appType as keyof typeof createAppTypeMap].type
+      : router.pathname.includes('/agent')
+        ? AppTypeEnum.workflow
+        : AppTypeEnum.workflowTool;
   const isToolType = ToolTypeList.includes(createAppType);
 
   return (
@@ -528,7 +534,7 @@ const CreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
     >
       <Box
         as="img"
-        src={getWebReqUrl('/imgs/app/createButton.png')}
+        src={getWebReqUrl('/imgs/app/createButton.jpg')}
         alt="operational advertisement"
         width="100%"
         maxW="100%"
@@ -571,8 +577,11 @@ const ListCreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
   const router = useRouter();
   const parentId = router.query.parentId;
   const createAppType =
-    createAppTypeMap[appType as CreateAppType]?.type ||
-    (router.pathname.includes('/agent') ? AppTypeEnum.workflow : AppTypeEnum.workflowTool);
+    appType !== 'all' && appType in createAppTypeMap
+      ? createAppTypeMap[appType as keyof typeof createAppTypeMap].type
+      : router.pathname.includes('/agent')
+        ? AppTypeEnum.workflow
+        : AppTypeEnum.workflowTool;
 
   return (
     <MyBox

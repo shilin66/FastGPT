@@ -1,4 +1,4 @@
-import { replaceDatasetQuoteTextWithJWT } from '../../../core/dataset/utils';
+import { replaceS3KeyToPreviewUrl } from '../../../core/dataset/utils';
 import { addEndpointToImageUrl } from '../../../common/file/image/utils';
 import { addDays } from 'date-fns';
 import { isS3ObjectKey, jwtSignS3ObjectKey } from '../../../common/s3/utils';
@@ -6,16 +6,12 @@ import type { DatasetDataSchemaType } from '@fastgpt/global/core/dataset/type';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 
 export const formatDatasetDataValue = ({
-  teamId,
-  datasetId,
   q,
   a,
   summary,
   imageId,
   imageDescMap
 }: {
-  teamId: string;
-  datasetId: string;
   q: string;
   a?: string;
   summary?: string;
@@ -57,8 +53,8 @@ export const formatDatasetDataValue = ({
 
   if (!imageId) {
     return {
-      q: replaceDatasetQuoteTextWithJWT(q, addDays(new Date(), 90)),
-      a: a ? replaceDatasetQuoteTextWithJWT(a, addDays(new Date(), 90)) : undefined
+      q: replaceS3KeyToPreviewUrl(q, addDays(new Date(), 90)),
+      a: a ? replaceS3KeyToPreviewUrl(a, addDays(new Date(), 90)) : undefined
     };
   }
 
@@ -84,8 +80,6 @@ export const getFormatDatasetCiteList = (list: DatasetDataSchemaType[]) => {
     return {
       _id: item._id,
       ...formatDatasetDataValue({
-        teamId: item.teamId,
-        datasetId: item.datasetId,
         q: item.q,
         a: item.a,
         summary,

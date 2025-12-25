@@ -10,7 +10,12 @@ import type {
   StreamChatType,
   UnStreamChatType
 } from '@fastgpt/global/core/ai/type';
-import { computedTemperature, parseLLMStreamResponse, parseReasoningContent } from '../utils';
+import {
+  computedMaxToken,
+  computedTemperature,
+  parseLLMStreamResponse,
+  parseReasoningContent
+} from '../utils';
 import { removeDatasetCiteText } from '@fastgpt/global/core/ai/llm/utils';
 import { getAIApi } from '../config';
 import type { OpenaiAccountType } from '@fastgpt/global/support/user/team/type';
@@ -81,7 +86,7 @@ export const createLLMResponse = async <T extends CompletionsBodyType>(
     return requestMessages;
   })();
 
-  const requestBody = await llmCompletionsBodyFormat({
+  const { requestBody, modelData } = await llmCompletionsBodyFormat({
     ...body,
     messages: rewriteMessages
   });
@@ -89,6 +94,7 @@ export const createLLMResponse = async <T extends CompletionsBodyType>(
   // console.log(JSON.stringify(requestBody, null, 2));
   const { response, isStreamResponse, getEmptyResponseTip } = await createChatCompletion({
     body: requestBody,
+    modelData,
     userKey,
     options: {
       headers: {
@@ -491,10 +497,16 @@ const llmCompletionsBodyFormat = async <T extends CompletionsBodyType>({
   parallel_tool_calls,
   toolCallMode,
   ...body
-}: LLMRequestBodyType<T>): Promise<InferCompletionsBody<T>> => {
+}: LLMRequestBodyType<T>): Promise<{
+  requestBody: InferCompletionsBody<T>;
+  modelData: LLMModelItemType;
+}> => {
   const modelData = getLLMModel(body.model);
   if (!modelData) {
-    return body as unknown as InferCompletionsBody<T>;
+    return {
+      requestBody: body as unknown as InferCompletionsBody<T>,
+      modelData
+    };
   }
 
   const response_format = (() => {
@@ -518,8 +530,14 @@ const llmCompletionsBodyFormat = async <T extends CompletionsBodyType>({
   })();
   const stop = body.stop ?? undefined;
 
+  const maxTokens = computedMaxToken({
+    model: modelData,
+    maxToken: body.max_tokens || undefined
+  });
+
   const requestBody = {
     ...body,
+    max_tokens: maxTokens,
     model: modelData.model,
     temperature:
       typeof body.temperature === 'number'
@@ -530,7 +548,7 @@ const llmCompletionsBodyFormat = async <T extends CompletionsBodyType>({
         : undefined,
     ...modelData?.defaultConfig,
     response_format,
-    stop: stop?.split('|'),
+    stop: stop?.split('|').filter((item) => !!item.trim()),
     ...(toolCallMode === 'toolChoice' && {
       tools,
       tool_choice,
@@ -548,7 +566,10 @@ const llmCompletionsBodyFormat = async <T extends CompletionsBodyType>({
     });
   }
 
-  return requestBody as unknown as InferCompletionsBody<T>;
+  return {
+    requestBody: requestBody as unknown as InferCompletionsBody<T>,
+    modelData
+  };
 };
 const createChatCompletion = async ({
   modelData,
@@ -557,7 +578,7 @@ const createChatCompletion = async ({
   timeout,
   options
 }: {
-  modelData?: LLMModelItemType;
+  modelData: LLMModelItemType;
   body: ChatCompletionCreateParamsNonStreaming | ChatCompletionCreateParamsStreaming;
   userKey?: OpenaiAccountType;
   timeout?: number;
@@ -577,12 +598,10 @@ const createChatCompletion = async ({
   )
 > => {
   try {
-    // Rewrite model
-    const modelConstantsData = modelData || getLLMModel(body.model);
-    if (!modelConstantsData) {
+    if (!modelData) {
       return Promise.reject(`${body.model} not found`);
     }
-    body.model = modelConstantsData.model;
+    body.model = modelData.model;
 
     const formatTimeout = timeout ? timeout : 600000;
     const ai = getAIApi({
@@ -596,12 +615,10 @@ const createChatCompletion = async ({
 
     const response = await ai.chat.completions.create(body, {
       ...options,
-      ...(modelConstantsData.requestUrl ? { path: modelConstantsData.requestUrl } : {}),
+      ...(modelData.requestUrl ? { path: modelData.requestUrl } : {}),
       headers: {
         ...options?.headers,
-        ...(modelConstantsData.requestAuth
-          ? { Authorization: `Bearer ${modelConstantsData.requestAuth}` }
-          : {})
+        ...(modelData.requestAuth ? { Authorization: `Bearer ${modelData.requestAuth}` } : {})
       }
     });
 

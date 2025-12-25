@@ -61,9 +61,21 @@ export const getTeamStandPlan = async ({ teamId }: { teamId: string }) => {
     standardConstants: standardConstants
       ? {
           ...standardConstants,
-          maxTeamMember: standard?.maxTeamMember || standardConstants.maxTeamMember,
-          maxAppAmount: standard?.maxApp || standardConstants.maxAppAmount,
-          maxDatasetAmount: standard?.maxDataset || standardConstants.maxDatasetAmount
+          maxTeamMember: standard?.maxTeamMember ?? standardConstants.maxTeamMember,
+          maxAppAmount: standard?.maxApp ?? standardConstants.maxAppAmount,
+          maxDatasetAmount: standard?.maxDataset ?? standardConstants.maxDatasetAmount,
+          requestsPerMinute: standard?.requestsPerMinute ?? standardConstants.requestsPerMinute,
+          chatHistoryStoreDuration:
+            standard?.chatHistoryStoreDuration ?? standardConstants.chatHistoryStoreDuration,
+          maxDatasetSize: standard?.maxDatasetSize ?? standardConstants.maxDatasetSize,
+          websiteSyncPerDataset:
+            standard?.websiteSyncPerDataset ?? standardConstants.websiteSyncPerDataset,
+          appRegistrationCount:
+            standard?.appRegistrationCount ?? standardConstants.appRegistrationCount,
+          auditLogStoreDuration:
+            standard?.auditLogStoreDuration ?? standardConstants.auditLogStoreDuration,
+          ticketResponseTime: standard?.ticketResponseTime ?? standardConstants.ticketResponseTime,
+          customDomain: standard?.customDomain ?? standardConstants.customDomain
         }
       : undefined
   };
@@ -165,7 +177,9 @@ export const getTeamPlanStatus = async ({
 
   const standardMaxDatasetSize =
     standardPlan?.currentSubLevel && standardPlans
-      ? standardPlans[standardPlan.currentSubLevel]?.maxDatasetSize || Infinity
+      ? standardPlan?.maxDatasetSize ||
+        standardPlans[standardPlan.currentSubLevel]?.maxDatasetSize ||
+        Infinity
       : Infinity;
   const totalDatasetSize =
     standardMaxDatasetSize +
@@ -176,16 +190,29 @@ export const getTeamPlanStatus = async ({
       ? standardPlans[standardPlan.currentSubLevel]
       : undefined;
 
-  updateTeamPointsCache({ teamId, totalPoints, surplusPoints });
+  teamPoint.updateTeamPointsCache({ teamId, totalPoints, surplusPoints });
 
   return {
     [SubTypeEnum.standard]: standardPlan,
     standardConstants: standardConstants
       ? {
           ...standardConstants,
-          maxTeamMember: standardPlan?.maxTeamMember || standardConstants.maxTeamMember,
-          maxAppAmount: standardPlan?.maxApp || standardConstants.maxAppAmount,
-          maxDatasetAmount: standardPlan?.maxDataset || standardConstants.maxDatasetAmount
+          maxTeamMember: standardPlan?.maxTeamMember ?? standardConstants.maxTeamMember,
+          maxAppAmount: standardPlan?.maxApp ?? standardConstants.maxAppAmount,
+          maxDatasetAmount: standardPlan?.maxDataset ?? standardConstants.maxDatasetAmount,
+          requestsPerMinute: standardPlan?.requestsPerMinute ?? standardConstants.requestsPerMinute,
+          chatHistoryStoreDuration:
+            standardPlan?.chatHistoryStoreDuration ?? standardConstants.chatHistoryStoreDuration,
+          maxDatasetSize: standardPlan?.maxDatasetSize ?? standardConstants.maxDatasetSize,
+          websiteSyncPerDataset:
+            standardPlan?.websiteSyncPerDataset || standardConstants.websiteSyncPerDataset,
+          appRegistrationCount:
+            standardPlan?.appRegistrationCount ?? standardConstants.appRegistrationCount,
+          auditLogStoreDuration:
+            standardPlan?.auditLogStoreDuration ?? standardConstants.auditLogStoreDuration,
+          ticketResponseTime:
+            standardPlan?.ticketResponseTime ?? standardConstants.ticketResponseTime,
+          customDomain: standardPlan?.customDomain ?? standardConstants.customDomain
         }
       : undefined,
 
@@ -196,58 +223,99 @@ export const getTeamPlanStatus = async ({
   };
 };
 
-export const clearTeamPointsCache = async (teamId: string) => {
-  const surplusCacheKey = `${CacheKeyEnum.team_point_surplus}:${teamId}`;
-  const totalCacheKey = `${CacheKeyEnum.team_point_total}:${teamId}`;
+export const teamPoint = {
+  getTeamPoints: async ({ teamId }: { teamId: string }) => {
+    const surplusCacheKey = `${CacheKeyEnum.team_point_surplus}:${teamId}`;
+    const totalCacheKey = `${CacheKeyEnum.team_point_total}:${teamId}`;
 
-  await Promise.all([delRedisCache(surplusCacheKey), delRedisCache(totalCacheKey)]);
-};
+    const [surplusCacheStr, totalCacheStr] = await Promise.all([
+      getRedisCache(surplusCacheKey),
+      getRedisCache(totalCacheKey)
+    ]);
 
-export const incrTeamPointsCache = async ({ teamId, value }: { teamId: string; value: number }) => {
-  const surplusCacheKey = `${CacheKeyEnum.team_point_surplus}:${teamId}`;
-  await incrValueToCache(surplusCacheKey, value);
-};
-export const updateTeamPointsCache = async ({
-  teamId,
-  totalPoints,
-  surplusPoints
-}: {
-  teamId: string;
-  totalPoints: number;
-  surplusPoints: number;
-}) => {
-  const surplusCacheKey = `${CacheKeyEnum.team_point_surplus}:${teamId}`;
-  const totalCacheKey = `${CacheKeyEnum.team_point_total}:${teamId}`;
+    if (surplusCacheStr && totalCacheStr) {
+      const totalPoints = Number(totalCacheStr);
+      const surplusPoints = Number(surplusCacheStr);
+      return {
+        totalPoints,
+        surplusPoints,
+        usedPoints: totalPoints - surplusPoints
+      };
+    }
 
-  await Promise.all([
-    setRedisCache(surplusCacheKey, surplusPoints, CacheKeyEnumTime.team_point_surplus),
-    setRedisCache(totalCacheKey, totalPoints, CacheKeyEnumTime.team_point_total)
-  ]);
-};
-
-export const getTeamPoints = async ({ teamId }: { teamId: string }) => {
-  const surplusCacheKey = `${CacheKeyEnum.team_point_surplus}:${teamId}`;
-  const totalCacheKey = `${CacheKeyEnum.team_point_total}:${teamId}`;
-
-  const [surplusCacheStr, totalCacheStr] = await Promise.all([
-    getRedisCache(surplusCacheKey),
-    getRedisCache(totalCacheKey)
-  ]);
-
-  if (surplusCacheStr && totalCacheStr) {
-    const totalPoints = Number(totalCacheStr);
-    const surplusPoints = Number(surplusCacheStr);
+    const planStatus = await getTeamPlanStatus({ teamId });
     return {
-      totalPoints,
-      surplusPoints,
-      usedPoints: totalPoints - surplusPoints
+      totalPoints: planStatus.totalPoints,
+      surplusPoints: planStatus.totalPoints - planStatus.usedPoints,
+      usedPoints: planStatus.usedPoints
     };
-  }
+  },
+  incrTeamPointsCache: async ({ teamId, value }: { teamId: string; value: number }) => {
+    const surplusCacheKey = `${CacheKeyEnum.team_point_surplus}:${teamId}`;
+    await incrValueToCache(surplusCacheKey, value);
+  },
+  updateTeamPointsCache: async ({
+    teamId,
+    totalPoints,
+    surplusPoints
+  }: {
+    teamId: string;
+    totalPoints: number;
+    surplusPoints: number;
+  }) => {
+    const surplusCacheKey = `${CacheKeyEnum.team_point_surplus}:${teamId}`;
+    const totalCacheKey = `${CacheKeyEnum.team_point_total}:${teamId}`;
 
-  const planStatus = await getTeamPlanStatus({ teamId });
-  return {
-    totalPoints: planStatus.totalPoints,
-    surplusPoints: planStatus.totalPoints - planStatus.usedPoints,
-    usedPoints: planStatus.usedPoints
-  };
+    await Promise.all([
+      setRedisCache(surplusCacheKey, surplusPoints, CacheKeyEnumTime.team_point_surplus),
+      setRedisCache(totalCacheKey, totalPoints, CacheKeyEnumTime.team_point_total)
+    ]);
+  },
+  clearTeamPointsCache: async (teamId: string) => {
+    const surplusCacheKey = `${CacheKeyEnum.team_point_surplus}:${teamId}`;
+    const totalCacheKey = `${CacheKeyEnum.team_point_total}:${teamId}`;
+
+    await Promise.all([delRedisCache(surplusCacheKey), delRedisCache(totalCacheKey)]);
+  }
+};
+export const teamQPM = {
+  getTeamQPMLimit: async (teamId: string): Promise<number | null> => {
+    // 1. 尝试从缓存中获取
+    const cacheKey = `${CacheKeyEnum.team_qpm_limit}:${teamId}`;
+    const cached = await getRedisCache(cacheKey);
+
+    if (cached) {
+      return Number(cached);
+    }
+
+    // 2. Computed
+    const teamPlanStatus = await getTeamPlanStatus({ teamId });
+    const limit =
+      teamPlanStatus[SubTypeEnum.standard]?.requestsPerMinute ??
+      teamPlanStatus.standardConstants?.requestsPerMinute;
+
+    if (!limit) {
+      if (process.env.CHAT_MAX_QPM) return Number(process.env.CHAT_MAX_QPM);
+      return null;
+    }
+
+    // 3. Set cache
+    await teamQPM.setCachedTeamQPMLimit(teamId, limit);
+
+    return limit;
+  },
+  setCachedTeamQPMLimit: async (teamId: string, limit: number): Promise<void> => {
+    const cacheKey = `${CacheKeyEnum.team_qpm_limit}:${teamId}`;
+    await setRedisCache(cacheKey, limit.toString(), CacheKeyEnumTime.team_qpm_limit);
+  },
+  clearTeamQPMLimitCache: async (teamId: string): Promise<void> => {
+    const cacheKey = `${CacheKeyEnum.team_qpm_limit}:${teamId}`;
+    await delRedisCache(cacheKey);
+  }
+};
+
+// controler
+export const clearTeamPlanCache = async (teamId: string) => {
+  await teamPoint.clearTeamPointsCache(teamId);
+  await teamQPM.clearTeamQPMLimitCache(teamId);
 };

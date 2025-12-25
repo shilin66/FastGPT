@@ -39,7 +39,7 @@ const SystemMsgModal = ({}: {}) => {
     setSysMsgReadId(data.id || '');
 
     webPushTrack.readSystemAnnouncement({
-      announcementId: data.id
+      announcementId: data.id || ''
     });
 
     onClose();

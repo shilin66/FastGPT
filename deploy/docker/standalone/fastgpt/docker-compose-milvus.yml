@@ -74,7 +74,7 @@ services:
       retries: 3
   milvusAttu:
     container_name: milvusAttu
-    image: docker.m.daocloud.io/zilliz/attu:v2.6
+    image:   /zilliz/attu:v2.6
     ports:
       - "3004:3000"
     environment:

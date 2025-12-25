@@ -8,6 +8,7 @@ import { readPptxRawText } from './extension/pptx';
 import { readXlsxRawText } from './extension/xlsx';
 import { readCsvRawText } from './extension/csv';
 import { workerResponse } from '../controller';
+import { readXlsRawText } from './extension/xls';
 
 parentPort?.on(
   'message',
@@ -32,6 +33,8 @@ parentPort?.on(
           return readPptxRawText(params);
         case 'xlsx':
           return readXlsxRawText(params);
+        case 'xls':
+          return readXlsRawText(params);
         case 'csv':
           return readCsvRawText(params);
         default:

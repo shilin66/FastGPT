@@ -2,18 +2,14 @@ import { setCron } from '@fastgpt/service/common/system/cron';
 import { startTrainingQueue } from '@/service/core/dataset/training/utils';
 import { clearTmpUploadFiles } from '@fastgpt/service/common/file/utils';
 import {
-  checkInvalidDatasetFiles,
   checkInvalidDatasetData,
   checkInvalidVector,
-  removeExpiredChatFiles,
   checkExpiredInvitationLink
 } from './cronTask';
 import { checkTimerLock } from '@fastgpt/service/common/system/timerLock/utils';
 import { TimerIdEnum } from '@fastgpt/service/common/system/timerLock/constants';
 import { addHours } from 'date-fns';
 import { getScheduleTriggerApp } from '@/service/core/app/utils';
-import { clearExpiredRawTextBufferCron } from '@fastgpt/service/common/buffer/rawText/controller';
-import { clearExpiredDatasetImageCron } from '@fastgpt/service/core/dataset/image/controller';
 import { cronRefreshModels } from '@fastgpt/service/core/ai/config/utils';
 import { clearExpiredS3FilesCron } from '@fastgpt/service/common/s3/controller';
 import { localCacheManager } from '@fastgpt/service/support/globalCache/cache';
@@ -35,19 +31,6 @@ const setClearTmpUploadFilesCron = () => {
 };
 
 const clearInvalidDataCron = () => {
-  // Clear files
-  setCron('0 */1 * * *', async () => {
-    if (
-      await checkTimerLock({
-        timerId: TimerIdEnum.checkExpiredFiles,
-        lockMinuted: 59
-      })
-    ) {
-      await checkInvalidDatasetFiles(addHours(new Date(), -6), addHours(new Date(), -2));
-      removeExpiredChatFiles();
-    }
-  });
-
   setCron('10 */1 * * *', async () => {
     if (
       await checkTimerLock({
@@ -131,8 +114,6 @@ export const startCron = () => {
   clearGlobalCacheCron();
   checkCacheLicenseCron();
   scheduleTriggerAppCron();
-  clearExpiredRawTextBufferCron();
-  clearExpiredDatasetImageCron();
   cronRefreshModels();
   clearExpiredS3FilesCron();
   scheduleClearInvitationLinkCron();

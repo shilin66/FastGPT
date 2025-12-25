@@ -16,7 +16,6 @@ import { useTranslation } from 'next-i18next';
 import { type ChatBoxInputFormType } from '../ChatBox/type';
 import { chats2GPTMessages } from '@fastgpt/global/core/chat/adapt';
 import { clientGetWorkflowToolRunUserQuery } from '@fastgpt/global/core/workflow/utils';
-import { cloneDeep } from 'lodash';
 import { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
 import { ChatRecordContext } from '@/web/core/chat/context/chatRecordContext';
 import { type AppFileSelectConfigType } from '@fastgpt/global/core/app/type';
@@ -190,6 +189,8 @@ const PluginRunContextProvider = ({
       abortRequest();
       const abortSignal = new AbortController();
       chatController.current = abortSignal;
+      const humanChatItemId = getNanoid(24);
+      const responseChatItemId = getNanoid(24);
 
       setChatRecords([
         {
@@ -198,10 +199,13 @@ const PluginRunContextProvider = ({
             variables,
             files: files as RuntimeUserPromptType['files']
           }),
+          id: humanChatItemId,
+          dataId: humanChatItemId,
           status: 'finish'
         },
         {
-          dataId: getNanoid(24),
+          id: responseChatItemId,
+          dataId: responseChatItemId,
           obj: ChatRoleEnum.AI,
           value: [
             {
@@ -231,6 +235,7 @@ const PluginRunContextProvider = ({
       try {
         await onStartChat({
           messages,
+          responseChatItemId,
           controller: chatController.current,
           generatingMessage,
           variables: {

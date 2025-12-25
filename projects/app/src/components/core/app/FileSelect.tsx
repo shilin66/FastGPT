@@ -12,7 +12,7 @@ import {
   Checkbox,
   VStack
 } from '@chakra-ui/react';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import type { AppFileSelectConfigType } from '@fastgpt/global/core/app/type.d';
 import MyModal from '@fastgpt/web/components/common/MyModal';
@@ -163,12 +163,21 @@ const FileSelect = ({
                 <MySelect
                   value={localValue.customPdfParse || ''}
                   list={pdfParserOptions}
-                  onChange={(val) => {
-                    onChange({
-                      ...value,
-                      customPdfParse: val
-                    });
+                  onChange={(e) => {
+                    setLocalValue((state) => ({
+                      ...state,
+                      customPdfParse: e
+                    }));
                   }}
+                  // onChange={(val) => {
+                  //   const newValue = {
+                  //     ...value,
+                  //     customPdfParse: val
+                  //   };
+                  //   onChange(newValue);
+                  //   // 同时更新本地状态，确保状态同步
+                  //   setLocalValue(newValue);
+                  // }}
                   size={'sm'}
                   h={'32px'}
                 />

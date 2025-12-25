@@ -28,6 +28,7 @@ export const Mimes = {
 export const defaultS3Options: {
   externalBaseURL?: string;
   afterInit?: () => Promise<void> | void;
+  init?: boolean;
 } & ClientOptions = {
   useSSL: process.env.S3_USE_SSL === 'true',
   endPoint: process.env.S3_ENDPOINT || 'localhost',
@@ -35,11 +36,8 @@ export const defaultS3Options: {
   accessKey: process.env.S3_ACCESS_KEY || 'minioadmin',
   secretKey: process.env.S3_SECRET_KEY || 'minioadmin',
   port: process.env.S3_PORT ? parseInt(process.env.S3_PORT) : 9000,
-  transportAgent: process.env.HTTP_PROXY
-    ? new HttpProxyAgent(process.env.HTTP_PROXY)
-    : process.env.HTTPS_PROXY
-      ? new HttpsProxyAgent(process.env.HTTPS_PROXY)
-      : undefined
+  pathStyle: process.env.S3_PATH_STYLE === 'false' ? false : true,
+  region: process.env.S3_REGION || undefined
 };
 
 export const S3Buckets = {
@@ -51,3 +49,5 @@ export const getSystemMaxFileSize = () => {
   const config = global.feConfigs?.uploadFileMaxSize || 1024; // MB, default 1024MB
   return config; // bytes
 };
+
+export const S3_KEY_PATH_INVALID_CHARS = /[|\\/]/;

@@ -85,6 +85,7 @@ const Navbar = ({ unread }: { unread: number }) => {
         activeLink: [
           '/account/bill',
           '/account/info',
+          '/account/customDomain',
           '/account/team',
           '/account/usage',
           '/account/thirdParty',
@@ -95,6 +96,17 @@ const Navbar = ({ unread }: { unread: number }) => {
           '/account/model'
         ]
       },
+      ...(userInfo?.username === 'root'
+        ? [
+            {
+              label: t('common:navbar.Config'),
+              icon: 'support/config/configLight',
+              activeIcon: 'support/config/configFill',
+              link: '/config/tool',
+              activeLink: ['/config/tool', '/config/tool/marketplace']
+            }
+          ]
+        : []),
       ...(userInfo && userInfo.username === 'root'
         ? [
             {
@@ -123,7 +135,7 @@ const Navbar = ({ unread }: { unread: number }) => {
       w={'100%'}
       userSelect={'none'}
       pb={2}
-      bg={isDashboardPage ? 'white' : 'transparent'}
+      bg={isDashboardPage ? 'myGray.50' : 'transparent'}
     >
       {/* logo */}
       <Box flex={'0 0 auto'} mb={3}>

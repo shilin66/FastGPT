@@ -10,18 +10,17 @@ import { detectFileEncoding, parseUrlToFileType } from '@fastgpt/global/common/f
 import { readS3FileContentByBuffer } from '../../../../common/file/read/utils';
 import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 import { type ChatItemType, type UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
-import { parseFileExtensionFromUrl } from '@fastgpt/global/common/string/tools';
 import { addLog } from '../../../../common/system/log';
-import { addRawTextBuffer, getRawTextBuffer } from '../../../../common/buffer/rawText/controller';
-import { addDays, addMinutes } from 'date-fns';
+import { addDays } from 'date-fns';
 import { getNodeErrResponse } from '../utils';
 import { isInternalAddress } from '../../../../common/system/utils';
-import { replaceDatasetQuoteTextWithJWT } from '../../../dataset/utils';
+import { replaceS3KeyToPreviewUrl } from '../../../dataset/utils';
 import { getFileS3Key } from '../../../../common/s3/utils';
 import { S3ChatSource } from '../../../../common/s3/sources/chat';
-import path from 'path';
+import path from 'node:path';
 import { S3Buckets } from '../../../../common/s3/constants';
 import { S3Sources } from '../../../../common/s3/type';
+import { getS3RawTextSource } from '../../../../common/s3/sources/rawText';
 
 type Props = ModuleDispatchProps<{
   [NodeInputKeyEnum.fileUrlList]: string[];
@@ -176,12 +175,15 @@ export const getFileContentFromLinks = async ({
     parseUrlList
       .map(async (url) => {
         // Get from buffer
-        const fileBuffer = await getRawTextBuffer(url);
-        if (fileBuffer) {
+        const rawTextBuffer = await getS3RawTextSource().getRawTextBuffer({
+          sourceId: url,
+          customPdfParse
+        });
+        if (rawTextBuffer) {
           return formatResponseObject({
-            filename: fileBuffer.sourceName || url,
+            filename: rawTextBuffer.filename || url,
             url,
-            content: fileBuffer.text
+            content: rawTextBuffer.text
           });
         }
 
@@ -199,29 +201,45 @@ export const getFileContentFromLinks = async ({
           const buffer = Buffer.from(response.data, 'binary');
 
           const urlObj = new URL(url, 'http://localhost:3000');
-          const isChatExternalUrl = urlObj.pathname.startsWith(
+          const isChatExternalUrl = !urlObj.pathname.startsWith(
             `/${S3Buckets.private}/${S3Sources.chat}/`
           );
 
           // Get file name
           const { filename, extension, imageParsePrefix } = (() => {
-            const contentDisposition = response.headers['content-disposition'];
-            if (contentDisposition) {
-              const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-              const matches = filenameRegex.exec(contentDisposition);
-              if (matches != null && matches[1]) {
-                const filename = decodeURIComponent(matches[1].replace(/['"]/g, ''));
-                return {
-                  filename,
-                  extension: path.extname(filename).replace('.', ''),
-                  imageParsePrefix: `` // TODO: 需要根据是否是聊天对话里面的外部链接来决定
-                };
-              }
-            }
-
             if (isChatExternalUrl) {
-              const filename = urlObj.pathname.split('/').pop() || 'file';
+              const contentDisposition = response.headers['content-disposition'] || '';
+
+              // Priority: filename* (RFC 5987, UTF-8 encoded) > filename (traditional)
+              const extractFilename = (contentDisposition: string): string => {
+                // Try RFC 5987 filename* first (e.g., filename*=UTF-8''encoded-name)
+                const filenameStarRegex = /filename\*=([^']*)'([^']*)'([^;\n]*)/i;
+                const starMatches = filenameStarRegex.exec(contentDisposition);
+                if (starMatches && starMatches[3]) {
+                  const charset = starMatches[1].toLowerCase();
+                  const encodedFilename = starMatches[3];
+                  // Decode percent-encoded UTF-8 filename
+                  try {
+                    return decodeURIComponent(encodedFilename);
+                  } catch (error) {
+                    addLog.warn('Failed to decode filename*', { encodedFilename, error });
+                  }
+                }
+
+                // Fallback to traditional filename parameter
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i;
+                const matches = filenameRegex.exec(contentDisposition);
+                if (matches && matches[1]) {
+                  return matches[1].replace(/['"]/g, '');
+                }
+
+                return '';
+              };
+
+              const matchFilename = extractFilename(contentDisposition);
+              const filename = matchFilename || urlObj.pathname.split('/').pop() || 'file';
               const extension = path.extname(filename).replace('.', '');
+
               return {
                 filename,
                 extension,
@@ -264,14 +282,14 @@ export const getFileContentFromLinks = async ({
             usageId
           });
 
-          const replacedText = replaceDatasetQuoteTextWithJWT(rawText, addDays(new Date(), 90));
+          const replacedText = replaceS3KeyToPreviewUrl(rawText, addDays(new Date(), 90));
 
           // Add to buffer
-          addRawTextBuffer({
+          getS3RawTextSource().addRawTextBuffer({
             sourceId: url,
             sourceName: filename,
             text: replacedText,
-            expiredTime: addMinutes(new Date(), 20)
+            customPdfParse
           });
 
           return formatResponseObject({ filename, url, content: replacedText });
