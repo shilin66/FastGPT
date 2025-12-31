@@ -26,7 +26,7 @@ export const GetDatasetFileContentParamsSchema = z.object({
   teamId: ObjectIdSchema,
   tmbId: ObjectIdSchema,
   fileId: z.string().nonempty(), // 这是 ObjectKey
-  customPdfParse: z.string().nonempty().optional(),
+  customPdfParse: z.string().optional(),
   getFormatText: z.boolean().optional(), // 数据类型都尽可能转化成 markdown 格式
   datasetId: ObjectIdSchema,
   usageId: ObjectIdSchema.optional()
