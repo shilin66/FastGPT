@@ -39,7 +39,7 @@ parentPort?.on(
           return readCsvRawText(params);
         default:
           return Promise.reject(
-            `Only support .txt, .md, .html, .pdf, .docx, pptx, .csv, .xlsx. "${params.extension}" is not supported.`
+            `Only support .txt, .md, .html, .pdf, .docx, pptx, .csv, .xls, .xlsx. "${params.extension}" is not supported.`
           );
       }
     };
