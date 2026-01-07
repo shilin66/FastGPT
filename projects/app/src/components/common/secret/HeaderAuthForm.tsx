@@ -87,9 +87,9 @@ const AuthValueDisplay = ({
 };
 
 export const getSecretType = (config: HeaderSecretConfigType): HeaderSecretTypeEnum => {
-  if (config.Bearer && (config.Bearer.secret || config.Bearer.value)) {
+  if ('Bearer' in config && config.Bearer !== undefined) {
     return HeaderSecretTypeEnum.Bearer;
-  } else if (config.Basic && (config.Basic.secret || config.Basic.value)) {
+  } else if ('Basic' in config && config.Basic !== undefined) {
     return HeaderSecretTypeEnum.Basic;
   } else if (config.customs && config.customs.length > 0) {
     return HeaderSecretTypeEnum.Custom;
