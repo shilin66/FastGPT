@@ -94,7 +94,7 @@ const SearchParamsTip = ({
               </Td>
             )}
             <Td pt={0} pb={2} fontSize={'mini'}>
-              {extensionModelName ? extensionModelName : '❌'}
+              {datasetSearchUsingExtensionQuery && extensionModelName ? extensionModelName : '❌'}
             </Td>
             {hasEmptyResponseMode && <Th>{responseEmptyText !== '' ? '✅' : '❌'}</Th>}
           </Tr>
