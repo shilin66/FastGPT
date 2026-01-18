@@ -24,4 +24,4 @@ export const getGroupMembers = (groupId: string) =>
   GET<GroupMemberItemType[]>(`/proApi/support/user/team/group/members`, { groupId });
 
 export const putGroupChangeOwner = (groupId: string, tmbId: string) =>
-  PUT(`/proApi/support/user/team/group/changeOwner`, { groupId, tmbId });
+  PUT(`/support/user/team/group/changeOwner`, { groupId, tmbId });
