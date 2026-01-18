@@ -165,16 +165,16 @@ export function ChangeOwnerModal({
             </Flex>
           )}
 
-          <Box mt="4">
-            <Checkbox
-              isChecked={keepAdmin}
-              onChange={(e) => {
-                setKeepAdmin(e.target.checked);
-              }}
-            >
-              {t('account_team:retain_admin_permissions')}
-            </Checkbox>
-          </Box>
+          {/*<Box mt="4">*/}
+          {/*  <Checkbox*/}
+          {/*    isChecked={keepAdmin}*/}
+          {/*    onChange={(e) => {*/}
+          {/*      setKeepAdmin(e.target.checked);*/}
+          {/*    }}*/}
+          {/*  >*/}
+          {/*    {t('account_team:retain_admin_permissions')}*/}
+          {/*  </Checkbox>*/}
+          {/*</Box>*/}
         </Flex>
       </ModalBody>
       <ModalFooter>

@@ -274,3 +274,40 @@ export const deleteMemberGroup = async (groupId: string) => {
   await MongoResourcePermission.deleteMany({ groupId });
   await MongoMemberGroupModel.deleteOne({ _id: groupId });
 };
+
+export const changeGroupOwner = async (groupId: string, tmbId: string) => {
+  await MongoGroupMemberModel.updateOne(
+    { groupId, role: GroupMemberRole.owner },
+    {
+      $set: {
+        role: GroupMemberRole.member
+      }
+    }
+  );
+  // 先查找tmb是否在group中，不存在的话就添加到group 中并且设置为owner
+  if (!(await MongoGroupMemberModel.findOne({ groupId, tmbId }))) {
+    await MongoGroupMemberModel.create({
+      groupId,
+      tmbId,
+      role: GroupMemberRole.owner
+    });
+  } else {
+    await MongoGroupMemberModel.updateOne(
+      { groupId, tmbId },
+      {
+        $set: {
+          role: GroupMemberRole.owner
+        }
+      }
+    );
+  }
+
+  await MongoMemberGroupModel.updateOne(
+    { _id: groupId },
+    {
+      $set: {
+        owner: tmbId
+      }
+    }
+  );
+};

@@ -53,6 +53,8 @@ import type {
   DeletePermissionQuery,
   UpdateClbPermissionProps
 } from '@fastgpt/global/support/permission/collaborator';
+import { randomUUID } from 'crypto';
+import { UserStatusEnum } from '@fastgpt/global/support/user/constant';
 
 async function getTeamMember(match: Record<string, any>): Promise<TeamTmbItemType> {
   const tmb = (await MongoTeamMember.findOne(match)
@@ -553,6 +555,7 @@ export async function deleteTeamMember(tmbId: string) {
   if (!tmb) {
     return Promise.reject('成员不存在');
   }
+  const team = await MongoTeam.findById(tmb.teamId).lean();
   if (tmb.status === TeamMemberStatusEnum.active) {
     await changeResourceOwner(tmb.teamId, tmb.userId);
   }
@@ -560,6 +563,15 @@ export async function deleteTeamMember(tmbId: string) {
   await MongoTeamMember.deleteOne({ _id: tmbId });
   await MongoResourcePermission.deleteMany({ tmbId });
   await MongoGroupMemberModel.deleteMany({ tmbId });
+
+  if (team?.name === global.feConfigs.userDefaultTeam) {
+    await MongoUser.findByIdAndUpdate(tmb.userId, {
+      $set: {
+        username: tmb.name + randomUUID(),
+        status: UserStatusEnum.forbidden
+      }
+    });
+  }
 }
 
 export async function leaveTeam(teamId: string, userId: string) {

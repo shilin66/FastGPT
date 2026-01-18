@@ -69,8 +69,7 @@ pip install vllm -i https://pypi.tuna.tsinghua.edu.cn/simple --extra-index-url h
 
 #!/bin/bash
 CUDA_VISIBLE_DEVICES=0,1
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-nohup vllm serve /data/models/qwen3-32b -tp 8  --port 38589 --api-key sk-jH6jShOekAcK1m9H2c397b44153f4fD6B9FeAb6c9f1fD311  --reasoning-parser qwen3 --served-model-name qwen3-32b --dtype auto --enable-prefix-caching --max-num-batched-tokens 4096  --enable-chunked-prefill --rope-scaling '{"factor": 4.0,"original_max_position_embeddings": 32768,"rope_type": "yarn"}'  --rope-theta 1000000.0 --tokenizer /data/models/qwen3-32b --tool-call-parser hermes --enable-auto-tool-choice  > qwen3.out 2>&1 &```
+nohup vllm serve /data/Qwen3-32B-FP8 -tp 2 --port 38589 --api-key sk-jH6jShOekAcK1m9H2c397b44153f4fD6B9FeAb6c9f1fD311  --reasoning-parser qwen3 --served-model-name qwen3-32b --dtype auto --enable-prefix-caching --max-num-batched-tokens 4096  --enable-chunked-prefill --rope-scaling '{"factor": 4.0,"original_max_position_embeddings": 32768,"rope_type": "yarn"}'  --tokenizer /data/Qwen3-32B-FP8 --tool-call-parser hermes --enable-auto-tool-choice  > qwen3.out 2>&1 &
 ```
 
 ## GLM
@@ -160,3 +159,32 @@ pip install marker-pdf[full]
 
 ```
 xinference launch -e http://192.168.16.2:9997  -ak sk-72tkvudyGLPMi --model-name bge-m3 --model-type embedding --replica 1 --n-gpu auto --gpu-idx 0 --download_hub modelscope --model-path /home/nvme01/models/BAAI/bge-m3 --model-engine vllm --model-format pytorch --quantization none --worker-ip 192.168.16.2
+
+CUDA_VISIBLE_DEVICES=4,5 \
+VLLM_ATTENTION_BACKEND=DUAL_CHUNK_FLASH_ATTN VLLM_USE_V1=0 \
+nohup vllm serve /data/model/Qwen3-30B-A3B-Instruct-2507-FP8/ \
+--tensor-parallel-size 2 \
+--max-model-len 98304 \
+--enable-chunked-prefill \
+--max-num-batched-tokens 98304 \
+--enforce-eager \
+--max-num-seqs 64 \
+--gpu-memory-utilization 0.85 &>30B-A3B.log &
+
+
+CUDA_VISIBLE_DEVICES=4,5 \
+VLLM_ATTENTION_BACKEND=DUAL_CHUNK_FLASH_ATTN VLLM_USE_V1=0 \
+vllm serve /data/model/Qwen3-30B-A3B-Instruct-2507-FP8/ \
+--tensor-parallel-size 2 \
+--max-model-len 98304 \
+--enable-chunked-prefill \
+--max-num-batched-tokens 98304 \
+--enforce-eager \
+--max-num-seqs 64 \
+--gpu-memory-utilization 
+
+CUDA_VISIBLE_DEVICES=4,5  VLLM_USE_V1=0 nohup vllm serve /data/Qwen3-30B-A3B-Instruct-2507-FP8/  --port 38001 --api-key sk-SBwKcDv111IateoguD82706747f034818984cD731De0a13Ab --tensor-parallel-size 2 --max-model-len 80000 --enable-chunked-prefill --max-num-batched-tokens 98304 --enforce-eager --max-num-seqs 64 &>30B-A3B.log &
+
+CUDA_VISIBLE_DEVICES=6,7 nohup vllm serve /data/DeepSeek-R1-Distill-Qwen-32B-FP8 --port 38003 --api-key sk-SBwKcDv111IateoguD82706747f034818984cD731De0a13Ab --tensor-parallel-size 2 --max-model-len 32768 --enable-chunked-prefill --max-num-batched-tokens 4096  --max-num-seqs 64 &>deepseek.log &
+
+Initializing a V1 LLM engine (v0.13.0) with config: model='/data/DeepSeek-R1-Distill-Qwen-32B-FP8', speculative_config=None, tokenizer='/data/DeepSeek-R1-Distill-Qwen-32B-FP8', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=16384, download_dir=None, load_format=auto, tensor_parallel_size=2, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=fp8, enforce_eager=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False), seed=0, served_model_name=/data/DeepSeek-R1-Distill-Qwen-32B-FP8, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'level': None, 'mode': <CompilationMode.VLLM_COMPILE: 3>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['none'], 'splitting_ops': ['vllm::unified_attention', 'vllm::unified_attention_with_output', 'vllm::unified_mla_attention', 'vllm::unified_mla_attention_with_output', 'vllm::mamba_mixer2', 'vllm::mamba_mixer', 'vllm::short_conv', 'vllm::linear_attention', 'vllm::plamo2_mamba_mixer', 'vllm::gdn_attention_core', 'vllm::kda_attention', 'vllm::sparse_attn_indexer'], 'compile_mm_encoder': False, 'compile_sizes': [], 'compile_ranges_split_points': [4096], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.FULL_AND_PIECEWISE: (2, 1)>, 'cudagraph_num_of_warmups': 1, 'cudagraph_capture_sizes': [1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': False, 'fuse_act_quant': False, 'fuse_attn_quant': False, 'eliminate_noops': True, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False}, 'max_cudagraph_capture_size': 128, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False}, 'local_cache_dir': None}
