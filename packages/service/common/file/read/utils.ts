@@ -1,12 +1,13 @@
 import FormData from 'form-data';
 import fs from 'fs';
 import type { ReadFileResponse } from '../../../worker/readFile/type';
-import axios from 'axios';
+import { axios } from '../../api/axios';
 import { addLog } from '../../system/log';
 import { batchRun } from '@fastgpt/global/common/system/utils';
 import { matchMdImg } from '@fastgpt/global/common/string/markdown';
 import { createPdfParseUsage } from '../../../support/wallet/usage/controller';
 import { useDoc2xServer } from '../../../thirdProvider/doc2x';
+import { useTextinServer } from '../../../thirdProvider/textin';
 import { readRawContentFromBuffer } from '../../../worker/function';
 import { uploadImage2S3Bucket } from '../../s3/utils';
 import { Mimes } from '../../s3/constants';
@@ -126,6 +127,30 @@ export const readS3FileContentByBuffer = async ({
       imageList
     };
   };
+  // Textin api
+  const parsePdfFromTextin = async (): Promise<ReadFileResponse> => {
+    const appId = global.systemEnv.customPdfParse?.textinAppId;
+    const secretCode = global.systemEnv.customPdfParse?.textinSecretCode;
+    if (!appId || !secretCode) return systemParse();
+
+    const { pages, text, imageList } = await useTextinServer({
+      appId,
+      secretCode
+    }).parsePDF(buffer);
+
+    createPdfParseUsage({
+      teamId,
+      tmbId,
+      pages,
+      usageId
+    });
+
+    return {
+      rawText: text,
+      formatText: text,
+      imageList
+    };
+  };
   // Doc2x api
   const parsePdfFromDoc2x = async (parser: any): Promise<ReadFileResponse> => {
     const doc2xKey = parser.doc2xKey;
@@ -155,7 +180,7 @@ export const readS3FileContentByBuffer = async ({
     const selectedParser = parsers.find((parser) => parser.name === customPdfParse);
 
     if (!selectedParser) return systemParse();
-
+    if (selectedParser.textinAppId) return parsePdfFromTextin();
     if (selectedParser.url) return parsePdfFromCustomService(selectedParser);
     if (selectedParser.doc2xKey) return parsePdfFromDoc2x(selectedParser);
 

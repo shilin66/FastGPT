@@ -51,6 +51,8 @@ export type ChatSchemaType = {
   hasBadFeedback?: boolean;
   hasUnreadGoodFeedback?: boolean;
   hasUnreadBadFeedback?: boolean;
+
+  deleteTime?: Date | null;
 };
 
 export type ChatWithAppSchema = Omit<ChatSchemaType, 'appId'> & {
@@ -128,7 +130,7 @@ export type ChatItemValueItemType =
   | AIChatItemValueItemType;
 export type ChatItemMergeType = UserChatItemType | SystemChatItemType | AIChatItemType;
 
-export type ChatItemSchema = ChatItemMergeType & {
+export type ChatItemSchemaType = ChatItemMergeType & {
   dataId: string;
   chatId: string;
   userId: string;
@@ -136,6 +138,7 @@ export type ChatItemSchema = ChatItemMergeType & {
   tmbId: string;
   appId: string;
   time: Date;
+  deleteTime?: Date | null;
 };
 
 export type AdminFbkType = {
@@ -169,6 +172,17 @@ export type ChatSiteItemType = ChatItemMergeType & {
   time?: Date;
   durationSeconds?: number;
   errorMsg?: string;
+  deleteTime?: Date | null;
+  collapseTop?: {
+    count: number;
+    dataIds: string[];
+    isExpanded: boolean;
+  };
+  collapseBottom?: {
+    count: number;
+    dataIds: string[];
+    isExpanded: boolean;
+  };
 } & ChatBoxInputType &
   ResponseTagItemType;
 
@@ -197,7 +211,7 @@ export type HistoryItemType = {
 };
 export type ChatHistoryItemType = HistoryItemType & {
   appId: string;
-  top: boolean;
+  top?: boolean;
 };
 
 /* ------- response data ------------ */

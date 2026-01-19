@@ -52,10 +52,6 @@ async function handler(req: ApiRequestProps, res: NextApiResponse) {
     unreadOnly
   } = ExportChatLogsBodySchema.parse(req.body);
 
-  if (!appId) {
-    throw new Error('缺少参数');
-  }
-
   const locale = getLocale(req);
   const timezoneCode = getTimezoneCodeFromStr(dateStart);
 
@@ -95,10 +91,7 @@ async function handler(req: ApiRequestProps, res: NextApiResponse) {
   ]);
 
   const where = {
-    teamId: new Types.ObjectId(teamId),
     appId: new Types.ObjectId(appId),
-    source: sources ? { $in: sources } : { $exists: true },
-    tmbId: tmbIds ? { $in: tmbIds.map((item) => new Types.ObjectId(item)) } : { $exists: true },
     // Feedback type filtering (BEFORE pagination for performance)
     ...(feedbackType === 'has_feedback' &&
       !unreadOnly && {
@@ -124,6 +117,8 @@ async function handler(req: ApiRequestProps, res: NextApiResponse) {
       unreadOnly && {
         hasUnreadBadFeedback: true
       }),
+    ...(sources && { source: { $in: sources } }),
+    ...(tmbIds && { tmbId: { $in: tmbIds.map((item) => new Types.ObjectId(item)) } }),
     updateTime: {
       $gte: new Date(dateStart),
       $lte: new Date(dateEnd)

@@ -1,11 +1,10 @@
 import { createDocument } from 'zod-openapi';
 import { ChatPath } from './core/chat';
-import { ApiKeyPath } from './support/openapi';
 import { TagsMap } from './tag';
 import { PluginPath } from './core/plugin';
-import { WalletPath } from './support/wallet';
-import { CustomDomainPath } from './support/customDomain';
 import { AppPath } from './core/app';
+import { SupportPath } from './support';
+import { DatasetPath } from './core/dataset';
 
 export const openAPIDocument = createDocument({
   openapi: '3.1.0',
@@ -17,28 +16,37 @@ export const openAPIDocument = createDocument({
   paths: {
     ...AppPath,
     ...ChatPath,
-    ...ApiKeyPath,
+    ...DatasetPath,
     ...PluginPath,
-    ...WalletPath,
-    ...CustomDomainPath
+    ...SupportPath
   },
   servers: [{ url: '/api' }],
   'x-tagGroups': [
     {
       name: 'Agent 应用',
-      tags: [TagsMap.appLog]
+      tags: [TagsMap.appCommon, TagsMap.appLog, TagsMap.publishChannel]
     },
     {
       name: '对话管理',
-      tags: [TagsMap.chatSetting, TagsMap.chatPage, TagsMap.chatFeedback]
+      tags: [
+        TagsMap.chatPage,
+        TagsMap.chatHistory,
+        TagsMap.chatController,
+        TagsMap.chatFeedback,
+        TagsMap.chatSetting
+      ]
+    },
+    {
+      name: '知识库',
+      tags: [TagsMap.datasetCollection]
     },
     {
       name: '插件系统',
       tags: [TagsMap.pluginToolTag, TagsMap.pluginTeam]
     },
     {
-      name: '支付系统',
-      tags: [TagsMap.walletBill, TagsMap.walletDiscountCoupon]
+      name: '用户体系',
+      tags: [TagsMap.userInform, TagsMap.walletBill, TagsMap.walletDiscountCoupon]
     },
     {
       name: '通用-辅助功能',

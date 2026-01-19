@@ -15,6 +15,7 @@ import {
 import MyBox from '../components/common/MyBox';
 import { useTranslation } from 'next-i18next';
 import { useRequest2 } from './useRequest';
+import type { PaginationType, PaginationResponseType } from '../../global/openapi/api';
 
 type ItemHeight<T> = (index: number, data: T) => number;
 const thresholdVal = 100;
@@ -179,8 +180,8 @@ export function useVirtualScrollPagination<
 }
 
 export function useScrollPagination<
-  TParams extends PaginationProps,
-  TData extends PaginationResponse
+  TParams extends PaginationType,
+  TData extends PaginationResponseType<any>
 >(
   api: (data: TParams) => Promise<TData>,
   {
@@ -269,7 +270,7 @@ export function useScrollPagination<
       } catch (error: any) {
         if (showErrorToast) {
           toast({
-            title: getErrText(error, t('common:core.chat.error.data_error')),
+            title: t(getErrText(error, t('common:core.chat.error.data_error'))),
             status: 'error'
           });
         }

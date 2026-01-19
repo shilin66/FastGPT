@@ -12,7 +12,11 @@ export const initFastGPTConfig = (config?: FastGPTConfigFileType) => {
 
   // Special config computed
   const parsers = config.systemEnv.customPdfParse || [];
-  config.feConfigs.showCustomPdfParse = parsers.length > 0;
+  config.feConfigs.showCustomPdfParse =
+    parsers.length > 0 ||
+    !!config.systemEnv.customPdfParse?.textinAppId ||
+    !!config.systemEnv.customPdfParse?.doc2xKey;
+  config.feConfigs.customPdfParsePrice = config.systemEnv.customPdfParse?.price || 0;
 
   global.feConfigs = config.feConfigs;
   global.systemEnv = config.systemEnv;

@@ -125,6 +125,9 @@ const Navbar = ({ unread }: { unread: number }) => {
   const isDashboardPage = useMemo(() => {
     return router.pathname.startsWith('/dashboard');
   }, [router.pathname]);
+  const isAppDetailPage = useMemo(() => {
+    return router.pathname.startsWith('/app/detail');
+  }, [router.pathname]);
 
   return (
     <Flex
@@ -135,7 +138,7 @@ const Navbar = ({ unread }: { unread: number }) => {
       w={'100%'}
       userSelect={'none'}
       pb={2}
-      bg={isDashboardPage ? 'myGray.50' : 'transparent'}
+      bg={isDashboardPage ? 'myGray.50' : isAppDetailPage ? 'myGray.25' : 'transparent'}
     >
       {/* logo */}
       <Box flex={'0 0 auto'} mb={3}>
@@ -159,7 +162,7 @@ const Navbar = ({ unread }: { unread: number }) => {
                 : {
                     bg: 'transparent',
                     _hover: {
-                      bg: isDashboardPage ? 'white' : 'rgba(255,255,255,0.9)'
+                      bg: isDashboardPage || isAppDetailPage ? 'white' : 'rgba(255,255,255,0.9)'
                     }
                   })}
               {...(item.link !== router.asPath

@@ -63,7 +63,7 @@ async function handler(
       authCollectionInChat({ appId, chatId, chatItemDataId, collectionIds: [collectionId] })
     ]);
 
-    if (!authRes.showRawSource) {
+    if (!authRes.canDownloadSource) {
       return Promise.reject(DatasetErrEnum.unAuthDatasetFile);
     }
 
@@ -79,11 +79,13 @@ async function handler(
       collection.fileId &&
       isS3ObjectKey(collection.fileId, 'dataset')
     ) {
-      return getS3DatasetSource().createGetDatasetFileURL({
-        key: collection.fileId,
-        expiredHours: 1,
-        external: true
-      });
+      return (
+        await getS3DatasetSource().createGetDatasetFileURL({
+          key: collection.fileId,
+          expiredHours: 1,
+          external: true
+        })
+      ).url;
     }
     if (collection.type === DatasetCollectionTypeEnum.link && collection.rawLink) {
       return collection.rawLink;

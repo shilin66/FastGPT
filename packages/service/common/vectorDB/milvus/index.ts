@@ -5,17 +5,12 @@ import {
   MILVUS_ADDRESS,
   MILVUS_TOKEN
 } from '../constants';
-import type {
-  DelDatasetVectorCtrlProps,
-  EmbeddingRecallCtrlProps,
-  EmbeddingRecallResponse,
-  InsertVectorControllerProps
-} from '../controller.d';
+import type { VectorControllerType } from '../type';
 import { retryFn } from '@fastgpt/global/common/system/utils';
 import { addLog } from '../../system/log';
 import { customNanoid } from '@fastgpt/global/common/string/tools';
 
-export class MilvusCtrl {
+export class MilvusCtrl implements VectorControllerType {
   constructor() {}
   getClient = async () => {
     if (!MILVUS_ADDRESS) {
@@ -33,7 +28,7 @@ export class MilvusCtrl {
 
     return global.milvusClient;
   };
-  init = async () => {
+  init: VectorControllerType['init'] = async () => {
     const client = await this.getClient();
 
     // init db(zilliz cloud will error)
@@ -125,7 +120,7 @@ export class MilvusCtrl {
     }
   };
 
-  insert = async (props: InsertVectorControllerProps): Promise<{ insertIds: string[] }> => {
+  insert: VectorControllerType['insert'] = async (props) => {
     const client = await this.getClient();
     const { teamId, datasetId, collectionId, vectors } = props;
 
@@ -161,7 +156,7 @@ export class MilvusCtrl {
       insertIds
     };
   };
-  delete = async (props: DelDatasetVectorCtrlProps): Promise<any> => {
+  delete: VectorControllerType['delete'] = async (props) => {
     const { teamId } = props;
     const client = await this.getClient();
 
@@ -199,7 +194,7 @@ export class MilvusCtrl {
       filter: concatWhere
     });
   };
-  embRecall = async (props: EmbeddingRecallCtrlProps): Promise<EmbeddingRecallResponse> => {
+  embRecall: VectorControllerType['embRecall'] = async (props) => {
     const client = await this.getClient();
     const { teamId, datasetIds, vector, limit, forbidCollectionIdList, filterCollectionIdList } =
       props;
@@ -257,11 +252,7 @@ export class MilvusCtrl {
     };
   };
 
-  getVectorCount = async (props: {
-    teamId?: string;
-    datasetId?: string;
-    collectionId?: string;
-  }) => {
+  getVectorCount: VectorControllerType['getVectorCount'] = async (props) => {
     const { teamId, datasetId, collectionId } = props;
     const client = await this.getClient();
 
@@ -294,7 +285,7 @@ export class MilvusCtrl {
     return total;
   };
 
-  getVectorDataByTime = async (start: Date, end: Date) => {
+  getVectorDataByTime: VectorControllerType['getVectorDataByTime'] = async (start, end) => {
     const client = await this.getClient();
     const startTimestamp = new Date(start).getTime();
     const endTimestamp = new Date(end).getTime();
