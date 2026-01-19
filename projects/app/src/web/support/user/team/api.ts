@@ -22,7 +22,7 @@ import type {
 } from '@fastgpt/global/support/user/team/type.d';
 import type {
   ClientTeamPlanStatusType,
-  TeamSubSchema
+  TeamSubSchemaType
 } from '@fastgpt/global/support/wallet/sub/type';
 import type { TeamInvoiceHeaderType } from '@fastgpt/global/support/user/team/type';
 import type { PaginationProps, PaginationResponse } from '@fastgpt/web/common/fetch/type';
@@ -118,7 +118,8 @@ export const checkTeamDatasetSizeLimit = (size: number) =>
 /* plans */
 export const getTeamPlanStatus = () =>
   GET<ClientTeamPlanStatusType>(`/support/user/team/plan/getTeamPlanStatus`, { maxQuantity: 1 });
-export const getTeamPlans = () => GET<TeamSubSchema[]>(`/support/user/team/plan/getTeamPlans`);
+export const getTeamPlans = () =>
+  GET<TeamSubSchemaType[]>(`/proApi/support/user/team/plan/getTeamPlans`);
 
 export const redeemCoupon = (couponCode: string) =>
   GET(`/proApi/support/wallet/coupon/redeem`, { key: couponCode });

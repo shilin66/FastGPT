@@ -1,4 +1,4 @@
-import { base64ToFile, fileToBase64 } from '../utils';
+import { base64ToFile, fileToBase64, putFileToS3 } from '../utils';
 import { compressBase64Img } from '../img';
 import { useToast } from '../../../hooks/useToast';
 import { useCallback, useRef, useTransition } from 'react';
@@ -8,7 +8,17 @@ import { imageBaseUrl } from '@fastgpt/global/common/file/image/constants';
 
 export const useUploadAvatar = (
   api: (params: { filename: string }) => Promise<CreatePostPresignedUrlResult>,
-  { onSuccess }: { onSuccess?: (avatar: string) => void } = {}
+  {
+    onSuccess,
+    maxW = 300,
+    maxH = 300,
+    maxSize = 1024 * 500 // 500KB
+  }: {
+    onSuccess?: (avatar: string) => void;
+    maxW?: number;
+    maxH?: number;
+    maxSize?: number;
+  } = {}
 ) => {
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -32,19 +42,23 @@ export const useUploadAvatar = (
         const compressed = base64ToFile(
           await compressBase64Img({
             base64Img: await fileToBase64(file),
-            maxW: 300,
-            maxH: 300
+            maxW,
+            maxH,
+            maxSize
           }),
           file.name
         );
-        const { url, fields } = await api({ filename: file.name });
-        const formData = new FormData();
-        Object.entries(fields).forEach(([k, v]) => formData.set(k, v));
-        formData.set('file', compressed);
-        const res = await fetch(url, { method: 'POST', body: formData }); // 204
-        if (res.ok && res.status === 204) {
-          onSuccess?.(`${imageBaseUrl}${fields.key}`);
-        }
+        const { url, key, headers } = await api({ filename: file.name });
+
+        await putFileToS3({
+          url,
+          file: compressed,
+          headers,
+          onSuccess() {
+            onSuccess?.(`${imageBaseUrl}${key}`);
+          },
+          t
+        });
       });
     },
     [t, toast, api, onSuccess]

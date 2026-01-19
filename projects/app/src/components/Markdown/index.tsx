@@ -15,6 +15,7 @@ import { Box } from '@chakra-ui/react';
 import { CodeClassNameEnum, mdTextFormat } from './utils';
 import { useCreation } from 'ahooks';
 import type { AProps } from './A';
+import MarkdownTable from '@fastgpt/web/components/common/Markdown/MarkdownTable';
 
 const CodeLight = dynamic(() => import('./codeBlock/CodeLight'), { ssr: false });
 const MermaidCodeBlock = dynamic(() => import('./img/MermaidCodeBlock'), { ssr: false });
@@ -58,6 +59,7 @@ const MarkdownRender = ({
       img: (props: any) => <Image {...props} alt={props.alt} chatAuthData={chatAuthData} />,
       pre: RewritePre,
       code: Code,
+      table: MarkdownTable as any,
       a: (props: any) => (
         <A
           {...props}

@@ -451,6 +451,7 @@ const CollectionCard = () => {
         </TableContainer>
 
         <FloatingActionBar
+          pt={4}
           Controler={
             <HStack>
               <Button

@@ -1,9 +1,11 @@
+import path from 'path';
 import { getErrText } from '@fastgpt/global/common/error/utils';
-import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
+import { ChatRoleEnum, ChatFileTypeEnum } from '@fastgpt/global/core/chat/constants';
 import type { ChatItemType, UserChatItemFileItemType } from '@fastgpt/global/core/chat/type.d';
 import { NodeOutputKeyEnum, VariableInputEnum } from '@fastgpt/global/core/workflow/constants';
 import type { VariableItemType } from '@fastgpt/global/core/app/type';
 import { encryptSecret } from '../../../common/secret/aes256gcm';
+import { imageFileType } from '@fastgpt/global/common/file/constants';
 import {
   type RuntimeEdgeItemType,
   type RuntimeNodeItemType,
@@ -25,6 +27,7 @@ import { getMCPChildren } from '../../../core/app/mcp';
 import { getSystemToolRunTimeNodeFromSystemToolset } from '../utils';
 import type { localeType } from '@fastgpt/global/common/i18n/type';
 import type { HttpToolConfigType } from '@fastgpt/global/core/app/type';
+import type { ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type';
 
 export const getWorkflowResponseWrite = ({
   res,
@@ -119,12 +122,10 @@ export const checkQuoteQAValue = (quoteQA?: SearchDataResponseItemType[]) => {
 /* remove system variable */
 export const runtimeSystemVar2StoreType = ({
   variables,
-  cloneVariables,
   removeObj = {},
   userVariablesConfigs = []
 }: {
   variables: Record<string, any>;
-  cloneVariables: Record<string, any>;
   removeObj?: Record<string, string>;
   userVariablesConfigs?: VariableItemType[];
 }) => {
@@ -154,9 +155,33 @@ export const runtimeSystemVar2StoreType = ({
         };
       }
     }
-    // Remove URL from file variables
+    // Handle file variables
     else if (item.type === VariableInputEnum.file) {
-      copyVariables[item.key] = cloneVariables[item.key];
+      const currentValue = copyVariables[item.key];
+
+      copyVariables[item.key] = currentValue
+        .map((url: string) => {
+          try {
+            const urlObj = new URL(url);
+            // Extract key: remove bucket prefix (e.g., "/fastgpt-private/")
+            const key = decodeURIComponent(urlObj.pathname.replace(/^\/[^/]+\//, ''));
+            const filename = path.basename(key) || 'file';
+            const extname = path.extname(key).toLowerCase(); // includes the dot, e.g., ".jpg"
+
+            // Check if it's an image type
+            const isImage = extname && imageFileType.includes(extname);
+
+            return {
+              id: path.basename(key, path.extname(key)), // filename without extension
+              key,
+              name: filename,
+              type: isImage ? ChatFileTypeEnum.image : ChatFileTypeEnum.file
+            };
+          } catch {
+            return null;
+          }
+        })
+        .filter((file: any) => file !== null);
     }
   });
 
@@ -293,22 +318,34 @@ export const rewriteRuntimeWorkFlow = async ({
 export const getNodeErrResponse = ({
   error,
   customErr,
-  customNodeResponse
+  responseData,
+  nodeDispatchUsages,
+  runTimes,
+  newVariables,
+  system_memories
 }: {
   error: any;
   customErr?: Record<string, any>;
-  customNodeResponse?: Record<string, any>;
+  [DispatchNodeResponseKeyEnum.nodeResponse]?: Record<string, any>;
+  [DispatchNodeResponseKeyEnum.nodeDispatchUsages]?: ChatNodeUsageType[]; // Node total usage
+  [DispatchNodeResponseKeyEnum.runTimes]?: number;
+  [DispatchNodeResponseKeyEnum.newVariables]?: Record<string, any>;
+  [DispatchNodeResponseKeyEnum.memories]?: Record<string, any>;
 }) => {
   const errorText = getErrText(error);
 
   return {
+    [DispatchNodeResponseKeyEnum.nodeDispatchUsages]: nodeDispatchUsages,
+    [DispatchNodeResponseKeyEnum.runTimes]: runTimes,
+    [DispatchNodeResponseKeyEnum.newVariables]: newVariables,
+    [DispatchNodeResponseKeyEnum.memories]: system_memories,
     error: {
       [NodeOutputKeyEnum.errorText]: errorText,
       ...(typeof customErr === 'object' ? customErr : {})
     },
     [DispatchNodeResponseKeyEnum.nodeResponse]: {
       errorText,
-      ...(typeof customNodeResponse === 'object' ? customNodeResponse : {})
+      ...(typeof responseData === 'object' ? responseData : {})
     },
     [DispatchNodeResponseKeyEnum.toolResponses]: {
       error: errorText,

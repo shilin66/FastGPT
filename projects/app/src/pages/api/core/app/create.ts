@@ -33,6 +33,8 @@ import { isS3ObjectKey } from '@fastgpt/service/common/s3/utils';
 import { MongoAppTemplate } from '@fastgpt/service/core/app/templates/templateSchema';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import path from 'node:path';
+import { updateParentFoldersUpdateTime } from '@fastgpt/service/core/app/controller';
+import { copyAvatarImage } from '@fastgpt/service/common/file/image/controller';
 
 export type CreateAppBody = {
   parentId?: ParentIdType;
@@ -176,18 +178,11 @@ export const onCreateApp = async ({
         return template.avatar;
       }
 
-      const filename = (() => {
-        const last = template.avatar.split('/').pop();
-        if (!last) return getNanoid(6).concat(path.extname(template.avatar));
-        const firstDashIndex = last.indexOf('-');
-        return `${getNanoid(6)}-${firstDashIndex === -1 ? last : last.slice(firstDashIndex + 1)}`;
-      })();
-
-      return await s3AvatarSource.copyAvatar({
-        key: template.avatar,
+      return await copyAvatarImage({
         teamId,
-        filename,
-        temporary: true
+        imageUrl: template.avatar,
+        temporary: true,
+        session
       });
     })();
 
@@ -242,6 +237,10 @@ export const onCreateApp = async ({
     });
 
     await getS3AvatarSource().refreshAvatar(_avatar, undefined, session);
+
+    updateParentFoldersUpdateTime({
+      parentId
+    });
 
     (async () => {
       addAuditLog({

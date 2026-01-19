@@ -31,9 +31,13 @@ import { eventBus, EventNameEnum } from '@/web/common/utils/eventbus';
 import { SelectOptionsComponent, FormInputComponent } from './Interactive/InteractiveComponents';
 import { extractDeepestInteractive } from '@fastgpt/global/core/workflow/runtime/utils';
 import { useContextSelector } from 'use-context-selector';
-import { type OnOpenCiteModalProps } from '@/web/core/chat/context/chatItemContext';
+import {
+  type OnOpenCiteModalProps,
+  ChatItemContext
+} from '@/web/core/chat/context/chatItemContext';
 import { WorkflowRuntimeContext } from '../ChatContainer/context/workflowRuntimeContext';
 import { useCreation } from 'ahooks';
+import { removeDatasetCiteText } from '@fastgpt/global/core/ai/llm/utils';
 
 const accordionButtonStyle = {
   w: 'auto',
@@ -102,13 +106,16 @@ const RenderText = React.memo(function RenderText({
   const appId = useContextSelector(WorkflowRuntimeContext, (v) => v.appId);
   const chatId = useContextSelector(WorkflowRuntimeContext, (v) => v.chatId);
   const outLinkAuthData = useContextSelector(WorkflowRuntimeContext, (v) => v.outLinkAuthData);
+  const isShowCite = useContextSelector(ChatItemContext, (v) => v.isShowCite);
 
   const source = useMemo(() => {
     if (!text) return '';
 
-    // Remove quote references if not showing response detail
-    return text;
-  }, [text]);
+    if (isShowCite) {
+      return text;
+    }
+    return removeDatasetCiteText(text, isShowCite);
+  }, [text, isShowCite]);
 
   const chatAuthData = useCreation(() => {
     return { appId, chatId, chatItemDataId, ...outLinkAuthData };
@@ -210,17 +217,15 @@ const RenderUserSelectInteractive = React.memo(function RenderInteractive({
   );
 });
 const RenderUserFormInteractive = React.memo(function RenderFormInput({
-  interactive,
-  chatItemDataId
+  interactive
 }: {
   interactive: InteractiveBasicType & UserInputInteractive;
-  chatItemDataId: string;
 }) {
   const { t } = useTranslation();
 
   const defaultValues = useMemo(() => {
     if (interactive.type === 'userInput') {
-      return interactive.params.inputForm?.reduce((acc: Record<string, any>, item, index) => {
+      return interactive.params.inputForm?.reduce((acc: Record<string, any>, item) => {
         // 使用 ?? 运算符，只有 undefined 或 null 时才使用 defaultValue
         acc[item.key] = item.value ?? item.defaultValue;
         return acc;
@@ -232,42 +237,18 @@ const RenderUserFormInteractive = React.memo(function RenderFormInput({
   const handleFormSubmit = useCallback(
     (data: Record<string, any>) => {
       const finalData: Record<string, any> = {};
-      interactive.params.inputForm?.forEach((item, index) => {
+      interactive.params.inputForm?.forEach((item) => {
         if (item.key in data) {
           finalData[item.key] = data[item.key];
         }
       });
-
-      if (typeof window !== 'undefined') {
-        const dataToSave = { ...data };
-        interactive.params.inputForm?.forEach((item) => {
-          if (
-            item.type === 'fileSelect' &&
-            Array.isArray(dataToSave[item.key]) &&
-            dataToSave[item.key].length > 0
-          ) {
-            const files = dataToSave[item.key];
-            if (files[0]?.url !== undefined) {
-              dataToSave[item.key] = files
-                .map((file: any) => ({
-                  url: file.url,
-                  key: file.key,
-                  name: file.name,
-                  type: file.type
-                }))
-                .filter((file: any) => file.url);
-            }
-          }
-        });
-        sessionStorage.setItem(`interactiveForm_${chatItemDataId}`, JSON.stringify(dataToSave));
-      }
 
       onSendPrompt({
         text: JSON.stringify(finalData),
         isInteractivePrompt: true
       });
     },
-    [interactive.params.inputForm, chatItemDataId]
+    [interactive.params.inputForm]
   );
 
   return (
@@ -275,7 +256,6 @@ const RenderUserFormInteractive = React.memo(function RenderFormInput({
       <FormInputComponent
         interactiveParams={interactive.params}
         defaultValues={defaultValues}
-        chatItemDataId={chatItemDataId}
         SubmitButton={({ onSubmit, isFileUploading }) => (
           <Button
             onClick={() => onSubmit(handleFormSubmit)()}
@@ -329,6 +309,8 @@ const AIResponseBox = ({
   isChatting: boolean;
   onOpenCiteModal?: (e?: OnOpenCiteModalProps) => void;
 }) => {
+  const showRunningStatus = useContextSelector(ChatItemContext, (v) => v.showRunningStatus);
+
   if (value.type === ChatItemValueTypeEnum.text && value.text) {
     return (
       <RenderText
@@ -348,7 +330,7 @@ const AIResponseBox = ({
       />
     );
   }
-  if (value.type === ChatItemValueTypeEnum.tool && value.tools) {
+  if (value.type === ChatItemValueTypeEnum.tool && value.tools && showRunningStatus) {
     return <RenderTool showAnimation={isChatting} tools={value.tools} />;
   }
   if (value.type === ChatItemValueTypeEnum.interactive && value.interactive) {
@@ -357,9 +339,7 @@ const AIResponseBox = ({
       return <RenderUserSelectInteractive interactive={finalInteractive} />;
     }
     if (finalInteractive.type === 'userInput') {
-      return (
-        <RenderUserFormInteractive interactive={finalInteractive} chatItemDataId={chatItemDataId} />
-      );
+      return <RenderUserFormInteractive interactive={finalInteractive} />;
     }
     if (finalInteractive.type === 'paymentPause') {
       return <RenderPaymentPauseInteractive interactive={finalInteractive} />;

@@ -100,7 +100,7 @@ const DetailLogsModal = ({
       <MyBox
         display={'flex'}
         flexDirection={'column'}
-        zIndex={3}
+        zIndex={1000}
         position={['fixed', 'absolute']}
         top={[0, '2%']}
         right={0}
@@ -253,7 +253,8 @@ const Render = (props: Props) => {
       chatId,
       appId,
       loadCustomFeedbacks: true,
-      type: GetChatTypeEnum.normal
+      type: GetChatTypeEnum.normal,
+      includeDeleted: true
     };
   }, [appId, chatId]);
 
@@ -264,10 +265,11 @@ const Render = (props: Props) => {
   return (
     <ChatItemContextProvider
       showRouteToDatasetDetail={true}
-      isShowReadRawSource={true}
-      isResponseDetail={true}
-      // isShowFullText={true}
-      showNodeStatus
+      canDownloadSource={true}
+      isShowCite={true}
+      isShowFullText={true}
+      showRunningStatus={true}
+      showWholeResponse={true}
     >
       <ChatRecordContextProvider params={params} feedbackRecordId={feedbackRecordId}>
         <DetailLogsModal
