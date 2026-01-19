@@ -285,25 +285,25 @@ const NavigationSection = () => {
         {isCollapsed ? (
           <AnimatedSection show={true}>
             <Flex flexDir="column" gap={2}>
-              {feConfigs.isPlus && (
-                <>
-                  {isEnableHome && (
-                    <ActionButton
-                      icon="core/chat/sidebar/home"
-                      isCollapsed={true}
-                      isActive={isHomeActive}
-                      onClick={() => handlePaneChange(ChatSidebarPaneEnum.HOME)}
-                    />
-                  )}
+              {/*{feConfigs.isPlus && (*/}
+              {/*  <>*/}
+              {/*    {isEnableHome && (*/}
+              {/*      <ActionButton*/}
+              {/*        icon="core/chat/sidebar/home"*/}
+              {/*        isCollapsed={true}*/}
+              {/*        isActive={isHomeActive}*/}
+              {/*        onClick={() => handlePaneChange(ChatSidebarPaneEnum.HOME)}*/}
+              {/*      />*/}
+              {/*    )}*/}
 
-                  <ActionButton
-                    icon="core/chat/sidebar/star"
-                    isCollapsed={true}
-                    isActive={isFavouriteAppsActive}
-                    onClick={() => handlePaneChange(ChatSidebarPaneEnum.FAVORITE_APPS)}
-                  />
-                </>
-              )}
+              {/*    <ActionButton*/}
+              {/*      icon="core/chat/sidebar/star"*/}
+              {/*      isCollapsed={true}*/}
+              {/*      isActive={isFavouriteAppsActive}*/}
+              {/*      onClick={() => handlePaneChange(ChatSidebarPaneEnum.FAVORITE_APPS)}*/}
+              {/*    />*/}
+              {/*  </>*/}
+              {/*)}*/}
 
               <ActionButton
                 icon="common/app"
@@ -316,27 +316,27 @@ const NavigationSection = () => {
         ) : (
           <AnimatedSection show={true}>
             <Flex flexDir="column" gap={2}>
-              {feConfigs.isPlus && (
-                <>
-                  {isEnableHome && (
-                    <ActionButton
-                      icon="core/chat/sidebar/home"
-                      text={t('chat:sidebar.home')}
-                      isCollapsed={false}
-                      isActive={isHomeActive}
-                      onClick={() => handlePaneChange(ChatSidebarPaneEnum.HOME)}
-                    />
-                  )}
+              {/*{feConfigs.isPlus && (*/}
+              {/*  <>*/}
+              {/*    {isEnableHome && (*/}
+              {/*      <ActionButton*/}
+              {/*        icon="core/chat/sidebar/home"*/}
+              {/*        text={t('chat:sidebar.home')}*/}
+              {/*        isCollapsed={false}*/}
+              {/*        isActive={isHomeActive}*/}
+              {/*        onClick={() => handlePaneChange(ChatSidebarPaneEnum.HOME)}*/}
+              {/*      />*/}
+              {/*    )}*/}
 
-                  <ActionButton
-                    icon="core/chat/sidebar/star"
-                    text={t('chat:sidebar.favourite_apps')}
-                    isCollapsed={false}
-                    isActive={isFavouriteAppsActive}
-                    onClick={() => handlePaneChange(ChatSidebarPaneEnum.FAVORITE_APPS)}
-                  />
-                </>
-              )}
+              {/*    <ActionButton*/}
+              {/*      icon="core/chat/sidebar/star"*/}
+              {/*      text={t('chat:sidebar.favourite_apps')}*/}
+              {/*      isCollapsed={false}*/}
+              {/*      isActive={isFavouriteAppsActive}*/}
+              {/*      onClick={() => handlePaneChange(ChatSidebarPaneEnum.FAVORITE_APPS)}*/}
+              {/*    />*/}
+              {/*  </>*/}
+              {/*)}*/}
 
               <ActionButton
                 icon="common/app"
