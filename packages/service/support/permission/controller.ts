@@ -247,6 +247,17 @@ export async function updateCollaborators(
   teamId: string
 ) {
   const { collaborators } = updateClbPermissionProps;
+
+  // 构建查询条件以获取当前资源的所有协作者权限
+  const filter: any = {
+    resourceType,
+    resourceId,
+    teamId
+  };
+
+  // 获取当前已存在的所有协作者权限记录
+  const existingPermissions = await MongoResourcePermission.find(filter);
+
   if (collaborators && collaborators.length > 0) {
     // 使用 Promise.all 并行处理所有更新操作
     await Promise.all(
@@ -277,6 +288,59 @@ export async function updateCollaborators(
         );
       })
     );
+
+    // 计算需要删除的权限记录
+    const currentCollaboratorIds = collaborators
+      .map((clb) => {
+        if (clb.tmbId) return { tmbId: clb.tmbId };
+        if (clb.groupId) return { groupId: clb.groupId };
+        if (clb.orgId) return { orgId: clb.orgId };
+        return null;
+      })
+      .filter(Boolean) as Array<{ tmbId?: string; groupId?: string; orgId?: string }>;
+
+    // 筛选出需要删除的权限记录（即在现有记录中但不在新协作者列表中的记录）
+    const idsToDelete = existingPermissions.filter((existing) => {
+      return !currentCollaboratorIds.some((current) => {
+        return (
+          (current.tmbId && existing.tmbId?.toString() === current.tmbId) ||
+          (current.groupId && existing.groupId?.toString() === current.groupId) ||
+          (current.orgId && existing.orgId?.toString() === current.orgId)
+        );
+      });
+    });
+
+    // 删除不再需要的权限记录
+    if (idsToDelete.length > 0) {
+      const deleteFilters = idsToDelete.map((permission) => {
+        const deleteFilter: any = {
+          resourceType,
+          resourceId,
+          teamId
+        };
+
+        if (permission.tmbId) {
+          deleteFilter.tmbId = permission.tmbId;
+        } else if (permission.groupId) {
+          deleteFilter.groupId = permission.groupId;
+        } else if (permission.orgId) {
+          deleteFilter.orgId = permission.orgId;
+        }
+
+        return deleteFilter;
+      });
+
+      // 使用 $or 操作符一次性删除所有不需要的权限记录
+      await MongoResourcePermission.deleteMany({
+        $or: deleteFilters
+      });
+    }
+  } else {
+    // 如果没有传入任何协作者，则删除所有相关权限记录，但不删除创建者的权限（Owner权限）
+    await MongoResourcePermission.deleteMany({
+      ...filter,
+      permission: { $ne: OwnerRoleVal } // 排除Owner权限的记录
+    });
   }
 }
 
