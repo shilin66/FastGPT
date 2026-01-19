@@ -114,17 +114,17 @@ export function formatVectors(vector: number[], normalization = false) {
     // Normalize the vector by dividing each component by the norm
     return vector.map((val) => val / norm);
   }
-
+  const vectorDbDim = parseInt(process.env.VECTOR_DB_DIM ? process.env.VECTOR_DB_DIM : '1536');
   // 超过上限，截断，并强制归一化
-  if (vector.length > 1536) {
+  if (vector.length > vectorDbDim) {
     console.log(
-      `The current vector dimension is ${vector.length}, and the vector dimension cannot exceed 1536. The first 1536 dimensions are automatically captured`
+      `The current vector dimension is ${vector.length}, and the vector dimension cannot exceed ${vectorDbDim}. The first ${vectorDbDim} dimensions are automatically captured`
     );
-    return normalizationVector(vector.slice(0, 1536));
-  } else if (vector.length < 1536) {
+    return normalizationVector(vector.slice(0, vectorDbDim));
+  } else if (vector.length < vectorDbDim) {
     const vectorLen = vector.length;
 
-    const zeroVector = new Array(1536 - vectorLen).fill(0);
+    const zeroVector = new Array(vectorDbDim - vectorLen).fill(0);
 
     vector = vector.concat(zeroVector);
   }
