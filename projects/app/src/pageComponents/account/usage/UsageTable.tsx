@@ -77,7 +77,7 @@ const UsageTableList = ({
   const { runAsync: exportUsage } = useRequest2(
     async () => {
       await downloadFetch({
-        url: `/api/proApi/support/wallet/usage/exportUsage`,
+        url: `/api/support/wallet/usage/exportUsage`,
         filename: `usage.csv`,
         body: {
           ...requestParams,
