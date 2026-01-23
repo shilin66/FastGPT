@@ -190,7 +190,7 @@ const Layout = ({ children }: { children: JSX.Element }) => {
       )}
 
       <ManualCopyModal />
-      <ActivityAdModal />
+      {/*<ActivityAdModal />*/}
       <Loading loading={loading} zIndex={999999} />
     </>
   );
