@@ -128,9 +128,9 @@ export const readS3FileContentByBuffer = async ({
     };
   };
   // Textin api
-  const parsePdfFromTextin = async (): Promise<ReadFileResponse> => {
-    const appId = global.systemEnv.customPdfParse?.textinAppId;
-    const secretCode = global.systemEnv.customPdfParse?.textinSecretCode;
+  const parsePdfFromTextin = async (parser: any): Promise<ReadFileResponse> => {
+    const appId = parser.textinAppId;
+    const secretCode = parser.textinSecretCode;
     if (!appId || !secretCode) return systemParse();
 
     const { pages, text, imageList } = await useTextinServer({
@@ -180,7 +180,7 @@ export const readS3FileContentByBuffer = async ({
     const selectedParser = parsers.find((parser) => parser.name === customPdfParse);
 
     if (!selectedParser) return systemParse();
-    if (selectedParser.textinAppId) return parsePdfFromTextin();
+    if (selectedParser.textinAppId) return parsePdfFromTextin(selectedParser);
     if (selectedParser.url) return parsePdfFromCustomService(selectedParser);
     if (selectedParser.doc2xKey) return parsePdfFromDoc2x(selectedParser);
 

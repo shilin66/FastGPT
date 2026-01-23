@@ -22,6 +22,7 @@ const DEFAULT_CONFIG = {
   RETRY_DELAY_FAILOVER: 100,
   RETRY_DELAY_CLUSTER_DOWN: 300
 };
+const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 // Base Redis options for connection reliability
 const REDIS_BASE_OPTION = {
   // Retry strategy: exponential backoff with unlimited retries for stability

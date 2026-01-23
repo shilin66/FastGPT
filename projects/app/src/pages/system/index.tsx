@@ -80,7 +80,7 @@ const System = () => {
     mutationFn: () => updateSystemMsgModalData({ content: systemMsg }),
     onSuccess() {
       getSystemMsgModalData().then((res) => {
-        setSystemMsg(res.content);
+        setSystemMsg(res?.content || '');
       });
     },
     successToast: t('common:update_success'),
