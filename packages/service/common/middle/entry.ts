@@ -23,7 +23,7 @@ export const NextEntry = ({
 
       try {
         await Promise.all([
-          // apiVerifyLicense(req),
+          apiVerifyLicense(req),
           withNextCors(req, res),
           ...beforeCallback.map((item) => item(req, res))
         ]);
