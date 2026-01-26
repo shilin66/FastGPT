@@ -10,6 +10,7 @@ import type {
 } from '@fastgpt/global/openapi/core/plugin/admin/tool/api';
 import { AdminSystemToolListItemSchema } from '@fastgpt/global/core/plugin/admin/tool/type';
 import { MongoPluginToolTag } from '@fastgpt/service/core/plugin/tool/tagSchema';
+import { isS3ProxyEnabled } from '@fastgpt/service/common/s3/proxy';
 
 export type getSystemToolsQuery = GetAdminSystemToolsQueryType;
 
@@ -34,6 +35,18 @@ async function handler(
   return systemTools
     .filter((item) => (parentId ? item.parentId === parentId : !item.parentId))
     .map((item) => {
+      const avatar = item.avatar;
+      if (
+        isS3ProxyEnabled() &&
+        avatar &&
+        avatar.startsWith(process.env.STORAGE_S3_ENDPOINT || 'http://localhost:9000')
+      ) {
+        item.avatar = avatar.replace(
+          process.env.STORAGE_S3_ENDPOINT || 'http://localhost:9000',
+          `${process.env.FE_DOMAIN || process.env.FILE_DOMAIN || ''}${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/common/s3/proxy`
+        );
+      }
+
       return AdminSystemToolListItemSchema.parse({
         ...item,
         name: parseI18nString(item.name, lang),
