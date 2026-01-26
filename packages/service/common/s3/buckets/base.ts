@@ -22,6 +22,7 @@ import { addS3DelJob } from '../mq';
 import { type UploadFileByBufferParams, UploadFileByBufferSchema } from '../type';
 import type { createStorage } from '@fastgpt-sdk/storage';
 import { parseFileExtensionFromUrl } from '@fastgpt/global/common/string/tools';
+import { convertToProxyUrl } from '../proxy';
 
 type IStorage = ReturnType<typeof createStorage>;
 
@@ -145,8 +146,22 @@ export class S3BaseBucket {
         });
       }
 
+      // 如果启用了代理，将 MinIO URL 转换为代理 URL
+      const proxyUrl = convertToProxyUrl({
+        minioUrl: url,
+        key: params.rawKey,
+        bucket: this.bucketName,
+        action: 'upload',
+        metadata: {
+          contentDisposition: `attachment; filename="${encodeURIComponent(filename)}"`,
+          originFilename: encodeURIComponent(filename),
+          uploadTime: new Date().toISOString(),
+          ...params.metadata
+        }
+      });
+
       return {
-        url: url,
+        url: proxyUrl.url,
         key: params.rawKey,
         headers: {
           ...metadata
@@ -160,12 +175,24 @@ export class S3BaseBucket {
   }
 
   async createExternalUrl(params: createPreviewUrlParams) {
+    console.log('createExternalUrl', params);
     const parsed = CreateGetPresignedUrlParamsSchema.parse(params);
 
     const { key, expiredHours } = parsed;
     const expires = expiredHours ? expiredHours * 60 * 60 : 30 * 60; // expires 的单位是秒 默认 30 分钟
 
-    return await this.externalClient.generatePresignedGetUrl({ key, expiredSeconds: expires });
+    const { url: minioUrl } = await this.externalClient.generatePresignedGetUrl({
+      key,
+      expiredSeconds: expires
+    });
+
+    // 如果启用了代理，将 MinIO URL 转换为代理 URL
+    return convertToProxyUrl({
+      minioUrl,
+      key,
+      bucket: this.bucketName,
+      action: 'download'
+    });
   }
 
   async createPreviewUrl(params: createPreviewUrlParams) {
@@ -174,7 +201,18 @@ export class S3BaseBucket {
     const { key, expiredHours } = parsed;
     const expires = expiredHours ? expiredHours * 60 * 60 : 30 * 60; // expires 的单位是秒 默认 30 分钟
 
-    return await this.client.generatePresignedGetUrl({ key, expiredSeconds: expires });
+    const { url: minioUrl } = await this.client.generatePresignedGetUrl({
+      key,
+      expiredSeconds: expires
+    });
+
+    // 如果启用了代理，将 MinIO URL 转换为代理 URL
+    return convertToProxyUrl({
+      minioUrl,
+      key,
+      bucket: this.bucketName,
+      action: 'download'
+    });
   }
 
   async uploadFileByBuffer(params: UploadFileByBufferParams) {

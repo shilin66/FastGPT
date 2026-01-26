@@ -39,6 +39,9 @@ declare global {
       MAX_LOGIN_SESSION?: string;
       CHAT_MAX_QPM?: string;
 
+      // S3 Proxy
+      S3_PROXY_ENABLED?: string;
+
       // 安全配置
       // 密码登录锁定时间
       PASSWORD_LOGIN_LOCK_SECONDS?: string;

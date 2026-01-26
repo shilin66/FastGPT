@@ -144,7 +144,8 @@ export const putFileToS3 = async ({
   try {
     const res = await axios.put(url, file, {
       headers: {
-        ...headers
+        'Content-Type': file.type || 'application/octet-stream',
+        ...headers // 确保传递所有 headers，包括元数据
       },
       onUploadProgress,
       timeout: 5 * 60 * 1000
