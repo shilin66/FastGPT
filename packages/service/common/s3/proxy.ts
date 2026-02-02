@@ -17,6 +17,20 @@ export const getS3ProxyBaseUrl = () => {
 };
 
 /**
+ * 编码文件名以支持包含中文等特殊字符的 Content-Disposition 头部
+ * @param filename - 原始文件名
+ * @returns 符合 RFC 5987 标准的 Content-Disposition 头部值
+ */
+export const encodeContentDisposition = (filename: string): string => {
+  // 对文件名进行 URI 编码
+  const encodedFilename = encodeURIComponent(filename);
+
+  // 返回符合 RFC 5987 标准的 Content-Disposition 头部
+  // 同时提供 fallback 以兼容不支持 filename* 的旧浏览器
+  return `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`;
+};
+
+/**
  * 将 MinIO presigned URL 转换为代理 URL
  * @param minioUrl - MinIO 生成的 presigned URL
  * @param key - S3 object key

@@ -37,7 +37,9 @@ export const detectFileEncodingByPath = async (path: string) => {
 };
 
 // Url => user upload file type
-export const parseUrlToFileType = (url: string): UserChatItemFileItemType | undefined => {
+export const parseUrlToFileType = async (
+  url: string
+): Promise<UserChatItemFileItemType | undefined> => {
   if (typeof url !== 'string') return;
 
   // Handle base64 image
@@ -60,7 +62,7 @@ export const parseUrlToFileType = (url: string): UserChatItemFileItemType | unde
     const parseUrl = new URL(url, 'http://localhost:3000');
 
     // Get filename from URL
-    const filename = (() => {
+    const filename = await (async () => {
       // Here is a S3 Object Key
       if (url.startsWith('chat/')) {
         const basename = path.basename(url);
@@ -72,10 +74,13 @@ export const parseUrlToFileType = (url: string): UserChatItemFileItemType | unde
       if (fromParam) {
         return fromParam;
       }
-
       const basename = path.basename(parseUrl.pathname);
-      // Return empty if no extension
-      return basename.includes('.') ? basename : '';
+      const filename = basename.includes('.') ? basename : '';
+      if (!filename) {
+        return await getFileNameFromHttpUrlHeader(url);
+      }
+
+      return filename;
     })();
     const extension = filename?.split('.').pop()?.toLowerCase() || '';
 
@@ -99,5 +104,45 @@ export const parseUrlToFileType = (url: string): UserChatItemFileItemType | unde
       name: url,
       url
     };
+  }
+};
+
+export const getFileNameFromHttpUrlHeader = async (url: string): Promise<string> => {
+  try {
+    const response = await fetch(url, { method: 'HEAD' }); // 使用 HEAD 请求只获取 Header，速度更快
+
+    // 1. 获取 Content-Disposition 头
+    const contentDisposition = response.headers.get('content-disposition');
+    if (contentDisposition) {
+      let fileName = '';
+
+      // A. 优先尝试 RFC 5987 标准 (filename*=UTF-8''...)
+      const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;\n]+)/i);
+      if (utf8Match && utf8Match[1]) {
+        fileName = utf8Match[1];
+      }
+      // B. 其次尝试传统 filename 属性
+      else {
+        const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = fileNameMatch[1].replace(/['"]/g, '');
+        }
+      }
+
+      if (fileName) {
+        // 核心步骤：对提取到的文件名进行解码（如 %E6%B9%9B -> 湛）
+        try {
+          return decodeURIComponent(fileName);
+        } catch (e) {
+          // 如果解码失败（可能包含不合规的%号），直接返回原样字符
+          return fileName;
+        }
+      }
+    }
+
+    return '';
+  } catch (error) {
+    console.error('获取失败:', error);
+    return '';
   }
 };
