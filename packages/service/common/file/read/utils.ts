@@ -10,7 +10,7 @@ import { useDoc2xServer } from '../../../thirdProvider/doc2x';
 import { useTextinServer } from '../../../thirdProvider/textin';
 import { readRawContentFromBuffer } from '../../../worker/function';
 import { uploadImage2S3Bucket } from '../../s3/utils';
-import { Mimes } from '../../s3/constants';
+import { Mimes, S3Buckets } from '../../s3/constants';
 
 export type readRawTextByLocalFileParams = {
   teamId: string;
@@ -227,7 +227,7 @@ export const readS3FileContentByBuffer = async ({
           return `[Image Upload Failed: ${item.uuid}]`;
         }
       })();
-      rawText = rawText.replace(item.uuid, src);
+      rawText = rawText.replace(item.uuid, `/api/common/s3/proxy/${S3Buckets.private}/${src}`);
       // rawText = rawText.replace(item.uuid, jwtSignS3ObjectKey(src, addDays(new Date(), 90)));
       if (formatText) {
         formatText = formatText.replace(item.uuid, src);

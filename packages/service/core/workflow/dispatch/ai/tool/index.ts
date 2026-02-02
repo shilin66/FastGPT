@@ -371,10 +371,12 @@ const getMultiInput = async ({
     teamId: runningUserInfo.teamId,
     tmbId: runningUserInfo.tmbId
   });
-
+  const userFiles = await Promise.all(fileLinks.map(async (url) => parseUrlToFileType(url))).then(
+    (files) => files.filter(Boolean)
+  );
   return {
     documentQuoteText: text,
-    userFiles: fileLinks.map((url) => parseUrlToFileType(url)).filter(Boolean)
+    userFiles
   };
 };
 

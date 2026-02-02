@@ -3,6 +3,7 @@ import { S3PrivateBucket } from '@fastgpt/service/common/s3/buckets/private';
 import { S3PublicBucket } from '@fastgpt/service/common/s3/buckets/public';
 import { S3Buckets } from '@fastgpt/service/common/s3/constants';
 import { addLog } from '@fastgpt/service/common/system/log';
+import { encodeContentDisposition } from '@fastgpt/service/common/s3/proxy';
 
 /**
  * S3 Public Read Proxy API
@@ -23,11 +24,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { key = [] } = req.query as { key: string[] };
 
     if (!key || key.length < 2) {
-      return res
-        .status(400)
-        .json({
-          error: 'Invalid key format. Expected: /api/common/s3/proxy/read/{bucket}/{path...}'
-        });
+      return res.status(400).json({
+        error: 'Invalid key format. Expected: /api/common/s3/proxy/read/{bucket}/{path...}'
+      });
     }
 
     // 从路径中提取 bucket 和对象 key
@@ -50,6 +49,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 获取文件元数据
     const metadata = await bucketClient.getFileMetadata(objectKey);
+    const originalFilename = metadata?.filename;
+
+    if (originalFilename) {
+      // 设置 Content-Disposition 头部，使浏览器提示下载并使用原始文件名
+      res.setHeader('Content-Disposition', encodeContentDisposition(originalFilename));
+    }
 
     // 设置响应头
     res.setHeader('Content-Type', metadata?.contentType || 'application/octet-stream');

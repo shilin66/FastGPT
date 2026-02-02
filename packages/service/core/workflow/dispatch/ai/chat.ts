@@ -405,10 +405,12 @@ async function getMultiInput({
     customPdfParse,
     usageId
   });
-
+  const userFiles = await Promise.all(fileLinks.map(async (url) => parseUrlToFileType(url))).then(
+    (files) => files.filter(Boolean)
+  );
   return {
     documentQuoteText: text,
-    userFiles: fileLinks.map((url) => parseUrlToFileType(url)).filter(Boolean)
+    userFiles
   };
 }
 

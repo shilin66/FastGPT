@@ -56,9 +56,9 @@ export const dispatchRunAppNode = async (props: Props): Promise<Response> => {
   } = params;
   const { files } = chatValue2RuntimePrompt(query);
 
-  const userInputFiles = (() => {
+  const userInputFiles = await (async () => {
     if (fileUrlList) {
-      return fileUrlList.map((url) => parseUrlToFileType(url)).filter(Boolean);
+      return Promise.all(fileUrlList.map(async (url) => await parseUrlToFileType(url)));
     }
     // Adapt version 4.8.13 upgrade
     return files;

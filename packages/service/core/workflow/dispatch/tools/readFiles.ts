@@ -139,32 +139,31 @@ export const getFileContentFromLinks = async ({
   customPdfParse?: string;
   usageId?: string;
 }) => {
-  const parseUrlList = urls
-    // Remove invalid urls
-    .filter((url) => {
-      if (typeof url !== 'string') return false;
-
-      // 检查相对路径
-      const validPrefixList = ['/', 'http', 'ws'];
-      if (validPrefixList.some((prefix) => url.startsWith(prefix))) {
-        return true;
-      }
-
-      return false;
+  const results = await Promise.all(
+    urls.map(async (url) => {
+      const fileType = await parseUrlToFileType(url);
+      return { url, fileType };
     })
-    // Just get the document type file
-    .filter((url) => parseUrlToFileType(url)?.type === 'file')
-    .map((url) => {
+  );
+
+  const parseUrlList = results
+    .filter((item) => {
+      // 基础校验 + 仅保留文件类型
+      if (typeof item.url !== 'string') return false;
+      const validPrefixList = ['/', 'http', 'ws'];
+      const isValidPrefix = validPrefixList.some((p) => item.url.startsWith(p));
+
+      return isValidPrefix && item.fileType?.type === 'file';
+    })
+    .map((item) => {
+      let url = item.url;
       try {
-        // Check is system upload file
         const parsedURL = new URL(url, 'http://localhost:3000');
         if (requestOrigin && parsedURL.origin === requestOrigin) {
           url = url.replace(requestOrigin, '');
         }
-
         return url;
       } catch (error) {
-        addLog.warn(`Parse url error`, { error });
         return '';
       }
     })
@@ -243,7 +242,7 @@ export const getFileContentFromLinks = async ({
               return {
                 filename,
                 extension,
-                imageParsePrefix: getFileS3Key.temp({ teamId, filename }).fileParsedPrefix
+                imageParsePrefix: getFileS3Key.temp({ teamId, filename: '' }).fileParsedPrefix
               };
             }
 
