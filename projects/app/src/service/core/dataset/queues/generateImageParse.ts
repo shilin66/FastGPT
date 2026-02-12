@@ -150,7 +150,7 @@ export async function generateImageParse(): Promise<any> {
 
   try {
     const modelData = getLLMModel(data.dataset.vlmModel);
-    const imageIndexPrompt = ImageParsePromptDefault;
+    const imageParsePrompt = global.feConfigs.imageParsePrompt || ImageParsePromptDefault;
     const imageId = data.imageId;
 
     if (imageId) {
@@ -172,7 +172,7 @@ export async function generateImageParse(): Promise<any> {
           content: [
             {
               type: 'text',
-              text: imageIndexPrompt
+              text: imageParsePrompt
             },
             {
               type: 'image_url',
@@ -191,11 +191,12 @@ export async function generateImageParse(): Promise<any> {
         body: {
           model: modelData.model,
           temperature: 0.3,
+          useVision: modelData.vision,
           messages,
           stream: true
         }
       });
-
+      console.log('>>>>>>>>>', answer);
       const { summary, desc, index } = extractData(answer);
 
       addLog.info(`[ImageParse  Queue] Finish`, {
@@ -230,6 +231,8 @@ export async function generateImageParse(): Promise<any> {
         //   type: DatasetDataIndexTypeEnum.default,
         //   text: desc
         // });
+      } else {
+        throw new Error('img desc is empty');
       }
 
       // get vector and insert
