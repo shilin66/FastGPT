@@ -140,6 +140,7 @@ export type FastGPTFeConfigsType = {
 
   autoIndexPrompt?: string;
   imageIndexPrompt?: string;
+  imageParsePrompt?: string;
   markdownIframeSandbox?: string;
   checkLicenseCron?: string;
 };

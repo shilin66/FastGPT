@@ -199,6 +199,7 @@ export async function generateImage(): Promise<any> {
             model: modelData.model,
             temperature: 0.3,
             messages,
+            useVision: modelData.vision,
             stream: true
           }
         });
