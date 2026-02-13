@@ -1,1 +1,1 @@
-export MINERU_MODEL_SOURCE=modelscopeexport CUDA_VISIBLE_DEVICES=4MINERU_MODE=vlm MINERU_VLM_BACKEND=vlm-sglang-engine nohup python new.py &> pdf.log &
+MINERU_MODEL_SOURCE=local CUDA_VISIBLE_DEVICES=5 MINERU_VLM_BACKEND=hybrid-auto-engine nohup python baba.py &> pdf.log &
