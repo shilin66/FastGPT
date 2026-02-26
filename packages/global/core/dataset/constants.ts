@@ -9,7 +9,8 @@ export enum DatasetTypeEnum {
 
   apiDataset = 'apiDataset',
   feishu = 'feishu',
-  yuque = 'yuque'
+  yuque = 'yuque',
+  confluence = 'confluence'
 }
 
 // @ts-ignore
@@ -43,6 +44,13 @@ export const ApiDatasetTypeMap: Record<
     label: i18nT('dataset:yuque_dataset'),
     collectionLabel: i18nT('common:File'),
     courseUrl: '/docs/introduction/guide/knowledge_base/yuque_dataset/'
+  },
+  [DatasetTypeEnum.confluence]: {
+    icon: 'core/dataset/confluenceDatasetOutline',
+    avatar: 'core/dataset/confluenceDatasetColor',
+    label: i18nT('dataset:confluence_dataset'),
+    collectionLabel: i18nT('common:File'),
+    courseUrl: '/docs/introduction/guide/knowledge_base/confluence_dataset/'
   }
 };
 export const DatasetTypeMap: Record<

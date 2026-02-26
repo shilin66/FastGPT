@@ -227,5 +227,8 @@
   "website_info": "網站資訊",
   "yuque_dataset": "語雀知識庫",
   "yuque_dataset_config": "設定語雀知識庫",
-  "yuque_dataset_desc": "可透過設定語雀文件權限，使用語雀文件建構知識庫，文件不會進行二次儲存"
+  "yuque_dataset_desc": "可透過設定語雀文件權限，使用語雀文件建構知識庫，文件不會進行二次儲存",
+  "confluence_dataset": "Confluence 知識庫",
+  "confluence_dataset_config": "設定 Confluence 知識庫",
+  "confluence_dataset_desc": "可透過設定 Confluence 文件權限，使用 Confluence 文件建構知識庫，文件不會進行二次儲存"
 }

@@ -220,6 +220,7 @@
   "update_link_error": "Error updating link",
   "update_specified_node_output_or_global_variable": "Can update the output value of a specified node or update global variables",
   "use_user_id": "User ID",
+  "use_member_name": "Member Name",
   "user_form_input_config": "Form configuration",
   "user_form_input_description": "describe",
   "user_form_input_name": "Name",

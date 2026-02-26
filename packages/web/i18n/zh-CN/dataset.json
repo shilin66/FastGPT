@@ -229,5 +229,6 @@
   "yuque_dataset_config": "配置语雀知识库",
   "yuque_dataset_desc": "可通过配置语雀文档权限，使用语雀文档构建知识库，文档不会进行二次存储",
   "confluence_dataset": "Confluence知识库",
-  "confluence_dataset_desc": "可通过配置Confluence的空间或者页面构建知识库"
+  "confluence_dataset_config": "配置Confluence知识库",
+  "confluence_dataset_desc": "可通过配置confluence文档权限，使用confluence文档构建知识库，文档不会进行二次存储"
 }

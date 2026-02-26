@@ -55,7 +55,8 @@ const extractData = (content: string) => {
 const extractLinkUrl = (text: string) => {
   const combinedRegex = new RegExp(
     `(https?:\\/\\/[^\\s/$.?#].[^\\s]*\\.(?:png|jpe?g|gif|webp|bmp|tiff?|svg|ico|heic|avif))|` +
-      `(?<!https?:\\/\\/[^\\s]*)(?:\\/api\\/system\\/img\\/[^\\s.]*\\.[^\\s]*)`,
+      `(?<!https?:\\/\\/[^\\s]*)(?:\\/api\\/system\\/img\\/[^\\s.]*\\.[^\\s]*)|` +
+      `(?:\\/api\\/common\\/s3\\/proxy\\/[^\\s]*\\.(?:png|jpe?g|gif|webp|bmp|tiff?|svg|ico|heic|avif))`,
     'gi'
   );
   // 提取所有匹配项

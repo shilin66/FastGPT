@@ -66,6 +66,7 @@
   "dataset.folder_dataset": "文件夹",
   "dataset.website_dataset": "网站同步",
   "dataset.yuque_dataset": "语雀知识库",
+  "dataset.confluence_dataset": "Confluence知识库",
   "delete": "删除",
   "delete_api_key": "删除api密钥",
   "delete_app": "删除工作台应用",

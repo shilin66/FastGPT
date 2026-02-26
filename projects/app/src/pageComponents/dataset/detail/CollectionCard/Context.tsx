@@ -184,6 +184,7 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
   return (
     <CollectionPageContext.Provider value={contextValue}>
       {children}
+      <ConfirmDatasetSyncModal />
       {datasetDetail.type === DatasetTypeEnum.websiteDataset && isOpenWebsiteModal && (
         <WebSiteConfigModal
           onClose={onCloseWebsiteModal}
