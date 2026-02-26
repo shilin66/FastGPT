@@ -101,7 +101,7 @@ export async function generateVector(): Promise<any> {
         break;
       }
       if (error) {
-        addLog.error(`[Vector Queue] Error`, error);
+        addLog.error(`[Vector Queue] Error1`, error);
         await delay(500);
         continue;
       }
@@ -142,7 +142,7 @@ export async function generateVector(): Promise<any> {
           time: Date.now() - start
         });
       } catch (err: any) {
-        addLog.error(`[Vector Queue] Error`, err);
+        addLog.error(`[Vector Queue] Error2`, err);
         await MongoDatasetTraining.updateOne(
           {
             _id: data._id
@@ -155,7 +155,7 @@ export async function generateVector(): Promise<any> {
       }
     }
   } catch (error) {
-    addLog.error(`[Vector Queue] Error`, error);
+    addLog.error(`[Vector Queue] Error3`, error);
   }
 
   if (reduceQueue()) {

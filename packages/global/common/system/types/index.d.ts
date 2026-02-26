@@ -43,7 +43,6 @@ export type FastGPTConfigFileType = {
 
 export type FastGPTFeConfigsType = {
   show_workorder?: boolean;
-  show_emptyChat?: boolean;
   isPlus?: boolean;
   hideChatCopyrightSetting?: boolean;
   register_method?: ['email' | 'phone' | 'sync'];
@@ -54,6 +53,7 @@ export type FastGPTFeConfigsType = {
   mcpServerProxyEndpoint?: string;
   chineseRedirectUrl?: string;
   botIframeUrl?: string;
+  confluenceUrl?: string;
 
   show_emptyChat?: boolean;
   show_appStore?: boolean;
@@ -66,10 +66,10 @@ export type FastGPTFeConfigsType = {
   show_aiproxy?: boolean;
   show_coupon?: boolean;
   show_discount_coupon?: boolean;
-  concatMd?: string;
 
   show_dataset_feishu?: boolean;
   show_dataset_yuque?: boolean;
+  show_dataset_confluence?: boolean;
   show_publish_feishu?: boolean;
   show_publish_dingtalk?: boolean;
   show_publish_wecom?: boolean;

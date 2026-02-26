@@ -196,6 +196,17 @@ const Dataset = () => {
                                         onClick: () => onSelectDatasetType(DatasetTypeEnum.yuque)
                                       }
                                     ]
+                                  : []),
+                                ...(feConfigs?.show_dataset_confluence !== false
+                                  ? [
+                                      {
+                                        icon: 'core/dataset/confluenceDatasetColor',
+                                        label: t('dataset:confluence_dataset'),
+                                        description: t('dataset:confluence_dataset_desc'),
+                                        onClick: () =>
+                                          onSelectDatasetType(DatasetTypeEnum.confluence)
+                                      }
+                                    ]
                                   : [])
                               ]
                             }

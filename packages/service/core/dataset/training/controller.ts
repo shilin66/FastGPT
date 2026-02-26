@@ -1,6 +1,6 @@
 import { MongoDatasetTraining } from './schema';
 import type { PushDatasetDataResponse } from '@fastgpt/global/core/dataset/api.d';
-import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
+import { DatasetStatusEnum, TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
 import { type ClientSession } from '../../../common/mongo';
 import { getLLMModel, getEmbeddingModel, getVlmModel } from '../../ai/model';
 import { addLog } from '../../../common/system/log';
@@ -9,6 +9,11 @@ import { type PushDataToTrainingQueueProps } from '@fastgpt/global/core/dataset/
 import { i18nT } from '../../../../web/i18n/utils';
 import { getLLMMaxChunkSize } from '../../../../global/core/dataset/training/utils';
 import { retryFn } from '@fastgpt/global/common/system/utils';
+import type { DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
+import { MongoDataset } from '../schema';
+import pLimit from 'p-limit';
+import { syncCollection } from '../collection/utils';
+import { MongoDatasetCollection } from '../collection/schema';
 
 export const lockTrainingDataByTeamId = async (teamId: string): Promise<any> => {
   try {
@@ -212,4 +217,42 @@ export const pushDatasetToParseQueue = async ({
     ],
     { session, ordered: true }
   );
+};
+
+export const apiDatasetSync = async (dataset: DatasetSchemaType) => {
+  const datasetId = dataset._id;
+  const collections = await MongoDatasetCollection.find({
+    datasetId
+  }).lean();
+
+  await MongoDataset.findByIdAndUpdate(datasetId, { status: DatasetStatusEnum.syncing });
+  // 4. 定义并发限制（例如：最大同时处理 5 个集合）
+  const limit = pLimit(20);
+
+  // 5. 异步执行同步
+  const syncTask = (async () => {
+    try {
+      // 使用 limit 包装每个同步任务
+      const tasks = collections.map((collection) =>
+        limit(() => syncCollection({ ...collection, dataset }))
+      );
+
+      // 等待所有限制内的并发任务完成
+      await Promise.all(tasks);
+
+      // 成功状态
+      await MongoDataset.findByIdAndUpdate(datasetId, {
+        status: DatasetStatusEnum.active
+      });
+      console.log(`[Dataset Sync Success] datasetId: ${datasetId}`);
+    } catch (error) {
+      console.error(`[Dataset Sync Error] datasetId: ${datasetId}`, error);
+
+      // 失败状态
+      await MongoDataset.findByIdAndUpdate(datasetId, {
+        status: DatasetStatusEnum.error
+      });
+    }
+  })();
+  syncTask.catch((err) => console.error(err));
 };

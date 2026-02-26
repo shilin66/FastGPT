@@ -41,6 +41,7 @@ export function getI18nDatasetType(type: DatasetTypeEnum | string): string {
   if (type === DatasetTypeEnum.apiDataset) return i18nT('account_team:dataset.api_file');
   if (type === DatasetTypeEnum.feishu) return i18nT('account_team:dataset.feishu_dataset');
   if (type === DatasetTypeEnum.yuque) return i18nT('account_team:dataset.yuque_dataset');
+  if (type === DatasetTypeEnum.confluence) return i18nT('account_team:dataset.confluence_dataset');
   return i18nT('common:UnKnow');
 }
 

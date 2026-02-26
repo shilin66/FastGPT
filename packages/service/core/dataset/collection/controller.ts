@@ -32,7 +32,7 @@ import {
 } from '@fastgpt/global/core/dataset/training/utils';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 import { getS3DatasetSource } from '../../../common/s3/sources/dataset';
-import { removeS3TTL, isS3ObjectKey } from '../../../common/s3/utils';
+import { removeS3TTL, isS3ObjectKey, getFileS3Key } from '../../../common/s3/utils';
 
 export const createCollectionAndInsertData = async ({
   dataset,
@@ -411,7 +411,19 @@ export async function delCollection({
       ...(delFile
         ? [
             getS3DatasetSource().deleteDatasetFilesByKeys(
-              collections.map((item) => item?.fileId || '').filter(Boolean)
+              collections
+                .map((item) => {
+                  if (item.fileId) return item.fileId;
+                  if (item.apiFileId) {
+                    const { fileParsedPrefix } = getFileS3Key.dataset({
+                      datasetId: item.datasetId,
+                      filename: item.apiFileId
+                    });
+                    return fileParsedPrefix;
+                  }
+                  return '';
+                })
+                .filter(Boolean)
             )
           ]
         : []),

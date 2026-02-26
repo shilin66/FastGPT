@@ -374,6 +374,34 @@ const Info = ({ datasetId }: { datasetId: string }) => {
             </Box>
           </>
         )}
+
+        {datasetDetail.type === DatasetTypeEnum.confluence && (
+          <>
+            <Box w={'100%'} alignItems={'center'} pt={4}>
+              <Flex justifyContent={'space-between'} mb={1}>
+                <FormLabel fontSize={'mini'} fontWeight={'500'}>
+                  {t('dataset:confluence_dataset_config')}
+                </FormLabel>
+                <MyIcon
+                  name={'edit'}
+                  w={'14px'}
+                  _hover={{ color: 'primary.600' }}
+                  cursor={'pointer'}
+                  onClick={() =>
+                    setEditedAPIDataset({
+                      id: datasetDetail._id,
+                      apiDatasetServer: datasetDetail.apiDatasetServer
+                    })
+                  }
+                />
+              </Flex>
+              <Box fontSize={'mini'}>
+                {datasetDetail.apiDatasetServer?.confluenceServer?.pageId ||
+                  datasetDetail.apiDatasetServer?.confluenceServer?.spaceKey}
+              </Box>
+            </Box>
+          </>
+        )}
       </Box>
 
       {datasetDetail.permission.hasManagePer && (

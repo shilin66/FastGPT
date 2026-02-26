@@ -65,6 +65,7 @@
   "dataset.folder_dataset": "Folder",
   "dataset.website_dataset": "Website Sync",
   "dataset.yuque_dataset": "Yuque Knowledge Base",
+  "dataset.confluence_dataset": "Confluence Knowledge Base",
   "delete": "delete",
   "delete_api_key": "Delete the API key",
   "delete_app": "Delete the workbench application",

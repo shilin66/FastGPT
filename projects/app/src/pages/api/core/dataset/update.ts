@@ -39,6 +39,7 @@ import { getEmbeddingModel, getLLMModel } from '@fastgpt/service/core/ai/model';
 import { computedCollectionChunkSettings } from '@fastgpt/global/core/dataset/training/utils';
 import { getResourceOwnedClbs } from '@fastgpt/service/support/permission/controller';
 import { getS3AvatarSource } from '@fastgpt/service/common/s3/sources/avatar';
+import { mergeApiDatasetServerForUpdate } from '@fastgpt/global/core/dataset/apiDataset/utils';
 
 export type DatasetUpdateQuery = {};
 export type DatasetUpdateResponse = any;
@@ -176,6 +177,10 @@ async function handler(
 
     const apiDatasetParams = (() => {
       if (!apiDatasetServer) return {};
+      const mergedApiDatasetServer = mergeApiDatasetServerForUpdate(
+        apiDatasetServer,
+        dataset.apiDatasetServer
+      );
 
       const flattenObjectWithConditions = (
         obj: any,
@@ -200,7 +205,7 @@ async function handler(
 
         return result;
       };
-      return flattenObjectWithConditions(apiDatasetServer);
+      return flattenObjectWithConditions(mergedApiDatasetServer);
     })();
 
     await MongoDataset.findByIdAndUpdate(
