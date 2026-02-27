@@ -1,8 +1,13 @@
 import type { ReactNode } from 'react';
 import React, { useRef } from 'react';
 import type { OnChange } from '@monaco-editor/react';
+import { loader } from '@monaco-editor/react';
 import { Editor } from '@monaco-editor/react';
+import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 
+loader.config({
+  paths: { vs: getWebReqUrl('/js/monaco-editor.0.45.0/vs') }
+});
 interface MonacoEditorProps {
   value: string;
   setCode: (code: string) => void;
