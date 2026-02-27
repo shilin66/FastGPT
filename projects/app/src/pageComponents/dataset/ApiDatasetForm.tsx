@@ -18,6 +18,7 @@ import MyModal from '@fastgpt/web/components/common/MyModal';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { FolderIcon } from '@fastgpt/global/common/file/image/constants';
 import type { ApiDatasetServerType } from '@fastgpt/global/core/dataset/apiDataset/type';
+import { useSystemStore } from '@/web/common/system/useSystemStore';
 
 const ApiDatasetForm = ({
   type,
@@ -34,6 +35,7 @@ const ApiDatasetForm = ({
   >;
 }) => {
   const { t } = useTranslation();
+  const { feConfigs } = useSystemStore();
   const { register, setValue, watch } = form;
 
   const apiDatasetServer = watch('apiDatasetServer');
@@ -270,6 +272,19 @@ const ApiDatasetForm = ({
       )}
       {type === DatasetTypeEnum.confluence && (
         <>
+          <Flex mt={6} alignItems={'center'}>
+            <FormLabel flex={['', '0 0 110px']} fontSize={'sm'}>
+              BaseUrl
+            </FormLabel>
+            <Input
+              bg={'myWhite.600'}
+              placeholder={
+                feConfigs?.confluenceUrl ? `Default ${feConfigs.confluenceUrl}` : 'BaseUrl'
+              }
+              maxLength={200}
+              {...register('apiDatasetServer.confluenceServer.baseUrl')}
+            />
+          </Flex>
           <Flex mt={6} alignItems={'center'}>
             <FormLabel flex={['', '0 0 110px']} fontSize={'sm'} required>
               Account
