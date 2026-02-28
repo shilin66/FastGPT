@@ -19,23 +19,25 @@ export async function initRootUser(retry = 3): Promise<any> {
     await mongoSessionRun(async (session) => {
       // init root user
       if (rootUser) {
-        await rootUser.updateOne({
-          password: hashStr(psw)
-        });
+        // await rootUser.updateOne({
+        //   password: hashStr(psw)
+        // });
       } else {
         const [{ _id }] = await MongoUser.create(
           [
             {
               username: 'root',
-              password: hashStr(psw)
+              password: hashStr(psw),
+              loginType: 'password'
             }
           ],
           { session, ordered: true }
         );
         rootId = _id;
       }
+      const defaultTeamName = global.feConfigs.userDefaultTeam || 'Public';
       // init root team
-      await createDefaultTeam({ userId: rootId, session });
+      await createDefaultTeam({ userId: rootId, teamName: defaultTeamName, session });
     });
 
     logger.info('Root user initialized', {

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
-import { Flex, Input, Button, ModalBody, ModalFooter, Box } from '@chakra-ui/react';
+import { Flex, Input, Button, ModalBody, ModalFooter, Box, Switch } from '@chakra-ui/react';
 import type { UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'next-i18next';
 import { getApiDatasetPaths, getApiDatasetCatalog } from '@/web/core/dataset/api';
@@ -18,6 +18,7 @@ import MyModal from '@fastgpt/web/components/common/MyModal';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { FolderIcon } from '@fastgpt/global/common/file/image/constants';
 import type { ApiDatasetServerType } from '@fastgpt/global/core/dataset/apiDataset/type';
+import { useSystemStore } from '@/web/common/system/useSystemStore';
 
 const ApiDatasetForm = ({
   type,
@@ -34,11 +35,13 @@ const ApiDatasetForm = ({
   >;
 }) => {
   const { t } = useTranslation();
+  const { feConfigs } = useSystemStore();
   const { register, setValue, watch } = form;
 
   const apiDatasetServer = watch('apiDatasetServer');
   const yuqueServer = apiDatasetServer?.yuqueServer;
   const feishuServer = apiDatasetServer?.feishuServer;
+  const confluenceServer = apiDatasetServer?.confluenceServer;
   const apiServer = apiDatasetServer?.apiServer;
 
   const [pathNames, setPathNames] = useState(t('dataset:rootdirectory'));
@@ -265,6 +268,76 @@ const ApiDatasetForm = ({
           </Flex>
           {renderBaseUrlSelector()}
           {renderDirectoryModal()}
+        </>
+      )}
+      {type === DatasetTypeEnum.confluence && (
+        <>
+          <Flex mt={6} alignItems={'center'}>
+            <FormLabel flex={['', '0 0 110px']} fontSize={'sm'}>
+              BaseUrl
+            </FormLabel>
+            <Input
+              bg={'myWhite.600'}
+              placeholder={
+                feConfigs?.confluenceUrl ? `Default ${feConfigs.confluenceUrl}` : 'BaseUrl'
+              }
+              maxLength={200}
+              {...register('apiDatasetServer.confluenceServer.baseUrl')}
+            />
+          </Flex>
+          <Flex mt={6} alignItems={'center'}>
+            <FormLabel flex={['', '0 0 110px']} fontSize={'sm'} required>
+              Account
+            </FormLabel>
+            <Input
+              bg={'myWhite.600'}
+              placeholder={'Account'}
+              maxLength={200}
+              {...register('apiDatasetServer.confluenceServer.account', { required: true })}
+            />
+          </Flex>
+          <Flex mt={6} alignItems={'center'}>
+            <FormLabel flex={['', '0 0 110px']} fontSize={'sm'} required>
+              Token
+            </FormLabel>
+            <Input
+              bg={'myWhite.600'}
+              placeholder={'Token'}
+              maxLength={200}
+              {...register('apiDatasetServer.confluenceServer.token', { required: true })}
+            />
+          </Flex>
+          <Flex mt={6} alignItems={'center'}>
+            <FormLabel flex={['', '0 0 110px']} fontSize={'sm'} required>
+              Space Key
+            </FormLabel>
+            <Input
+              bg={'myWhite.600'}
+              placeholder={'Space Key'}
+              maxLength={200}
+              {...register('apiDatasetServer.confluenceServer.spaceKey', { required: true })}
+            />
+          </Flex>
+          <Flex mt={6} alignItems={'center'}>
+            <FormLabel flex={['', '0 0 110px']} fontSize={'sm'}>
+              Page ID
+            </FormLabel>
+            <Input
+              bg={'myWhite.600'}
+              placeholder={'Page ID'}
+              maxLength={200}
+              {...register('apiDatasetServer.confluenceServer.pageId')}
+            />
+          </Flex>
+          <Flex mt={6} alignItems={'center'}>
+            <FormLabel flex={['', '0 0 110px']} fontSize={'sm'}>
+              Sync Sub Pages
+            </FormLabel>
+            <Switch
+              isDisabled={!confluenceServer?.pageId}
+              {...register('apiDatasetServer.confluenceServer.syncSubPages')}
+            />
+          </Flex>
         </>
       )}
     </>

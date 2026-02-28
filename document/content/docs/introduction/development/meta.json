@@ -3,17 +3,19 @@
   "description": "FastGPT 社区版",
   "icon": "🔧",
   "pages": [
-    "sealos",
-    "docker",
-    "faq",
-    "intro",
-    "configuration",
-    "object-storage",
-    "signoz",
+//    "quick-start",
+//    "sealos",
+//    "intro",
+//    "docker",
+//    "configuration",
+//    "object-storage",
+//    "faq",
+//    "signoz",
     "modelConfig",
-    "custom-models",
-    "proxy",
-    "migration",
-    "design"
+    "openapi"
+//    "custom-models",
+//    "proxy",
+//    "migration",
+//    "design"
   ]
 }

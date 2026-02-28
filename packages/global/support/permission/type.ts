@@ -3,6 +3,8 @@ import type { TeamMemberSchema } from '../user/team/type';
 import type { CommonRoleKeyEnum } from './constant';
 import { type CommonPerKeyEnum, type PerResourceTypeEnum } from './constant';
 import type { CollaboratorIdType } from './collaborator';
+import type { OrgSchemaType } from '../user/team/org/type';
+import type { MemberGroupSchemaType } from './memberGroup/type';
 
 // PermissionValueType, the type of permission's value is a number, which is a bit field actually.
 // It is spired by the permission system in Linux.
@@ -70,6 +72,13 @@ export type ResourcePerWithTmbWithUser = Omit<ResourcePermissionType, 'tmbId'> &
   tmbId: TeamMemberSchema & { user: UserModelSchema };
 };
 
+export type ResourcePerWithGroup = Omit<ResourcePermissionType, 'groupId'> & {
+  group: MemberGroupSchemaType;
+};
+
+export type ResourcePerWithOrg = Omit<ResourcePermissionType, 'orgId'> & {
+  org: OrgSchemaType;
+};
 export type PermissionSchemaType = {
   defaultPermission: PermissionValueType;
   inheritPermission: boolean;

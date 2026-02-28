@@ -4,6 +4,11 @@ import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
 import { type DatasetTrainingSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
 import { datasetParseQueue } from '../queues/datasetParse';
+import { MongoDataset } from '@fastgpt/service/core/dataset/schema';
+import { delay } from '@fastgpt/global/common/system/utils';
+import { generateAuto } from '@/service/core/dataset/queues/generateAuto';
+import { generateImage } from '@/service/core/dataset/queues/generateImage';
+import { generateImageParse } from '@/service/core/dataset/queues/generateImageParse';
 
 export const createDatasetTrainingMongoWatch = () => {
   const changeStream = MongoDatasetTraining.watch();
@@ -19,6 +24,12 @@ export const createDatasetTrainingMongoWatch = () => {
           generateVector();
         } else if (mode === TrainingModeEnum.parse) {
           datasetParseQueue();
+        } else if (mode === TrainingModeEnum.auto) {
+          generateAuto();
+        } else if (mode === TrainingModeEnum.image) {
+          generateImage();
+        } else if (mode === TrainingModeEnum.imageParse) {
+          generateImageParse();
         }
       }
     } catch (error) {}
@@ -32,5 +43,8 @@ export const startTrainingQueue = (fast?: boolean) => {
     generateQA();
     generateVector();
     datasetParseQueue();
+    generateAuto();
+    generateImage();
+    generateImageParse();
   }
 };

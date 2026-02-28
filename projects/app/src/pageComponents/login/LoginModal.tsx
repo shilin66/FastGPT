@@ -16,23 +16,24 @@ const LoginModal = ({ onSuccess }: LoginModalProps) => {
   return (
     <Flex
       alignItems={'center'}
-      justifyContent={'center'}
+      justifyContent={'flex-end'}
       bg={['white', `url(${getWebReqUrl('/icon/login-bg.svg')}) no-repeat`]}
       backgroundSize={['cover', 'cover']}
       userSelect={'none'}
       h={'100%'}
+      px={[0, '10vw']}
     >
       {/* Language selector - login page */}
       {isPc && (
-        <Box position="absolute" top="24px" right="24px" zIndex={10}>
+        <Box position="absolute" top="24px" right="50px" zIndex={10}>
           <I18nLngSelector />
         </Box>
       )}
 
       <Flex
         flexDirection={'column'}
-        w={['100%', '560px']}
-        h={['100%', '690px']}
+        w={['60%', '450px']}
+        h={['60%', '590px']}
         bg={[`url(${getWebReqUrl('/icon/login-bg-phone.svg')}) no-repeat`, 'white']}
         backgroundSize={'cover'}
         px={['8', '90px']}

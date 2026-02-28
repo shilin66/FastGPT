@@ -252,33 +252,33 @@ const Info = ({ datasetId }: { datasetId: string }) => {
           </Box>
         </Box>
 
-        {feConfigs?.isPlus && (
-          <Flex alignItems={'center'} pt={5}>
-            <FormLabel fontSize={'mini'} fontWeight={'500'}>
-              {t('dataset:sync_schedule')}
-            </FormLabel>
-            <QuestionTip ml={1} label={t('dataset:sync_schedule_tip')} />
-            <Box flex={1} />
-            <Switch
-              isChecked={!!datasetDetail.autoSync}
-              onChange={(e) => {
-                e.preventDefault();
-                const autoSync = e.target.checked;
-                const text = autoSync ? t('dataset:open_auto_sync') : t('dataset:close_auto_sync');
+        {/*{feConfigs?.isPlus && (*/}
+        {/*  <Flex alignItems={'center'} pt={5}>*/}
+        {/*    <FormLabel fontSize={'mini'} fontWeight={'500'}>*/}
+        {/*      {t('dataset:sync_schedule')}*/}
+        {/*    </FormLabel>*/}
+        {/*    <QuestionTip ml={1} label={t('dataset:sync_schedule_tip')} />*/}
+        {/*    <Box flex={1} />*/}
+        {/*    <Switch*/}
+        {/*      isChecked={!!datasetDetail.autoSync}*/}
+        {/*      onChange={(e) => {*/}
+        {/*        e.preventDefault();*/}
+        {/*        const autoSync = e.target.checked;*/}
+        {/*        const text = autoSync ? t('dataset:open_auto_sync') : t('dataset:close_auto_sync');*/}
 
-                onOpenConfirmSyncSchedule({
-                  onConfirm: async () => {
-                    return updateDataset({
-                      id: datasetId,
-                      autoSync
-                    });
-                  },
-                  customContent: text
-                })();
-              }}
-            />
-          </Flex>
-        )}
+        {/*        onOpenConfirmSyncSchedule({*/}
+        {/*          onConfirm: async () => {*/}
+        {/*            return updateDataset({*/}
+        {/*              id: datasetId,*/}
+        {/*              autoSync*/}
+        {/*            });*/}
+        {/*          },*/}
+        {/*          customContent: text*/}
+        {/*        })();*/}
+        {/*      }}*/}
+        {/*    />*/}
+        {/*  </Flex>*/}
+        {/*)}*/}
 
         {datasetDetail.type === DatasetTypeEnum.externalFile && (
           <>
@@ -370,6 +370,34 @@ const Info = ({ datasetId }: { datasetId: string }) => {
               </Flex>
               <Box fontSize={'mini'}>
                 {datasetDetail.apiDatasetServer?.feishuServer?.folderToken}
+              </Box>
+            </Box>
+          </>
+        )}
+
+        {datasetDetail.type === DatasetTypeEnum.confluence && (
+          <>
+            <Box w={'100%'} alignItems={'center'} pt={4}>
+              <Flex justifyContent={'space-between'} mb={1}>
+                <FormLabel fontSize={'mini'} fontWeight={'500'}>
+                  {t('dataset:confluence_dataset_config')}
+                </FormLabel>
+                <MyIcon
+                  name={'edit'}
+                  w={'14px'}
+                  _hover={{ color: 'primary.600' }}
+                  cursor={'pointer'}
+                  onClick={() =>
+                    setEditedAPIDataset({
+                      id: datasetDetail._id,
+                      apiDatasetServer: datasetDetail.apiDatasetServer
+                    })
+                  }
+                />
+              </Flex>
+              <Box fontSize={'mini'}>
+                {datasetDetail.apiDatasetServer?.confluenceServer?.pageId ||
+                  datasetDetail.apiDatasetServer?.confluenceServer?.spaceKey}
               </Box>
             </Box>
           </>

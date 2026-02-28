@@ -86,7 +86,7 @@ const UsageTableList = ({
   const { runAsync: exportUsage } = useRequest(
     async () => {
       await downloadFetch({
-        url: `/api/proApi/support/wallet/usage/exportUsage`,
+        url: `/api/support/wallet/usage/exportUsage`,
         filename: `usage.csv`,
         body: {
           ...requestParams,
@@ -99,6 +99,7 @@ const UsageTableList = ({
             ['account_usage:embedding_index']: t('account_usage:embedding_index'),
             ['account_usage:qa']: t('account_usage:qa'),
             ['core.dataset.training.Auto mode']: t('common:core.dataset.training.Auto mode'),
+            ['account_usage:pdf_enhanced_parse']: t('account_usage:pdf_enhanced_parse'),
             ['common:core.module.template.ai_chat']: t('common:core.module.template.ai_chat')
           },
           sourcesMap: Object.fromEntries(

@@ -6,6 +6,7 @@ import RemarkBreaks from 'remark-breaks'; // Line break
 import RehypeKatex from 'rehype-katex'; // Math render
 import RemarkGfm from 'remark-gfm'; // Special markdown syntax
 import RehypeExternalLinks from 'rehype-external-links';
+import RehypeRaw from 'rehype-raw';
 
 import styles from './index.module.scss';
 import dynamic from 'next/dynamic';
@@ -86,7 +87,7 @@ const MarkdownRender = ({
       ${showAnimation ? `${formatSource ? styles.waitingAnimation : styles.animation}` : ''}
     `}
         remarkPlugins={[RemarkMath, [RemarkGfm, { singleTilde: false }], RemarkBreaks]}
-        rehypePlugins={[RehypeKatex, [RehypeExternalLinks, { target: '_blank' }]]}
+        rehypePlugins={[RehypeKatex, RehypeRaw, [RehypeExternalLinks, { target: '_blank' }]]}
         components={components}
         urlTransform={urlTransform}
       >
@@ -147,8 +148,16 @@ function Code(e: any) {
   return Component;
 }
 
-function Image({ src, chatAuthData }: { src?: string; chatAuthData?: AProps['chatAuthData'] }) {
-  return <MdImage src={src} chatAuthData={chatAuthData} />;
+function Image({
+  src,
+  chatAuthData,
+  ...props
+}: {
+  src?: string;
+  chatAuthData?: AProps['chatAuthData'];
+  [key: string]: any;
+}) {
+  return <MdImage src={src} chatAuthData={chatAuthData} {...props} />;
 }
 
 function RewritePre({ children }: any) {

@@ -134,7 +134,7 @@ export const getAppBasicInfoByIds = async ({ teamId, ids }: { teamId: string; id
     '_id name avatar'
   ).lean();
 
-  return apps.map((item) => ({
+  return apps.map((item: any) => ({
     id: item._id,
     name: item.name,
     avatar: item.avatar
@@ -207,7 +207,7 @@ export const deleteAppsImmediate = async ({
     },
     '_id'
   ).lean();
-  await Promise.all(evalJobs.map((evalJob) => removeEvaluationJob(evalJob._id)));
+  await Promise.all(evalJobs.map((evalJob: any) => removeEvaluationJob(evalJob._id)));
 
   // Remove app record
   await MongoAppRecord.deleteMany({ teamId, appId: { $in: appIds } });

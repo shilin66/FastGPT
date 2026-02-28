@@ -29,11 +29,23 @@ export const sendAuthCode = (data: {
 export const getTokenLogin = () =>
   GET<UserType>('/support/user/account/tokenLogin', {}, { maxQuantity: 1 });
 export const oauthLogin = (params: OauthLoginProps) =>
-  POST<LoginSuccessResponse>('/proApi/support/user/account/login/oauth', params);
+  POST<LoginSuccessResponse>('/support/user/account/login/oauth', params);
 export const postFastLogin = (params: FastLoginProps) =>
   POST<LoginSuccessResponse>('/proApi/support/user/account/login/fastLogin', params);
 export const ssoLogin = (params: any) =>
   GET<LoginSuccessResponse>('/proApi/support/user/account/sso', params);
+
+export const postSimpleRegister = ({
+  username,
+  password
+}: {
+  username: string;
+  password: string;
+}) =>
+  POST<LoginSuccessResponse>(`support/user/account/register/simple`, {
+    username,
+    password: hashStr(password)
+  });
 
 export const postRegister = ({
   username,
@@ -123,7 +135,6 @@ export const GetSearchUserGroupOrg = (
     orgs?: boolean;
     groups?: boolean;
   }
-) =>
-  GET<SearchResult>('/proApi/support/user/search', { searchKey, ...options }, { maxQuantity: 1 });
+) => GET<SearchResult>('/support/user/search', { searchKey, ...options }, { maxQuantity: 1 });
 
 export const ExportMembers = () => GET<{ csv: string }>('/proApi/support/user/team/member/export');

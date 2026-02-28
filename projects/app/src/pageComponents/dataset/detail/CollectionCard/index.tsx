@@ -31,7 +31,8 @@ import {
   DatasetCollectionTypeEnum,
   DatasetStatusEnum,
   DatasetCollectionSyncResultMap,
-  DatasetCollectionDataProcessModeMap
+  DatasetCollectionDataProcessModeMap,
+  DatasetTypeEnum
 } from '@fastgpt/global/core/dataset/constants';
 import { getCollectionIcon } from '@fastgpt/global/core/dataset/utils';
 import { TabEnum } from '../../../../pages/dataset/detail/index';

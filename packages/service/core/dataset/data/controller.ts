@@ -1,22 +1,26 @@
 import { replaceS3KeyToPreviewUrl } from '../../../core/dataset/utils';
 import { addEndpointToImageUrl } from '../../../common/file/image/utils';
-import type { DatasetDataSchemaType } from '@fastgpt/global/core/dataset/type';
 import { addDays } from 'date-fns';
 import { isS3ObjectKey, jwtSignS3ObjectKey } from '../../../common/s3/utils';
+import type { DatasetDataSchemaType } from '@fastgpt/global/core/dataset/type';
+import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 
 export const formatDatasetDataValue = ({
   q,
   a,
+  summary,
   imageId,
   imageDescMap
 }: {
   q: string;
   a?: string;
+  summary?: string;
   imageId?: string;
   imageDescMap?: Record<string, string>;
 }): {
   q: string;
   a?: string;
+  summary?: string;
   imagePreivewUrl?: string;
 } => {
   // Add image description to image markdown
@@ -59,22 +63,31 @@ export const formatDatasetDataValue = ({
     : imageId;
 
   return {
-    q: `![${q.replaceAll('\n', '')}](${imagePreivewUrl})`,
+    q,
     a,
+    summary,
     imagePreivewUrl
   };
 };
 
 export const getFormatDatasetCiteList = (list: DatasetDataSchemaType[]) => {
-  return list.map((item) => ({
-    _id: item._id,
-    ...formatDatasetDataValue({
-      q: item.q,
-      a: item.a,
-      imageId: item.imageId
-    }),
-    history: item.history,
-    updateTime: item.updateTime,
-    index: item.chunkIndex
-  }));
+  return list.map((item) => {
+    const summaryIndex = item.indexes.find(
+      (data) => data.type === DatasetDataIndexTypeEnum.summary
+    );
+    const summary = summaryIndex ? summaryIndex.text : '';
+
+    return {
+      _id: item._id,
+      ...formatDatasetDataValue({
+        q: item.q,
+        a: item.a,
+        summary,
+        imageId: item.imageId
+      }),
+      history: item.history,
+      updateTime: item.updateTime,
+      index: item.chunkIndex
+    };
+  });
 };

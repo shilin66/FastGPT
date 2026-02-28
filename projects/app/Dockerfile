@@ -1,5 +1,5 @@
 # --------- install dependence -----------
-FROM node:20.14.0-alpine AS maindeps
+FROM docker.m.daocloud.io/library/node:20.14.0-alpine AS maindeps
 WORKDIR /app
 
 ARG proxy
@@ -22,7 +22,7 @@ RUN if [ -z "$proxy" ]; then \
     fi
 
 # --------- builder -----------
-FROM node:20.14.0-alpine AS builder
+FROM docker.m.daocloud.io/library/node:20.14.0-alpine AS builder
 WORKDIR /app
 
 ARG proxy
@@ -37,6 +37,9 @@ COPY --from=maindeps /app/projects/app/node_modules ./projects/app/node_modules
 
 RUN [ -z "$proxy" ] || sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 
+RUN apk update && apk add zip
+RUN cd /app/projects/app/public/chrome_extension && zip -r fastgpt_agent.zip fastgpt_agent
+
 RUN apk add --no-cache libc6-compat && npm install -g pnpm@9.4.0
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -44,7 +47,7 @@ ENV NEXT_PUBLIC_BASE_URL=$base_url
 RUN pnpm --filter=app build
 
 # --------- runner -----------
-FROM node:20.14.0-alpine AS runner
+FROM docker.m.daocloud.io/library/node:20.14.0-alpine AS runner
 WORKDIR /app
 
 ARG proxy
@@ -96,4 +99,4 @@ USER nextjs
 
 ENV serverPath=./projects/app/server.js
 
-ENTRYPOINT ["sh","-c","node --max-old-space-size=4096 ${serverPath}"]
+ENTRYPOINT ["sh","-c","HOSTNAME=0.0.0.0 node --max-old-space-size=4096 ${serverPath}"]

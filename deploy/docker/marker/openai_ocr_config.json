@@ -1,0 +1,16 @@
+{
+  "基础markdown转换": {
+    "output_format": "markdown",
+    "format_lines": true,
+    "strip_existing_ocr": true,
+    "disable_image_extraction": false,
+    "force_ocr": true,
+    "use_llm": true,
+    "redo_inline_math": true,
+    "llm_service": "marker.services.openai.OpenAIService",
+    "openai_api_key": "sk-5NQ8OTOo8e1rMBm224590f72E8A2415692432cA3B2646d4e",
+    "openai_base_url": "http://23.248.165.187:28124/v1",
+    "openai_model": "Qwen2.5-VL-32B-Instruct",
+    "block_correction_prompt": "Ensure that data is complete, contains text and data formatted correctly, and is not missing. Math expressions are correctly converted to LaTex format."
+  }
+}

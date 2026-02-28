@@ -1,7 +1,7 @@
 import z from 'zod';
 
 export const AddRawTextBufferParamsSchema = z.object({
-  customPdfParse: z.boolean().optional(),
+  customPdfParse: z.string().optional(),
   sourceId: z.string().nonempty(),
   sourceName: z.string().nonempty(),
   text: z.string()

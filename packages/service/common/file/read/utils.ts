@@ -9,6 +9,7 @@ import { useDoc2xServer } from '../../../thirdProvider/doc2x';
 import { useTextinServer } from '../../../thirdProvider/textin';
 import { readRawContentFromBuffer } from '../../../worker/function';
 import { uploadImage2S3Bucket } from '../../s3/utils';
+import { Mimes, S3Buckets } from '../../s3/constants';
 import { Mimes } from '../../s3/constants';
 import { getLogger, LogCategories } from '../../logger';
 
@@ -19,7 +20,7 @@ export type readRawTextByLocalFileParams = {
   tmbId: string;
   path: string;
   encoding: string;
-  customPdfParse?: boolean;
+  customPdfParse?: string;
   getFormatText?: boolean;
   fileParsedPrefix?: string;
   metadata?: Record<string, any>;
@@ -54,7 +55,7 @@ export const readFileContentByBuffer = async ({
   extension,
   buffer,
   encoding,
-  customPdfParse = false,
+  customPdfParse,
   usageId,
   getFormatText = true,
   imageKeyOptions
@@ -66,7 +67,7 @@ export const readFileContentByBuffer = async ({
   buffer: Buffer;
   encoding: string;
 
-  customPdfParse?: boolean;
+  customPdfParse?: string;
   usageId?: string;
   getFormatText?: boolean;
   imageKeyOptions?: {
@@ -82,9 +83,9 @@ export const readFileContentByBuffer = async ({
       encoding,
       buffer
     });
-  const parsePdfFromCustomService = async (): Promise<ReadFileResponse> => {
-    const url = global.systemEnv.customPdfParse?.url;
-    const token = global.systemEnv.customPdfParse?.key;
+  const parsePdfFromCustomService = async (parser: any): Promise<ReadFileResponse> => {
+    const url = parser.url;
+    const token = parser.key;
     if (!url) return systemParse();
 
     const start = Date.now();
@@ -122,6 +123,7 @@ export const readFileContentByBuffer = async ({
       teamId,
       tmbId,
       pages: response.pages,
+      parserName: customPdfParse,
       usageId
     });
 
@@ -132,9 +134,9 @@ export const readFileContentByBuffer = async ({
     };
   };
   // Textin api
-  const parsePdfFromTextin = async (): Promise<ReadFileResponse> => {
-    const appId = global.systemEnv.customPdfParse?.textinAppId;
-    const secretCode = global.systemEnv.customPdfParse?.textinSecretCode;
+  const parsePdfFromTextin = async (parser: any): Promise<ReadFileResponse> => {
+    const appId = parser.textinAppId;
+    const secretCode = parser.textinSecretCode;
     if (!appId || !secretCode) return systemParse();
 
     const { pages, text, imageList } = await useTextinServer({
@@ -156,8 +158,8 @@ export const readFileContentByBuffer = async ({
     };
   };
   // Doc2x api
-  const parsePdfFromDoc2x = async (): Promise<ReadFileResponse> => {
-    const doc2xKey = global.systemEnv.customPdfParse?.doc2xKey;
+  const parsePdfFromDoc2x = async (parser: any): Promise<ReadFileResponse> => {
+    const doc2xKey = parser.doc2xKey;
     if (!doc2xKey) return systemParse();
 
     const { pages, text, imageList } = await useDoc2xServer({ apiKey: doc2xKey }).parsePDF(buffer);
@@ -166,7 +168,8 @@ export const readFileContentByBuffer = async ({
       teamId,
       tmbId,
       pages,
-      usageId
+      usageId,
+      parserName: customPdfParse
     });
 
     return {
@@ -178,9 +181,14 @@ export const readFileContentByBuffer = async ({
   // Custom read file service
   const pdfParseFn = async (): Promise<ReadFileResponse> => {
     if (!customPdfParse) return systemParse();
-    if (global.systemEnv.customPdfParse?.url) return parsePdfFromCustomService();
-    if (global.systemEnv.customPdfParse?.textinAppId) return parsePdfFromTextin();
-    if (global.systemEnv.customPdfParse?.doc2xKey) return parsePdfFromDoc2x();
+
+    const parsers = global.systemEnv.customPdfParse || [];
+    const selectedParser = parsers.find((parser) => parser.name === customPdfParse);
+
+    if (!selectedParser) return systemParse();
+    if (selectedParser.textinAppId) return parsePdfFromTextin(selectedParser);
+    if (selectedParser.url) return parsePdfFromCustomService(selectedParser);
+    if (selectedParser.doc2xKey) return parsePdfFromDoc2x(selectedParser);
 
     return systemParse();
   };
@@ -189,9 +197,15 @@ export const readFileContentByBuffer = async ({
   logger.debug('Start parsing file', { extension });
 
   let { rawText, formatText, imageList } = await (async () => {
-    if (extension === 'pdf') {
+    // Check if any parser supports this extension
+    const parsers = global.systemEnv.customPdfParse || [];
+    const selectedParser = parsers.find((parser) => parser.name === customPdfParse);
+    const ext = selectedParser?.extension?.split(',');
+
+    if (ext?.includes(extension)) {
       return await pdfParseFn();
     }
+
     return await systemParse();
   })();
 
@@ -227,7 +241,7 @@ export const readFileContentByBuffer = async ({
           return `[Image Upload Failed: ${item.uuid}]`;
         }
       })();
-      rawText = rawText.replace(item.uuid, src);
+      rawText = rawText.replace(item.uuid, `/api/common/s3/proxy/${S3Buckets.private}/${src}`);
       // rawText = rawText.replace(item.uuid, jwtSignS3ObjectKey(src, addDays(new Date(), 90)));
       if (formatText) {
         formatText = formatText.replace(item.uuid, src);

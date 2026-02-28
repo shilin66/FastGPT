@@ -110,7 +110,8 @@ export const ChatPageContextProvider = ({
 
   const { data: chatSettings, runAsync: refreshChatSetting } = useRequest(
     async () => {
-      if (!feConfigs.isPlus) return;
+      // if (!feConfigs.isPlus) return;
+      if (true) return;
       return await getChatSetting();
     },
     {

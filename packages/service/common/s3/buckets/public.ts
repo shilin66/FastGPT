@@ -8,6 +8,7 @@ import {
   MinioStorageAdapter,
   type IStorageOptions
 } from '@fastgpt-sdk/storage';
+import { isS3ProxyEnabled } from '../proxy';
 import { getLogger, LogCategories } from '../../logger';
 
 const logger = getLogger(LogCategories.INFRA.S3);
@@ -137,6 +138,16 @@ export class S3PublicBucket extends S3BaseBucket {
   }
 
   createPublicUrl(objectKey: string): string {
-    return this.externalClient.generatePublicGetUrl({ key: objectKey }).url;
+    const { url } = this.externalClient.generatePublicGetUrl({ key: objectKey });
+
+    // 如果启用了代理，将 MinIO URL 转换为代理 URL
+    if (isS3ProxyEnabled()) {
+      // 为 publicUrl 生成特殊的代理 URL，直接指向文件在 MinIO 中的路径
+      const proxyBaseUrl = `${process.env.FE_DOMAIN || process.env.FILE_DOMAIN || ''}${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/common/s3/proxy`;
+      // const encodedKey = encodeURIComponent(`${this.bucketName}/${objectKey}`);
+      return `${proxyBaseUrl}/${this.bucketName}/${objectKey}`;
+    }
+
+    return url;
   }
 }

@@ -142,8 +142,9 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
 
   const { runAsync: onLeaveTeam } = useRequest(delLeaveTeam, {
     onSuccess() {
-      const defaultTeam = myTeams[0];
-      onSwitchTeam(defaultTeam.teamId);
+      const defaultTeamName = feConfigs?.userDefaultTeam;
+      const defaultTeamId = myTeams.find((team) => team.teamName === defaultTeamName)?.teamId;
+      onSwitchTeam(defaultTeamId || '');
     },
     errorToast: t('account_team:user_team_leave_team_failed')
   });
@@ -196,20 +197,20 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
               onChange={(e) => setSearchKey(e.target.value)}
             />
           </Box>
-          {userInfo?.team.permission.hasManagePer && feConfigs?.show_team_chat && (
-            <Button
-              variant={'whitePrimary'}
-              size="md"
-              borderRadius={'md'}
-              ml={3}
-              leftIcon={<MyIcon name="core/dataset/tag" w={'16px'} />}
-              onClick={() => {
-                onOpenTeamTagsAsync();
-              }}
-            >
-              {t('account_team:label_sync')}
-            </Button>
-          )}
+          {/*{userInfo?.team.permission.hasManagePer && feConfigs?.show_team_chat && (*/}
+          {/*  <Button*/}
+          {/*    variant={'whitePrimary'}*/}
+          {/*    size="md"*/}
+          {/*    borderRadius={'md'}*/}
+          {/*    ml={3}*/}
+          {/*    leftIcon={<MyIcon name="core/dataset/tag" w={'16px'} />}*/}
+          {/*    onClick={() => {*/}
+          {/*      onOpenTeamTagsAsync();*/}
+          {/*    }}*/}
+          {/*  >*/}
+          {/*    {t('account_team:label_sync')}*/}
+          {/*  </Button>*/}
+          {/*)}*/}
           {userInfo?.team.permission.hasManagePer && isSyncMode && (
             <Button
               variant={'primary'}
@@ -264,24 +265,26 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
               {t('account_team:export_members')}
             </Button>
           )}
-          {!userInfo?.team.permission.isOwner && !isSyncMode && !isWecomTeam && (
-            <PopoverConfirm
-              Trigger={
-                <Button
-                  variant={'whitePrimary'}
-                  size="md"
-                  borderRadius={'md'}
-                  ml={3}
-                  leftIcon={<MyIcon name={'support/account/loginoutLight'} w={'14px'} />}
-                >
-                  {t('account_team:user_team_leave_team')}
-                </Button>
-              }
-              type="delete"
-              content={t('account_team:confirm_leave_team')}
-              onConfirm={() => onLeaveTeam()}
-            />
-          )}
+          {!userInfo?.team.permission.isOwner &&
+            !isSyncMode &&
+            userInfo?.team.teamName !== feConfigs.userDefaultTeam && (
+              <PopoverConfirm
+                Trigger={
+                  <Button
+                    variant={'whitePrimary'}
+                    size="md"
+                    borderRadius={'md'}
+                    ml={3}
+                    leftIcon={<MyIcon name={'support/account/loginoutLight'} w={'14px'} />}
+                  >
+                    {t('account_team:user_team_leave_team')}
+                  </Button>
+                }
+                type="delete"
+                content={t('account_team:confirm_leave_team')}
+                onConfirm={() => onLeaveTeam()}
+              />
+            )}
         </HStack>
       </Flex>
 
@@ -294,7 +297,7 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
                   <Th borderLeftRadius="6px" bgColor="myGray.100">
                     {t('account_team:user_name')}
                   </Th>
-                  <Th bgColor="myGray.100">{t('common:contact_way')}</Th>
+                  {/*<Th bgColor="myGray.100">{t('common:contact_way')}</Th>*/}
                   <Th bgColor="myGray.100" pl={9}>
                     {t('account_team:org')}
                   </Th>
@@ -322,7 +325,7 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
                         </Box>
                       </HStack>
                     </Td>
-                    <Td maxW={'300px'}>{member.contact || '-'}</Td>
+                    {/*<Td maxW={'300px'}>{member.contact || '-'}</Td>*/}
                     <Td maxWidth="300px">
                       {(() => {
                         return <OrgTags orgs={member.orgs || undefined} type="tag" />;
@@ -339,59 +342,83 @@ function MemberTable({ Tabs }: { Tabs: React.ReactNode }) {
                       </VStack>
                     </Td>
                     <Td>
-                      {userInfo?.team.permission.hasManagePer &&
-                        member.role !== TeamMemberRoleEnum.owner &&
-                        member.tmbId !== userInfo?.team.tmbId &&
-                        (member.status === TeamMemberStatusEnum.active ? (
-                          <HStack>
-                            <MyIconButton
-                              icon={'edit'}
-                              size="1rem"
-                              hoverColor={'blue.500'}
-                              onClick={() => handleEditMemberName(member.tmbId, member.memberName)}
-                            />
-                            <PopoverConfirm
-                              Trigger={
-                                <Box>
-                                  <MyIconButton
-                                    icon={'common/trash'}
-                                    hoverColor={'red.500'}
-                                    hoverBg="red.50"
-                                    size={'1rem'}
-                                  />
-                                </Box>
-                              }
-                              type="delete"
-                              content={
-                                isSyncMode
-                                  ? t('account_team:forbidden_tip', {
-                                      username: member.memberName
-                                    })
-                                  : t('account_team:remove_tip', {
-                                      username: member.memberName
-                                    })
-                              }
-                              onConfirm={() => onRemoveMember(member.tmbId)}
-                            />
-                          </HStack>
-                        ) : (
-                          <PopoverConfirm
-                            Trigger={
-                              <Box display={'inline-block'}>
-                                <MyIconButton
-                                  icon={'common/confirm/restoreTip'}
-                                  size={'1rem'}
-                                  hoverColor={'primary.500'}
-                                />
-                              </Box>
-                            }
-                            type="info"
-                            content={t('account_team:restore_tip', {
-                              username: member.memberName
-                            })}
-                            onConfirm={() => onRestore(member.tmbId)}
-                          />
-                        ))}
+                      {
+                        userInfo?.team.permission.hasManagePer &&
+                          member.role !== TeamMemberRoleEnum.owner &&
+                          member.tmbId !== userInfo?.team.tmbId && (
+                            <HStack>
+                              {/*<MyIconButton*/}
+                              {/*  icon={'edit'}*/}
+                              {/*  size="1rem"*/}
+                              {/*  hoverColor={'blue.500'}*/}
+                              {/*  onClick={() => handleEditMemberName(member.tmbId, member.memberName)}*/}
+                              {/*/>*/}
+                              <PopoverConfirm
+                                Trigger={
+                                  <Box>
+                                    <MyIconButton
+                                      icon={'common/trash'}
+                                      hoverColor={'red.500'}
+                                      hoverBg="red.50"
+                                      size={'1rem'}
+                                    />
+                                  </Box>
+                                }
+                                type="delete"
+                                content={t('account_team:remove_tip', {
+                                  username: member.memberName
+                                })}
+                                onConfirm={() => onRemoveMember(member.tmbId)}
+                              />
+                            </HStack>
+                          )
+                        // (member.status === TeamMemberStatusEnum.active ? (
+                        //   <HStack>
+                        //     {/*<MyIconButton*/}
+                        //     {/*  icon={'edit'}*/}
+                        //     {/*  size="1rem"*/}
+                        //     {/*  hoverColor={'blue.500'}*/}
+                        //     {/*  onClick={() => handleEditMemberName(member.tmbId, member.memberName)}*/}
+                        //     {/*/>*/}
+                        //     <PopoverConfirm
+                        //       Trigger={
+                        //         <Box>
+                        //           <MyIconButton
+                        //             icon={'common/trash'}
+                        //             hoverColor={'red.500'}
+                        //             hoverBg="red.50"
+                        //             size={'1rem'}
+                        //           />
+                        //         </Box>
+                        //       }
+                        //       type="delete"
+                        //       content={t('account_team:remove_tip', {
+                        //         username: member.memberName
+                        //       })}
+                        //       onConfirm={() => onRemoveMember(member.tmbId)}
+                        //     />
+                        //   </HStack>
+                        // ) : (
+                        //   member.status === TeamMemberStatusEnum.forbidden && (
+                        //     <PopoverConfirm
+                        //       Trigger={
+                        //         <Box display={'inline-block'}>
+                        //           <MyIconButton
+                        //             icon={'common/confirm/restoreTip'}
+                        //             size={'1rem'}
+                        //             hoverColor={'primary.500'}
+                        //           />
+                        //         </Box>
+                        //       }
+                        //       type="info"
+                        //       content={t('account_team:restore_tip', {
+                        //         username: member.memberName
+                        //       })}
+                        //       onConfirm={() => onRestore(member.tmbId)}
+                        //     />
+                        //   )
+                        // ))
+                      }
                     </Td>
                   </Tr>
                 ))}

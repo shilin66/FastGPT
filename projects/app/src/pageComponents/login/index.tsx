@@ -241,7 +241,7 @@ export const LoginContainer = ({
         flexDirection={'column'}
       >
         {/* main content area */}
-        <Box w={['100%', '380px']} flex={['', '1 0 0']}>
+        <Box w={['60%', '280px']} flex={['', '1 0 0']}>
           {pageType && DynamicComponent ? DynamicComponent : <Loading fixed={false} />}
         </Box>
 
@@ -264,11 +264,11 @@ export const LoginContainer = ({
         )}
       </Flex>
 
-      <CookiesModal />
-      <ChineseRedirectModal />
+      {/*<CookiesModal />*/}
+      {/*<ChineseRedirectModal />*/}
 
       {/* Community modal */}
-      {showCommunityModal && <CommunityModal onClose={() => setShowCommunityModal(false)} />}
+      {/*{showCommunityModal && <CommunityModal onClose={() => setShowCommunityModal(false)} />}*/}
     </>
   );
 };

@@ -28,11 +28,20 @@ export type YuqueServer = {
   token?: string;
   basePath?: string;
 };
+export type ConfluenceServer = {
+  account: string;
+  token: string;
+  baseUrl?: string;
+  spaceKey: string;
+  pageId?: string;
+  syncSubPages?: boolean;
+};
 
 export type ApiDatasetServerType = {
   apiServer?: APIFileServer;
   feishuServer?: FeishuServer;
   yuqueServer?: YuqueServer;
+  confluenceServer?: ConfluenceServer;
 };
 
 // Api dataset api

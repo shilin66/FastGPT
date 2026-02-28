@@ -9,7 +9,8 @@ export enum DatasetTypeEnum {
 
   apiDataset = 'apiDataset',
   feishu = 'feishu',
-  yuque = 'yuque'
+  yuque = 'yuque',
+  confluence = 'confluence'
 }
 
 // @ts-ignore
@@ -43,6 +44,13 @@ export const ApiDatasetTypeMap: Record<
     label: i18nT('dataset:yuque_dataset'),
     collectionLabel: i18nT('common:File'),
     courseUrl: '/docs/introduction/guide/knowledge_base/yuque_dataset/'
+  },
+  [DatasetTypeEnum.confluence]: {
+    icon: 'core/dataset/confluenceDatasetOutline',
+    avatar: 'core/dataset/confluenceDatasetColor',
+    label: i18nT('dataset:confluence_dataset'),
+    collectionLabel: i18nT('common:File'),
+    courseUrl: '/docs/introduction/guide/knowledge_base/confluence_dataset/'
   }
 };
 export const DatasetTypeMap: Record<
@@ -236,6 +244,24 @@ export enum TrainingModeEnum {
   image = 'image',
   imageParse = 'imageParse'
 }
+
+export const TrainingTypeMap = {
+  [TrainingModeEnum.chunk]: {
+    label: i18nT('common:core.dataset.training.Chunk mode'),
+    tooltip: i18nT('common:core.dataset.import.Chunk Split Tip'),
+    openSource: true
+  },
+  [TrainingModeEnum.auto]: {
+    label: i18nT('common:core.dataset.training.Auto mode'),
+    tooltip: i18nT('common:core.dataset.training.Auto mode Tip'),
+    openSource: false
+  },
+  [TrainingModeEnum.qa]: {
+    label: i18nT('common:core.dataset.training.QA mode'),
+    tooltip: i18nT('common:core.dataset.import.QA Import Tip'),
+    openSource: true
+  }
+};
 
 /* ------------ search -------------- */
 export enum DatasetSearchModeEnum {

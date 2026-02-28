@@ -116,7 +116,8 @@ export const useChatStore = create<State>()(
             state.lastChatAppId = e;
           });
         },
-        lastPane: ChatSidebarPaneEnum.HOME,
+        // lastPane: ChatSidebarPaneEnum.HOME,
+        lastPane: ChatSidebarPaneEnum.TEAM_APPS,
         setLastPane(e) {
           set((state) => {
             state.lastPane = e;

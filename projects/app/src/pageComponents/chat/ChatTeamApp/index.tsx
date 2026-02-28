@@ -55,7 +55,10 @@ const MyApps = () => {
 
   return (
     <Flex flexDirection={'column'} h={'100%'}>
-      <NextHead title={chatSettings?.homeTabTitle} icon={getWebReqUrl(feConfigs?.favicon)} />
+      <NextHead
+        title={chatSettings?.homeTabTitle || feConfigs?.systemTitle}
+        icon={getWebReqUrl(feConfigs?.favicon)}
+      />
 
       {!isPc && (
         <Flex

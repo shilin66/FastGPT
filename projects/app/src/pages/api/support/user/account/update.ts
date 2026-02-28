@@ -20,7 +20,6 @@ async function handler(
   const { avatar, timezone, language } = req.body;
 
   const { tmbId } = await authCert({ req, authToken: true });
-  // const user = await getUserDetail({ tmbId });
 
   // 更新对应的记录
   await mongoSessionRun(async (session) => {
@@ -36,6 +35,7 @@ async function handler(
         }
       ).session(session);
     }
+
     // if avatar, update team member avatar
     if (avatar) {
       await MongoTeamMember.updateOne({ _id: tmbId }, { avatar }).session(session);

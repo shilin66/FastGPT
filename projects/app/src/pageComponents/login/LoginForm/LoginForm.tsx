@@ -144,7 +144,7 @@ const LoginForm = ({ setPageType, loginSuccess }: Props) => {
             })}
           ></Input>
         </FormControl>
-        <PolicyTip isCenter={false} />
+        {/*<PolicyTip isCenter={false} />*/}
 
         <Button
           type="submit"
@@ -166,16 +166,16 @@ const LoginForm = ({ setPageType, loginSuccess }: Props) => {
           color={'primary.700'}
           fontWeight={'medium'}
         >
-          {feConfigs?.find_password_method && feConfigs.find_password_method.length > 0 && (
-            <Box
-              cursor={'pointer'}
-              _hover={{ textDecoration: 'underline' }}
-              onClick={() => setPageType('forgetPassword')}
-              fontSize="mini"
-            >
-              {t('login:forget_password')}
-            </Box>
-          )}
+          {/*{feConfigs?.find_password_method && feConfigs.find_password_method.length > 0 && (*/}
+          {/*  <Box*/}
+          {/*    cursor={'pointer'}*/}
+          {/*    _hover={{ textDecoration: 'underline' }}*/}
+          {/*    onClick={() => setPageType('forgetPassword')}*/}
+          {/*    fontSize="mini"*/}
+          {/*  >*/}
+          {/*    {t('login:forget_password')}*/}
+          {/*  </Box>*/}
+          {/*)}*/}
           {feConfigs?.register_method && feConfigs.register_method.length > 0 && (
             <Flex alignItems={'center'}>
               <Box mx={3} h={'12px'} w={'1px'} bg={'myGray.250'}></Box>

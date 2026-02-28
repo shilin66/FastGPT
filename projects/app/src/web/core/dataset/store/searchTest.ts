@@ -13,6 +13,7 @@ export type SearchTestStoreItemType = {
   searchMode: `${DatasetSearchModeEnum}`;
   limit: number;
   usingReRank: boolean;
+  reRankModel?: string;
   similarity: number;
   queryExtensionModel?: string;
 };

@@ -12,7 +12,7 @@ import {
   Checkbox,
   VStack
 } from '@chakra-ui/react';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import type { AppFileSelectConfigType } from '@fastgpt/global/core/app/type/config.schema';
 import MyModal from '@fastgpt/web/components/common/MyModal';
@@ -24,8 +24,11 @@ import { useUserStore } from '@/web/support/user/useUserStore';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import MyTag from '@fastgpt/web/components/common/Tag/index';
 import { defaultAppSelectFileConfig } from '@fastgpt/global/core/app/constants';
+import { usePdfParsers } from '@/web/common/system/hooks/usePdfParsers';
+import MySelect from '@fastgpt/web/components/common/MySelect';
 import InputSlider from '@fastgpt/web/components/common/MySlider/InputSlider';
 import { FileTypeSelectorPanel } from '@fastgpt/web/components/core/app/FileTypeSelector';
+import MyDivider from '@fastgpt/web/components/common/MyDivider';
 
 const FileSelect = ({
   forbidVision = false,
@@ -41,11 +44,24 @@ const FileSelect = ({
   const { feConfigs } = useSystemStore();
   const { teamPlanStatus } = useUserStore();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const maxSelectFiles = Math.min(feConfigs?.uploadFileMaxAmount ?? 20, 30);
+  const { data: pdfParsers = [] } = usePdfParsers();
 
-  // 文件数量限制：团队套餐 || 系统配置 || 默认值（这里是指对话中，最多上传多少文件）
-  const maxSelectFiles = Math.min(
-    teamPlanStatus?.standardConstants?.maxUploadFileCount || feConfigs.uploadFileMaxAmount,
-    50
+  // 构建选择器列表
+  const pdfParserOptions = useMemo(
+    () => [
+      {
+        label: t('app:system_default_parser'),
+        value: '',
+        description: t('app:system_default_parser_desc')
+      },
+      ...pdfParsers.map((parser) => ({
+        label: parser.label,
+        value: parser.value,
+        description: parser.desc
+      }))
+    ],
+    [pdfParsers, t]
   );
 
   const [localValue, setLocalValue] = useState(value);
@@ -137,38 +153,55 @@ const FileSelect = ({
             </VStack>
           </VStack>
 
-          {localValue.canSelectFile && feConfigs?.showCustomPdfParse && (
-            <HStack justifyContent={'flex-start'} spacing={1} mt={2}>
-              <Checkbox
-                isChecked={localValue.customPdfParse}
-                onChange={(e) => {
-                  setLocalValue((state) => ({
-                    ...state,
-                    customPdfParse: e.target.checked
-                  }));
-                }}
-              >
-                <FormLabel>{t('app:pdf_enhance_parse')}</FormLabel>
-              </Checkbox>
-              <QuestionTip label={t('app:pdf_enhance_parse_tips')} />
-              {feConfigs?.show_pay && (
-                <MyTag
-                  type={'borderSolid'}
-                  borderColor={'myGray.200'}
-                  bg={'myGray.100'}
-                  color={'primary.600'}
-                  py={1.5}
-                  borderRadius={'md'}
-                  px={3}
-                  whiteSpace={'wrap'}
-                  ml={1}
-                >
-                  {t('app:pdf_enhance_parse_price', {
-                    price: feConfigs.customPdfParsePrice || 0
-                  })}
-                </MyTag>
-              )}
-            </HStack>
+          {localValue.canSelectFile && feConfigs.showCustomPdfParse && (
+            <>
+              <Box mt={2}>
+                <HStack spacing={1} mb={2}>
+                  <FormLabel>{t('app:pdf_enhance_parse')}</FormLabel>
+                  <QuestionTip label={t('app:pdf_enhance_parse_tips')} />
+                </HStack>
+                <MySelect
+                  value={localValue.customPdfParse || ''}
+                  list={pdfParserOptions}
+                  onChange={(e) => {
+                    setLocalValue((state) => ({
+                      ...state,
+                      customPdfParse: e
+                    }));
+                  }}
+                  // onChange={(val) => {
+                  //   const newValue = {
+                  //     ...value,
+                  //     customPdfParse: val
+                  //   };
+                  //   onChange(newValue);
+                  //   // 同时更新本地状态，确保状态同步
+                  //   setLocalValue(newValue);
+                  // }}
+                  size={'sm'}
+                  h={'32px'}
+                />
+                {localValue.customPdfParse && feConfigs?.show_pay && (
+                  <MyTag
+                    type={'borderSolid'}
+                    borderColor={'myGray.200'}
+                    bg={'myGray.100'}
+                    color={'primary.600'}
+                    py={1.5}
+                    borderRadius={'md'}
+                    px={3}
+                    whiteSpace={'wrap'}
+                    mt={2}
+                  >
+                    {t('app:pdf_enhance_parse_price', {
+                      price:
+                        pdfParsers.find((p) => p.value === localValue.customPdfParse)?.price || 0
+                    })}
+                  </MyTag>
+                )}
+              </Box>
+              <MyDivider my={2} />
+            </>
           )}
         </ModalBody>
         <ModalFooter>

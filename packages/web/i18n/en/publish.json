@@ -46,5 +46,11 @@
   "dingtalk.api": "DingTalk API",
   "use_default_domain": "Use Default Domain",
   "ip_whitelist": "IP Whitelist",
-  "custom_domain_management": "Custom Domain Management"
+  "custom_domain_management": "Custom Domain Management",
+  "teams.bot": "Teams Bot",
+  "teams.bot_desc": "Connect to Teams Bot directly via API",
+  "teams.bot.create_modal_title": "Add New Teams Bot",
+  "teams.bot.edit_modal_title": "Edit Teams Bot",
+  "teams.api": "Teams API",
+  "teams.title": "Publish to teams Bot"
 }

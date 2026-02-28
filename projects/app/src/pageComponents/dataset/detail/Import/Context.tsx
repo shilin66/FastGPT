@@ -23,7 +23,7 @@ import { type CollectionChunkFormType } from '../Form/CollectionChunkForm';
 import { useLocalStorageState } from 'ahooks';
 
 export type ImportFormType = {
-  customPdfParse: boolean;
+  customPdfParse: string;
   webSelector: string;
 } & CollectionChunkFormType;
 
@@ -39,7 +39,7 @@ type DatasetImportContextType = {
 };
 
 export const defaultFormData: ImportFormType = {
-  customPdfParse: true,
+  customPdfParse: '',
 
   trainingType: DatasetCollectionDataProcessModeEnum.chunk,
 
@@ -202,7 +202,7 @@ const DatasetImportContextProvider = ({ children }: { children: React.ReactNode 
   const [localCustomPdfParse, setLocalCustomPdfParse] = useLocalStorageState(
     'dataset_customPdfParse',
     {
-      defaultValue: true
+      defaultValue: 'default'
     }
   );
   const processParamsForm = useForm<ImportFormType>({

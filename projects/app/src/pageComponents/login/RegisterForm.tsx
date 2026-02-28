@@ -2,7 +2,7 @@ import React, { type Dispatch } from 'react';
 import { FormControl, Box, Input, Button } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { LoginPageTypeEnum } from '@/web/support/user/login/constants';
-import { postRegister } from '@/web/support/user/api';
+import { postRegister, postSimpleRegister } from '@/web/support/user/api';
 import { useSendCode } from '@/web/support/user/hooks/useSendCode';
 import type { LoginSuccessResponse } from '@/global/support/api/userRes';
 import { useToast } from '@fastgpt/web/hooks/useToast';
@@ -52,16 +52,20 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
   const { runAsync: onclickRegister, loading: requesting } = useRequest(
     async ({ username, password, code }: RegisterType) => {
       loginSuccess(
-        await postRegister({
+        await postSimpleRegister({
           username,
-          code,
-          password,
-          inviterId: getInviterId(),
-          bd_vid: getBdVId(),
-          msclkid: getMsclkid(),
-          fastgpt_sem: getFastGPTSem(),
-          sourceDomain: getSourceDomain()
+          password
         })
+        // await postRegister({
+        //   username,
+        //   code,
+        //   password,
+        //   inviterId: getInviterId(),
+        //   bd_vid: getBdVId(),
+        //   msclkid: getMsclkid(),
+        //   fastgpt_sem: getFastGPTSem(),
+        //   sourceDomain: getSourceDomain()
+        // })
       );
       removeFastGPTSem();
 
@@ -126,25 +130,25 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
             })}
           ></Input>
         </FormControl>
-        <FormControl
-          mt={6}
-          isInvalid={!!errors.code}
-          display={'flex'}
-          alignItems={'center'}
-          position={'relative'}
-        >
-          <Input
-            size={'lg'}
-            bg={'myGray.50'}
-            flex={1}
-            maxLength={8}
-            placeholder={t('user:password.verification_code')}
-            {...register('code', {
-              required: t('user:password.code_required')
-            })}
-          ></Input>
-          <SendCodeBox username={username} />
-        </FormControl>
+        {/*<FormControl*/}
+        {/*  mt={6}*/}
+        {/*  isInvalid={!!errors.code}*/}
+        {/*  display={'flex'}*/}
+        {/*  alignItems={'center'}*/}
+        {/*  position={'relative'}*/}
+        {/*>*/}
+        {/*  <Input*/}
+        {/*    size={'lg'}*/}
+        {/*    bg={'myGray.50'}*/}
+        {/*    flex={1}*/}
+        {/*    maxLength={8}*/}
+        {/*    placeholder={t('user:password.verification_code')}*/}
+        {/*    {...register('code', {*/}
+        {/*      required: t('user:password.code_required')*/}
+        {/*    })}*/}
+        {/*  ></Input>*/}
+        {/*  <SendCodeBox username={username} />*/}
+        {/*</FormControl>*/}
         <FormControl mt={6} isInvalid={!!errors.password}>
           <Input
             bg={'myGray.50'}
@@ -154,9 +158,9 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
             {...register('password', {
               required: true,
               validate: (val) => {
-                if (!checkPasswordRule(val)) {
-                  return t('login:password_tip');
-                }
+                // if (!checkPasswordRule(val)) {
+                //   return t('login:password_tip');
+                // }
                 return true;
               }
             })}

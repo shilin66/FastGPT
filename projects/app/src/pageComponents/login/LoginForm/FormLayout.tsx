@@ -79,6 +79,16 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
             }
           ]
         : []),
+      ...(feConfigs?.oauth?.microsoft
+        ? [
+            {
+              label: t('common:support.user.login.Microsoft'),
+              provider: OAuthEnum.microsoft,
+              icon: 'common/microsoftFill',
+              redirectUrl: `https://login.microsoftonline.com/${feConfigs?.oauth?.microsoft.tenantId}/oauth2/v2.0/authorize?response_type=code&client_id=${feConfigs?.oauth?.microsoft.clientId}&redirect_uri=${redirectUri}&state=${state.current}&scope=user.read&prompt=select_account`
+            }
+          ]
+        : []),
       ...(feConfigs?.oauth?.google
         ? [
             {
@@ -98,19 +108,19 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
               redirectUrl: `https://github.com/login/oauth/authorize?client_id=${feConfigs?.oauth?.github}&redirect_uri=${redirectUri}&state=${state.current}&scope=user:email%20read:user`
             }
           ]
-        : []),
-      ...(feConfigs?.oauth?.microsoft
-        ? [
-            {
-              label:
-                feConfigs?.oauth?.microsoft?.customButton ||
-                t('common:support.user.login.Microsoft'),
-              provider: OAuthEnum.microsoft,
-              icon: 'common/microsoft',
-              redirectUrl: `https://login.microsoftonline.com/${feConfigs?.oauth?.microsoft?.tenantId || 'common'}/oauth2/v2.0/authorize?client_id=${feConfigs?.oauth?.microsoft?.clientId}&response_type=code&redirect_uri=${redirectUri}&response_mode=query&scope=https%3A%2F%2Fgraph.microsoft.com%2Fuser.read&state=${state.current}`
-            }
-          ]
         : [])
+      // ...(feConfigs?.oauth?.microsoft
+      //   ? [
+      //       {
+      //         label:
+      //           feConfigs?.oauth?.microsoft?.customButton ||
+      //           t('common:support.user.login.Microsoft'),
+      //         provider: OAuthEnum.microsoft,
+      //         icon: 'common/microsoft',
+      //         redirectUrl: `https://login.microsoftonline.com/${feConfigs?.oauth?.microsoft?.tenantId || 'common'}/oauth2/v2.0/authorize?client_id=${feConfigs?.oauth?.microsoft?.clientId}&response_type=code&redirect_uri=${redirectUri}&response_mode=query&scope=https%3A%2F%2Fgraph.microsoft.com%2Fuser.read&state=${state.current}`
+      //       }
+      //     ]
+      //   : [])
     ],
     [feConfigs, pageType, redirectUri, t]
   );

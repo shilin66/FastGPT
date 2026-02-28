@@ -33,5 +33,8 @@
     },
     "files.associations": {
         "*.mdx": "markdown"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "vscode.typescript-language-features"
     }
 }

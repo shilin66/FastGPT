@@ -106,9 +106,20 @@ const Navbar = ({ unread }: { unread: number }) => {
               activeLink: ['/config/tool', '/config/tool/marketplace']
             }
           ]
+        : []),
+      ...(userInfo && userInfo.username === 'root'
+        ? [
+            {
+              label: t('common:navbar.System Config'),
+              icon: 'support/system/settingLight',
+              activeIcon: 'support/system/settingFill',
+              link: '/system',
+              activeLink: ['/system']
+            }
+          ]
         : [])
     ],
-    [lastChatAppId, lastPane, t, userInfo?.username]
+    [lastChatAppId, userInfo, lastPane, t]
   );
 
   const isDashboardPage = useMemo(() => {

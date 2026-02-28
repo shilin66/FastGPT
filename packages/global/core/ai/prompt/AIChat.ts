@@ -254,7 +254,7 @@ export const Prompt_QuoteTemplateList: PromptTemplateItem[] = [
   "id": "{{id}}",
   "sourceName": "{{source}}",
   "updateTime": "{{updateTime}}",
-  "content": "{{q}}\n{{a}}"
+  "content": "{{q}}\n{{a}}\n{{imagePreviewUrl}}"
 }
 `
     }
@@ -279,7 +279,7 @@ export const Prompt_QuoteTemplateList: PromptTemplateItem[] = [
   "id": "{{id}}",
   "sourceName": "{{source}}",
   "updateTime": "{{updateTime}}",
-  "content": "{{q}}\n{{a}}"
+  "content": "{{q}}\n{{a}}\n{{imagePreviewUrl}}"
 }
 `
     }

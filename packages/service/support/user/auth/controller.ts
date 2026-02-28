@@ -57,8 +57,13 @@ export const authCode = async ({
       return Promise.reject(new UserError(i18nT('common:error.code_error')));
     }
 
+    // 创建一个单独的函数来处理延迟删除，避免使用已结束的会话
     setTimeout(async () => {
-      await result.deleteOne({ session }).catch();
+      try {
+        await MongoUserAuth.deleteOne({ _id: result._id });
+      } catch (error) {
+        console.error('Failed to delete auth code:', error);
+      }
     }, 60000);
 
     return 'SUCCESS';

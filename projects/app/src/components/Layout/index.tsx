@@ -89,7 +89,7 @@ const Layout = ({ children }: { children: JSX.Element }) => {
 
   // System hook
   const { data, refetch: refetchUnRead } = useQuery(['getUnreadCount'], getUnreadCount, {
-    enabled: !!userInfo && !!feConfigs.isPlus,
+    enabled: false,
     refetchInterval: 30000
   });
   const unread = data?.unReadCount || 0;
@@ -178,9 +178,9 @@ const Layout = ({ children }: { children: JSX.Element }) => {
         <>
           <NotSufficientModal />
           <SystemMsgModal />
-          {showUpdateNotification && (
-            <UpdateContact onClose={() => setIsUpdateNotification(false)} mode="contact" />
-          )}
+          {/*{showUpdateNotification && (*/}
+          {/*  <UpdateContact onClose={() => setIsUpdateNotification(false)} mode="contact" />*/}
+          {/*)}*/}
           {!!userInfo && importantInforms.length > 0 && (
             <ImportantInform informs={importantInforms} refetch={refetchUnRead} />
           )}
@@ -190,7 +190,7 @@ const Layout = ({ children }: { children: JSX.Element }) => {
       )}
 
       <ManualCopyModal />
-      <ActivityAdModal />
+      {/*<ActivityAdModal />*/}
       <Loading loading={loading} zIndex={999999} />
     </>
   );

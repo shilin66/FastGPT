@@ -9,7 +9,11 @@ import type {
   UpdateInviteProps,
   UpdateTeamProps
 } from '@fastgpt/global/support/user/team/controller';
-import type { TeamTagItemType, TeamTagSchema } from '@fastgpt/global/support/user/team/type';
+import type {
+  TeamSchema,
+  TeamTagItemType,
+  TeamTagSchema
+} from '@fastgpt/global/support/user/team/type';
 import type {
   TeamTmbItemType,
   TeamMemberItemType,
@@ -30,15 +34,18 @@ import type { PermissionValueType } from '@fastgpt/global/support/permission/typ
 
 /* --------------- team  ---------------- */
 export const getTeamList = (status: `${TeamMemberSchema['status']}`) =>
-  GET<TeamTmbItemType[]>(`/proApi/support/user/team/list`, { status });
+  GET<TeamTmbItemType[]>(`/support/user/team/list`, { status });
+
+export const getAllTeamList = (props: PaginationProps<{}>) =>
+  POST<PaginationResponse<TeamSchema>>(`/support/user/team/listAll`, props);
+
 export const postCreateTeam = (data: CreateTeamProps) =>
-  POST<string>(`/proApi/support/user/team/create`, data);
+  POST<string>(`/support/user/team/create`, data);
 export const putUpdateTeam = (data: UpdateTeamProps) => PUT(`/support/user/team/update`, data);
 export const putSwitchTeam = (teamId: string) =>
-  PUT<string>(`/proApi/support/user/team/switch`, { teamId });
+  PUT<string>(`/support/user/team/switch`, { teamId });
 export const putTransferTeamOwnership = (userId: string) =>
   PUT(`/proApi/support/user/team/changeOwner`, { userId });
-
 /* --------------- team member ---------------- */
 export const getTeamMembers = (
   props: PaginationProps<{
@@ -49,9 +56,8 @@ export const getTeamMembers = (
     orgId?: string;
     groupId?: string;
   }>
-) => POST<PaginationResponse<TeamMemberItemType>>(`/proApi/support/user/team/member/list`, props);
-export const getTeamMemberCount = () =>
-  GET<{ count: number }>(`/proApi/support/user/team/member/count`);
+) => POST<PaginationResponse<TeamMemberItemType>>(`/support/user/team/member/list`, props);
+export const getTeamMemberCount = () => GET<{ count: number }>(`/support/user/team/member/count`);
 
 // export const postInviteTeamMember = (data: InviteMemberProps) =>
 //   POST<InviteMemberResponse>(`/proApi/support/user/team/member/invite`, data);
@@ -59,49 +65,48 @@ export const putUpdateMemberNameByManager = (tmbId: string, name: string) =>
   PUT(`/proApi/support/user/team/member/updateNameByManager`, { tmbId, name });
 
 export const putUpdateMemberName = (name: string) =>
-  PUT(`/proApi/support/user/team/member/updateName`, { name });
+  PUT(`/support/user/team/member/updateName`, { name });
 export const delRemoveMember = (tmbId: string) =>
-  DELETE(`/proApi/support/user/team/member/delete`, { tmbId });
+  DELETE(`/support/user/team/member/delete`, { tmbId });
 export const updateInviteResult = (data: UpdateInviteProps) =>
-  PUT('/proApi/support/user/team/member/updateInvite', data);
+  PUT('/support/user/team/member/updateInvite', data);
 export const postRestoreMember = (tmbId: string) =>
   POST('/proApi/support/user/team/member/restore', { tmbId });
-export const delLeaveTeam = () => DELETE('/proApi/support/user/team/member/leave');
+export const delLeaveTeam = () => DELETE('/support/user/team/member/leave');
 
 /* -------------- team invitaionlink -------------------- */
 
 export const postCreateInvitationLink = (data: InvitationLinkCreateType) =>
-  POST<string>(`/proApi/support/user/team/invitationLink/create`, data);
+  POST<string>(`/support/user/team/invitationLink/create`, data);
 
 export const getInvitationLinkList = () =>
-  GET<InvitationType[]>(`/proApi/support/user/team/invitationLink/list`);
+  GET<InvitationType[]>(`/support/user/team/invitationLink/list`);
 
 export const postAcceptInvitationLink = (linkId: string) =>
-  POST<string>(`/proApi/support/user/team/invitationLink/accept`, { linkId });
+  POST<string>(`/support/user/team/invitationLink/accept`, { linkId });
 
 export const getInvitationInfo = (linkId: string) =>
-  GET<InvitationInfoType>(`/proApi/support/user/team/invitationLink/info`, { linkId });
+  GET<InvitationInfoType>(`/support/user/team/invitationLink/info`, { linkId });
 export const putForbidInvitationLink = (linkId: string) =>
-  PUT<string>(`/proApi/support/user/team/invitationLink/forbid`, { linkId });
+  PUT<string>(`/support/user/team/invitationLink/forbid`, { linkId });
 
 /* -------------- team collaborator -------------------- */
-export const getTeamClbs = () =>
-  GET<CollaboratorListType>(`/proApi/support/user/team/collaborator/list`);
+export const getTeamClbs = () => GET<CollaboratorListType>(`/support/user/team/collaborator/list`);
 export const updateMemberPermission = (data: UpdateClbPermissionProps) =>
-  POST('/proApi/support/user/team/collaborator/update', data);
+  POST('/support/user/team/collaborator/update', data);
 export const updateOneMemberPermission = (data: {
   tmbId?: string;
   orgId?: string;
   groupId?: string;
   permission: PermissionValueType;
-}) => PUT('/proApi/support/user/team/collaborator/updateOne', data);
+}) => PUT('/support/user/team/collaborator/updateOne', data);
 export const deleteMemberPermission = (id: DeletePermissionQuery) =>
-  DELETE('/proApi/support/user/team/collaborator/delete', id);
+  DELETE('/support/user/team/collaborator/delete', id);
 
 /* --------------- team tags ---------------- */
-export const getTeamsTags = () => GET<TeamTagSchema[]>(`/proApi/support/user/team/tag/list`);
+export const getTeamsTags = () => GET<TeamTagSchema[]>(`/support/user/team/tag/list`);
 export const loadTeamTagsByDomain = (domain: string) =>
-  GET<TeamTagItemType[]>(`/proApi/support/user/team/tag/async`, { domain });
+  GET<TeamTagItemType[]>(`/support/user/team/tag/async`, { domain });
 
 /* team limit */
 export const checkTeamExportDatasetLimit = (datasetId: string) =>

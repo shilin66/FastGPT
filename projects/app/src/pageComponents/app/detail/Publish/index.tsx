@@ -14,6 +14,8 @@ import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import { UserTagsEnum } from '@fastgpt/global/support/user/type';
 
+import ChromeExtension from '@/pages/app/detail/components/Publish/ChromeExtension';
+import Teams from '@/pageComponents/app/detail/Publish/Teams';
 const Link = dynamic(() => import('./Link'));
 const API = dynamic(() => import('./API'));
 const FeiShu = dynamic(() => import('./FeiShu'));
@@ -92,6 +94,20 @@ const OutLink = () => {
         ]
       : []),
     {
+      icon: 'common/teamsFill',
+      title: t('publish:teams.bot'),
+      desc: t('publish:teams.bot_desc'),
+      value: PublishChannelEnum.teams,
+      isProFn: true
+    },
+    {
+      icon: 'support/outlink/chromeExtension',
+      title: 'Chrome 插件',
+      desc: '集成到浏览器中,在任意页面使用Chatbot',
+      value: PublishChannelEnum.chromeExtension,
+      isProFn: false
+    },
+    {
       icon: 'core/chat/sidebar/home',
       title: t('common:navbar.Chat'),
       desc: t('app:publish.chat_desc'),
@@ -146,6 +162,8 @@ const OutLink = () => {
         {linkType === PublishChannelEnum.wecom && <Wecom appId={appId} />}
         {linkType === PublishChannelEnum.officialAccount && <OffiAccount appId={appId} />}
         {linkType === PublishChannelEnum.playground && <Playground appId={appId} />}
+        {linkType === PublishChannelEnum.teams && <Teams appId={appId} />}
+        {linkType === PublishChannelEnum.chromeExtension && <ChromeExtension />}
       </Flex>
     </Box>
   );

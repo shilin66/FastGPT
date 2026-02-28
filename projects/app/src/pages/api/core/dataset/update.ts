@@ -39,6 +39,7 @@ import { getEmbeddingModel, getLLMModel } from '@fastgpt/service/core/ai/model';
 import { computedCollectionChunkSettings } from '@fastgpt/global/core/dataset/training/utils';
 import { getResourceOwnedClbs } from '@fastgpt/service/support/permission/controller';
 import { getS3AvatarSource } from '@fastgpt/service/common/s3/sources/avatar';
+import { mergeApiDatasetServerForUpdate } from '@fastgpt/global/core/dataset/apiDataset/utils';
 
 export type DatasetUpdateQuery = {};
 export type DatasetUpdateResponse = any;
@@ -70,6 +71,7 @@ async function handler(
     externalReadUrl,
     apiDatasetServer,
     autoSync,
+    status,
     chunkSettings
   } = req.body;
 
@@ -175,6 +177,10 @@ async function handler(
 
     const apiDatasetParams = (() => {
       if (!apiDatasetServer) return {};
+      const mergedApiDatasetServer = mergeApiDatasetServerForUpdate(
+        apiDatasetServer,
+        dataset.apiDatasetServer
+      );
 
       const flattenObjectWithConditions = (
         obj: any,
@@ -199,7 +205,7 @@ async function handler(
 
         return result;
       };
-      return flattenObjectWithConditions(apiDatasetServer);
+      return flattenObjectWithConditions(mergedApiDatasetServer);
     })();
 
     await MongoDataset.findByIdAndUpdate(
@@ -215,6 +221,7 @@ async function handler(
         ...(intro !== undefined && { intro }),
         ...(externalReadUrl !== undefined && { externalReadUrl }),
         ...(isMove && { inheritPermission: true }),
+        ...(status !== undefined && { status }),
         ...(typeof autoSync === 'boolean' && { autoSync }),
         ...apiDatasetParams
       },
@@ -279,7 +286,8 @@ const updateTraining = async ({
     {
       teamId,
       datasetId,
-      mode: { $in: [TrainingModeEnum.qa, TrainingModeEnum.auto] }
+      mode: { $in: [TrainingModeEnum.qa] }
+      // mode: { $in: [TrainingModeEnum.qa, TrainingModeEnum.auto] }
     },
     {
       $set: {

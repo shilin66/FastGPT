@@ -13,7 +13,9 @@ import { type SyncChildrenPermissionResourceType } from './inheritPermission';
 import { pickCollaboratorIdFields } from './utils';
 import type {
   CollaboratorItemDetailType,
-  CollaboratorItemType
+  UpdateClbPermissionProps,
+  CollaboratorItemType,
+  CollaboratorListType
 } from '@fastgpt/global/support/permission/collaborator';
 import { MongoTeamMember } from '../../support/user/team/teamMemberSchema';
 import { MongoOrgModel } from './org/orgSchema';
@@ -81,7 +83,7 @@ export const getTmbPermission = async ({
           'permission'
         ).lean()
       )
-      .then((perList) => perList.map((item) => item.permission)),
+      .then((perList) => perList.map((item: any) => item.permission)),
     getOrgIdSetWithParentByTmbId({ tmbId, teamId })
       .then((item) => Array.from(item))
       .then((orgIds) =>
@@ -97,7 +99,7 @@ export const getTmbPermission = async ({
           'permission'
         ).lean()
       )
-      .then((perList) => perList.map((item) => item.permission))
+      .then((perList) => perList.map((item: any) => item.permission))
   ]);
 
   return sumPer(...groupPers, ...orgPers);
@@ -202,8 +204,8 @@ export const createResourceDefaultCollaborators = async ({
 
   const collaborators: CollaboratorItemType[] = [
     ...parentClbs
-      .filter((item) => item.tmbId !== tmbId)
-      .map((clb) => {
+      .filter((item: any) => item.tmbId !== tmbId)
+      .map((clb: any) => {
         if (clb.permission === OwnerRoleVal) {
           clb.permission = ManageRoleVal;
         }
@@ -238,3 +240,163 @@ export const createResourceDefaultCollaborators = async ({
 
   await MongoResourcePermission.bulkWrite(ops, { session });
 };
+export async function updateCollaborators(
+  updateClbPermissionProps: UpdateClbPermissionProps,
+  resourceType: PerResourceTypeEnum,
+  resourceId: string,
+  teamId: string
+) {
+  const { collaborators } = updateClbPermissionProps;
+
+  // 构建查询条件以获取当前资源的所有协作者权限
+  const filter: any = {
+    resourceType,
+    resourceId,
+    teamId
+  };
+
+  // 获取当前已存在的所有协作者权限记录
+  const existingPermissions = await MongoResourcePermission.find(filter);
+
+  if (collaborators && collaborators.length > 0) {
+    // 使用 Promise.all 并行处理所有更新操作
+    await Promise.all(
+      collaborators.map(async (clb) => {
+        // 根据不同的ID类型构建查询条件
+        const filter: any = {
+          resourceType,
+          resourceId,
+          teamId
+        };
+
+        // 添加对应的ID字段到查询条件
+        if (clb.tmbId) {
+          filter.tmbId = clb.tmbId;
+        } else if (clb.groupId) {
+          filter.groupId = clb.groupId;
+        } else if (clb.orgId) {
+          filter.orgId = clb.orgId;
+        }
+
+        // 执行更新操作
+        return MongoResourcePermission.updateOne(
+          filter,
+          {
+            $set: { permission: clb.permission }
+          },
+          { upsert: true }
+        );
+      })
+    );
+
+    // 计算需要删除的权限记录
+    const currentCollaboratorIds = collaborators
+      .map((clb) => {
+        if (clb.tmbId) return { tmbId: clb.tmbId };
+        if (clb.groupId) return { groupId: clb.groupId };
+        if (clb.orgId) return { orgId: clb.orgId };
+        return null;
+      })
+      .filter(Boolean) as Array<{ tmbId?: string; groupId?: string; orgId?: string }>;
+
+    // 筛选出需要删除的权限记录（即在现有记录中但不在新协作者列表中的记录）
+    const idsToDelete = existingPermissions.filter((existing) => {
+      return !currentCollaboratorIds.some((current) => {
+        return (
+          (current.tmbId && existing.tmbId?.toString() === current.tmbId) ||
+          (current.groupId && existing.groupId?.toString() === current.groupId) ||
+          (current.orgId && existing.orgId?.toString() === current.orgId)
+        );
+      });
+    });
+
+    // 删除不再需要的权限记录
+    if (idsToDelete.length > 0) {
+      const deleteFilters = idsToDelete.map((permission) => {
+        const deleteFilter: any = {
+          resourceType,
+          resourceId,
+          teamId
+        };
+
+        if (permission.tmbId) {
+          deleteFilter.tmbId = permission.tmbId;
+        } else if (permission.groupId) {
+          deleteFilter.groupId = permission.groupId;
+        } else if (permission.orgId) {
+          deleteFilter.orgId = permission.orgId;
+        }
+
+        return deleteFilter;
+      });
+
+      // 使用 $or 操作符一次性删除所有不需要的权限记录
+      await MongoResourcePermission.deleteMany({
+        $or: deleteFilters
+      });
+    }
+  } else {
+    // 如果没有传入任何协作者，则删除所有相关权限记录，但不删除创建者的权限（Owner权限）
+    await MongoResourcePermission.deleteMany({
+      ...filter,
+      permission: { $ne: OwnerRoleVal } // 排除Owner权限的记录
+    });
+  }
+}
+
+export async function listCollaborator(
+  teamId: string,
+  resourceType: PerResourceTypeEnum,
+  resourceId: string,
+  resourceOwnerTmbId: string,
+  parentId?: string,
+  parentOwnerTmbId?: string
+): Promise<CollaboratorListType> {
+  const resourceClbs = await getResourceOwnedClbs({
+    resourceId,
+    resourceType,
+    teamId
+  });
+  const resourceClbsDetailInfo = await getClbsInfo({
+    clbs: resourceClbs,
+    teamId,
+    ownerTmbId: resourceOwnerTmbId
+  });
+  if (parentId) {
+    const parentClbs = await getResourceOwnedClbs({
+      resourceId: parentId,
+      resourceType,
+      teamId
+    });
+    const parentClbsDetailInfo = await getClbsInfo({
+      clbs: parentClbs,
+      teamId,
+      ownerTmbId: parentOwnerTmbId
+    });
+    return {
+      clbs: resourceClbsDetailInfo,
+      parentClbs: parentClbsDetailInfo
+    };
+  } else {
+    return {
+      clbs: resourceClbsDetailInfo,
+      parentClbs: []
+    };
+  }
+}
+
+export async function deleteCollaborators(
+  resourceType: PerResourceTypeEnum,
+  resourceId: string,
+  teamId: string,
+  tmbId: string,
+  groupId: string
+) {
+  await MongoResourcePermission.deleteOne({
+    resourceType: resourceType,
+    resourceId: resourceId,
+    tmbId,
+    groupId,
+    teamId: teamId
+  });
+}

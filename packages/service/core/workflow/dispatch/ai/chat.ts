@@ -146,6 +146,9 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       model: modelConstantsData,
       maxToken
     });
+    if (modelConstantsData.model.toLowerCase().startsWith('qwen3') && !aiChatReasoning) {
+      systemPrompt = `enable_thinking=false\n${systemPrompt}`;
+    }
 
     const [{ filterMessages }] = await Promise.all([
       getChatMessages({
@@ -318,6 +321,7 @@ async function filterDatasetQuote({
       id: item.id,
       q: item.q,
       a: item.a || '',
+      imagePreviewUrl: `![${item.summary}](${item.imagePreivewUrl})`,
       updateTime: formatTime2YMDHM(item.updateTime),
       source: item.sourceName,
       sourceId: String(item.sourceId || ''),
@@ -355,7 +359,7 @@ async function getMultiInput({
   stringQuoteText?: string; // file quote
   requestOrigin?: string;
   maxFiles: number;
-  customPdfParse?: boolean;
+  customPdfParse?: string;
   usageId?: string;
   runningUserInfo: ChatDispatchProps['runningUserInfo'];
 }) {
@@ -399,12 +403,12 @@ async function getMultiInput({
     customPdfParse,
     usageId
   });
-
+  const userFiles = await Promise.all(fileLinks.map(async (url) => parseUrlToFileType(url))).then(
+    (files) => files.filter(Boolean) as UserChatItemFileItemType[]
+  );
   return {
     documentQuoteText: text,
-    userFiles: fileLinks
-      .map((url) => parseUrlToFileType(url))
-      .filter(Boolean) as UserChatItemFileItemType[]
+    userFiles
   };
 }
 
