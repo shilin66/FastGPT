@@ -79,12 +79,12 @@ const ToolProvider = () => {
           menuList={[
             {
               children: [
-                {
-                  label: t('app:toolkit_open_marketplace'),
-                  onClick: () => {
-                    router.push('/config/tool/marketplace');
-                  }
-                },
+                // {
+                //   label: t('app:toolkit_open_marketplace'),
+                //   onClick: () => {
+                //     router.push('/config/tool/marketplace');
+                //   }
+                // },
                 {
                   label: t('app:toolkit_import_resource'),
                   onClick: () => {

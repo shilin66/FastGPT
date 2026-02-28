@@ -1,0 +1,5 @@
+{
+	"apiUrl": "http://98.98.76.227:8000/perplexica/api",
+	"wsUrl": "ws://98.98.76.227:8000/perplexica",
+	"basePath": "pSearch"
+}

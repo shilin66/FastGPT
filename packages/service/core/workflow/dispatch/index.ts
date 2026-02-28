@@ -1178,6 +1178,7 @@ const getSystemVariables = async ({
   histories = [],
   uid,
   chatConfig,
+  runningUserInfo,
   variables
 }: Props & {
   timezone: string;
@@ -1218,6 +1219,7 @@ const getSystemVariables = async ({
     ...variablesMap,
     // System var:
     userId: uid,
+    memberName: runningUserInfo?.memberName || '',
     appId: String(runningAppInfo.id),
     chatId,
     responseChatItemId,

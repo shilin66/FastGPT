@@ -23,7 +23,7 @@ export type PostPreviewFilesChunksProps = ChunkSettingsType & {
   type: DatasetSourceReadTypeEnum;
   sourceId: string;
 
-  customPdfParse?: boolean;
+  customPdfParse?: string;
 
   // Chunk settings
   overlapRatio: number;
@@ -46,7 +46,7 @@ async function handler(
   let {
     type,
     sourceId,
-    customPdfParse = false,
+    customPdfParse,
 
     overlapRatio,
     selector,

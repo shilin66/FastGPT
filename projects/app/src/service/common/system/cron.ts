@@ -1,13 +1,19 @@
 import { setCron } from '@fastgpt/service/common/system/cron';
 import { startTrainingQueue } from '@/service/core/dataset/training/utils';
 import { clearTmpUploadFiles } from '@fastgpt/service/common/file/utils';
-import { checkInvalidDatasetData, checkInvalidVector } from './cronTask';
+import {
+  checkInvalidDatasetData,
+  checkInvalidVector,
+  checkExpiredInvitationLink
+} from './cronTask';
 import { checkTimerLock } from '@fastgpt/service/common/system/timerLock/utils';
 import { TimerIdEnum } from '@fastgpt/service/common/system/timerLock/constants';
 import { addHours } from 'date-fns';
 import { getScheduleTriggerApp } from '@/service/core/app/utils';
 import { cronRefreshModels } from '@fastgpt/service/core/ai/config/utils';
 import { clearExpiredS3FilesCron } from '@fastgpt/service/common/s3/controller';
+import { localCacheManager } from '@fastgpt/service/support/globalCache/cache';
+import { checkCacheLicense } from '@fastgpt/service/common/license/verify';
 
 // Try to run train every minute
 const setTrainingQueueCron = () => {
@@ -63,11 +69,52 @@ const scheduleTriggerAppCron = () => {
   getScheduleTriggerApp();
 };
 
+const scheduleClearInvitationLinkCron = () => {
+  setCron('0 0 * * *', async () => {
+    if (
+      await checkTimerLock({
+        timerId: TimerIdEnum.clearInvalidInvitationLink,
+        lockMinuted: 59
+      })
+    ) {
+      // clear expired invitation link
+      checkExpiredInvitationLink();
+    }
+  });
+};
+
+const clearGlobalCacheCron = () => {
+  setCron('0 */1 * * *', async () => {
+    // setCron('*/10 * * * * *', async () => {
+    // clear global cache
+    console.log(
+      `>>>>>>>>>>>>>>>>>>>> start clear global cache, size: ${localCacheManager.getSize()}`
+    );
+    localCacheManager.startCleanup();
+    console.log(
+      `<<<<<<<<<<<<<<<<<<<< end clear global cache, size: ${localCacheManager.getSize()}`
+    );
+  });
+};
+
+const checkCacheLicenseCron = () => {
+  const cron = global.feConfigs.checkLicenseCron || '0 0 0 * * *';
+  setCron(cron, async () => {
+    // check license
+    console.log('>>>>>>>>>>>>>>>>>>>> start check license');
+    await checkCacheLicense();
+    console.log('<<<<<<<<<<<<<<<<<<<< end check license');
+  });
+};
+
 export const startCron = () => {
   setTrainingQueueCron();
   setClearTmpUploadFilesCron();
   clearInvalidDataCron();
+  clearGlobalCacheCron();
+  checkCacheLicenseCron();
   scheduleTriggerAppCron();
   cronRefreshModels();
   clearExpiredS3FilesCron();
+  scheduleClearInvitationLinkCron();
 };

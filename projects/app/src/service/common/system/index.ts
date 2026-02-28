@@ -2,7 +2,10 @@ import { initHttpAgent } from '@fastgpt/service/common/middle/httpAgent';
 import fs, { existsSync } from 'fs';
 import type { FastGPTFeConfigsType } from '@fastgpt/global/common/system/types/index';
 import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types/index';
-import { getFastGPTConfigFromDB } from '@fastgpt/service/common/system/config/controller';
+import {
+  getFastGPTConfigFromDB,
+  initFastGPTConfigToDB
+} from '@fastgpt/service/common/system/config/controller';
 import { isProduction } from '@fastgpt/global/common/system/constants';
 import { initFastGPTConfig } from '@fastgpt/service/common/system/tools';
 import json5 from 'json5';
@@ -22,6 +25,8 @@ import type {
 } from '@fastgpt/global/support/wallet/usage/api';
 import { getSystemToolTags } from '@fastgpt/service/core/app/tool/api';
 import { isProVersion } from '@fastgpt/service/common/system/constants';
+import { MongoSystemMsg } from '@fastgpt/service/support/user/inform/schema';
+import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 
 const logger = getLogger(LogCategories.SYSTEM);
@@ -141,6 +146,10 @@ export async function initSystemConfig() {
   global.licenseData = licenseData;
 
   const fileRes = json5.parse(fileConfig) as FastGPTConfigFileType;
+  // 如果dbConfig不存在，用fileRes创建dbconfig
+  if (!fastgptConfig || Object.keys(fastgptConfig).length === 0) {
+    await initFastGPTConfigToDB(fileRes);
+  }
 
   // get config from database
   const config: FastGPTConfigFileType = {
@@ -148,7 +157,7 @@ export async function initSystemConfig() {
       ...fileRes?.feConfigs,
       ...defaultFeConfigs,
       ...(fastgptConfig.feConfigs || {}),
-      isPlus: !!licenseData,
+      // isPlus: !!licenseData,
       hideChatCopyrightSetting: process.env.HIDE_CHAT_COPYRIGHT_SETTING === 'true',
       show_aiproxy: !!process.env.AIPROXY_API_ENDPOINT,
       show_coupon: process.env.SHOW_COUPON === 'true',
@@ -166,7 +175,11 @@ export async function initSystemConfig() {
 
   // set config
   initFastGPTConfig(config);
-
+  // init system msg
+  const count = await MongoSystemMsg.countDocuments();
+  if (count === 0) {
+    await MongoSystemMsg.insertMany([{ content: '# Welcome To AI🎉', id: getNanoid() }]);
+  }
   logger.info('System config loaded', {
     fastgpt: {
       feConfigs: global.feConfigs,

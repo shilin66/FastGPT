@@ -9,8 +9,8 @@ import {
 } from 'react';
 import { useTranslation } from 'next-i18next';
 import { createContext, useContextSelector } from 'use-context-selector';
-import { DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
-import { useRequest } from '@fastgpt/web/hooks/useRequest';
+import { DatasetStatusEnum, DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
+import { useRequest, useRequest2 } from '@fastgpt/web/hooks/useRequest';
 import { useDisclosure } from '@chakra-ui/react';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { checkTeamWebSyncLimit } from '@/web/support/user/team/api';
@@ -184,13 +184,13 @@ const CollectionPageContextProvider = ({ children }: { children: ReactNode }) =>
   return (
     <CollectionPageContext.Provider value={contextValue}>
       {children}
+      <ConfirmDatasetSyncModal />
       {datasetDetail.type === DatasetTypeEnum.websiteDataset && isOpenWebsiteModal && (
         <WebSiteConfigModal
           onClose={onCloseWebsiteModal}
           onSuccess={onUpdateDatasetWebsiteConfig}
         />
       )}
-      <ConfirmDatasetSyncModal />
     </CollectionPageContext.Provider>
   );
 };

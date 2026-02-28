@@ -20,6 +20,7 @@ export const mongoSessionRun = async <T = unknown>(fn: (session: ClientSession) 
 
       return result as T;
     } catch (error) {
+      logger.error('mongo sessionRun error', { error });
       if (!session.transaction.isCommitted) {
         await session.abortTransaction();
         logger.warn('MongoDB session transaction aborted', { error });

@@ -101,14 +101,14 @@ const CollaboratorContextProvider = ({
   const { t } = useTranslation();
   const onUpdateCollaboratorsThen = async (props: UpdateClbPermissionProps) => {
     await onUpdateCollaborators(props);
-    refetchCollaboratorList();
+    await refetchCollaboratorList();
   };
   const onDelOneCollaboratorThen = async (
     props: RequireOnlyOne<{ tmbId: string; groupId: string; orgId: string }>
   ) => {
     if (onDelOneCollaborator) {
       await onDelOneCollaborator(props);
-      refetchCollaboratorList();
+      await refetchCollaboratorList();
     }
   };
 

@@ -1,10 +1,30 @@
 import { getLogger, LogCategories } from '../logger';
+import type { Cluster } from 'ioredis';
 import Redis from 'ioredis';
+import type { RedisOptions } from 'ioredis/built/redis/RedisOptions';
 
 const logger = getLogger(LogCategories.INFRA.REDIS);
 
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
+// 类型定义
+type RedisConnection = Redis | Cluster;
+type RedisMode = 'single' | 'cluster' | 'sentinel';
 
+// 全局类型声明
+declare global {
+  var redisClient: RedisConnection | null;
+}
+const DEFAULT_CONFIG = {
+  REDIS_URL: 'redis://localhost:6379',
+  CLUSTER_NODES: 'localhost:6379',
+  SENTINEL_NODES: 'localhost:26379',
+  DB: 0,
+  CONNECT_TIMEOUT: 10000,
+  COMMAND_TIMEOUT: 10000,
+  MAX_RETRIES: 3,
+  RETRY_DELAY_FAILOVER: 100,
+  RETRY_DELAY_CLUSTER_DOWN: 300
+};
+const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 // Base Redis options for connection reliability
 const REDIS_BASE_OPTION = {
   // Retry strategy: exponential backoff with unlimited retries for stability
@@ -60,7 +80,8 @@ export const newWorkerRedisConnection = () => {
 };
 
 export const FASTGPT_REDIS_PREFIX = 'fastgpt:';
-export const getGlobalRedisConnection = () => {
+
+export const getGlobalRedisConnection = (): RedisConnection => {
   if (global.redisClient) return global.redisClient;
 
   global.redisClient = new Redis(REDIS_URL, {

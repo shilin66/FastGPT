@@ -35,6 +35,7 @@ import type { RerankModelItemType } from '@fastgpt/global/core/ai/model.schema';
 import { formatDatasetDataValue } from '../data/controller';
 import { pushTrack } from '../../../common/middle/tracks/utils';
 import { replaceS3KeyToPreviewUrl } from '../../../core/dataset/utils';
+import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 import { addDays, addHours } from 'date-fns';
 import { getLogger, LogCategories } from '../../../common/logger';
 
@@ -208,19 +209,19 @@ export async function searchDatasetData(
   const countRecallLimit = () => {
     if (searchMode === DatasetSearchModeEnum.embedding) {
       return {
-        embeddingLimit: 100,
+        embeddingLimit: 500,
         fullTextLimit: 0
       };
     }
     if (searchMode === DatasetSearchModeEnum.fullTextRecall) {
       return {
         embeddingLimit: 0,
-        fullTextLimit: 100
+        fullTextLimit: 500
       };
     }
     return {
-      embeddingLimit: 80,
-      fullTextLimit: 60
+      embeddingLimit: 500,
+      fullTextLimit: 500
     };
   };
   const getForbidData = async () => {
@@ -568,13 +569,17 @@ export async function searchDatasetData(
               });
               return;
             }
-
+            const summaryIndex = data.indexes.find(
+              (item) => item.type === DatasetDataIndexTypeEnum.summary
+            );
+            const summary = summaryIndex ? summaryIndex.text : '';
             const result: SearchDataResponseItemType = {
               id: String(data._id),
               updateTime: data.updateTime,
               ...formatDatasetDataValue({
                 q: data.q,
                 a: data.a,
+                summary,
                 imageId: data.imageId,
                 imageDescMap: data.imageDescMap
               }),
@@ -742,7 +747,10 @@ export async function searchDatasetData(
             });
             return;
           }
-
+          const summaryIndex = data.indexes.find(
+            (item) => item.type === DatasetDataIndexTypeEnum.summary
+          );
+          const summary = summaryIndex ? summaryIndex.text : '';
           return {
             id: String(data._id),
             datasetId: String(data.datasetId),
@@ -751,6 +759,7 @@ export async function searchDatasetData(
             ...formatDatasetDataValue({
               q: data.q,
               a: data.a,
+              summary,
               imageId: data.imageId,
               imageDescMap: data.imageDescMap
             }),

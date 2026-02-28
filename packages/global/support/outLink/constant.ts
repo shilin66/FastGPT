@@ -6,5 +6,7 @@ export enum PublishChannelEnum {
   dingtalk = 'dingtalk',
   wecom = 'wecom',
   officialAccount = 'official_account',
+  chromeExtension = 'chromeExtension',
+  teams = 'teams',
   playground = 'playground'
 }

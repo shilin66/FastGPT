@@ -8,6 +8,8 @@ import { MongoDatasetCollection } from '@fastgpt/service/core/dataset/collection
 import { MongoDatasetDataText } from '@fastgpt/service/core/dataset/data/dataTextSchema';
 import { MongoDatasetData } from '@fastgpt/service/core/dataset/data/schema';
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
+import { addDays } from 'date-fns';
+import { MongoInvitationLink } from '@fastgpt/service/support/user/team/invitationLink/schema';
 const logger = getLogger(LogCategories.MODULE.DATASET.QUEUES);
 
 /*
@@ -147,5 +149,22 @@ export async function checkInvalidVector(start: Date, end: Date) {
   logger.info('Finished cleaning invalid vector records', {
     deletedVectorAmount,
     totalVectors: rows.length
+  });
+}
+
+export async function checkExpiredInvitationLink() {
+  await MongoInvitationLink.updateMany(
+    {
+      expires: { $lte: new Date() },
+      forbidden: false
+    },
+    {
+      $set: {
+        forbidden: true
+      }
+    }
+  );
+  await MongoInvitationLink.deleteMany({
+    expires: { $lte: addDays(new Date(), -30) }
   });
 }

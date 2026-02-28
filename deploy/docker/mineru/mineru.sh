@@ -1,0 +1,1 @@
+MINERU_MODEL_SOURCE=local CUDA_VISIBLE_DEVICES=5 MINERU_VLM_BACKEND=hybrid-auto-engine nohup python baba.py &> pdf.log &

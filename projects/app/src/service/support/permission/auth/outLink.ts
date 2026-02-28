@@ -12,12 +12,14 @@ import { OutLinkErrEnum } from '@fastgpt/global/common/error/code/outLink';
 import { type OutLinkSchema } from '@fastgpt/global/support/outLink/type';
 
 export function authOutLinkInit(data: AuthOutLinkInitProps): Promise<AuthOutLinkResponse> {
-  if (!global.feConfigs?.isPlus) return Promise.resolve({ uid: data.outLinkUid });
-  return POST<AuthOutLinkResponse>('/support/outLink/authInit', data);
+  return Promise.resolve({ uid: data.outLinkUid });
+  // if (!global.feConfigs?.isPlus) return Promise.resolve({ uid: data.outLinkUid });
+  // return POST<AuthOutLinkResponse>('/support/outLink/authInit', data);
 }
 export function authOutLinkChatLimit(data: AuthOutLinkLimitProps): Promise<AuthOutLinkResponse> {
-  if (!global.feConfigs?.isPlus) return Promise.resolve({ uid: data.outLinkUid });
-  return POST<AuthOutLinkResponse>('/support/outLink/authChatStart', data);
+  return Promise.resolve({ uid: data.outLinkUid });
+  // if (!global.feConfigs?.isPlus) return Promise.resolve({ uid: data.outLinkUid });
+  // return POST<AuthOutLinkResponse>('/support/outLink/authChatStart', data);
 }
 
 export const authOutLink = async ({
@@ -59,6 +61,7 @@ export async function authOutLinkChatStart({
   const { uid } = await authOutLinkChatLimit({ outLink: outLinkConfig, ip, outLinkUid, question });
 
   return {
+    outLinkType: outLinkConfig.type,
     sourceName: outLinkConfig.name,
     teamId: outLinkConfig.teamId,
     tmbId: outLinkConfig.tmbId,

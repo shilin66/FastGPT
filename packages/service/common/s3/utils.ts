@@ -269,8 +269,8 @@ export const getFileS3Key = {
     };
   },
 
-  rawText: ({ hash, customPdfParse }: { hash: string; customPdfParse?: boolean }) => {
-    return [S3Sources.rawText, `${hash}${customPdfParse ? '-true' : ''}`].join('/');
+  rawText: ({ hash, customPdfParse }: { hash: string; customPdfParse?: string }) => {
+    return [S3Sources.rawText, `${hash}${customPdfParse ? customPdfParse : ''}`].join('/');
   }
 };
 

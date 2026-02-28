@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=4 nohup python3 main.py  &> nohup_output.log &

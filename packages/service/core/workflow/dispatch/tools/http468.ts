@@ -29,6 +29,8 @@ import { formatHttpError } from '../utils';
 import { isInternalAddress } from '../../../../common/system/utils';
 import { serviceRequestMaxContentLength } from '../../../../common/system/constants';
 import { axios } from '../../../../common/api/axios';
+import qs from 'qs';
+import * as https from 'node:https';
 
 const logger = getLogger(LogCategories.MODULE.WORKFLOW.TOOLS);
 
@@ -56,7 +58,7 @@ type HttpResponse = DispatchNodeResultType<
     [key: string]: any;
   },
   {
-    [NodeOutputKeyEnum.error]?: string;
+    [NodeOutputKeyEnum.error]?: object;
   }
 >;
 
@@ -255,6 +257,7 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
         [NodeOutputKeyEnum.httpRawResponse]: rawResponse,
         ...results
       },
+      error: undefined,
       [DispatchNodeResponseKeyEnum.nodeResponse]: {
         totalPoints: 0,
         params: Object.keys(params).length > 0 ? params : undefined,
@@ -272,8 +275,9 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
     if (node.catchError === undefined) {
       return {
         data: {
-          [NodeOutputKeyEnum.error]: getErrText(error)
+          [NodeOutputKeyEnum.error]: formatHttpError(error)
         },
+        error: undefined,
         [DispatchNodeResponseKeyEnum.nodeResponse]: {
           params: Object.keys(params).length > 0 ? params : undefined,
           body: Object.keys(formattedRequestBody).length > 0 ? formattedRequestBody : undefined,
@@ -284,8 +288,11 @@ export const dispatchHttp468Request = async (props: HttpRequestProps): Promise<H
     }
 
     return {
+      data: {
+        [NodeOutputKeyEnum.httpRawResponse]: formatHttpError(error)
+      },
       error: {
-        [NodeOutputKeyEnum.error]: getErrText(error)
+        [NodeOutputKeyEnum.error]: formatHttpError(error)
       },
       [DispatchNodeResponseKeyEnum.nodeResponse]: {
         params: Object.keys(params).length > 0 ? params : undefined,
@@ -499,6 +506,13 @@ async function fetchData({
     return Promise.reject('Url is invalid');
   }
 
+  const rawFlag = headers['x_ignore_ssl_err'];
+  const ignoreSSL = rawFlag === true || rawFlag === 'true';
+  if (ignoreSSL) {
+    delete headers['x_ignore_ssl_err'];
+  }
+  const httpsAgent = ignoreSSL ? new https.Agent({ rejectUnauthorized: false }) : undefined;
+
   const { data: response } = await axios({
     method,
     maxContentLength: serviceRequestMaxContentLength,
@@ -509,7 +523,9 @@ async function fetchData({
     },
     timeout: timeout * 1000,
     params: params,
-    data: ['POST', 'PUT', 'PATCH'].includes(method) ? body : undefined
+    paramsSerializer: (params) => qs.stringify(params, { encode: true }),
+    data: ['POST', 'PUT', 'PATCH'].includes(method) ? body : undefined,
+    ...(ignoreSSL ? { httpsAgent } : {})
   });
 
   return {

@@ -42,6 +42,7 @@ export const iconPaths = {
   'common/data': () => import('./icons/common/data.svg'),
   'common/detail': () => import('./icons/common/detail.svg'),
   'common/dingtalkFill': () => import('./icons/common/dingtalkFill.svg'),
+  'common/teamsFill': () => import('./icons/common/teamsFill.svg'),
   'common/disable': () => import('./icons/common/disable.svg'),
   'common/downArrowFill': () => import('./icons/common/downArrowFill.svg'),
   'common/download': () => import('./icons/common/download.svg'),
@@ -63,6 +64,7 @@ export const iconPaths = {
   'common/gitLight': () => import('./icons/common/gitLight.svg'),
   'common/globalLine': () => import('./icons/common/globalLine.svg'),
   'common/googleFill': () => import('./icons/common/googleFill.svg'),
+  'common/microsoftFill': () => import('./icons/common/microsoftFill.svg'),
   'common/help': () => import('./icons/common/help.svg'),
   'common/importLight': () => import('./icons/common/importLight.svg'),
   'common/info': () => import('./icons/common/info.svg'),
@@ -244,6 +246,9 @@ export const iconPaths = {
   'core/dataset/datasetLight': () => import('./icons/core/dataset/datasetLight.svg'),
   'core/dataset/datasetLightSmall': () => import('./icons/core/dataset/datasetLightSmall.svg'),
   'core/dataset/externalDataset': () => import('./icons/core/dataset/externalDataset.svg'),
+  'core/dataset/confluenceDatasetColor': () => import('./icons/core/dataset/confluenceDataset.svg'),
+  'core/dataset/confluenceDatasetOutline': () =>
+    import('./icons/core/dataset/confluenceDatasetOutline.svg'),
   'core/dataset/externalDatasetColor': () =>
     import('./icons/core/dataset/externalDatasetColor.svg'),
   'core/dataset/externalDatasetOutline': () =>
@@ -355,6 +360,7 @@ export const iconPaths = {
     import('./icons/core/workflow/template/datasource.svg'),
   'core/workflow/template/duckduckgo': () =>
     import('./icons/core/workflow/template/duckduckgo.svg'),
+  'core/workflow/template/firecrawl': () => import('./icons/core/workflow/template/firecrawl.svg'),
   'core/workflow/template/extractJson': () =>
     import('./icons/core/workflow/template/extractJson.svg'),
   'core/workflow/template/extractJsonLinear': () =>
@@ -555,6 +561,7 @@ export const iconPaths = {
   'support/outlink/iframeLight': () => import('./icons/support/outlink/iframeLight.svg'),
   'support/outlink/share': () => import('./icons/support/outlink/share.svg'),
   'support/outlink/shareLight': () => import('./icons/support/outlink/shareLight.svg'),
+  'support/outlink/chromeExtension': () => import('./icons/support/outlink/chromeExtension.svg'),
   'support/permission/collaborator': () => import('./icons/support/permission/collaborator.svg'),
   'support/permission/privateLight': () => import('./icons/support/permission/privateLight.svg'),
   'support/permission/publicLight': () => import('./icons/support/permission/publicLight.svg'),
@@ -567,6 +574,12 @@ export const iconPaths = {
   'support/user/userLightSmall': () => import('./icons/support/user/userLightSmall.svg'),
   'support/user/usersFill': () => import('./icons/support/user/usersFill.svg'),
   'support/user/usersLight': () => import('./icons/support/user/usersLight.svg'),
+  'support/system/settingFill': () => import('./icons/support/system/settingFill.svg'),
+  'support/system/settingLight': () => import('./icons/support/system/settingLight.svg'),
+  'support/search/searchFill': () => import('./icons/support/search/searchFill.svg'),
+  'support/search/searchLight': () => import('./icons/support/search/searchLight.svg'),
+  'support/license/licenseConfigLight': () =>
+    import('./icons/support/license/licenseConfigLight.svg'),
   text: () => import('./icons/text.svg'),
   union: () => import('./icons/union.svg'),
   upload: () => import('./icons/upload.svg'),

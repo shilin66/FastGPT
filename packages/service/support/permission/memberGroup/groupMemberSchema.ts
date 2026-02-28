@@ -27,6 +27,13 @@ export const GroupMemberSchema = new Schema({
   }
 });
 
+GroupMemberSchema.virtual('tmb', {
+  ref: TeamMemberCollectionName,
+  localField: 'tmbId',
+  foreignField: '_id',
+  justOne: true
+});
+
 GroupMemberSchema.virtual('group', {
   ref: MemberGroupCollectionName,
   localField: 'groupId',

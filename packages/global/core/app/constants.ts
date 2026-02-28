@@ -67,7 +67,8 @@ export const defaultAppSelectFileConfig: AppFileSelectConfigType = {
   canSelectVideo: false,
   canSelectAudio: false,
   canSelectCustomFileExtension: false,
-  customFileExtensionList: []
+  customFileExtensionList: [],
+  customPdfParse: ''
 };
 
 export enum AppTemplateTypeEnum {
@@ -83,7 +84,7 @@ export enum AppTemplateTypeEnum {
 }
 
 export const defaultFileExtensionTypes = {
-  canSelectFile: ['.pdf', '.docx', '.pptx', '.xlsx', '.txt', '.md', '.html', '.csv'],
+  canSelectFile: ['.pdf', '.docx', '.pptx', '.xls', '.xlsx', '.txt', '.md', '.html', '.csv'],
   canSelectImg: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'],
   canSelectVideo: ['.mp4', '.mov', '.avi', '.mpeg', '.webm'],
   canSelectAudio: ['.mp3', '.wav', '.ogg', '.m4a', '.amr', '.mpga'],

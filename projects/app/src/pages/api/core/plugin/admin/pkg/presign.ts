@@ -6,6 +6,11 @@ import type {
   GetPkgPluginUploadURLQueryType,
   GetPkgPluginUploadURLResponseType
 } from '@fastgpt/global/openapi/core/plugin/admin/api';
+import {
+  convertToProxyUrl,
+  isS3ProxyEnabled,
+  parseMinioUrlInfo
+} from '@fastgpt/service/common/s3/proxy';
 
 export type GetUploadURLQuery = GetPkgPluginUploadURLQueryType;
 
@@ -23,7 +28,30 @@ async function handler(
     return Promise.reject('Filename is required');
   }
 
-  return await pluginClient.getToolUploadUrl(filename);
+  const result = await pluginClient.tool.upload.getUploadURL({
+    query: {
+      filename
+    }
+  });
+
+  if (result.status !== 200) {
+    return Promise.reject(result.body);
+  }
+  if (isS3ProxyEnabled()) {
+    const minioUrl = result.body.postURL;
+    const objectName = result.body.objectName;
+
+    const { bucketName, metadata } = parseMinioUrlInfo(minioUrl);
+    const proxyUrl = convertToProxyUrl({
+      minioUrl: result.body.postURL,
+      key: objectName,
+      bucket: bucketName,
+      action: 'upload',
+      metadata
+    });
+    result.body.postURL = proxyUrl.url;
+  }
+  return result.body;
 }
 
 export default NextAPI(handler);

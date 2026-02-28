@@ -93,6 +93,7 @@ export type DatasetSchemaType = {
   apiServer?: APIFileServer;
   feishuServer?: FeishuServer;
   yuqueServer?: YuqueServer;
+  status?: `${DatasetStatusEnum}`;
 };
 
 export type DatasetCollectionSchemaType = ChunkSettingsType & {
@@ -130,7 +131,7 @@ export type DatasetCollectionSchemaType = ChunkSettingsType & {
   };
 
   // Parse settings
-  customPdfParse?: boolean;
+  customPdfParse?: string;
   trainingType: DatasetCollectionDataProcessModeEnum;
 };
 
@@ -268,6 +269,7 @@ export type DatasetDataItemType = DatasetDataFieldType & {
   id: string;
   teamId: string;
   datasetId: string;
+  summary?: string;
   imagePreivewUrl?: string;
   updateTime: Date;
   collectionId: string;

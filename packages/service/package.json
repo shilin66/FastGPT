@@ -19,6 +19,7 @@
     "@opentelemetry/semantic-conventions": "^1.39.0",
     "@opentelemetry/winston-transport": "^0.14.0",
     "@t3-oss/env-core": "0.13.10",
+    "@types/qs": "^6.9.17",
     "@vercel/otel": "^1.13.0",
     "@xmldom/xmldom": "^0.8.10",
     "@zilliz/milvus2-sdk-node": "2.4.10",
@@ -68,6 +69,7 @@
     "turndown": "^7.1.2",
     "undici": "^7.18.2",
     "winston": "^3.17.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.1.12"
   },
   "devDependencies": {

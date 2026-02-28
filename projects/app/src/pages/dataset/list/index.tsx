@@ -158,12 +158,12 @@ const Dataset = () => {
                           description: t('dataset:common_dataset_desc'),
                           onClick: () => onSelectDatasetType(DatasetTypeEnum.dataset)
                         },
-                        {
-                          icon: 'core/dataset/websiteDatasetColor',
-                          label: t('dataset:website_dataset'),
-                          description: t('dataset:website_dataset_desc'),
-                          onClick: () => onSelectDatasetType(DatasetTypeEnum.websiteDataset)
-                        },
+                        // {
+                        //   icon: 'core/dataset/websiteDatasetColor',
+                        //   label: t('dataset:website_dataset'),
+                        //   description: t('dataset:website_dataset_desc'),
+                        //   onClick: () => onSelectDatasetType(DatasetTypeEnum.websiteDataset)
+                        // },
                         {
                           icon: 'core/dataset/otherDataset',
                           label: t('dataset:other_dataset'),
@@ -194,6 +194,17 @@ const Dataset = () => {
                                         label: t('dataset:yuque_dataset'),
                                         description: t('dataset:yuque_dataset_desc'),
                                         onClick: () => onSelectDatasetType(DatasetTypeEnum.yuque)
+                                      }
+                                    ]
+                                  : []),
+                                ...(feConfigs?.show_dataset_confluence !== false
+                                  ? [
+                                      {
+                                        icon: 'core/dataset/confluenceDatasetColor',
+                                        label: t('dataset:confluence_dataset'),
+                                        description: t('dataset:confluence_dataset_desc'),
+                                        onClick: () =>
+                                          onSelectDatasetType(DatasetTypeEnum.confluence)
                                       }
                                     ]
                                   : [])

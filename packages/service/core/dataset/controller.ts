@@ -11,6 +11,7 @@ import { DatasetErrEnum } from '@fastgpt/global/common/error/code/dataset';
 import { retryFn } from '@fastgpt/global/common/system/utils';
 import { UserError } from '@fastgpt/global/common/error/utils';
 import { getS3DatasetSource } from '../../common/s3/sources/dataset';
+import { MongoDatasetCollectionTags } from './tag/schema';
 
 /* ============= dataset ========== */
 /* find all datasetId by top datasetId */
@@ -114,6 +115,12 @@ export async function delDatasetRelevantData({
   await delCollectionRelatedSource({ collections });
   // Delete vector data
   await deleteDatasetDataVector({ teamId, datasetIds });
+
+  // delete tags
+  await MongoDatasetCollectionTags.deleteMany({
+    teamId,
+    datasetId: { $in: datasetIds }
+  });
 
   // delete collections
   await MongoDatasetCollection.deleteMany({

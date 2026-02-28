@@ -51,4 +51,4 @@ export const getAppBasicInfoByIds = (ids: string[]) =>
 export const resumeInheritPer = (appId: string) =>
   GET(`/core/app/resumeInheritPermission`, { appId });
 
-export const changeOwner = (data: AppChangeOwnerBody) => POST(`/proApi/core/app/changeOwner`, data);
+export const changeOwner = (data: AppChangeOwnerBody) => POST(`/core/app/changeOwner`, data);

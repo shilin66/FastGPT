@@ -10,5 +10,6 @@ export type UsageFilterParams = {
   usageSources: UsageSourceEnum[];
   isSelectAllSource: boolean;
   projectName: string;
+  teamSearchKey: string;
   unit: UnitType;
 };

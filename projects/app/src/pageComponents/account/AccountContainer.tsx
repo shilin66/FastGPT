@@ -17,6 +17,7 @@ export enum TabEnum {
   'bill' = 'bill',
   'inform' = 'inform',
   'setting' = 'setting',
+  'licenseConfig' = 'licenseConfig',
   'thirdParty' = 'thirdParty',
   'individuation' = 'individuation',
   'apikey' = 'apikey',
@@ -64,34 +65,43 @@ const AccountContainer = ({
           }
         ]
       : []),
-    ...(feConfigs?.show_pay && userInfo?.team?.permission.hasManagePer
-      ? [
-          {
-            icon: 'support/bill/payRecordLight',
-            label: t('account:bills_and_invoices'),
-            value: TabEnum.bill
-          }
-        ]
-      : []),
-    {
-      icon: 'common/thirdParty',
-      label: t('account:third_party'),
-      value: TabEnum.thirdParty
-    },
-    ...(feConfigs.isPlus && feConfigs.customDomain?.enable
-      ? [
-          {
-            icon: 'common/globalLine',
-            label: t('account:custom_domain'),
-            value: TabEnum.customDomain
-          }
-        ]
-      : []),
+    // ...(feConfigs?.show_pay && userInfo?.team?.permission.hasManagePer
+    //   ? [
+    //       {
+    //         icon: 'support/bill/payRecordLight',
+    //         label: t('account:bills_and_invoices'),
+    //         value: TabEnum.bill
+    //       }
+    //     ]
+    //   : []),
+    // {
+    //   icon: 'common/thirdParty',
+    //   label: t('account:third_party'),
+    //   value: TabEnum.thirdParty
+    // },
+    // ...(feConfigs.isPlus && feConfigs.customDomain?.enable
+    //   ? [
+    //       {
+    //         icon: 'common/globalLine',
+    //         label: t('account:custom_domain'),
+    //         value: TabEnum.customDomain
+    //       }
+    //     ]
+    //   : []),
     {
       icon: 'common/model',
       label: t('account:model_provider'),
       value: TabEnum.model
     },
+    ...(userInfo?.username === 'root'
+      ? [
+          {
+            icon: 'support/license/licenseConfigLight',
+            label: t('account:license_config'),
+            value: TabEnum.licenseConfig
+          }
+        ]
+      : []),
     ...(feConfigs?.show_promotion && userInfo?.team?.permission.isOwner
       ? [
           {
@@ -111,15 +121,15 @@ const AccountContainer = ({
         ]
       : []),
 
-    ...(feConfigs.isPlus
-      ? [
-          {
-            icon: 'support/user/informLight',
-            label: t('account:notifications'),
-            value: TabEnum.inform
-          }
-        ]
-      : []),
+    // ...(feConfigs.isPlus
+    //   ? [
+    //       {
+    //         icon: 'support/user/informLight',
+    //         label: t('account:notifications'),
+    //         value: TabEnum.inform
+    //       }
+    //     ]
+    //   : []),
     {
       icon: 'support/usage/usageRecordLight',
       label: t('account:language'),

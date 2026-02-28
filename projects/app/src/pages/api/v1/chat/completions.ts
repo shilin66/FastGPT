@@ -63,6 +63,7 @@ import { rewriteNodeOutputByHistories } from '@fastgpt/global/core/workflow/runt
 import { getWorkflowResponseWrite } from '@fastgpt/service/core/workflow/dispatch/utils';
 import { WORKFLOW_MAX_RUN_TIMES } from '@fastgpt/service/core/workflow/constants';
 import { getWorkflowToolInputsFromStoreNodes } from '@fastgpt/global/core/app/tool/workflowTool/utils';
+import type { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
 import { UserError } from '@fastgpt/global/common/error/utils';
 import { getLocale } from '@fastgpt/service/common/middle/i18n';
 import { formatTime2YMDHM } from '@fastgpt/global/common/string/time';
@@ -100,6 +101,7 @@ type AuthResponseType = {
   responseAllData: boolean;
   outLinkUserId?: string;
   sourceName?: string;
+  outLinkType?: string;
 };
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -162,6 +164,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       showCite,
       authType,
       sourceName,
+      outLinkType,
       apikey,
       responseAllData,
       outLinkUserId = customUid,
@@ -330,8 +333,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // save chat
     const source = (() => {
-      if (shareId) {
-        return ChatSourceEnum.share;
+      if (outLinkType) {
+        if (outLinkType === ChatSourceEnum.share) {
+          return ChatSourceEnum.share;
+        }
+        if (outLinkType === ChatSourceEnum.teams) {
+          return ChatSourceEnum.teams;
+        }
       }
       if (authType === 'apikey') {
         return ChatSourceEnum.api;
@@ -547,8 +555,17 @@ const authShareChat = async ({
   shareId: string;
   chatId?: string;
 }): Promise<AuthResponseType> => {
-  const { teamId, tmbId, appId, authType, showCite, showRunningStatus, uid, sourceName } =
-    await authOutLinkChatStart(data);
+  const {
+    teamId,
+    tmbId,
+    appId,
+    authType,
+    showCite,
+    showRunningStatus,
+    uid,
+    sourceName,
+    outLinkType
+  } = await authOutLinkChatStart(data);
   const app = await MongoApp.findById(appId).lean();
 
   if (!app) {
@@ -563,6 +580,7 @@ const authShareChat = async ({
 
   return {
     sourceName,
+    outLinkType,
     teamId,
     tmbId,
     app,

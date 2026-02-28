@@ -36,10 +36,10 @@ const SystemMsgModal = ({}: {}) => {
 
   const onclickRead = useCallback(() => {
     if (!data) return;
-    setSysMsgReadId(data.id);
+    setSysMsgReadId(data.id || '');
 
     webPushTrack.readSystemAnnouncement({
-      announcementId: data.id
+      announcementId: data.id || ''
     });
 
     onClose();

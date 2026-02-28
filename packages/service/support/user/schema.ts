@@ -23,10 +23,12 @@ const UserSchema = new Schema({
   },
   password: {
     type: String,
-    required: true,
     set: (val: string) => hashStr(val),
     get: (val: string) => hashStr(val),
     select: false
+  },
+  loginType: {
+    type: String
   },
   passwordUpdateTime: Date,
   createTime: {

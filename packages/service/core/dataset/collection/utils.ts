@@ -3,7 +3,8 @@ import type { ClientSession } from '../../../common/mongo';
 import { MongoDatasetCollectionTags } from '../tag/schema';
 import { readFromSecondary } from '../../../common/mongo/utils';
 import type { CollectionWithDatasetType } from '@fastgpt/global/core/dataset/type';
-import { DatasetCollectionSchemaType } from '@fastgpt/global/core/dataset/type';
+import type { DatasetCollectionSchemaType } from '@fastgpt/global/core/dataset/type';
+import { type DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import {
   DatasetCollectionDataProcessModeEnum,
   DatasetCollectionSyncResultEnum,
@@ -12,11 +13,22 @@ import {
   TrainingModeEnum
 } from '@fastgpt/global/core/dataset/constants';
 import { DatasetErrEnum } from '@fastgpt/global/common/error/code/dataset';
-import { readDatasetSourceRawText } from '../read';
+import { rawText2Chunks, readDatasetSourceRawText } from '../read';
 import { hashStr } from '@fastgpt/global/common/string/tools';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
+import type { CreateOneCollectionParams } from './controller';
 import { createCollectionAndInsertData, delCollection } from './controller';
 import { collectionCanSync } from '@fastgpt/global/core/dataset/collection/utils';
+import type { PushDatasetDataResponse } from '@fastgpt/global/core/dataset/api';
+import { pushDataListToTrainingQueue } from '../training/controller';
+import { createTrainingUsage } from '../../../support/wallet/usage/controller';
+import { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
+import { getEmbeddingModel, getLLMModel, getVlmModel } from '../../ai/model';
+import {
+  computedCollectionChunkSettings,
+  getLLMMaxChunkSize
+} from '@fastgpt/global/core/dataset/training/utils';
+import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 
 /**
  * get all collection by top collectionId
@@ -65,7 +77,6 @@ export function getCollectionUpdateTime({ name, time }: { time?: Date; name: str
   if (name.startsWith('手动') || ['manual', 'mark'].includes(name)) return new Date('2999/9/9');
   return new Date();
 }
-
 export const createOrGetCollectionTags = async ({
   tags,
   datasetId,

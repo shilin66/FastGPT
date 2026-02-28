@@ -8,11 +8,11 @@ export const getFastGPTConfigFromDB = async (): Promise<{
   fastgptConfig: FastGPTConfigFileType;
   licenseData?: LicenseDataType;
 }> => {
-  if (!FastGPTProUrl) {
-    return {
-      fastgptConfig: {} as FastGPTConfigFileType
-    };
-  }
+  // if (!FastGPTProUrl) {
+  //   return {
+  //     fastgptConfig: {} as FastGPTConfigFileType
+  //   };
+  // }
 
   const [fastgptConfig, licenseConfig] = await Promise.all([
     MongoSystemConfigs.findOne({
@@ -28,7 +28,7 @@ export const getFastGPTConfigFromDB = async (): Promise<{
   ]);
 
   const config = fastgptConfig?.value || {};
-  const licenseData = licenseConfig?.value?.data as LicenseDataType | undefined;
+  const licenseData = licenseConfig?.value as LicenseDataType | undefined;
 
   const fastgptConfigTime = fastgptConfig?.createTime.getTime().toString();
   const licenseConfigTime = licenseConfig?.createTime.getTime().toString();
@@ -66,4 +66,11 @@ export const reloadFastGPTConfigBuffer = async () => {
   });
   if (!res) return;
   global.systemInitBufferId = res.createTime.getTime().toString();
+};
+
+export const initFastGPTConfigToDB = async (config: FastGPTConfigFileType) => {
+  await MongoSystemConfigs.create({
+    type: SystemConfigsTypeEnum.fastgpt,
+    value: config
+  });
 };

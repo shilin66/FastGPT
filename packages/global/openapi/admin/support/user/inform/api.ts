@@ -32,7 +32,7 @@ export type UpdateActivityAdBodyType = z.infer<typeof UpdateActivityAdBodySchema
 // Response schemas
 export const SystemMsgModalResponseSchema = z
   .object({
-    id: z.string().meta({ description: '弹窗ID' }),
+    id: z.string().optional().meta({ description: '弹窗ID' }),
     content: z.string().meta({ description: '弹窗内容' })
   })
   .optional();

@@ -402,7 +402,10 @@ const HomeChatWindow = () => {
   return (
     <Flex h={'100%'} flexDirection={['column', 'row']}>
       {/* set window title and icon */}
-      <NextHead title={chatSettings?.homeTabTitle} icon={getWebReqUrl(feConfigs?.favicon)} />
+      <NextHead
+        title={chatSettings?.homeTabTitle || feConfigs?.systemTitle}
+        icon={getWebReqUrl(feConfigs?.favicon)}
+      />
 
       {/* show history slider */}
       {isPc ? (

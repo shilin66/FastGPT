@@ -1,5 +1,18 @@
-import type { ChunkSettingsType, DatasetDataIndexItemType, DatasetSchemaType } from './type';
-import type { DatasetCollectionTypeEnum, DatasetCollectionDataProcessModeEnum } from './constants';
+import type {
+  ChunkSettingsType,
+  DatasetDataIndexItemType,
+  DatasetDataFieldType,
+  DatasetSchemaType
+} from './type';
+import type {
+  DatasetCollectionTypeEnum,
+  DatasetCollectionDataProcessModeEnum,
+  ChunkSettingModeEnum,
+  DataChunkSplitModeEnum,
+  ChunkTriggerConfigTypeEnum,
+  ParagraphChunkAIModeEnum,
+  DatasetStatusEnum
+} from './constants';
 import type { ParentIdType } from '../../common/parentFolder/type';
 import type { APIFileItemType } from './apiDataset/type';
 
@@ -24,6 +37,7 @@ export type DatasetUpdateBody = {
 
   // sync schedule
   autoSync?: boolean;
+  status?: DatasetStatusEnum;
 };
 
 /* ================= collection ===================== */
@@ -32,7 +46,7 @@ type DatasetCollectionStoreDataType = ChunkSettingsType & {
   parentId?: string;
   metadata?: Record<string, any>;
 
-  customPdfParse?: boolean;
+  customPdfParse?: string;
 };
 
 // create collection params
@@ -52,7 +66,6 @@ export type CreateDatasetCollectionParams = DatasetCollectionStoreDataType & {
   hashRawText?: string;
 
   tags?: string[];
-
   createTime?: Date;
   updateTime?: Date;
 };

@@ -29,6 +29,7 @@ import {
   DEFAULT_LOGO_BANNER_COLLAPSED_URL
 } from '@/pageComponents/chat/constants';
 import { useChatStore } from '@/web/core/chat/context/useChatStore';
+import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { usePathname } from 'next/navigation';
 import type { ChatSettingType } from '@fastgpt/global/core/chat/setting/type';
 
@@ -55,6 +56,7 @@ const ChatHeader = ({
 }) => {
   const { t } = useTranslation();
   const { isPc } = useSystem();
+  const { feConfigs } = useSystemStore();
   const { source } = useChatStore();
 
   const chatData = useContextSelector(ChatItemContext, (v) => v.chatBoxData);
@@ -87,7 +89,7 @@ const ChatHeader = ({
           appId={chatData.appId}
           name={
             pane === ChatSidebarPaneEnum.HOME && !isShare
-              ? chatSettings?.homeTabTitle || 'FastGPT'
+              ? chatSettings?.homeTabTitle || feConfigs?.systemTitle || 'FastGPT'
               : chatData.app.name
           }
           avatar={

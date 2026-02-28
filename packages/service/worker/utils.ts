@@ -11,13 +11,17 @@ export enum WorkerNameEnum {
 }
 
 export const getSafeEnv = () => {
-  return {
+  const env: Record<string, string> = {
     MAX_HTML_TRANSFORM_CHARS: process.env.MAX_HTML_TRANSFORM_CHARS,
     NODE_ENV: process.env.NODE_ENV,
     HTTP_PROXY: process.env.HTTP_PROXY,
     HTTPS_PROXY: process.env.HTTPS_PROXY,
     NO_PROXY: process.env.NO_PROXY
   };
+  if (process.env.HTTP_PROXY) env.HTTP_PROXY = process.env.HTTP_PROXY;
+  if (process.env.HTTPS_PROXY) env.HTTPS_PROXY = process.env.HTTPS_PROXY;
+  if (process.env.NO_PROXY) env.NO_PROXY = process.env.NO_PROXY;
+  return env;
 };
 
 export const getWorker = (name: `${WorkerNameEnum}`) => {

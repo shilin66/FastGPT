@@ -4,9 +4,12 @@ import {
   ChunkTriggerConfigTypeEnum,
   DataChunkSplitModeEnum,
   DatasetCollectionDataProcessModeEnum,
+  DatasetStatusEnum,
+  DatasetStatusMap,
   DatasetTypeEnum,
   DatasetTypeMap,
-  ParagraphChunkAIModeEnum
+  ParagraphChunkAIModeEnum,
+  TrainingModeEnum
 } from '@fastgpt/global/core/dataset/constants';
 import {
   TeamCollectionName,
@@ -139,6 +142,11 @@ const DatasetSchema = new Schema({
   },
 
   // abandoned
+  status: {
+    type: String,
+    enum: Object.keys(DatasetStatusMap),
+    default: DatasetStatusEnum.active
+  },
   autoSync: Boolean,
   externalReadUrl: String,
   defaultPermission: Number,

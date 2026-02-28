@@ -41,7 +41,6 @@ export type FastGPTConfigFileType = {
 
 export type FastGPTFeConfigsType = {
   show_workorder?: boolean;
-  show_emptyChat?: boolean;
   isPlus?: boolean;
   hideChatCopyrightSetting?: boolean;
   register_method?: ['email' | 'phone' | 'sync'];
@@ -52,6 +51,7 @@ export type FastGPTFeConfigsType = {
   mcpServerProxyEndpoint?: string;
   chineseRedirectUrl?: string;
   botIframeUrl?: string;
+  confluenceUrl?: string;
 
   show_appStore?: boolean;
   show_git?: boolean;
@@ -67,6 +67,7 @@ export type FastGPTFeConfigsType = {
 
   show_dataset_feishu?: boolean;
   show_dataset_yuque?: boolean;
+  show_dataset_confluence?: boolean;
   show_publish_feishu?: boolean;
   show_publish_dingtalk?: boolean;
   show_publish_wecom?: boolean;
@@ -87,6 +88,7 @@ export type FastGPTFeConfigsType = {
   scripts?: { [key: string]: string }[];
   favicon?: string;
 
+  userDefaultTeam?: string;
   sso?: {
     icon?: string;
     title?: string;
@@ -94,23 +96,18 @@ export type FastGPTFeConfigsType = {
     autoLogin?: boolean;
   };
   oauth?: {
-    github?: string;
+    github?: GithubType;
     google?: string;
     wechat?: string;
-    microsoft?: {
-      clientId?: string;
-      tenantId?: string;
-      customButton?: string;
-    };
-    wecom?: boolean;
+    microsoft?: MicrosoftType;
   };
   limit?: {
     exportDatasetLimitMinutes?: number;
     websiteSyncLimitMinuted?: number;
   };
-
-  uploadFileMaxAmount: number;
-  uploadFileMaxSize: number; // MB
+  perplexica_url?: string;
+  uploadFileMaxAmount?: number;
+  uploadFileMaxSize?: number;
   evalFileMaxLines?: number;
 
   // Compute by systemEnv.customPdfParse
@@ -138,6 +135,12 @@ export type FastGPTFeConfigsType = {
   };
 
   ip_whitelist?: string;
+
+  autoIndexPrompt?: string;
+  imageIndexPrompt?: string;
+  imageParsePrompt?: string;
+  markdownIframeSandbox?: string;
+  checkLicenseCron?: string;
 };
 
 export type SystemEnvType = {
@@ -154,8 +157,14 @@ export type SystemEnvType = {
 
   oneapiUrl?: string;
   chatApiKey?: string;
+  difySandBoxUrl?: string;
+  difySandBoxApiKey?: string;
+  sandBoxType?: {
+    ['js']: SandBoxTypeEnum.fastgpt;
+    ['python3']: SandBoxTypeEnum.dify;
+  };
 
-  customPdfParse?: customPdfParseType;
+  customPdfParse?: SystemEnvCustomPdfParseType;
   fileUrlWhitelist?: string[];
   customDomain?: customDomainType;
 };
@@ -184,15 +193,23 @@ export type customDomainType = {
 };
 
 export type customPdfParseType = {
+  name: string;
+  desc: string;
   url?: string;
   key?: string;
   doc2xKey?: string;
   textinAppId?: string;
   textinSecretCode?: string;
   price?: number;
+  extension?: string;
 };
 
+export type SystemEnvCustomPdfParseType = customPdfParseType[];
+
 export type LicenseDataType = {
+  licenseServer: string;
+  licenseKey: string;
+  clientId: string;
   startTime: string;
   expiredTime: string;
   company: string;
@@ -209,3 +226,8 @@ export type LicenseDataType = {
     batchEval: boolean;
   };
 };
+
+export enum SandBoxTypeEnum {
+  dify = 'dify',
+  fastgpt = 'fastgpt'
+}

@@ -42,6 +42,9 @@ declare global {
       MAX_LOGIN_SESSION?: string;
       CHAT_MAX_QPM?: string;
 
+      // S3 Proxy
+      S3_PROXY_ENABLED?: string;
+
       CHAT_LOG_URL?: string;
       CHAT_LOG_INTERVAL?: string;
       CHAT_LOG_SOURCE_ID_PREFIX?: string;

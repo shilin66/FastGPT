@@ -15,6 +15,7 @@ export type UserMetaType = {
 export type UserModelSchema = {
   _id: string;
   username: string;
+  loginType: string;
   password: string;
   promotionRate: number;
   inviterId?: string;
@@ -38,6 +39,7 @@ export type UserType = {
   username: string;
   avatar: string; // it should be team member's avatar after 4.8.18
   timezone: string;
+  loginType: string;
   language?: `${LangEnum}`;
   promotionRate: UserModelSchema['promotionRate'];
   team: TeamTmbItemType;

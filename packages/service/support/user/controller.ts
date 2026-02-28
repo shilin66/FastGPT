@@ -2,6 +2,9 @@ import { type UserType } from '@fastgpt/global/support/user/type';
 import { MongoUser } from './schema';
 import { getTmbInfoByTmbId, getUserDefaultTeam } from './team/controller';
 import { ERROR_ENUM } from '@fastgpt/global/common/error/errorCode';
+import { MongoTeam } from './team/teamSchema';
+import { MongoTeamMember } from './team/teamMemberSchema';
+import { TeamMemberStatusEnum } from '@fastgpt/global/support/user/team/constant';
 
 export async function authUserExist({ userId, username }: { userId?: string; username?: string }) {
   if (userId) {
@@ -43,6 +46,7 @@ export async function getUserDetail({
     username: user.username,
     avatar: tmb.avatar,
     timezone: user.timezone,
+    loginType: user.loginType,
     promotionRate: user.promotionRate,
     team: tmb,
     permission: tmb.permission,
@@ -50,4 +54,39 @@ export async function getUserDetail({
     language: user.language,
     tags: user.tags
   };
+}
+
+export async function createUserWithDefaultTeamAndPermission(
+  username: string,
+  loginType: string
+): Promise<string> {
+  const userDefaultTeam = feConfigs.userDefaultTeam;
+  const defaultTeam = await MongoTeam.findOne({ name: userDefaultTeam });
+
+  if (!defaultTeam) {
+    throw new Error('默认团队不存在');
+  }
+
+  const [{ _id: userId }] = await MongoUser.create([{ username, loginType }]);
+
+  const [{ _id: tmbId }] = await MongoTeamMember.create([
+    {
+      teamId: defaultTeam._id,
+      userId,
+      name: username,
+      status: TeamMemberStatusEnum.active,
+      createTime: new Date(),
+      defaultTeam: true
+    }
+  ]);
+
+  // await MongoResourcePermission.create([
+  //   {
+  //     resourceType: PerResourceTypeEnum.team,
+  //     tmbId,
+  //     teamId: defaultTeam._id,
+  //     permission: PermissionList['read'].value
+  //   }
+  // ]);
+  return userId;
 }

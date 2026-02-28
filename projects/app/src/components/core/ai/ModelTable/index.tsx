@@ -276,21 +276,21 @@ const ModelTable = ({ permissionConfig = false }: { permissionConfig?: boolean }
             <Tr color={'myGray.600'}>
               <Th fontSize={'xs'}>
                 <HStack>
-                  {permissionConfig && userInfo?.team.permission.hasManagePer && (
-                    <Checkbox
-                      mr={1}
-                      isChecked={isSelecteAll}
-                      onChange={selectAllTrigger}
-                    ></Checkbox>
-                  )}
+                  {/*{permissionConfig && userInfo?.team.permission.hasManagePer && (*/}
+                  {/*  <Checkbox*/}
+                  {/*    mr={1}*/}
+                  {/*    isChecked={isSelecteAll}*/}
+                  {/*    onChange={selectAllTrigger}*/}
+                  {/*  ></Checkbox>*/}
+                  {/*)}*/}
                   <Box>{t('common:model.name')}</Box>
                 </HStack>
               </Th>
               <Th fontSize={'xs'}>{t('common:model.model_type')}</Th>
               <Th fontSize={'xs'}>{t('common:model.billing')}</Th>
-              {permissionConfig && userInfo?.team.permission.hasManagePer && (
-                <Th fontSize={'xs'}>{t('common:permission.Permission config')}</Th>
-              )}
+              {/*{permissionConfig && userInfo?.team.permission.hasManagePer && (*/}
+              {/*  <Th fontSize={'xs'}>{t('common:permission.Permission config')}</Th>*/}
+              {/*)}*/}
             </Tr>
           </Thead>
           <Tbody>
@@ -298,13 +298,13 @@ const ModelTable = ({ permissionConfig = false }: { permissionConfig?: boolean }
               <Tr key={index} _hover={{ bg: 'myGray.50' }}>
                 <Td fontSize={'sm'}>
                   <HStack>
-                    {permissionConfig && userInfo?.team.permission.hasManagePer && (
-                      <Checkbox
-                        mr={1}
-                        isChecked={isSelected(item)}
-                        onChange={(e) => toggleSelect(item)}
-                      ></Checkbox>
-                    )}
+                    {/*{permissionConfig && userInfo?.team.permission.hasManagePer && (*/}
+                    {/*  <Checkbox*/}
+                    {/*    mr={1}*/}
+                    {/*    isChecked={isSelected(item)}*/}
+                    {/*    onChange={(e) => toggleSelect(item)}*/}
+                    {/*  ></Checkbox>*/}
+                    {/*)}*/}
                     <Avatar src={item.avatar} w={'1.2rem'} />
                     <CopyBox value={item.name} color={'myGray.900'}>
                       {item.name}
@@ -315,68 +315,68 @@ const ModelTable = ({ permissionConfig = false }: { permissionConfig?: boolean }
                   <MyTag colorSchema={item.tagColor as any}>{item.typeLabel}</MyTag>
                 </Td>
                 <Td fontSize={'sm'}>{item.priceLabel}</Td>
-                {permissionConfig && userInfo?.team.permission.hasManagePer && (
-                  <Td fontSize={'sm'}>
-                    <LazyCollaboratorProvider
-                      selectedHint={t('account_model:model_permission_config_hint')}
-                      defaultRole={ReadRoleVal}
-                      onGetCollaboratorList={() => getModelCollaborators(item.model)}
-                      onUpdateCollaborators={({ collaborators }) =>
-                        updateModelCollaborators({
-                          collaborators,
-                          models: [item.model]
-                        })
-                      }
-                      permission={userInfo?.team.permission!}
-                    >
-                      {({ onOpenManageModal }) => (
-                        <MyIconButton
-                          icon={'edit'}
-                          size="1rem"
-                          hoverColor={'blue.500'}
-                          w="min-content"
-                          onClick={onOpenManageModal}
-                        />
-                      )}
-                    </LazyCollaboratorProvider>
-                  </Td>
-                )}
+                {/*{permissionConfig && userInfo?.team.permission.hasManagePer && (*/}
+                {/*  <Td fontSize={'sm'}>*/}
+                {/*    <LazyCollaboratorProvider*/}
+                {/*      selectedHint={t('account_model:model_permission_config_hint')}*/}
+                {/*      defaultRole={ReadRoleVal}*/}
+                {/*      onGetCollaboratorList={() => getModelCollaborators(item.model)}*/}
+                {/*      onUpdateCollaborators={({ collaborators }) =>*/}
+                {/*        updateModelCollaborators({*/}
+                {/*          collaborators,*/}
+                {/*          models: [item.model]*/}
+                {/*        })*/}
+                {/*      }*/}
+                {/*      permission={userInfo?.team.permission!}*/}
+                {/*    >*/}
+                {/*      {({ onOpenManageModal }) => (*/}
+                {/*        <MyIconButton*/}
+                {/*          icon={'edit'}*/}
+                {/*          size="1rem"*/}
+                {/*          hoverColor={'blue.500'}*/}
+                {/*          w="min-content"*/}
+                {/*          onClick={onOpenManageModal}*/}
+                {/*        />*/}
+                {/*      )}*/}
+                {/*    </LazyCollaboratorProvider>*/}
+                {/*  </Td>*/}
+                {/*)}*/}
               </Tr>
             ))}
           </Tbody>
         </Table>
       </TableContainer>
 
-      <FloatingActionBar
-        activedStyles={{
-          borderRadius: 'md',
-          boxShadow: 'md'
-        }}
-        Controler={
-          <LazyCollaboratorProvider
-            selectedHint={t('account_model:model_permission_config_hint')}
-            defaultRole={ReadRoleVal}
-            onGetCollaboratorList={() =>
-              Promise.resolve({
-                clbs: []
-              })
-            }
-            onUpdateCollaborators={({ collaborators }) =>
-              updateModelCollaborators({
-                collaborators,
-                models: selectedItems.map((i) => i.model)
-              })
-            }
-            permission={userInfo?.team.permission!}
-          >
-            {({ onOpenManageModal }) => (
-              <Button variant={'whiteBase'} onClick={onOpenManageModal}>
-                {t('common:permission.Permission config')}
-              </Button>
-            )}
-          </LazyCollaboratorProvider>
-        }
-      ></FloatingActionBar>
+      {/*<FloatingActionBar*/}
+      {/*  activedStyles={{*/}
+      {/*    borderRadius: 'md',*/}
+      {/*    boxShadow: 'md'*/}
+      {/*  }}*/}
+      {/*  Controler={*/}
+      {/*    <LazyCollaboratorProvider*/}
+      {/*      selectedHint={t('account_model:model_permission_config_hint')}*/}
+      {/*      defaultRole={ReadRoleVal}*/}
+      {/*      onGetCollaboratorList={() =>*/}
+      {/*        Promise.resolve({*/}
+      {/*          clbs: []*/}
+      {/*        })*/}
+      {/*      }*/}
+      {/*      onUpdateCollaborators={({ collaborators }) =>*/}
+      {/*        updateModelCollaborators({*/}
+      {/*          collaborators,*/}
+      {/*          models: selectedItems.map((i) => i.model)*/}
+      {/*        })*/}
+      {/*      }*/}
+      {/*      permission={userInfo?.team.permission!}*/}
+      {/*    >*/}
+      {/*      {({ onOpenManageModal }) => (*/}
+      {/*        <Button variant={'whiteBase'} onClick={onOpenManageModal}>*/}
+      {/*          {t('common:permission.Permission config')}*/}
+      {/*        </Button>*/}
+      {/*      )}*/}
+      {/*    </LazyCollaboratorProvider>*/}
+      {/*  }*/}
+      {/*></FloatingActionBar>*/}
     </Flex>
   );
 };

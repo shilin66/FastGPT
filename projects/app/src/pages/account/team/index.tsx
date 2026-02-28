@@ -14,6 +14,7 @@ import MyIcon from '@fastgpt/web/components/common/Icon';
 import { TeamMemberRoleEnum } from '@fastgpt/global/support/user/team/constant';
 import { TeamContext, TeamModalContextProvider } from '@/pageComponents/account/team/context';
 import dynamic from 'next/dynamic';
+import { defaultForm } from '@/pageComponents/account/team/EditInfoModal';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 
@@ -73,10 +74,10 @@ const Team = () => {
           { label: t('account_team:member'), value: TeamTabEnum.member },
           { label: t('account_team:org'), value: TeamTabEnum.org },
           { label: t('account_team:group'), value: TeamTabEnum.group },
-          { label: t('account_team:permission'), value: TeamTabEnum.permission },
-          ...(userInfo?.team.permission.hasManagePer
-            ? [{ label: t('account_team:audit_log'), value: TeamTabEnum.audit }]
-            : [])
+          { label: t('account_team:permission'), value: TeamTabEnum.permission }
+          // ...(userInfo?.team.permission.hasManagePer
+          //   ? [{ label: t('account_team:audit_log'), value: TeamTabEnum.audit }]
+          //   : [])
         ]}
         px={'1rem'}
         value={teamTab}
@@ -122,6 +123,19 @@ const Team = () => {
               <Box fontWeight={'500'} fontSize={'1rem'}>
                 {t('account:team')}
               </Box>
+            </Flex>
+            <Flex align={'center'} justify={'center'} ml={2} p={'0.44rem'}>
+              <MyIcon
+                name="common/addCircleLight"
+                w="18px"
+                cursor="pointer"
+                _hover={{
+                  color: 'primary.500'
+                }}
+                onClick={() => {
+                  setEditTeamData(defaultForm);
+                }}
+              />
             </Flex>
             <Flex align={'center'} ml={6}>
               <TeamSelector height={'28px'} />
@@ -176,7 +190,7 @@ const Team = () => {
           {teamTab === TeamTabEnum.org && <OrgManage Tabs={Tabs} />}
           {teamTab === TeamTabEnum.group && <GroupManage Tabs={Tabs} />}
           {teamTab === TeamTabEnum.permission && <PermissionManage Tabs={Tabs} />}
-          {teamTab === TeamTabEnum.audit && <AuditLog Tabs={Tabs} />}
+          {/*{teamTab === TeamTabEnum.audit && <AuditLog Tabs={Tabs} />}*/}
         </Box>
       </Flex>
       {invitelinkid && <HandleInviteModal invitelinkid={invitelinkid} />}
