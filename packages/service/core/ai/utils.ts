@@ -112,7 +112,8 @@ export const parseLLMStreamResponse = () => {
 
       const content = part.choices?.[0]?.delta?.content || '';
       // @ts-ignore
-      const reasoningContent = part.choices?.[0]?.delta?.reasoning_content || '';
+      const reasoningContent =
+        part.choices?.[0]?.delta?.reasoning_content || part.choices?.[0]?.delta?.reasoning || '';
       const isStreamEnd = !!buffer_finishReason;
 
       // Parse think
