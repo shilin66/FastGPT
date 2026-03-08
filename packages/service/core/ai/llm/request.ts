@@ -608,8 +608,8 @@ export const createCompleteResponse = async ({
   // Content and think parse
   const { content, reasoningContent } = (() => {
     const content = response.choices?.[0]?.message?.content || '';
-    const reasoningContent: string =
-      (response.choices?.[0]?.message as any)?.reasoning_content || '';
+    const msg = response.choices?.[0]?.message as any;
+    const reasoningContent: string = msg?.reasoning_content || msg?.reasoning || '';
 
     // API already parse reasoning content
     if (reasoningContent || !modelData.reasoning) {
