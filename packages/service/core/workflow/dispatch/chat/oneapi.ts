@@ -261,7 +261,9 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       const { content, reasoningContent } = (() => {
         const content = response.choices?.[0]?.message?.content || '';
         // @ts-ignore
-        const reasoningContent: string = response.choices?.[0]?.message?.reasoning_content || '';
+        const msg = response.choices?.[0]?.message as any;
+        const reasoningContent: string = msg?.reasoning_content || msg?.reasoning || '';
+        // const reasoningContent: string = response.choices?.[0]?.message?.reasoning_content || '';
 
         // API already parse reasoning content
         if (reasoningContent || !aiChatReasoning) {
