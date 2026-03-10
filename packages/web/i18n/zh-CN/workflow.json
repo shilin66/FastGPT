@@ -207,6 +207,7 @@
   "update_link_error": "更新链接异常",
   "update_specified_node_output_or_global_variable": "可以更新指定节点的输出值或更新全局变量",
   "use_user_id": "使用者 ID",
+  "use_user_name": "使用者名称",
   "user_form_input_config": "表单配置",
   "user_form_input_description": "描述",
   "user_form_input_name": "标题",

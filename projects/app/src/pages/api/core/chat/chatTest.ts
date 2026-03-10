@@ -183,6 +183,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         tmbId: app.tmbId
       },
       runningUserInfo: {
+        username: '',
         teamId,
         tmbId
       },

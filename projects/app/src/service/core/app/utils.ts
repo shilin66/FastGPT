@@ -76,6 +76,7 @@ export const getScheduleTriggerApp = async () => {
                 tmbId: String(app.tmbId)
               },
               runningUserInfo: {
+                username: '',
                 teamId: String(app.teamId),
                 tmbId: String(app.tmbId)
               },

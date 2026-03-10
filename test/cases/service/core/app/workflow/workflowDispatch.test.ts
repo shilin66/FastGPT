@@ -44,6 +44,7 @@ const testWorkflow = async (path: string) => {
       tmbId: 'test'
     },
     runningUserInfo: {
+      username: '',
       tmbId: 'test',
       teamId: 'test'
     },

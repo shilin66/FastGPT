@@ -287,6 +287,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             tmbId: String(app.tmbId)
           },
           runningUserInfo: {
+            username: '',
             teamId,
             tmbId
           },

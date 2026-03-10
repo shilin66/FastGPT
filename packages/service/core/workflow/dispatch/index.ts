@@ -76,6 +76,7 @@ import { dispatchToolParams } from './agent/runTool/toolParams';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { filterPublicNodeResponseData } from '@fastgpt/global/core/chat/utils';
 import { dispatchRunTool } from './plugin/runTool';
+import { getRunningUserInfoByTmbId } from '../../../support/user/utils';
 
 const callbackMap: Record<FlowNodeTypeEnum, Function> = {
   [FlowNodeTypeEnum.workflowStart]: dispatchWorkflowStart,
@@ -202,7 +203,11 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
       };
       sendStreamTimerSign();
     }
-
+    // get run user info
+    if (data.runningUserInfo?.tmbId && !data.runningUserInfo?.username) {
+      const { username } = await getRunningUserInfoByTmbId(data.runningUserInfo.tmbId);
+      data.runningUserInfo.username = username;
+    }
     // Add system variables
     variables = {
       ...getSystemVariable(data),
@@ -797,6 +802,7 @@ export async function dispatchWorkFlow(data: Props): Promise<DispatchFlowRespons
 const getSystemVariable = ({
   timezone,
   runningAppInfo,
+  runningUserInfo,
   chatId,
   responseChatItemId,
   histories = [],
@@ -813,6 +819,7 @@ const getSystemVariable = ({
     ...variablesMap,
     userId: uid,
     appId: String(runningAppInfo.id),
+    username: runningUserInfo.username,
     chatId,
     responseChatItemId,
     histories,

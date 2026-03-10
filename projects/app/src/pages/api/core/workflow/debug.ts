@@ -62,6 +62,7 @@ async function handler(
         tmbId: app.tmbId
       },
       runningUserInfo: {
+        username: '',
         teamId,
         tmbId
       },

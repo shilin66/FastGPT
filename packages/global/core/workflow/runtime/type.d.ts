@@ -47,6 +47,7 @@ export type ChatDispatchProps = {
     isChildApp?: boolean;
   };
   runningUserInfo: {
+    username: string;
     teamId: string;
     tmbId: string;
   };
@@ -81,6 +82,7 @@ export type ModuleDispatchProps<T> = ChatDispatchProps & {
 export type SystemVariablesType = {
   userId: string;
   appId: string;
+  username: string;
   chatId?: string;
   responseChatItemId?: string;
   histories: ChatItemType[];

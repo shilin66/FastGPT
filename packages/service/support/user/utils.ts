@@ -1,7 +1,10 @@
+import type { UserModelSchema } from '@fastgpt/global/support/user/type';
 import { type SourceMemberType } from '@fastgpt/global/support/user/type';
 import { MongoTeam } from './team/teamSchema';
 import { MongoTeamMember } from './team/teamMemberSchema';
 import { type ClientSession } from '../../common/mongo';
+import type { TeamSchema } from '@fastgpt/global/support/user/team/type';
+import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 
 /* export dataset limit */
 export const updateExportDatasetLimit = async (teamId: string) => {
@@ -113,4 +116,33 @@ export async function addSourceMember<T extends { tmbId: string }>({
       };
     })
     .filter(Boolean) as Array<T & { sourceMember: SourceMemberType }>;
+}
+
+export async function getRunningUserInfoByTmbId(tmbId: string) {
+  if (tmbId) {
+    const tmb = await MongoTeamMember.findById(tmbId, 'teamId name userId') // team_members name is the user's name
+      .populate<{ team: TeamSchema; user: UserModelSchema }>([
+        {
+          path: 'team',
+          select: 'name'
+        },
+        {
+          path: 'user',
+          select: 'username'
+        }
+      ])
+      .lean();
+
+    if (!tmb) return Promise.reject(TeamErrEnum.notUser);
+
+    return {
+      username: tmb.user.username,
+      teamName: tmb.team.name,
+      memberName: tmb.name,
+      teamId: tmb.teamId,
+      tmbId: tmb._id
+    };
+  }
+
+  return Promise.reject(TeamErrEnum.notUser);
 }

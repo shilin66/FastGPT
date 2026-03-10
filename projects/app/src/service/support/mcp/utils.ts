@@ -229,6 +229,7 @@ export const callMcpServerTool = async ({ key, toolName, inputs }: toolCallProps
         tmbId: String(app.tmbId)
       },
       runningUserInfo: {
+        username: '',
         teamId: String(app.teamId),
         tmbId: String(app.tmbId)
       },
