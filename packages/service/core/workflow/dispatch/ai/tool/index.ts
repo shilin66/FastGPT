@@ -62,7 +62,8 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
       fileUrlList: fileLinks,
       aiChatVision,
       aiChatReasoning,
-      isResponseAnswerText = true
+      isResponseAnswerText = true,
+      aiChatDefaultConfig
     }
   } = props;
 

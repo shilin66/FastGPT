@@ -91,6 +91,7 @@ export const parseLLMStreamResponse = () => {
         delta: {
           content?: string | null;
           reasoning_content?: string;
+          reasoning?: string;
         };
         finish_reason?: CompletionFinishReason;
       }[];

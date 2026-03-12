@@ -70,6 +70,7 @@ export const runToolCall = async (props: DispatchToolModuleProps): Promise<Respo
       aiChatJsonSchema,
       aiChatReasoning,
       isResponseAnswerText = true,
+      aiChatDefaultConfig,
       useAgentSandbox
     }
   } = workflowProps;
@@ -178,7 +179,8 @@ export const runToolCall = async (props: DispatchToolModuleProps): Promise<Respo
       },
       requestOrigin,
       retainDatasetCite,
-      useVision: aiChatVision
+      useVision: aiChatVision,
+      ...(aiChatDefaultConfig || {})
     },
     isAborted: checkIsStopping,
     userKey: externalProvider.openaiAccount,

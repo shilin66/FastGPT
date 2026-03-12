@@ -27,6 +27,7 @@ export type DispatchToolModuleProps = ModuleDispatchProps<{
   [NodeInputKeyEnum.aiChatStopSign]?: string;
   [NodeInputKeyEnum.aiChatResponseFormat]?: string;
   [NodeInputKeyEnum.aiChatJsonSchema]?: string;
+  [NodeInputKeyEnum.aiChatDefaultConfig]?: any;
   [NodeInputKeyEnum.useAgentSandbox]?: boolean;
 }> & {
   messages: ChatCompletionMessageParam[];
