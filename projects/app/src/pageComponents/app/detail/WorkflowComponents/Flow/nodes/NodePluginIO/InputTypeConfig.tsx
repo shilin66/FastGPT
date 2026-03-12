@@ -179,8 +179,6 @@ const InputTypeConfig = ({
       FlowNodeInputTypeEnum.customVariable,
       FlowNodeInputTypeEnum.hidden,
       FlowNodeInputTypeEnum.switch,
-      VariableInputEnum.timePointSelect,
-      VariableInputEnum.timeRangeSelect,
       VariableInputEnum.switch,
       VariableInputEnum.custom,
       VariableInputEnum.internal
@@ -1010,8 +1008,7 @@ const InputTypeConfig = ({
                 defaultSelectedDatasets={datasetOptions.map((item: SelectedDatasetType) => ({
                   datasetId: item.datasetId,
                   name: item.name,
-                  avatar: item.avatar,
-                  vectorModel: {} as EmbeddingModelItemType
+                  avatar: item.avatar
                 }))}
                 onChange={(selectedDatasets) => {
                   const newDatasetList = selectedDatasets.map((item: SelectedDatasetType) => ({
