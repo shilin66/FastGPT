@@ -115,6 +115,8 @@ const AIChatSettingsModal = ({
   const responseFormat = watch(NodeInputKeyEnum.aiChatResponseFormat);
   const jsonSchema = watch(NodeInputKeyEnum.aiChatJsonSchema);
 
+  const defaultConfig = watch(NodeInputKeyEnum.aiChatDefaultConfig);
+
   const tokenLimit = useMemo(() => {
     return selectedModel?.maxResponse || 4096;
   }, [selectedModel?.maxResponse]);
@@ -485,6 +487,33 @@ const AIChatSettingsModal = ({
             </Box>
           </Flex>
         )}
+        {/* Body extra fields */}
+        <Flex {...FlexItemStyles} h="auto" mt={6}>
+          <Box {...LabelStyles}>
+            <Flex alignItems={'center'}>
+              <Box>{t('app:body_extra_fields')}</Box>
+              <QuestionTip label={t('app:body_extra_fields_tip')} />
+            </Flex>
+          </Box>
+          <Box flex={'1 0 0'}>
+            <JsonEditor
+              value={defaultConfig ? JSON.stringify(defaultConfig, null, 2) : ''}
+              onChange={(e) => {
+                if (!e) {
+                  setValue(NodeInputKeyEnum.aiChatDefaultConfig, undefined);
+                  return;
+                }
+                try {
+                  setValue(NodeInputKeyEnum.aiChatDefaultConfig, JSON.parse(e));
+                } catch (error) {
+                  console.error(error);
+                }
+              }}
+              bg={'myGray.25'}
+              resize
+            />
+          </Box>
+        </Flex>
       </ModalBody>
       <ModalFooter>
         <Button variant={'whiteBase'} onClick={onClose}>

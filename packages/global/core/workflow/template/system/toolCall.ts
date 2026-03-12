@@ -99,6 +99,12 @@ export const ToolCallNode: FlowNodeTemplateType = {
       label: '',
       valueType: WorkflowIOValueTypeEnum.string
     },
+    {
+      key: NodeInputKeyEnum.aiChatDefaultConfig,
+      renderTypeList: [FlowNodeInputTypeEnum.hidden],
+      label: '',
+      valueType: WorkflowIOValueTypeEnum.any
+    },
 
     {
       key: NodeInputKeyEnum.useAgentSandbox,

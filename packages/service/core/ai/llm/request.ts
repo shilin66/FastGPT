@@ -799,8 +799,8 @@ const llmCompletionsBodyFormat = async <T extends CompletionsBodyType>({
   }
 
   requestBody = {
-    ...requestBody,
-    ...modelData?.defaultConfig
+    ...modelData?.defaultConfig,
+    ...requestBody
   };
 
   return {

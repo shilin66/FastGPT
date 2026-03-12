@@ -62,7 +62,10 @@ const SelectAiModelRender = ({ item, inputs = [], nodeId }: RenderInputProps) =>
         (input) => input.key === NodeInputKeyEnum.aiChatResponseFormat
       )?.value,
       aiChatJsonSchema: inputs.find((input) => input.key === NodeInputKeyEnum.aiChatJsonSchema)
-        ?.value
+        ?.value,
+      aiChatDefaultConfig: inputs.find(
+        (input) => input.key === NodeInputKeyEnum.aiChatDefaultConfig
+      )?.value
     }),
     [inputs]
   );

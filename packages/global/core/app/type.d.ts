@@ -113,6 +113,7 @@ export type AppSimpleEditFormType = {
     [NodeInputKeyEnum.aiChatStopSign]?: string;
     [NodeInputKeyEnum.aiChatResponseFormat]?: string;
     [NodeInputKeyEnum.aiChatJsonSchema]?: string;
+    [NodeInputKeyEnum.aiChatDefaultConfig]?: Record<string, any>;
   };
   dataset: {
     datasets: SelectedDatasetType[];
@@ -167,6 +168,7 @@ export type SettingAIDataType = {
   [NodeInputKeyEnum.aiChatStopSign]?: string;
   [NodeInputKeyEnum.aiChatResponseFormat]?: string;
   [NodeInputKeyEnum.aiChatJsonSchema]?: string;
+  [NodeInputKeyEnum.aiChatDefaultConfig]?: Record<string, any>;
 };
 
 // variable
