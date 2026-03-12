@@ -92,6 +92,10 @@ export const appWorkflow2Form = ({
         node.inputs,
         NodeInputKeyEnum.aiChatJsonSchema
       );
+      defaultAppForm.aiSettings.aiChatDefaultConfig = findInputValueByKey(
+        node.inputs,
+        NodeInputKeyEnum.aiChatDefaultConfig
+      );
     } else if (node.flowNodeType === FlowNodeTypeEnum.datasetSearchNode) {
       defaultAppForm.dataset.datasets = findInputValueByKey(
         node.inputs,

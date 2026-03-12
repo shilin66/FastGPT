@@ -99,6 +99,12 @@ export const AgentNode: FlowNodeTemplateType = {
       label: '',
       valueType: WorkflowIOValueTypeEnum.string
     },
+    {
+      key: NodeInputKeyEnum.aiChatDefaultConfig,
+      renderTypeList: [FlowNodeInputTypeEnum.hidden],
+      label: '',
+      valueType: WorkflowIOValueTypeEnum.any
+    },
 
     {
       ...Input_Template_System_Prompt,

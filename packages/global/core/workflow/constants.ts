@@ -167,6 +167,7 @@ export enum NodeInputKeyEnum {
   aiChatStopSign = 'aiChatStopSign',
   aiChatResponseFormat = 'aiChatResponseFormat',
   aiChatJsonSchema = 'aiChatJsonSchema',
+  aiChatDefaultConfig = 'aiChatDefaultConfig',
 
   // dataset
   datasetSelectList = 'datasets',

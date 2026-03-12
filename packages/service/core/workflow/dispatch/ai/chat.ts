@@ -94,6 +94,7 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       aiChatStopSign,
       aiChatResponseFormat,
       aiChatJsonSchema,
+      aiChatDefaultConfig,
 
       fileUrlList: fileLinks, // node quote file links
       stringQuoteText //abandon
@@ -204,7 +205,8 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
         },
         retainDatasetCite,
         useVision: aiChatVision,
-        requestOrigin
+        requestOrigin,
+        ...(aiChatDefaultConfig || {})
       },
       userKey: externalProvider.openaiAccount,
       isAborted: checkIsStopping,

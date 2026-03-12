@@ -218,6 +218,13 @@ export function form2AppWorkflow(
           label: '',
           valueType: WorkflowIOValueTypeEnum.string,
           value: formData.aiSettings.aiChatJsonSchema
+        },
+        {
+          key: NodeInputKeyEnum.aiChatDefaultConfig,
+          renderTypeList: [FlowNodeInputTypeEnum.hidden],
+          label: '',
+          valueType: WorkflowIOValueTypeEnum.any,
+          value: formData.aiSettings.aiChatDefaultConfig
         }
       ],
       outputs: AiChatModule.outputs
@@ -525,6 +532,13 @@ export function form2AppWorkflow(
               label: '',
               valueType: WorkflowIOValueTypeEnum.boolean,
               value: formData.aiSettings.aiChatReasoning
+            },
+            {
+              key: NodeInputKeyEnum.aiChatDefaultConfig,
+              renderTypeList: [FlowNodeInputTypeEnum.hidden],
+              label: '',
+              valueType: WorkflowIOValueTypeEnum.any,
+              value: formData.aiSettings.aiChatDefaultConfig
             }
           ],
           outputs: AgentNode.outputs

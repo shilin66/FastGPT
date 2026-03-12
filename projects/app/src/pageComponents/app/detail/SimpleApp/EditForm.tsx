@@ -196,7 +196,8 @@ const EditForm = ({
                   aiChatTopP: appForm.aiSettings.aiChatTopP,
                   aiChatStopSign: appForm.aiSettings.aiChatStopSign,
                   aiChatResponseFormat: appForm.aiSettings.aiChatResponseFormat,
-                  aiChatJsonSchema: appForm.aiSettings.aiChatJsonSchema
+                  aiChatJsonSchema: appForm.aiSettings.aiChatJsonSchema,
+                  aiChatDefaultConfig: appForm.aiSettings.aiChatDefaultConfig
                 }}
                 onChange={({ maxHistories = 6, ...data }) => {
                   setAppForm((state) => ({
