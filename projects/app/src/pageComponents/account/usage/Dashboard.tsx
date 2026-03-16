@@ -66,14 +66,14 @@ const UsageDashboard = ({
       <Flex>
         <Box>{Tabs}</Box>
         <Box flex={1} />
-        <Button
-          size={'md'}
-          variant={'transparentBase'}
-          color={'primary.700'}
-          onClick={onOpenRecharge}
-        >
-          {t('account_usage:check_left_points')}
-        </Button>
+        {/*<Button*/}
+        {/*  size={'md'}*/}
+        {/*  variant={'transparentBase'}*/}
+        {/*  color={'primary.700'}*/}
+        {/*  onClick={onOpenRecharge}*/}
+        {/*>*/}
+        {/*  {t('account_usage:check_left_points')}*/}
+        {/*</Button>*/}
       </Flex>
       <Box mt={4}>{Selectors}</Box>
       <MyBox overflowY={'auto'} isLoading={totalPointsLoading}>
