@@ -20,6 +20,9 @@ type BaseModelItemType = {
   isDefaultDatasetTextModel?: boolean;
   isDefaultDatasetImageModel?: boolean;
 
+  // If teamIds is set, only the specified teams can use this model. Empty or undefined means all teams.
+  teamIds?: string[];
+
   // If has requestUrl, it will request the model directly
   requestUrl?: string;
   requestAuth?: string;

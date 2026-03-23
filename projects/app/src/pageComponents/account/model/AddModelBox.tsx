@@ -38,6 +38,8 @@ import { useSystemStore } from '@/web/common/system/useSystemStore';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
+import { getAllTeamList } from '@/web/support/user/team/api';
+import MultipleSelect from '@fastgpt/web/components/common/MySelect/MultipleSelect';
 
 export const AddModelButton = ({
   onCreate,
@@ -124,6 +126,33 @@ export const ModelEditModal = ({
       value: item.id
     }))
   );
+
+  // Load team list
+  const { data: teamListData } = useRequest2(() => getAllTeamList({ pageNum: 1, pageSize: 1000 }), {
+    manual: false
+  });
+  const teamList = useMemo(() => {
+    return (
+      teamListData?.list?.map((team) => ({
+        label: team.name,
+        value: team._id
+      })) || []
+    );
+  }, [teamListData]);
+
+  const teamIds = watch('teamIds');
+  const [isSelectAllTeams, setIsSelectAllTeams] = useState(
+    !modelData.teamIds || modelData.teamIds.length === 0
+  );
+
+  // 当 isSelectAllTeams 为 true 时，显示的 value 应该是所有团队（用于 UI 显示）
+  // 但实际保存的 teamIds 是空数组
+  const displayTeamIds = useMemo(() => {
+    if (isSelectAllTeams) {
+      return teamList.map((t) => t.value);
+    }
+    return teamIds || [];
+  }, [isSelectAllTeams, teamIds, teamList]);
 
   const priceUnit = useMemo(() => {
     if (isLLMModel || isEmbeddingModel || isRerankModel) return '/ 1k Tokens';
@@ -246,6 +275,37 @@ export const ModelEditModal = ({
                       onChange={(value) => setValue('provider', value)}
                       list={providerList.current}
                       {...InputStyles}
+                    />
+                  </Td>
+                </Tr>
+                <Tr>
+                  <Td>
+                    <HStack spacing={1}>
+                      <Box>{t('account:model.team_visibility')}</Box>
+                      <QuestionTip label={t('account:model.team_visibility_tip')} />
+                    </HStack>
+                  </Td>
+                  <Td textAlign={'right'}>
+                    <MultipleSelect
+                      value={displayTeamIds}
+                      onSelect={(values) => {
+                        // 选择了部分团队
+                        setValue('teamIds', values);
+                      }}
+                      list={teamList}
+                      placeholder={t('account:model.all_teams')}
+                      isSelectAll={isSelectAllTeams}
+                      setIsSelectAll={(value) => {
+                        setIsSelectAllTeams(value);
+                        if (value) {
+                          // 设置为全选时，保存空数组
+                          setValue('teamIds', []);
+                        }
+                      }}
+                      w={'300px'}
+                      height={'35px'}
+                      bg={'myGray.50'}
+                      ml={'auto'}
                     />
                   </Td>
                 </Tr>

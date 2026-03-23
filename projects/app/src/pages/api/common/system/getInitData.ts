@@ -5,26 +5,32 @@ import { type InitDateResponse } from '@/global/common/api/systemRes';
 import { type SystemModelItemType } from '@fastgpt/service/core/ai/type';
 import { authCert } from '@fastgpt/service/support/permission/auth/common';
 
+const filterModelsByTeam = (teamId?: string) => {
+  return global.systemActiveModelList
+    .filter((model) => !model.teamIds?.length || (teamId && model.teamIds.includes(teamId)))
+    .map((model) => ({
+      ...model,
+      defaultSystemChatPrompt: undefined,
+      fieldMap: undefined,
+      defaultConfig: undefined,
+      weight: undefined,
+      dbConfig: undefined,
+      queryConfig: undefined,
+      requestUrl: undefined,
+      requestAuth: undefined,
+      teamIds: undefined
+    })) as SystemModelItemType[];
+};
+
 async function handler(
   req: ApiRequestProps<{}, { bufferId?: string }>,
   res: NextApiResponse
 ): Promise<InitDateResponse> {
   const { bufferId } = req.query;
 
-  const activeModelList = global.systemActiveModelList.map((model) => ({
-    ...model,
-    defaultSystemChatPrompt: undefined,
-    fieldMap: undefined,
-    defaultConfig: undefined,
-    weight: undefined,
-    dbConfig: undefined,
-    queryConfig: undefined,
-    requestUrl: undefined,
-    requestAuth: undefined
-  })) as SystemModelItemType[];
-
   try {
-    await authCert({ req, authToken: true, authApiKey: true });
+    const { teamId } = await authCert({ req, authToken: true, authApiKey: true });
+    const activeModelList = filterModelsByTeam(teamId);
     // If bufferId is the same as the current bufferId, return directly
     if (bufferId && global.systemInitBufferId && global.systemInitBufferId === bufferId) {
       return {
@@ -61,6 +67,7 @@ async function handler(
   } catch (error) {
     const referer = req.headers.referer;
     if (referer?.includes('/price')) {
+      const publicModelList = filterModelsByTeam();
       return {
         feConfigs: {
           ...global.feConfigs,
@@ -81,7 +88,7 @@ async function handler(
           }
         },
         subPlans: global.subPlans,
-        activeModelList
+        activeModelList: publicModelList
       };
     }
 
