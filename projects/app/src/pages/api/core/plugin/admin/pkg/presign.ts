@@ -28,30 +28,26 @@ async function handler(
     return Promise.reject('Filename is required');
   }
 
-  const result = await pluginClient.tool.upload.getUploadURL({
-    query: {
-      filename
-    }
-  });
+  const result = await pluginClient.getToolUploadUrl(filename);
 
-  if (result.status !== 200) {
-    return Promise.reject(result.body);
+  if (!result) {
+    return Promise.reject(result);
   }
   if (isS3ProxyEnabled()) {
-    const minioUrl = result.body.postURL;
-    const objectName = result.body.objectName;
+    const minioUrl = result.postURL;
+    const objectName = result.objectName;
 
     const { bucketName, metadata } = parseMinioUrlInfo(minioUrl);
     const proxyUrl = convertToProxyUrl({
-      minioUrl: result.body.postURL,
+      minioUrl: result.postURL,
       key: objectName,
       bucket: bucketName,
       action: 'upload',
       metadata
     });
-    result.body.postURL = proxyUrl.url;
+    result.postURL = proxyUrl.url;
   }
-  return result.body;
+  return result;
 }
 
 export default NextAPI(handler);

@@ -16,7 +16,7 @@ import {
   parseLLMStreamResponse,
   parseReasoningContent
 } from '../utils';
-import { removeDatasetCiteText } from '@fastgpt/global/core/ai/llm/utils';
+import { getLLMSupportParams, removeDatasetCiteText } from '@fastgpt/global/core/ai/llm/utils';
 import { getAIApi } from '../config';
 import type { OpenaiAccountType } from '@fastgpt/global/support/user/team/type';
 import { customNanoid, getNanoid } from '@fastgpt/global/common/string/tools';
@@ -85,11 +85,12 @@ export const createLLMResponse = async <T extends CompletionsBodyType>(
 
   const { throwError = true, body, custonHeaders, userKey, maxContinuations = 1 } = args;
   const { messages, useVision, requestOrigin, tools, toolCallMode } = body;
+  const model = getLLMModel(body.model);
 
   // Messages process
   const requestMessages = await loadRequestMessages({
     messages,
-    useVision,
+    useVision: useVision && model.vision,
     origin: requestOrigin
   });
   // Message process
@@ -772,6 +773,21 @@ const llmCompletionsBodyFormat = async <T extends CompletionsBodyType>({
     Object.entries(requestBody).filter(([_, value]) => value !== null && value !== undefined)
   ) as T;
 
+  const supportParams = getLLMSupportParams(modelData);
+
+  if (!supportParams.temperature) {
+    delete requestBody.temperature;
+  }
+  if (!supportParams.topP) {
+    delete requestBody.top_p;
+  }
+  if (!supportParams.stop) {
+    delete requestBody.stop;
+  }
+  if (!supportParams.responseFormat) {
+    delete requestBody.response_format;
+  }
+
   // field map
   if (modelData.fieldMap) {
     Object.entries(modelData.fieldMap).forEach(([sourceKey, targetKey]) => {
@@ -830,10 +846,12 @@ const createChatCompletion = async ({
 
     const response = await ai.chat.completions.create(body, {
       ...options,
-      ...(modelData.requestUrl ? { path: modelData.requestUrl } : {}),
+      ...(modelData.requestUrl && !userKey ? { path: modelData.requestUrl } : {}),
       headers: {
         ...options?.headers,
-        ...(modelData.requestAuth ? { Authorization: `Bearer ${modelData.requestAuth}` } : {})
+        ...(modelData.requestAuth && !userKey
+          ? { Authorization: `Bearer ${modelData.requestAuth}` }
+          : {})
       }
     });
 

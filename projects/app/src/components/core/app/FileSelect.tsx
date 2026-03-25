@@ -46,7 +46,6 @@ const FileSelect = ({
   const { isOpen, onOpen, onClose } = useDisclosure();
   const maxSelectFiles = Math.min(feConfigs?.uploadFileMaxAmount ?? 20, 30);
   const { data: pdfParsers = [] } = usePdfParsers();
-
   // 构建选择器列表
   const pdfParserOptions = useMemo(
     () => [

@@ -16,7 +16,7 @@ import type { OutLinkEditType, TeamsAppType } from '@fastgpt/global/support/outL
 import { useTranslation } from 'next-i18next';
 import { useForm } from 'react-hook-form';
 import { createShareChat, updateShareChat } from '@/web/support/outLink/api';
-import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
+import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import BasicInfo from '../components/BasicInfo';
 import { getDocPath } from '@/web/common/system/doc';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
@@ -56,17 +56,19 @@ const TeamsEditModal = ({
 
   const appType = watch('app.MicrosoftAppType');
 
-  const { runAsync: onclickCreate, loading: creating } = useRequest2(
+  const { runAsync: onclickCreate, loading: creating } = useRequest(
     (e: Omit<OutLinkEditType<TeamsAppType>, 'appId' | 'type'>) =>
       createShareChat({
         ...e,
         appId,
         type: PublishChannelEnum.teams,
         app: {
-          MicrosoftAppType: e.app?.MicrosoftAppType?.trim(),
-          MicrosoftAppId: e?.app?.MicrosoftAppId?.trim(),
-          MicrosoftAppPassword: e.app?.MicrosoftAppPassword?.trim(),
-          MicrosoftAppTenantId: e.app?.MicrosoftAppTenantId?.trim()
+          MicrosoftAppType: (e.app?.MicrosoftAppType?.trim() || 'SingleTenant') as
+            | 'SingleTenant'
+            | 'MultiTenant',
+          MicrosoftAppId: (e?.app?.MicrosoftAppId?.trim() || '') as string,
+          MicrosoftAppPassword: (e.app?.MicrosoftAppPassword?.trim() || '') as string,
+          MicrosoftAppTenantId: (e.app?.MicrosoftAppTenantId?.trim() || '') as string
         }
       }),
     {
@@ -76,7 +78,7 @@ const TeamsEditModal = ({
     }
   );
 
-  const { runAsync: onclickUpdate, loading: updating } = useRequest2(
+  const { runAsync: onclickUpdate, loading: updating } = useRequest(
     (e) =>
       updateShareChat({
         ...e,

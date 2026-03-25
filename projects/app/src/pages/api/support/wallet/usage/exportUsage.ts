@@ -6,12 +6,13 @@ import { MongoUsage } from '@fastgpt/service/support/wallet/usage/schema';
 import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
 import { UsageSourceMap } from '@fastgpt/global/support/wallet/usage/constants';
 import { sanitizeCsvField } from '@fastgpt/service/common/file/csv';
-import { addLog } from '@fastgpt/service/common/system/log';
 import { Types } from 'mongoose';
 import type { TeamMemberSchema } from '@fastgpt/global/support/user/team/type';
 import type { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
 import { responseWriteController } from '@fastgpt/service/common/response';
+import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 
+const logger = getLogger(LogCategories.MODULE.DATASET.QUEUES);
 async function handler(req: ApiRequestProps, res: ApiResponseType<any>) {
   const {
     dateStart,
@@ -178,7 +179,7 @@ async function handler(req: ApiRequestProps, res: ApiResponseType<any>) {
 
   // 错误处理
   cursor.on('error', (err) => {
-    addLog.error('export usage error', err);
+    logger.error('export usage error', err);
     res.status(500);
     res.end();
   });

@@ -1,9 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { S3PrivateBucket } from '@fastgpt/service/common/s3/buckets/private';
-import { addLog } from '@fastgpt/service/common/system/log';
 import { S3Buckets } from '@fastgpt/service/common/s3/constants';
 import { S3PublicBucket } from '@fastgpt/service/common/s3/buckets/public';
+import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 
+const logger = getLogger(LogCategories.MODULE.DATASET.QUEUES);
 /**
  * S3 Upload Proxy API
  * 代理前端的文件上传请求到 MinIO
@@ -52,9 +53,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (metadataParam) {
       try {
         metadata = JSON.parse(decodeURIComponent(metadataParam));
-        addLog.debug('S3 proxy upload - metadata from URL', { metadata });
+        logger.debug('S3 proxy upload - metadata from URL', { metadata });
       } catch (error) {
-        addLog.warn('Failed to parse metadata from URL', { metadataParam, error });
+        logger.warn('Failed to parse metadata from URL', { metadataParam, error });
       }
     }
 
@@ -91,12 +92,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       if (Object.keys(metadata).length > 0) {
-        addLog.debug('S3 proxy upload - metadata from headers', { metadata });
+        logger.debug('S3 proxy upload - metadata from headers', { metadata });
       }
     }
 
     // 添加调试日志
-    addLog.debug('S3 proxy upload', {
+    logger.debug('S3 proxy upload', {
       key,
       bucket,
       contentType,
@@ -121,7 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ success: true });
   } catch (error: any) {
-    addLog.error('S3 upload proxy error', error);
+    logger.error('S3 upload proxy error', error);
     return res.status(500).json({
       error: 'Upload failed',
       message: error?.message || 'Unknown error'

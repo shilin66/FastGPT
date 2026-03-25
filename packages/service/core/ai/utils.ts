@@ -4,6 +4,7 @@ import { getLLMDefaultUsage } from '@fastgpt/global/core/ai/constants';
 import { removeDatasetCiteText } from '@fastgpt/global/core/ai/llm/utils';
 import json5 from 'json5';
 import { sliceJsonStr } from '@fastgpt/global/common/string/tools';
+import { jsonrepair } from 'jsonrepair';
 
 /* 
   Count response max token
@@ -93,7 +94,7 @@ export const parseLLMStreamResponse = () => {
         };
         finish_reason?: CompletionFinishReason;
       }[];
-      usage?: CompletionUsage;
+      usage?: CompletionUsage | null;
     };
     parseThinkTag?: boolean;
     retainDatasetCite?: boolean;
@@ -332,7 +333,7 @@ export const parseLLMStreamResponse = () => {
 
 export const parseJsonArgs = <T = Record<string, any>>(str: string) => {
   try {
-    return json5.parse(sliceJsonStr(str)) as T;
+    return json5.parse(jsonrepair(sliceJsonStr(str))) as T;
   } catch {
     return;
   }

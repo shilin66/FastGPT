@@ -1,18 +1,12 @@
 import { getLogger, LogCategories } from '../logger';
-import type { Cluster } from 'ioredis';
 import Redis from 'ioredis';
-import type { RedisOptions } from 'ioredis/built/redis/RedisOptions';
+import type { RedisConnection } from './type';
 
 const logger = getLogger(LogCategories.INFRA.REDIS);
 
 // 类型定义
-type RedisConnection = Redis | Cluster;
 type RedisMode = 'single' | 'cluster' | 'sentinel';
 
-// 全局类型声明
-declare global {
-  var redisClient: RedisConnection | null;
-}
 const DEFAULT_CONFIG = {
   REDIS_URL: 'redis://localhost:6379',
   CLUSTER_NODES: 'localhost:6379',

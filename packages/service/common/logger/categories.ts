@@ -44,7 +44,8 @@ export const LogCategories = {
       INTERACTIVE: ['workflow', 'interactive'],
       OPTIMIZE_CODE: ['workflow', 'optimize-code'],
       STATUS: ['workflow', 'status'],
-      TOOLS: ['workflow', 'tools']
+      TOOLS: ['workflow', 'tools'],
+      CODE_SANDBOX: ['workflow', 'code-sandbox']
     }),
     APP: Object.assign(['app'], {
       EVALUATION: ['app', 'evaluation'],
@@ -74,7 +75,8 @@ export const LogCategories = {
       LLM: ['ai', 'llm'],
       MODEL: ['ai', 'model'],
       OPTIMIZE_PROMPT: ['ai', 'optimize-prompt'],
-      RERANK: ['ai', 'rerank']
+      RERANK: ['ai', 'rerank'],
+      SANDBOX: ['ai', 'sandbox']
     }),
     USER: Object.assign(['user'], {
       ACCOUNT: ['user', 'account'],
@@ -91,7 +93,8 @@ export const LogCategories = {
       OFFIACCOUNT: ['outlink', 'offiaccount'],
       PLAYGROUND: ['outlink', 'playground'],
       TOOLS: ['outlink', 'tools'],
-      WECOM: ['outlink', 'wecom']
+      WECOM: ['outlink', 'wecom'],
+      WECHAT: ['outlink', 'wechat']
     }),
     CHAT: Object.assign(['chat'], {
       FEEDBACK: ['chat', 'feedback'],
@@ -131,9 +134,6 @@ export const LogCategories = {
 
   // 事件层
   EVENT: {
-    OUTLINK: ['event', 'outlink'],
-    FEISHU: ['event', 'feishu'],
-    WECHAT: ['event', 'wechat'],
     TRACK: ['event', 'track']
   }
 };

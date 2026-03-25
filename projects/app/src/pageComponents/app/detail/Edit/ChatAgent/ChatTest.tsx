@@ -24,6 +24,7 @@ import type { HelperBotRefType } from '@/components/core/chat/HelperBot/context'
 import { HelperBotTypeEnum } from '@fastgpt/global/core/chat/helperBot/type';
 import { loadGeneratedTools } from './utils';
 import { systemSubInfo } from '@fastgpt/global/core/workflow/node/agent/constants';
+import { useSandboxEditor } from '@/pageComponents/chat/SandboxEditor/hook';
 
 type Props = {
   appForm: AppFormEditFormType;
@@ -33,6 +34,7 @@ type Props = {
 };
 const ChatTest = ({ appForm, setAppForm, setRenderEdit, form2WorkflowFn }: Props) => {
   const { t } = useTranslation();
+  const { chatId } = useChatStore();
 
   const [activeTab, setActiveTab] = useSafeState<'helper' | 'chat_debug'>('chat_debug');
   const HelperBotRef = useRef<HelperBotRefType>(null);
@@ -46,6 +48,12 @@ const ChatTest = ({ appForm, setAppForm, setRenderEdit, form2WorkflowFn }: Props
   const [workflowData, setWorkflowData] = useSafeState({
     nodes: appDetail.modules || [],
     edges: appDetail.edges || []
+  });
+
+  // Sandbox state
+  const { SandboxEditorModal, SandboxEntryIcon } = useSandboxEditor({
+    appId: appDetail._id,
+    chatId
   });
 
   useEffect(() => {
@@ -70,6 +78,7 @@ const ChatTest = ({ appForm, setAppForm, setRenderEdit, form2WorkflowFn }: Props
       selectedTools: appForm.selectedTools.map((tool) => tool.id),
       selectedDatasets: appForm.dataset.datasets.map((dataset) => dataset.datasetId),
       fileUpload: appForm.chatConfig.fileSelectConfig?.canSelectFile || false,
+      enableSandbox: appForm.aiSettings.useAgentSandbox || false,
       modelConfig: {
         model: appForm.aiSettings.model,
         temperature: appForm.aiSettings.temperature,
@@ -117,6 +126,7 @@ const ChatTest = ({ appForm, setAppForm, setRenderEdit, form2WorkflowFn }: Props
           )}
 
           <Box flex={1} />
+          <SandboxEntryIcon size={'smSquare'} mr={2} />
           <MyTooltip label={t('common:core.chat.Restart')}>
             <IconButton
               className="chat"
@@ -144,6 +154,7 @@ const ChatTest = ({ appForm, setAppForm, setRenderEdit, form2WorkflowFn }: Props
               metadata={topAgentMetadata}
               onApply={async (formData) => {
                 const fileUploadEnabled = !!formData.fileUploadEnabled;
+                const enableSandboxEnabled = !!formData.enableSandboxEnabled;
 
                 // Filter internal tools
                 const filteredToolIds = (formData.tools || []).filter(
@@ -169,7 +180,8 @@ const ChatTest = ({ appForm, setAppForm, setRenderEdit, form2WorkflowFn }: Props
                         : prev.dataset,
                     aiSettings: {
                       ...prev.aiSettings,
-                      systemPrompt: formData.systemPrompt || prev.aiSettings.systemPrompt
+                      systemPrompt: formData.systemPrompt || prev.aiSettings.systemPrompt,
+                      useAgentSandbox: enableSandboxEnabled
                     },
                     chatConfig: {
                       ...prev.chatConfig,
@@ -181,7 +193,7 @@ const ChatTest = ({ appForm, setAppForm, setRenderEdit, form2WorkflowFn }: Props
                         : {
                             maxFiles: undefined,
                             canSelectFile: false,
-                            customPdfParse: false,
+                            customPdfParse: 'default',
                             canSelectImg: false,
                             canSelectVideo: false,
                             canSelectAudio: false,
@@ -207,6 +219,8 @@ const ChatTest = ({ appForm, setAppForm, setRenderEdit, form2WorkflowFn }: Props
           />
         </Box>
       )}
+
+      <SandboxEditorModal />
     </Flex>
   );
 };

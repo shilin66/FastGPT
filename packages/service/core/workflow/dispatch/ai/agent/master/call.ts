@@ -14,6 +14,7 @@ import { dispatchTool } from '../sub/tool';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { DatasetSearchToolSchema } from '../sub/dataset/utils';
 import { dispatchAgentDatasetSearch } from '../sub/dataset';
+import { dispatchSandboxShell } from '../sub/sandbox';
 import type { DispatchAgentModuleProps } from '..';
 import { getLLMModel } from '../../../../../ai/model';
 import { getStepCallQuery, getStepDependon } from './dependon';
@@ -31,6 +32,10 @@ import { PlanAgentParamsSchema } from '../sub/plan/constants';
 import { filterMemoryMessages } from '../../utils';
 import { dispatchApp, dispatchPlugin } from '../sub/app';
 import { getLogger, LogCategories } from '../../../../../../common/logger';
+import {
+  SandboxShellToolSchema,
+  SANDBOX_TOOL_NAME
+} from '@fastgpt/global/core/ai/sandbox/constants';
 
 type Response = {
   stepResponse?: {
@@ -85,7 +90,10 @@ export const masterCall = async ({
     params: {
       model,
       // Dataset search configuration
-      agent_datasetParams: datasetParams
+      agent_datasetParams: datasetParams,
+      // Sandbox (Computer Use)
+      useAgentSandbox = false,
+      aiChatVision
     }
   } = props;
 
@@ -177,7 +185,11 @@ export const masterCall = async ({
     const messages: ChatCompletionMessageParam[] = [
       {
         role: 'system' as const,
-        content: getMasterSystemPrompt(systemPrompt, hasUserTools)
+        content: getMasterSystemPrompt({
+          systemPrompt,
+          hasUserTools,
+          useAgentSandbox: useAgentSandbox && !!global.feConfigs?.show_agent_sandbox
+        })
       },
       ...masterMessages
     ];
@@ -204,6 +216,7 @@ export const masterCall = async ({
       messages: requestMessages,
       model: getLLMModel(model),
       stream: true,
+      useVision: aiChatVision,
       tools: isStepCall
         ? completionTools.filter((item) => item.function.name !== SubAppIds.plan)
         : completionTools
@@ -365,6 +378,33 @@ export const masterCall = async ({
               usages: result.usages
             };
           }
+          if (toolId === SANDBOX_TOOL_NAME) {
+            const toolParams = SandboxShellToolSchema.safeParse(
+              parseJsonArgs(call.function.arguments)
+            );
+            if (!toolParams.success) {
+              return {
+                response: toolParams.error.message,
+                usages: []
+              };
+            }
+
+            const result = await dispatchSandboxShell({
+              command: toolParams.data.command,
+              timeout: toolParams.data.timeout,
+              appId: runningAppInfo.id,
+              userId: props.uid,
+              chatId,
+              lang: props.lang
+            });
+
+            childrenResponses.push(result.nodeResponse);
+
+            return {
+              response: result.response,
+              usages: result.usages
+            };
+          }
           if (toolId === SubAppIds.plan) {
             try {
               const toolArgs = await PlanAgentParamsSchema.safeParseAsync(
@@ -387,9 +427,8 @@ export const masterCall = async ({
                 model,
                 stream,
                 mode: 'initial',
-                task: toolArgs.data.task,
-                description: toolArgs.data.description,
-                background: toolArgs.data.background
+                ...toolArgs.data,
+                planId: call.id
               });
 
               return {

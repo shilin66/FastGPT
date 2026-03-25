@@ -65,7 +65,6 @@ export type SearchTestProps = {
   [NodeInputKeyEnum.datasetSearchRerankModel]?: string;
   [NodeInputKeyEnum.datasetSearchRerankWeight]?: number;
 
-  [NodeInputKeyEnum.datasetSearchReRankModel]?: string;
   [NodeInputKeyEnum.datasetSearchUsingExtensionQuery]?: boolean;
   [NodeInputKeyEnum.datasetSearchExtensionModel]?: string;
   [NodeInputKeyEnum.datasetSearchExtensionBg]?: string;

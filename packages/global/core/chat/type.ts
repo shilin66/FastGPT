@@ -85,6 +85,7 @@ export const UserChatItemFileItemSchema = z.object({
 export type UserChatItemFileItemType = z.infer<typeof UserChatItemFileItemSchema>;
 
 export const UserChatItemValueItemSchema = z.object({
+  planId: z.string().nullish(),
   text: z
     .object({
       content: z.string()
@@ -130,6 +131,7 @@ export type AdminFbkType = z.infer<typeof AdminFbkSchema>;
 export const AIChatItemValueSchema = z.object({
   id: z.string().nullish(),
   stepId: z.string().nullish(),
+  planId: z.string().nullish(),
   text: z
     .object({
       content: z.string()
@@ -145,7 +147,7 @@ export const AIChatItemValueSchema = z.object({
   plan: AgentPlanSchema.nullish(),
   stepTitle: StepTitleItemSchema.nullish(),
 
-  // @deprecated
+  /** @deprecated */
   tool: ToolModuleResponseItemSchema.nullish()
 });
 
@@ -166,7 +168,9 @@ export type AIChatItemType = {
   errorMsg?: string;
   citeCollectionIds?: string[];
 
-  // @deprecated 不再存储在 chatItemSchema 里，分别存储到 chatItemResponseSchema
+  /**
+   * @deprecated 不再存储在 chatItemSchema 里，分别存储到 chatItemResponseSchema
+   */
   [DispatchNodeResponseKeyEnum.nodeResponse]?: ChatHistoryItemResType[];
 };
 
@@ -195,11 +199,15 @@ const ErrorTextItemSchema = z.object({
 export type ErrorTextItemType = z.infer<typeof ErrorTextItemSchema>;
 
 export type ResponseTagItemType = {
+  useAgentSandbox?: boolean;
   totalQuoteList?: SearchDataResponseItemType[];
-  llmModuleAccount?: number;
-  historyPreviewLength?: number;
   toolCiteLinks?: ToolCiteLinksType[];
   errorText?: ErrorTextItemType;
+
+  /** @deprecated */
+  llmModuleAccount?: number;
+  /** @deprecated */
+  historyPreviewLength?: number;
 };
 
 export type ChatItemType = ChatItemObjItemType & {

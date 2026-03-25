@@ -1,9 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { S3PrivateBucket } from '@fastgpt/service/common/s3/buckets/private';
-import { addLog } from '@fastgpt/service/common/system/log';
 import { S3Buckets } from '@fastgpt/service/common/s3/constants';
 import { S3PublicBucket } from '@fastgpt/service/common/s3/buckets/public';
+import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 
+const logger = getLogger(LogCategories.MODULE.DATASET.QUEUES);
 /**
  * S3 Download Proxy API
  * 代理前端的文件下载/查看请求到 MinIO
@@ -65,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Pipe the stream to response
     stream.pipe(res);
   } catch (error: any) {
-    addLog.error('S3 download proxy error', error);
+    logger.error('S3 download proxy error', error);
 
     if (!res.headersSent) {
       return res.status(500).json({

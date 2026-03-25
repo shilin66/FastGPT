@@ -58,11 +58,10 @@ export const dispatchRunAppNode = async (props: Props): Promise<Response> => {
 
   const userInputFiles = await (async () => {
     if (fileUrlList) {
-      return Promise.all(
-        fileUrlList
-          .map(async (url) => await parseUrlToFileType(url))
-          .filter((file): file is NonNullable<typeof file> => Boolean(file))
+      const files = await Promise.all(
+        fileUrlList.map(async (url) => await parseUrlToFileType(url))
       );
+      return files.filter((file): file is NonNullable<typeof file> => file !== undefined);
     }
     // Adapt version 4.8.13 upgrade
     return files;

@@ -1,8 +1,7 @@
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
 import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
-import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/type.d';
-import { addLog } from '@fastgpt/service/common/system/log';
-import type { PushDatasetDataChunkProps } from '@fastgpt/global/core/dataset/api.d';
+import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/type';
+import type { PushDatasetDataChunkProps } from '@fastgpt/global/core/dataset/api';
 import { getLLMModel } from '@fastgpt/service/core/ai/model';
 import { checkTeamAiPointsAndLock } from './utils';
 import { addHours, addMinutes } from 'date-fns';
@@ -11,14 +10,13 @@ import { ImageParsePromptDefault } from '@fastgpt/global/core/ai/prompt/agent';
 import { getImageBase64 } from '@fastgpt/service/common/file/image/utils';
 import { pushDataListToTrainingQueue } from '@fastgpt/service/core/dataset/training/controller';
 import type { DatasetDataSchemaType } from '@fastgpt/global/core/dataset/type';
-import { countGptMessagesTokens, countPromptTokens } from '@fastgpt/service/common/string/tiktoken';
 import { pushLLMTrainingUsage } from '@fastgpt/service/support/wallet/usage/controller';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { UsageItemTypeEnum } from '@fastgpt/global/support/wallet/usage/constants';
 import { createLLMResponse } from '@fastgpt/service/core/ai/llm/request';
-import { getS3ChatSource } from '@fastgpt/service/common/s3/sources/chat';
 import { jwtSignS3ObjectKey } from '@fastgpt/service/common/s3/utils';
-
+import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
+const logger = getLogger(LogCategories.MODULE.DATASET.QUEUES);
 const reduceQueue = () => {
   global.qaQueueLen = global.qaQueueLen > 0 ? global.qaQueueLen - 1 : 0;
 
@@ -118,7 +116,7 @@ export async function generateImageParse(): Promise<any> {
         text: data.q
       };
     } catch (error) {
-      addLog.error(`[ImageParse  Queue] Error`, error);
+      logger.error(`[ImageParse  Queue] Error`, { error });
       return {
         error: true
       };
@@ -127,7 +125,7 @@ export async function generateImageParse(): Promise<any> {
 
   if (done || !data) {
     if (reduceQueue()) {
-      addLog.info(`[ImageParse  Queue] Done`);
+      logger.info(`[ImageParse  Queue] Done`);
     }
     return;
   }
@@ -136,7 +134,7 @@ export async function generateImageParse(): Promise<any> {
   }
 
   if (!data.dataset || !data.collection) {
-    addLog.info(`[ImageParse Queue] Dataset or collection not found`, data);
+    logger.info(`[ImageParse Queue] Dataset or collection not found`, data);
     // Delete data
     await MongoDatasetTraining.deleteOne({ _id: data._id });
     return reduceQueueAndReturn();
@@ -146,7 +144,7 @@ export async function generateImageParse(): Promise<any> {
   if (!(await checkTeamAiPointsAndLock(data.teamId))) {
     return reduceQueueAndReturn();
   }
-  addLog.info(`[ImageParse  Queue] Start`);
+  logger.info(`[ImageParse  Queue] Start`);
 
   try {
     const modelData = getLLMModel(data.dataset.vlmModel);
@@ -199,7 +197,7 @@ export async function generateImageParse(): Promise<any> {
       console.log('>>>>>>>>>', answer);
       const { summary, desc, index } = extractData(answer);
 
-      addLog.info(`[ImageParse  Queue] Finish`, {
+      logger.info(`[ImageParse  Queue] Finish`, {
         time: Date.now() - startTime,
         summaryLength: summary?.length,
         descLength: desc?.length,
@@ -264,7 +262,7 @@ export async function generateImageParse(): Promise<any> {
 
     return reduceQueueAndReturn();
   } catch (err: any) {
-    addLog.error(`[ImageParse  Queue] Error`, err);
+    logger.error(`[ImageParse  Queue] Error`, err);
     await MongoDatasetTraining.updateOne(
       {
         teamId: data.teamId,

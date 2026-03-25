@@ -4,6 +4,7 @@ import type { UserChatItemFileItemType } from '@fastgpt/global/core/chat/type';
 import { AsyncLocalStorage } from 'async_hooks';
 import path from 'path';
 import type { MCPClient } from '../../app/mcp';
+import { getFileNameFromHttpUrlHeader } from '@fastgpt/global/common/file/tools';
 
 type ContextType = {
   queryUrlTypeMap: Record<string, ChatFileTypeEnum>;
@@ -34,9 +35,9 @@ export const updateWorkflowContextVal = (val: Partial<ContextType>) => {
 };
 
 // Url => user upload file type
-export const parseUrlToFileType = (url: string): UserChatItemFileItemType | undefined => {
-  if (typeof url !== 'string') return;
-
+export const parseUrlToFileType = async (
+  url: string
+): Promise<UserChatItemFileItemType | undefined> => {
   // Handle base64 image
   if (url.startsWith('data:')) {
     const matches = url.match(/^data:([^;]+);base64,/);
@@ -57,7 +58,7 @@ export const parseUrlToFileType = (url: string): UserChatItemFileItemType | unde
     const parseUrl = new URL(url, 'http://localhost:3000');
 
     // Get filename from URL
-    const filename = (() => {
+    const filename = await (async () => {
       // Here is a S3 Object Key
       if (url.startsWith('chat/')) {
         const basename = path.basename(url);
@@ -71,8 +72,12 @@ export const parseUrlToFileType = (url: string): UserChatItemFileItemType | unde
       }
 
       const basename = path.basename(parseUrl.pathname);
-      // Return empty if no extension
-      return basename.includes('.') ? basename : '';
+      const filename = basename.includes('.') ? basename : '';
+      if (!filename) {
+        return await getFileNameFromHttpUrlHeader(url);
+      }
+
+      return filename;
     })();
 
     const context = getWorkflowContext();
@@ -91,14 +96,14 @@ export const parseUrlToFileType = (url: string): UserChatItemFileItemType | unde
       // Default to file type for non-extension files
       return {
         type: ChatFileTypeEnum.image,
-        name: filename ? decodeURIComponent(filename) : url,
+        name: filename || 'null',
         url
       };
     }
     // If it's a document type, return as file, otherwise treat as image
     return {
       type: ChatFileTypeEnum.file,
-      name: filename ? decodeURIComponent(filename) : url,
+      name: filename || 'null',
       url
     };
   } catch (error) {

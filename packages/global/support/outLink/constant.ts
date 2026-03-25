@@ -6,6 +6,7 @@ export enum PublishChannelEnum {
   dingtalk = 'dingtalk',
   wecom = 'wecom',
   officialAccount = 'official_account',
+  wechat = 'wechat',
   chromeExtension = 'chromeExtension',
   teams = 'teams',
   playground = 'playground'

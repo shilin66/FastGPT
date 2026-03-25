@@ -1,11 +1,12 @@
 import type { localeType } from '@fastgpt/global/common/i18n/type';
 import type { SkillToolType } from '@fastgpt/global/core/ai/skill/type';
-import type { ChatCompletionTool } from '@fastgpt/global/core/ai/type';
 import type { SubAppRuntimeType } from './type';
-import { agentSkillToToolRuntime } from './sub/tool/utils';
+import { getAgentRuntimeTools } from './sub/tool/utils';
+import type { ChatCompletionTool } from '@fastgpt/global/core/ai/type';
 import { readFileTool } from './sub/file/utils';
 import { PlanAgentTool } from './sub/plan/constants';
 import { datasetSearchTool } from './sub/dataset/utils';
+import { SANDBOX_TOOLS } from '@fastgpt/global/core/ai/sandbox/constants';
 
 export const getSubapps = async ({
   tmbId,
@@ -13,7 +14,8 @@ export const getSubapps = async ({
   lang,
   getPlanTool,
   hasDataset,
-  hasFiles
+  hasFiles,
+  useAgentSandbox
 }: {
   tmbId: string;
   tools: SkillToolType[];
@@ -21,6 +23,7 @@ export const getSubapps = async ({
   getPlanTool?: Boolean;
   hasDataset?: boolean;
   hasFiles: boolean;
+  useAgentSandbox: boolean;
 }): Promise<{
   completionTools: ChatCompletionTool[];
   subAppsMap: Map<string, SubAppRuntimeType>;
@@ -42,8 +45,13 @@ export const getSubapps = async ({
     completionTools.push(datasetSearchTool);
   }
 
+  /* Sandbox Shell */
+  if (useAgentSandbox && global.feConfigs?.show_agent_sandbox) {
+    completionTools.push(...SANDBOX_TOOLS);
+  }
+
   /* System tool */
-  const formatTools = await agentSkillToToolRuntime({
+  const formatTools = await getAgentRuntimeTools({
     tools,
     tmbId,
     lang

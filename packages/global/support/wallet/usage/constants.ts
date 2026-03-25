@@ -8,6 +8,7 @@ export enum UsageSourceEnum {
   cronJob = 'cronJob',
   share = 'share',
   wecom = 'wecom',
+  wechat = 'wechat',
   feishu = 'feishu',
   dingtalk = 'dingtalk',
   official_account = 'official_account',
@@ -46,6 +47,9 @@ export const UsageSourceMap = {
   },
   [UsageSourceEnum.wecom]: {
     label: i18nT('account_usage:wecom')
+  },
+  [UsageSourceEnum.wechat]: {
+    label: i18nT('account_usage:wechat')
   },
   [UsageSourceEnum.teams]: {
     label: 'Teams'

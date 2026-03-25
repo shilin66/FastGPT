@@ -19,7 +19,7 @@ import { useLoading } from '@fastgpt/web/hooks/useLoading';
 import { delShareChatById, getShareChatList } from '@/web/support/outLink/api';
 import { formatTimeToChatTime } from '@fastgpt/global/common/string/time';
 import { defaultTeamsOutlinkForm } from '@/web/core/app/constants';
-import type { OutLinkEditType, TeamsAppType } from '@fastgpt/global/support/outLink/type.d';
+import type { OutLinkEditType, TeamsAppType } from '@fastgpt/global/support/outLink/type';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import { useTranslation } from 'next-i18next';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
@@ -27,7 +27,7 @@ import dayjs from 'dayjs';
 import dynamic from 'next/dynamic';
 import MyMenu from '@fastgpt/web/components/common/MyMenu';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
-import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
+import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { getDocPath } from '@/web/common/system/doc';
 
 const TeamsEditModal = dynamic(() => import('./TeamsEditModal'));
@@ -49,7 +49,7 @@ const Teams = ({ appId }: { appId: string }) => {
     data: shareChatList = [],
     loading: isFetching,
     runAsync: refetchShareChatList
-  } = useRequest2(() => getShareChatList<TeamsAppType>({ appId, type: PublishChannelEnum.teams }), {
+  } = useRequest(() => getShareChatList<TeamsAppType>({ appId, type: PublishChannelEnum.teams }), {
     manual: false
   });
 

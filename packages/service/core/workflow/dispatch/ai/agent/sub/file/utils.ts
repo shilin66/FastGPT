@@ -31,7 +31,7 @@ export const readFileTool: ChatCompletionTool = {
   }
 };
 
-export const formatFileInput = ({
+export const formatFileInput = async ({
   fileUrls = [],
   requestOrigin,
   maxFiles,
@@ -41,10 +41,10 @@ export const formatFileInput = ({
   requestOrigin?: string;
   maxFiles: number;
   histories: ChatItemType[];
-}): {
+}): Promise<{
   filesMap: Record<string, string>;
   prompt: string;
-} => {
+}> => {
   const filesFromHistories = getHistoryFileLinks(histories);
 
   if (filesFromHistories.length === 0 && fileUrls.length === 0) {
@@ -54,7 +54,7 @@ export const formatFileInput = ({
     };
   }
 
-  const parseFn = (urls: string[]) => {
+  const parseFn = async (urls: string[]) => {
     const parseUrlList = urls
       // Remove invalid urls
       .filter((url) => {
@@ -69,7 +69,7 @@ export const formatFileInput = ({
         return false;
       })
       // Just get the document type file
-      .filter((url) => parseUrlToFileType(url)?.type === 'file')
+      .filter(async (url) => (await parseUrlToFileType(url))?.type === 'file')
       .map((url) => {
         try {
           // Check is system upload file
@@ -89,18 +89,18 @@ export const formatFileInput = ({
       .filter(Boolean)
       .slice(0, maxFiles);
 
-    const parseResult = parseUrlList
-      .map((url) => parseUrlToFileType(url))
-      .filter((item) => item?.name && item?.type === ChatFileTypeEnum.file) as {
-      type: `${ChatFileTypeEnum}`;
-      name: string;
-      url: string;
-    }[];
-    return parseResult;
+    const fileResults = await Promise.all(
+      parseUrlList.map(async (url) => await parseUrlToFileType(url))
+    );
+
+    return fileResults.filter(
+      (item): item is { type: ChatFileTypeEnum; name: string; url: string } =>
+        item !== undefined && item.name !== undefined && item.type === ChatFileTypeEnum.file
+    );
   };
 
-  const historyParseResult = parseFn(filesFromHistories);
-  const queryParseResult = parseFn(fileUrls);
+  const historyParseResult = await parseFn(filesFromHistories);
+  const queryParseResult = await parseFn(fileUrls);
 
   // 去重：基于文件名去重，避免历史记录和当前请求中的文件重复（避免 plan agent ask 之后的文件二次传入）
   // 优先使用新的 URL（queryParseResult），因为预签名 URL 有过期时间，新的更不容易过期

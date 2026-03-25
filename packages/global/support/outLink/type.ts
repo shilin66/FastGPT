@@ -8,9 +8,6 @@ export interface FeishuAppType {
   // Encrypt config
   // refer to: https://open.feishu.cn/document/server-docs/event-subscription-guide/event-subscription-configure-/configure-encrypt-key
   encryptKey?: string; // no secret if null
-  // Token Verification
-  // refer to: https://open.feishu.cn/document/server-docs/event-subscription-guide/event-subscription-configure-/encrypt-key-encryption-configuration-case
-  verificationToken?: string;
 }
 
 export interface DingtalkAppType {
@@ -30,8 +27,17 @@ export interface WecomAppType {
   // SuiteSecret: string;
 }
 
-// TODO: unused
-export interface WechatAppType {}
+export const WechatAppSchema = z.object({
+  token: z.string().default(''),
+  baseUrl: z.string().default('https://ilinkai.weixin.qq.com'),
+  accountId: z.string().default(''),
+  userId: z.string().optional(),
+  syncBuf: z.string().default(''),
+  status: z.enum(['online', 'offline', 'error']).default('offline'),
+  loginTime: z.string().optional(),
+  lastError: z.string().optional()
+});
+export type WechatAppType = z.infer<typeof WechatAppSchema>;
 
 export interface OffiAccountAppType {
   appId: string;
@@ -56,6 +62,7 @@ export type OutlinkAppType =
   | WecomAppType
   | OffiAccountAppType
   | DingtalkAppType
+  | WechatAppType
   | TeamsAppType
   | undefined;
 

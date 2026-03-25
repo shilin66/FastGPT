@@ -451,7 +451,7 @@ export const usageStats = async ({
       platformTotalPoint: result[0]?.totalPointsSum || 0
     };
   } catch (error) {
-    logger.error('获取总点数异常:', error);
+    logger.error('获取总点数异常:', { error });
     throw new Error(`获取总点数失败: ${get(error, 'message', '未知错误')}`);
   }
 };
@@ -802,7 +802,7 @@ export const getUsages = async (
       total
     };
   } catch (error) {
-    logger.error('getUsages error', error);
+    logger.error('getUsages error', { error });
     throw error;
   }
 };
@@ -864,7 +864,7 @@ export const getUsageDashboardData = async (
       totalPoints: item.totalPoints
     }));
   } catch (error) {
-    logger.error('获取仪表盘数据异常:', error);
+    logger.error('获取仪表盘数据异常:', { error });
     throw new Error(`获取使用情况数据失败: ${get(error, 'message', '未知错误')}`);
   }
 };

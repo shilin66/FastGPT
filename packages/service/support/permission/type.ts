@@ -32,5 +32,4 @@ export type AuthResponseType<T extends Permission = Permission> = {
   apikey?: string;
   isRoot: boolean;
   permission: T;
-  userId?: string;
 };

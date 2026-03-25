@@ -8,8 +8,7 @@ import AccountContainer from '@/pageComponents/account/AccountContainer';
 import { serviceSideProps } from '@/web/common/i18n/utils';
 import MyTextarea from '@/components/common/Textarea/MyTextarea';
 import type { LicenseDataType } from '@fastgpt/global/common/system/types';
-1;
-import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
+import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { createLicenseData, getLicenseData } from '@/web/support/license/api';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 
@@ -20,7 +19,7 @@ const LicenseConfig = () => {
     data: licenseData = {},
     loading: isGetting,
     run: refetch
-  } = useRequest2(() => getLicenseData(), {
+  } = useRequest(() => getLicenseData(), {
     manual: false
   });
 
@@ -41,7 +40,7 @@ const LicenseConfig = () => {
     rows: 3
   };
 
-  const { runAsync: updateLicense, loading: updatingLicense } = useRequest2(
+  const { runAsync: updateLicense, loading: updatingLicense } = useRequest(
     async (data: LicenseDataType) => {
       await createLicenseData(data);
     },

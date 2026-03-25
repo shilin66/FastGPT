@@ -33,6 +33,7 @@ export enum ChatSourceEnum {
   official_account = 'official_account',
   wecom = 'wecom',
   teams = 'teams',
+  wechat = 'wechat',
   mcp = 'mcp'
 }
 
@@ -72,6 +73,10 @@ export const ChatSourceMap = {
   [ChatSourceEnum.wecom]: {
     name: i18nT('common:core.chat.logs.wecom'),
     color: '#FD853A'
+  },
+  [ChatSourceEnum.wechat]: {
+    name: i18nT('common:core.chat.logs.wechat'),
+    color: '#07C160'
   },
   [ChatSourceEnum.teams]: {
     name: 'Teams',

@@ -2,9 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { S3PrivateBucket } from '@fastgpt/service/common/s3/buckets/private';
 import { S3PublicBucket } from '@fastgpt/service/common/s3/buckets/public';
 import { S3Buckets } from '@fastgpt/service/common/s3/constants';
-import { addLog } from '@fastgpt/service/common/system/log';
 import { encodeContentDisposition } from '@fastgpt/service/common/s3/proxy';
+import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 
+const logger = getLogger(LogCategories.MODULE.DATASET.QUEUES);
 /**
  * S3 Public Read Proxy API
  * 代理对公开 S3 对象的读取请求
@@ -71,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 将文件流直接传输给客户端
     fileStream.pipe(res);
   } catch (error: any) {
-    addLog.error('S3 public read proxy error', error);
+    logger.error('S3 public read proxy error', error);
     return res.status(500).json({
       error: 'Read failed',
       message: error?.message || 'Unknown error'
