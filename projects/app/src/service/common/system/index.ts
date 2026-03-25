@@ -1,7 +1,7 @@
 import { initHttpAgent } from '@fastgpt/service/common/middle/httpAgent';
 import fs, { existsSync } from 'fs';
-import type { FastGPTFeConfigsType } from '@fastgpt/global/common/system/types/index';
-import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types/index';
+import type { FastGPTFeConfigsType } from '@fastgpt/global/common/system/types';
+import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types';
 import {
   getFastGPTConfigFromDB,
   initFastGPTConfigToDB
@@ -28,6 +28,7 @@ import { isProVersion } from '@fastgpt/service/common/system/constants';
 import { MongoSystemMsg } from '@fastgpt/service/support/user/inform/schema';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
+import { env } from '@fastgpt/service/env';
 
 const logger = getLogger(LogCategories.SYSTEM);
 
@@ -116,7 +117,7 @@ export async function getInitConfig() {
 }
 
 const defaultFeConfigs: FastGPTFeConfigsType = {
-  show_emptyChat: true,
+  // show_emptyChat: true,
   show_git: true,
   docUrl: 'https://doc.fastgpt.io',
   openAPIDocUrl: 'https://doc.fastgpt.io/docs/openapi/intro',
@@ -164,7 +165,10 @@ export async function initSystemConfig() {
       show_discount_coupon: process.env.SHOW_DISCOUNT_COUPON === 'true',
       show_dataset_enhance: licenseData?.functions?.datasetEnhance,
       show_batch_eval: licenseData?.functions?.batchEval,
-      payFormUrl: process.env.PAY_FORM_URL || ''
+      show_agent_sandbox: !!env.AGENT_SANDBOX_PROVIDER,
+      payFormUrl: process.env.PAY_FORM_URL || '',
+
+      agentSandboxFree: process.env.AGENT_SANDBOX_FREE_TIP === 'true'
     },
     systemEnv: {
       ...fileRes.systemEnv,

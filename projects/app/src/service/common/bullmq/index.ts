@@ -3,6 +3,8 @@ import { initS3MQWorker } from '@fastgpt/service/common/s3';
 import { initDatasetDeleteWorker } from '@fastgpt/service/core/dataset/delete';
 import { initAppDeleteWorker } from '@fastgpt/service/core/app/delete';
 import { initTeamDeleteWorker } from '@fastgpt/service/support/user/team/delete';
+import { initCollectionUpdateWorker } from '@fastgpt/service/core/dataset/collection/mq';
+import { initWechatPollWorker } from '@fastgpt/service/support/outLink/wechat/mq';
 
 const logger = getLogger(LogCategories.INFRA.QUEUE);
 
@@ -12,6 +14,8 @@ export const initBullMQWorkers = () => {
     initS3MQWorker(),
     initDatasetDeleteWorker(),
     initAppDeleteWorker(),
-    initTeamDeleteWorker()
+    initTeamDeleteWorker(),
+    initCollectionUpdateWorker(),
+    initWechatPollWorker()
   ]);
 };

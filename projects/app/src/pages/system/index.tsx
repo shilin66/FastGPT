@@ -11,14 +11,10 @@ import PopoverConfirm from '@fastgpt/web/components/common/MyPopover/PopoverConf
 import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { getSystemMsgModalData, updateSystemMsgModalData } from '@/web/support/user/inform/api';
+import type { SystemMsgModalValueType } from '@fastgpt/global/openapi/admin/support/user/inform/api';
 
 const MonacoEditor = dynamic(() => import('./component/MonacoEditor'), { ssr: false });
 const MarkdownEditor = dynamic(() => import('./component/MarkdownEditor'), { ssr: false });
-
-interface SystemMsgData {
-  id: string;
-  content: string;
-}
 
 const System = () => {
   const [code, setCode] = useState<string>('{"desc":"it is a config.json"}');
@@ -29,12 +25,7 @@ const System = () => {
   const { t } = useTranslation();
 
   // 获取系统配置
-  const {
-    data: configData,
-    isLoading: isConfigLoading,
-    mutate: runGetSystemConfig
-  } = useRequest({
-    mutationFn: () => getSystemConfig(),
+  const { run: runGetSystemConfig } = useRequest(() => getSystemConfig(), {
     onSuccess: (data) => {
       setCode(JSON.stringify(data, null, 4));
       setIsLoading(false);
@@ -46,15 +37,9 @@ const System = () => {
   });
 
   // 获取系统消息
-  const {
-    data: systemMsgData,
-    isLoading: isSystemMsgLoading,
-    mutate: runGetSystemMsg
-  } = useRequest({
-    // 添加类型参数
-    mutationFn: () => getSystemMsgModalData(),
-    onSuccess: (data: SystemMsgData) => {
-      setSystemMsg(data.content);
+  const { run: runGetSystemMsg } = useRequest(() => getSystemMsgModalData(), {
+    onSuccess: (data: SystemMsgModalValueType) => {
+      setSystemMsg(data?.content || '');
       setIsLoading(false);
     },
     onError: (err) => {
@@ -64,32 +49,36 @@ const System = () => {
   });
 
   // 保存系统配置
-  const { mutate: handleSave, isLoading: isSaving } = useRequest({
-    mutationFn: () => createSystemConfig(JSON.parse(code) as FastGPTConfigFileType),
-    onSuccess() {
-      getSystemConfig().then((res) => {
-        setCode(JSON.stringify(res, null, 4));
-      });
-    },
-    successToast: t('common:update_success'),
-    errorToast: ''
-  });
+  const { run: handleSave, loading: isSaving } = useRequest(
+    () => createSystemConfig(JSON.parse(code) as FastGPTConfigFileType),
+    {
+      onSuccess() {
+        getSystemConfig().then((res) => {
+          setCode(JSON.stringify(res, null, 4));
+        });
+      },
+      successToast: t('common:update_success'),
+      errorToast: ''
+    }
+  );
 
   // 保存系统消息
-  const { mutate: handleSaveSystemMsg, isLoading: isSavingSystemMsg } = useRequest({
-    mutationFn: () => updateSystemMsgModalData({ content: systemMsg }),
-    onSuccess() {
-      getSystemMsgModalData().then((res) => {
-        setSystemMsg(res?.content || '');
-      });
-    },
-    successToast: t('common:update_success'),
-    errorToast: ''
-  });
+  const { run: handleSaveSystemMsg, loading: isSavingSystemMsg } = useRequest(
+    () => updateSystemMsgModalData({ content: systemMsg }),
+    {
+      onSuccess() {
+        getSystemMsgModalData().then((res) => {
+          setSystemMsg(res?.content || '');
+        });
+      },
+      successToast: t('common:update_success'),
+      errorToast: ''
+    }
+  );
 
   useEffect(() => {
-    runGetSystemConfig({});
-    runGetSystemMsg({});
+    runGetSystemConfig();
+    runGetSystemMsg();
   }, [runGetSystemConfig, runGetSystemMsg]);
 
   return (
@@ -124,7 +113,7 @@ const System = () => {
                       </Button>
                     }
                     onConfirm={() => {
-                      handleSave({});
+                      handleSave();
                     }}
                   />
                 </Flex>
@@ -186,7 +175,7 @@ const System = () => {
                       </Button>
                     }
                     onConfirm={() => {
-                      handleSaveSystemMsg({});
+                      handleSaveSystemMsg();
                     }}
                   />
                 </Flex>

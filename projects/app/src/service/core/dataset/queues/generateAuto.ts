@@ -1,14 +1,12 @@
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
 import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
-import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/type.d';
-import { addLog } from '@fastgpt/service/common/system/log';
+import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/type';
 import { replaceVariable } from '@fastgpt/global/common/string/tools';
 import { AutoIndexPromptDefault } from '@fastgpt/global/core/ai/prompt/agent';
-import type { PushDatasetDataChunkProps } from '@fastgpt/global/core/dataset/api.d';
+import type { PushDatasetDataChunkProps } from '@fastgpt/global/core/dataset/api';
 import { getLLMModel } from '@fastgpt/service/core/ai/model';
 import { checkTeamAiPointsAndLock } from './utils';
 import { addMinutes } from 'date-fns';
-import { countGptMessagesTokens, countPromptTokens } from '@fastgpt/service/common/string/tiktoken';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
 import type { DatasetDataSchemaType } from '@fastgpt/global/core/dataset/type';
 import { pushDataListToTrainingQueue } from '@fastgpt/service/core/dataset/training/controller';
@@ -16,7 +14,9 @@ import { pushLLMTrainingUsage } from '@fastgpt/service/support/wallet/usage/cont
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { UsageItemTypeEnum } from '@fastgpt/global/support/wallet/usage/constants';
 import { createLLMResponse } from '@fastgpt/service/core/ai/llm/request';
+import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 
+const logger = getLogger(LogCategories.MODULE.DATASET.QUEUES);
 const reduceQueue = () => {
   global.qaQueueLen = global.qaQueueLen > 0 ? global.qaQueueLen - 1 : 0;
 
@@ -98,7 +98,7 @@ export async function generateAuto(): Promise<any> {
         text: data.q
       };
     } catch (error) {
-      addLog.error(`[AutoIndex  Queue] Error`, error);
+      logger.error(`[AutoIndex  Queue] Error`, { error });
       return {
         error: true
       };
@@ -107,7 +107,7 @@ export async function generateAuto(): Promise<any> {
 
   if (done || !data) {
     if (reduceQueue()) {
-      addLog.info(`[AutoIndex  Queue] Done`);
+      logger.info(`[AutoIndex  Queue] Done`);
     }
     return;
   }
@@ -116,7 +116,7 @@ export async function generateAuto(): Promise<any> {
   }
 
   if (!data.dataset || !data.collection) {
-    addLog.info(`[AutoIndex Queue] Dataset or collection not found`, data);
+    logger.info(`[AutoIndex Queue] Dataset or collection not found`, data);
     // Delete data
     await MongoDatasetTraining.deleteOne({ _id: data._id });
     return reduceQueueAndReturn();
@@ -126,7 +126,7 @@ export async function generateAuto(): Promise<any> {
   if (!(await checkTeamAiPointsAndLock(data.teamId))) {
     return reduceQueueAndReturn();
   }
-  addLog.info(`[AutoIndex  Queue] Start`);
+  logger.info(`[AutoIndex  Queue] Start`);
 
   try {
     const modelData = getLLMModel(data.dataset.agentModel);
@@ -155,7 +155,7 @@ export async function generateAuto(): Promise<any> {
 
     const { summary, questionIndex } = extractData(answer);
 
-    addLog.info(`[AutoIndex  Queue] Finish`, {
+    logger.info(`[AutoIndex  Queue] Finish`, {
       time: Date.now() - startTime,
       summaryLength: summary?.length,
       questionIndexLength: questionIndex?.length,
@@ -211,7 +211,7 @@ export async function generateAuto(): Promise<any> {
 
     return reduceQueueAndReturn();
   } catch (err: any) {
-    addLog.error(`[AutoIndex  Queue] Error`, err);
+    logger.error(`[AutoIndex  Queue] Error`, err);
     await MongoDatasetTraining.updateOne(
       {
         teamId: data.teamId,

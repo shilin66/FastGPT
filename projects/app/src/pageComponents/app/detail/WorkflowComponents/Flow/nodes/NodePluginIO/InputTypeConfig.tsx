@@ -123,10 +123,7 @@ const InputTypeConfig = ({
 
   const maxFiles = watch('maxFiles') ?? 5;
   // 文件数量限制：团队套餐 || 系统配置 || 默认值
-  const maxSelectFiles = Math.min(
-    teamPlanStatus?.standardConstants?.maxUploadFileCount || feConfigs.uploadFileMaxAmount,
-    50
-  );
+  const maxSelectFiles = Math.min(feConfigs?.uploadFileMaxAmount || 0, 50);
   const canSelectFile = watch('canSelectFile') ?? true;
   const canSelectImg = watch('canSelectImg');
   const canSelectVideo = watch('canSelectVideo');
@@ -526,8 +523,8 @@ const InputTypeConfig = ({
                   valueType === WorkflowIOValueTypeEnum.number)) && (
                 <MyNumberInput
                   value={defaultValue}
-                  min={min}
-                  max={max}
+                  min={min ? min : undefined}
+                  max={max ? max : undefined}
                   onChange={(e) => {
                     // @ts-ignore
                     setValue('defaultValue', e ?? '');

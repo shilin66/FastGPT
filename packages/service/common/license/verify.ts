@@ -1,8 +1,10 @@
 import axios from 'axios';
-import { addLog } from '../system/log';
 import { localCacheManager } from '../../support/globalCache/cache';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import jwt from 'jsonwebtoken';
+import { getLogger, LogCategories } from '../logger';
+
+const logger = getLogger(LogCategories.MODULE.DATASET.FILE);
 
 const CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
 
@@ -15,12 +17,12 @@ export const initValidLicense = async (
     source: string
   ): Promise<{ isValid: boolean; error?: string }> => {
     try {
-      addLog.info(`Verifying license from ${source}`);
+      logger.info(`Verifying license from ${source}`);
       await fetchLicense(license.licenseKey, license.licenseServer, license.clientId);
-      addLog.info(`License from [${source}] verification successful`);
+      logger.info(`License from [${source}] verification successful`);
       return { isValid: true };
     } catch (error) {
-      addLog.info(`License from [${source}] verification failed!`);
+      logger.info(`License from [${source}] verification failed!`);
       return {
         isValid: false,
         error: getErrText(error)
@@ -50,15 +52,15 @@ export const verifyLocalFileLicense = async (
   clientId?: string
 ) => {
   if (!licenseServer) {
-    addLog.error(`licenseServer in config.json is not set`);
+    logger.error(`licenseServer in config.json is not set`);
     return Promise.reject(`licenseServer in config.json is not set`);
   }
   if (!licenseKey) {
-    addLog.error(`licenseKey in config.json is not set`);
+    logger.error(`licenseKey in config.json is not set`);
     return Promise.reject(`licenseKey in config.json is not set`);
   }
   if (!clientId) {
-    addLog.error(`clientId in config.json is not set`);
+    logger.error(`clientId in config.json is not set`);
     return Promise.reject(`clientId in config.json is not set`);
   }
 
@@ -68,15 +70,15 @@ export const verifyLocalFileLicense = async (
 export const verifyDbLicense = async () => {
   const { licenseKey, licenseServer, clientId } = getLicenseConfig();
   if (!licenseServer) {
-    addLog.error(`licenseServer in db is not set`);
+    logger.error(`licenseServer in db is not set`);
     return Promise.reject(`licenseServer in db is not set`);
   }
   if (!licenseKey) {
-    addLog.error(`licenseKey in db is not set`);
+    logger.error(`licenseKey in db is not set`);
     return Promise.reject(`licenseKey in db is not set`);
   }
   if (!clientId) {
-    addLog.error(`licenseKey clientId in db is not set`);
+    logger.error(`licenseKey clientId in db is not set`);
     return Promise.reject(`licenseKey clientId in db is not set`);
   }
 
@@ -92,7 +94,7 @@ const verifyLicense = async (licenseKey: string, licenseServer: string, clientId
         return Promise.resolve();
       }
     } catch (e) {
-      addLog.error(`License JWT cache verification failed: ${getErrText(e)}`);
+      logger.error(`License JWT cache verification failed: ${getErrText(e)}`);
     }
   }
 
@@ -104,13 +106,13 @@ const verifyLicense = async (licenseKey: string, licenseServer: string, clientId
 export const checkCacheLicense = async () => {
   const { licenseKey, licenseServer, clientId } = getLicenseConfig();
   if (!licenseServer || !licenseKey || !clientId) {
-    addLog.error(`License verification failed: licenseServer or licenseKey or clientId is not set`);
+    logger.error(`License verification failed: licenseServer or licenseKey or clientId is not set`);
     localCacheManager.delete(clientId);
     return;
   }
   try {
     const { token } = await fetchLicense(licenseKey, licenseServer, clientId);
-    addLog.info(`License verification successful`);
+    logger.info(`License verification successful`);
     localCacheManager.set(clientId, token, CACHE_TTL);
   } catch (error) {
     localCacheManager.delete(clientId);
@@ -129,12 +131,12 @@ const fetchLicense = async (licenseKey: string, licenseServer: string, clientId:
       }
     );
     if (!data.valid) {
-      addLog.error(`License verification failed: valid is false`);
+      logger.error(`License verification failed: valid is false`);
       return Promise.reject(`License verification failed: valid is false`);
     }
     const decoded: any = jwt.verify(data.token, licenseKey, { algorithms: ['RS256'] });
     if (decoded.clientId !== clientId) {
-      addLog.error(`License verification failed: client is not matched!`);
+      logger.error(`License verification failed: client is not matched!`);
       return Promise.reject(`License verification failed: client is not matched!`);
     }
 
@@ -144,13 +146,13 @@ const fetchLicense = async (licenseKey: string, licenseServer: string, clientId:
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {
       const { status, data } = error.response;
-      addLog.error(`License API Error [${status}] : ${data.error || JSON.stringify(data)}`);
+      logger.error(`License API Error [${status}] : ${data.error || JSON.stringify(data)}`);
       return Promise.reject(
         `License API Error [${status}] : ${data.error || JSON.stringify(data)}`
       );
     }
     const errMsg = getErrText(error);
-    addLog.error(`License verification failed: ${errMsg}`);
+    logger.error(`License verification failed: ${errMsg}`);
     return Promise.reject(`License verification failed: ${errMsg}`);
   }
 };

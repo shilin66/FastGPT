@@ -11,10 +11,7 @@ import {
   Tr
 } from '@chakra-ui/react';
 import { formatNumber } from '@fastgpt/global/common/math/tools';
-import {
-  type TeamUsageItemType,
-  type UsageItemType
-} from '@fastgpt/global/support/wallet/usage/type';
+import { type TeamUsageItemType } from '@fastgpt/global/support/wallet/usage/type';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import dayjs from 'dayjs';
@@ -30,7 +27,7 @@ import type { TooltipProps } from 'recharts';
 import { Bar, Cell } from 'recharts';
 import { BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
-import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
+import { useRequest } from '@fastgpt/web/hooks/useRequest';
 
 export type teamUsageFormType = {
   teamName: string;
@@ -96,7 +93,7 @@ const TeamUsageTableList = ({
     refreshDeps: [requestParams]
   });
 
-  const { data: usageStatsData, loading: isLoadingStats } = useRequest2(
+  const { data: usageStatsData, loading: isLoadingStats } = useRequest(
     async () => usageStats({ dateStart: requestParams.dateStart, dateEnd: requestParams.dateEnd }),
     {
       manual: false,

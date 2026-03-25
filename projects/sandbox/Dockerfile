@@ -1,73 +1,59 @@
-# --------- install dependence -----------
-FROM python:3.11-alpine AS python_base
-# 安装make和g++以及libseccomp开发包
-RUN apk add --no-cache make g++ tar wget gperf automake libtool linux-headers libseccomp-dev
-
-WORKDIR /app
-COPY projects/sandbox/requirements.txt /app/requirements.txt
-
-# 先安装Cython和其他Python依赖
-RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple Cython && \
-    pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple -r /app/requirements.txt
-
-# 下载、编译并安装libseccomp及其Python绑定
-ENV VERSION_RELEASE=2.5.5
-RUN wget https://github.com/seccomp/libseccomp/releases/download/v2.5.5/libseccomp-2.5.5.tar.gz && \
-    tar -zxvf libseccomp-2.5.5.tar.gz && \
-    cd libseccomp-2.5.5 && \
-    ./configure --prefix=/usr && \
-    make && \
-    make install && \
-    cd src/python && \
-    python setup.py install && \
-    cd /app && \
-    rm -rf libseccomp-2.5.5 libseccomp-2.5.5.tar.gz
-
-
-FROM node:20.14.0-alpine AS install
-
+# --------- Build Stage -----------
+FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 
 ARG proxy
+
+# 安装 pnpm
+RUN apk add --no-cache nodejs npm && npm install -g pnpm@9
+
+# 复制 workspace 配置和依赖包
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/global ./packages/global
+COPY packages/service ./packages/service
+COPY projects/sandbox/ ./projects/sandbox/
+
 RUN [ -z "$proxy" ] || sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
-RUN apk add --no-cache make g++ python3
+RUN apk add --no-cache curl ca-certificates && update-ca-certificates
 
-# copy py3.11
-COPY --from=python_base /usr/local /usr/local
+# 安装所有依赖（包括 devDependencies 用于编译）
+RUN if [ -z "$proxy" ]; then \
+        pnpm install --frozen-lockfile --ignore-scripts; \
+    else \
+        pnpm install --frozen-lockfile --ignore-scripts --registry=https://registry.npmmirror.com; \
+    fi
 
-RUN npm install -g pnpm@9.4.0
-RUN [ -z "$proxy" ] || pnpm config set registry https://registry.npmmirror.com
+# 编译主入口文件
+RUN cd /app/projects/sandbox && pnpm build
 
-COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY ./projects/sandbox/package.json ./projects/sandbox/package.json
-
-RUN [ -f pnpm-lock.yaml ] || (echo "Lockfile not found." && exit 1)
-
-RUN pnpm i
-
-# --------- builder -----------
-FROM node:20.14.0-alpine AS builder
-
+# ===== Runner Stage =====
+FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 
-COPY package.json pnpm-workspace.yaml /app/
-COPY --from=install /app/node_modules /app/node_modules
-COPY ./projects/sandbox /app/projects/sandbox
-COPY --from=install /app/projects/sandbox /app/projects/sandbox
+ARG proxy
 
-RUN npm install -g pnpm@9.4.0
-RUN pnpm --filter=sandbox build
+# 复制编译产物（包含 worker 文件，不需要 node_modules）
+COPY --from=builder /app/projects/sandbox/dist /app/sandbox
 
-# --------- runner -----------
-FROM node:20.14.0-alpine AS runner
-WORKDIR /app
+RUN [ -z "$proxy" ] || sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 
-RUN apk add --no-cache libffi libffi-dev strace bash
-COPY --from=python_base /usr/local /usr/local
-COPY --from=builder /app/node_modules /app/node_modules
-COPY --from=builder /app/projects/sandbox /app/projects/sandbox
+# 安装 Python、依赖包及工具
+RUN apk add --no-cache python3 py3-pip libffi util-linux && \
+    apk add --no-cache --virtual .build-deps gcc g++ musl-dev python3-dev libffi-dev
+COPY projects/sandbox/requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt && \
+    rm /tmp/requirements.txt && \
+    apk del .build-deps
+
+
+# 创建非 root 用户运行沙箱
+RUN addgroup -S sandbox && adduser -S sandbox -G sandbox && \
+    chown -R sandbox:sandbox /app
+USER sandbox
 
 ENV NODE_ENV=production
-ENV PATH="/usr/local/bin:${PATH}"
+ENV SANDBOX_PORT=3000
 
-CMD ["node", "--no-node-snapshot", "projects/sandbox/dist/main.js"]
+EXPOSE 3000
+
+CMD ["bun", "/app/sandbox/index.js"]

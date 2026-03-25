@@ -10,7 +10,6 @@ import { useTextinServer } from '../../../thirdProvider/textin';
 import { readRawContentFromBuffer } from '../../../worker/function';
 import { uploadImage2S3Bucket } from '../../s3/utils';
 import { Mimes, S3Buckets } from '../../s3/constants';
-import { Mimes } from '../../s3/constants';
 import { getLogger, LogCategories } from '../../logger';
 
 const logger = getLogger(LogCategories.MODULE.DATASET.FILE);

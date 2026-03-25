@@ -11,7 +11,7 @@ import {
   Td,
   TableContainer
 } from '@chakra-ui/react';
-import type { TeamUsageItemType } from '@fastgpt/global/support/wallet/usage/type.d';
+import type { TeamUsageItemType } from '@fastgpt/global/support/wallet/usage/type';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import { useTranslation } from 'next-i18next';
 import { formatNumber } from '@fastgpt/global/common/math/tools';

@@ -26,7 +26,7 @@ import type { StoreSecretValueType } from '@fastgpt/global/common/secret/type';
 import { getLogger, LogCategories } from '../../../../common/logger';
 import { SERVICE_LOCAL_HOST } from '../../../../common/system/tools';
 import { formatHttpError } from '../utils';
-import { isInternalAddress } from '../../../../common/system/utils';
+import { isInternalAddress, PRIVATE_URL_TEXT } from '../../../../common/system/utils';
 import { serviceRequestMaxContentLength } from '../../../../common/system/constants';
 import { axios } from '../../../../common/api/axios';
 import qs from 'qs';
@@ -429,7 +429,7 @@ export const replaceJsonBodyString = (
       continue;
     }
 
-    const escapedPattern = `\\{\\{\\$(${nodeId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\$\\}\\}`;
+    const escapedPattern = `\\{\\{\\$${nodeId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\$\\}\\}`;
 
     replacements1.push({
       pattern: escapedPattern,
@@ -468,7 +468,7 @@ export const replaceJsonBodyString = (
     const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     replacements2.push({
-      pattern: `{{(${escapedKey})}}`,
+      pattern: `{{${escapedKey}}}`,
       replacement: formatVal
     });
 
@@ -503,7 +503,7 @@ async function fetchData({
   timeout: number;
 }) {
   if (await isInternalAddress(url)) {
-    return Promise.reject('Url is invalid');
+    return Promise.reject(PRIVATE_URL_TEXT);
   }
 
   const rawFlag = headers['x_ignore_ssl_err'];

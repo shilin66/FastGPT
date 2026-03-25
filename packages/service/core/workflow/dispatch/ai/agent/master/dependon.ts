@@ -334,8 +334,8 @@ ${stepPrompt}
       ? `\n\n<available_files>
 当前对话中用户已上传以下文件：
 ${Object.entries(filesMap)
-  .map(([index, url]) => {
-    const fileInfo = parseUrlToFileType(url);
+  .map(async ([index, url]) => {
+    const fileInfo = await parseUrlToFileType(url);
     return `- 文件${index}: ${fileInfo?.name || 'Unknown'} (类型: ${fileInfo?.type || 'file'})`;
   })
   .join('\n')}

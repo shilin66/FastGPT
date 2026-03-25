@@ -72,6 +72,8 @@ export type FastGPTFeConfigsType = {
   show_publish_dingtalk?: boolean;
   show_publish_wecom?: boolean;
   show_publish_offiaccount?: boolean;
+  show_publish_wechat?: boolean;
+  show_agent_sandbox?: boolean;
 
   show_dataset_enhance?: boolean;
   show_batch_eval?: boolean;
@@ -136,6 +138,9 @@ export type FastGPTFeConfigsType = {
 
   ip_whitelist?: string;
 
+  // tmp
+  agentSandboxFree?: boolean;
+
   autoIndexPrompt?: string;
   imageIndexPrompt?: string;
   imageParsePrompt?: string;
@@ -191,7 +196,16 @@ export type customDomainType = {
     volcengine?: string;
   };
 };
+export type GithubType = {
+  clientId: string;
+  clientSecret: string;
+};
 
+export type MicrosoftType = {
+  clientId: string;
+  tenantId: string;
+  clientSecret?: string;
+};
 export type customPdfParseType = {
   name: string;
   desc: string;

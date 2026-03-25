@@ -4,7 +4,7 @@ import z from 'zod';
 export const AppFileSelectConfigTypeSchema = z.object({
   maxFiles: z.number().optional(),
   canSelectFile: z.boolean().optional(),
-  customPdfParse: z.boolean().optional(),
+  customPdfParse: z.string().optional(),
   canSelectImg: z.boolean().optional(),
   canSelectVideo: z.boolean().optional(),
   canSelectAudio: z.boolean().optional(),

@@ -183,7 +183,7 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
     const sso = oAuthList.find((item) => item.provider === OAuthEnum.sso);
     // sso auto login
     if (sso && (feConfigs?.sso?.autoLogin || isWecomWorkTerminal)) onClickOauth(sso);
-    if (feConfigs.oauth?.wecom && isWecomWorkTerminal) {
+    if (feConfigs.oauth?.wechat && isWecomWorkTerminal) {
       onClickOauth({
         provider: OAuthEnum.wecom
       } as any);
@@ -194,7 +194,7 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
     isWecomWorkTerminal,
     onClickOauth,
     oAuthList,
-    feConfigs.oauth?.wecom
+    feConfigs.oauth?.wechat
   ]);
 
   return (

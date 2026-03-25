@@ -1,10 +1,9 @@
 import type { NextConfig } from 'next';
 import path from 'path';
 import withBundleAnalyzerInit from '@next/bundle-analyzer';
+import withRspack from 'next-rspack';
 
-const withBundleAnalyzer = withBundleAnalyzerInit({
-  enabled: process.env.ANALYZE === 'true'
-});
+const withBundleAnalyzer = withBundleAnalyzerInit({ enabled: process.env.ANALYZE === 'true' });
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -16,7 +15,7 @@ const nextConfig: NextConfig = {
     localeDetection: false
   },
   output: 'standalone',
-  // 开发环境关闭 strict mode，避免第三方库的双重渲染问题
+  // 关闭 strict mode，避免第三方库的双重渲染问题
   reactStrictMode: !isDev,
   productionBrowserSourceMaps: false,
   async headers() {
@@ -55,19 +54,66 @@ const nextConfig: NextConfig = {
       {
         module: /@scalar\/api-reference-react/,
         message: /autoprefixer/
+      },
+      {
+        module: /any-promise[\\/]register\.js$/,
+        message: /Critical dependency: the request of a dependency is an expression/
+      },
+      {
+        module: /bullmq[\\/]dist[\\/](cjs|esm)[\\/]classes[\\/]child-processor\.js$/,
+        message: /Critical dependency: the request of a dependency is an expression/
+      },
+      {
+        module: /@fastgpt-sdk[\\/]sandbox-adapter[\\/]/,
+        message: /Critical dependency/
       }
     ];
 
     Object.assign(config.resolve!.alias, {
       '@mongodb-js/zstd': false,
       '@aws-sdk/credential-providers': false,
+      'gcp-metadata': false,
       snappy: false,
       aws4: false,
       'mongodb-client-encryption': false,
       kerberos: false,
       'supports-color': false,
       'bson-ext': false,
-      'pg-native': false
+      'pg-native': false,
+      ...(isDev &&
+        (() => {
+          // In dev, fastgpt-pro + FastGPT nested pnpm workspaces create two separate .pnpm stores,
+          // causing duplicate module instances (React, Lexical, etc.) and runtime errors like
+          // "Cannot read properties of null (reading 'useContext')" or
+          // "Unable to find an active editor state".
+          // Force all shared packages to resolve from this project's node_modules.
+          const resolve = (pkg: string) => {
+            try {
+              return path.dirname(require.resolve(`${pkg}/package.json`, { paths: [__dirname] }));
+            } catch {
+              return undefined;
+            }
+          };
+          const dups = [
+            'react',
+            'react-dom',
+            'lexical',
+            '@lexical/react',
+            '@lexical/code',
+            '@lexical/list',
+            '@lexical/markdown',
+            '@lexical/rich-text',
+            '@lexical/selection',
+            '@lexical/text',
+            '@lexical/utils',
+            '@chakra-ui/react',
+            '@chakra-ui/system',
+            '@emotion/react',
+            '@emotion/styled',
+            'use-context-selector'
+          ];
+          return Object.fromEntries(dups.map((pkg) => [pkg, resolve(pkg)]).filter(([, v]) => v));
+        })())
     });
 
     config.module = {
@@ -88,18 +134,34 @@ const nextConfig: NextConfig = {
     }
 
     if (isServer) {
-      (config.externals as string[]).push('@node-rs/jieba');
+      config.externals.push({
+        '@node-rs/jieba': '@node-rs/jieba'
+      });
     }
 
     config.experiments = {
-      asyncWebAssembly: true,
-      layers: true
+      ...config.experiments,
+      asyncWebAssembly: true
     };
 
     if (isDev && !isServer) {
+      config.devtool = 'cheap-module-source-map';
+
       config.watchOptions = {
         ...config.watchOptions,
-        ignored: ['**/node_modules', '**/.git', '**/dist', '**/coverage']
+        ignored: [
+          '**/node_modules',
+          '**/.git',
+          '**/dist',
+          '**/coverage',
+          '../../packages/**/node_modules',
+          '../../packages/**/dist',
+          '**/.next',
+          '**/out'
+        ],
+        // 减少轮询频率，降低 CPU 和内存占用
+        poll: 1000,
+        aggregateTimeout: 300
       };
     }
 
@@ -120,16 +182,44 @@ const nextConfig: NextConfig = {
       '@chakra-ui/react',
       '@chakra-ui/icons',
       'lodash',
-      'date-fns',
       'ahooks',
       'framer-motion',
       '@emotion/react',
-      '@emotion/styled'
+      '@emotion/styled',
+      'react-syntax-highlighter',
+      'recharts',
+      '@tanstack/react-query',
+      'react-hook-form',
+      'react-markdown'
     ],
     // 按页面拆分 CSS chunk，减少首屏 CSS 体积
-    cssChunking: 'strict'
+    cssChunking: 'strict',
+    // 减少内存占用
+    memoryBasedWorkersCount: true
   },
-  outputFileTracingRoot: path.join(__dirname, '../../')
+  outputFileTracingRoot: path.join(__dirname, '../../'),
+  // Exclude build-time-only packages from standalone output file tracing
+  outputFileTracingExcludes: {
+    '*': [
+      // Rspack bindings - only used in dev, not needed at runtime
+      'node_modules/@next/rspack-binding-*/**',
+      'node_modules/@rspack/binding-*/**',
+      'node_modules/next-rspack/**',
+      // GNU platform binaries - Alpine uses musl only
+      'node_modules/**/*-linux-x64-gnu*/**',
+      // typescript - build-time only
+      'node_modules/typescript/**',
+      // sharp libvips GNU variant (keep musl)
+      'node_modules/@img/sharp-libvips-linux-x64/**',
+      // bundle-analyzer - build-time only
+      'node_modules/@next/bundle-analyzer/**',
+      'node_modules/webpack-bundle-analyzer/**'
+    ]
+  }
 };
 
-export default withBundleAnalyzer(nextConfig);
+const configWithPluginsExceptWithRspack = withBundleAnalyzer(nextConfig);
+
+export default isDev
+  ? withRspack(configWithPluginsExceptWithRspack)
+  : configWithPluginsExceptWithRspack;
