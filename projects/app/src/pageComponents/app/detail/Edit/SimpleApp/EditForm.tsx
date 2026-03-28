@@ -93,10 +93,7 @@ const EditForm = ({
   const formatVariables = useMemo(
     () =>
       formatEditorVariablePickerIcon([
-        ...workflowSystemVariables.filter(
-          (variable) =>
-            !['appId', 'chatId', 'responseChatItemId', 'histories'].includes(variable.key)
-        ),
+        ...workflowSystemVariables.filter((variable) => !['histories'].includes(variable.key)),
         ...(appForm.chatConfig.variables || [])
       ]).map((item) => ({
         ...item,
