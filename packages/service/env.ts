@@ -10,11 +10,22 @@ const LogLevelSchema = z.enum(['trace', 'debug', 'info', 'warning', 'error', 'fa
 
 export const env = createEnv({
   server: {
+    // ===== Agent sandbox =====
     AGENT_SANDBOX_PROVIDER: z.enum(['sealosdevbox', 'opensandbox', 'e2b']).optional(),
     AGENT_SANDBOX_SEALOS_BASEURL: z.string().url().optional(),
     AGENT_SANDBOX_SEALOS_TOKEN: z.string().optional(),
+
     AGENT_SANDBOX_OPENSANDBOX_BASEURL: z.string().url().optional(),
-    AGENT_SANDBOX_OPENSANDBOX_TOKEN: z.string().optional(),
+    AGENT_SANDBOX_OPENSANDBOX_API_KEY: z.string().optional(),
+    AGENT_SANDBOX_OPENSANDBOX_RUNTIME: z.enum(['docker', 'kubernetes']).default('docker'),
+    AGENT_SANDBOX_OPENSANDBOX_IMAGE_REPO: z.string().optional(),
+    AGENT_SANDBOX_OPENSANDBOX_IMAGE_TAG: z.string().default('latest'),
+    AGENT_SANDBOX_OPENSANDBOX_USE_SERVER_PROXY: BoolSchema.default(true),
+    AGENT_SANDBOX_ENABLE_VOLUME: BoolSchema.default(false),
+    AGENT_SANDBOX_VOLUME_MANAGER_URL: z.string().url().optional(),
+    AGENT_SANDBOX_VOLUME_MANAGER_TOKEN: z.string().optional(),
+    AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH: z.string().default('/workspace'),
+
     AGENT_SANDBOX_E2B_API_KEY: z.string().optional(),
 
     LOG_ENABLE_CONSOLE: BoolSchema.default(true),
@@ -25,14 +36,17 @@ export const env = createEnv({
     LOG_OTEL_URL: z.url().optional(),
 
     METRICS_ENABLE_OTEL: BoolSchema.default(false),
-    METRICS_EXPORT_INTERVAL: z.coerce.number().int().positive().default(15000),
+    METRICS_EXPORT_INTERVAL: z.coerce.number().int().positive().default(30000),
     METRICS_OTEL_SERVICE_NAME: z.string().default('fastgpt-client'),
     METRICS_OTEL_URL: z.url().optional(),
 
     TRACING_ENABLE_OTEL: BoolSchema.default(false),
     TRACING_OTEL_SERVICE_NAME: z.string().default('fastgpt-client'),
     TRACING_OTEL_URL: z.url().optional(),
-    TRACING_OTEL_SAMPLE_RATIO: z.coerce.number().min(0).max(1).optional()
+    TRACING_OTEL_SAMPLE_RATIO: z.coerce.number().min(0).max(1).optional(),
+
+    APP_FOLDER_MAX_AMOUNT: z.coerce.number().int().positive().default(1000),
+    DATASET_FOLDER_MAX_AMOUNT: z.coerce.number().int().positive().default(1000)
   },
   emptyStringAsUndefined: true,
   runtimeEnv: process.env,

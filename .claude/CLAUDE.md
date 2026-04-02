@@ -5,11 +5,12 @@
 ## 输出要求
 
 1. 输出语言：中文
-2. 输出的设计文档位置：.claude/design，问题分析文档位置: .claude/issue，以 Markdown 文件为主。
-3. 输出 Plan 时，均需写入 .claude/plan 目录下，以 Markdown 文件为主。
-4. 相同需求文档，尽量写在一起（内容超过 300 行，可以分批写入），或者创建要给目录一起管理，不要随意平铺一堆不同版本的相同问题的文档。
-5. 文件输出，使用正确的编码格式，例如UTF-8。
-6. 如果用户未指明，不要随意编写总结报告。
+2. 输出文档位置:
+   1. 设计文档：.claude/design，todo 跟在设计文档后面。
+   2. 问题分析文档: .claude/issue
+3. 相同需求文档，尽量写在一起（内容超过 300 行，可以分批写入），或者创建要给目录一起管理，不要随意平铺一堆不同版本的相同问题的文档。
+4. 文件输出，使用正确的编码格式，例如UTF-8。
+5. 如果用户未指明，不要随意编写总结报告。
 
 ## 项目概述
 
@@ -29,7 +30,7 @@ FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据�
 
 ### Projects (应用程序)
 - `projects/app/` - 主 NextJS Web 应用(前端 + API 路由)
-- `projects/sandbox/` - NestJS 代码执行沙箱服务
+- `projects/code-sandbox/` - Bun + Hono 代码执行沙箱服务
 - `projects/mcp_server/` - Model Context Protocol 服务器实现
 
 ### 关键目录
@@ -54,10 +55,10 @@ FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据�
 - `cd projects/app && pnpm build` - 构建 NextJS 应用
 - `cd projects/app && pnpm start` - 启动生产服务器
 
-**沙箱 (projects/sandbox/)**:
-- `cd projects/sandbox && pnpm dev` - 以监视模式启动 NestJS 开发服务器
-- `cd projects/sandbox && pnpm build` - 构建 NestJS 应用
-- `cd projects/sandbox && pnpm test` - 运行 Jest 测试
+**代码沙箱 (projects/code-sandbox/)**:
+- `cd projects/code-sandbox && pnpm dev` - 以监视模式启动（Bun）
+- `cd projects/code-sandbox && pnpm build` - 构建沙箱服务
+- `cd projects/code-sandbox && pnpm test` - 运行 Vitest 测试
 
 **MCP 服务器 (projects/mcp_server/)**:
 - `cd projects/mcp_server && bun dev` - 使用 Bun 以监视模式启动

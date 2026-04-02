@@ -41,7 +41,7 @@ const CreateModal = ({
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
-  const { defaultModels, embeddingModelList, datasetModelList, getVlmModelList } = useSystemStore();
+  const { defaultModels, embeddingModelList, llmModelList, getVlmModelList } = useSystemStore();
   const { isPc } = useSystem();
 
   const filterNotHiddenVectorModelList = embeddingModelList.filter((item) => !item.hidden);
@@ -57,8 +57,7 @@ const CreateModal = ({
       intro: '',
       vectorModel:
         defaultModels.embedding?.model || getWebDefaultEmbeddingModel(embeddingModelList)?.model,
-      agentModel:
-        defaultModels.datasetTextLLM?.model || getWebDefaultLLMModel(datasetModelList)?.model,
+      agentModel: defaultModels.datasetTextLLM?.model || getWebDefaultLLMModel(llmModelList)?.model,
       vlmModel: defaultModels.datasetImageLLM?.model
     }
   });
@@ -206,7 +205,7 @@ const CreateModal = ({
             <AIModelSelector
               w={['100%', '300px']}
               value={agentModel}
-              list={datasetModelList.map((item) => ({
+              list={llmModelList.map((item) => ({
                 label: item.name,
                 value: item.model
               }))}

@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { BoxProps } from '@chakra-ui/react';
-import { Box, Card, Flex, Portal, useOutsideClick } from '@chakra-ui/react';
+import { Box, Card, Flex, Portal } from '@chakra-ui/react';
 import { format } from 'date-fns';
-import type { Matcher } from 'react-day-picker';
-import { DayPicker } from 'react-day-picker';
+import { DayPicker, type Matcher } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import MyIcon from '../Icon';
@@ -137,23 +136,45 @@ const DateTimePicker = ({
             top={`${position.top}px`}
             left={`${position.left}px`}
             zIndex={1500}
-            css={{
-              '--rdp-background-color': '#d6e8ff',
-              '--rdp-accent-color': '#0000ff'
-            }}
+            p={3}
           >
-            <DayPicker
-              locale={zhCN}
-              mode="single"
-              defaultMonth={selectedDate}
-              selected={selectedDate}
-              disabled={disabled}
-              onSelect={(date) => {
-                setSelectedDate(date);
-                onChange?.(date);
-                setShowSelected(false);
+            <Box
+              sx={{
+                '.rdp-day_button:hover:not(:disabled)': {
+                  backgroundColor: '#E1EAFF'
+                },
+                '.rdp-selected .rdp-day_button': {
+                  backgroundColor: '#3370FF',
+                  color: 'white',
+                  border: 'none'
+                },
+                '.rdp-selected .rdp-day_button:hover': {
+                  backgroundColor: '#2860E0'
+                },
+                '.rdp-button_previous:hover, .rdp-button_next:hover': {
+                  backgroundColor: '#F0F4FF',
+                  borderRadius: '6px'
+                }
               }}
-            />
+            >
+              <DayPicker
+                locale={zhCN}
+                mode="single"
+                style={
+                  {
+                    '--rdp-accent-color': '#3370FF'
+                  } as React.CSSProperties
+                }
+                defaultMonth={selectedDate}
+                selected={selectedDate}
+                disabled={disabled}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  onChange?.(date);
+                  setShowSelected(false);
+                }}
+              />
+            </Box>
           </Card>
         </Portal>
       )}

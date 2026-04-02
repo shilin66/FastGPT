@@ -11,6 +11,8 @@ x-system-key: &x-system-key 'fastgpt-xxx'
 x-plugin-auth-token: &x-plugin-auth-token 'token'
 # code sandbox token
 x-code-sandbox-token: &x-code-sandbox-token 'codesandbox'
+# volume manager auth token
+x-volume-manager-auth-token: &x-volume-manager-auth-token 'vmtoken'
 # aiproxy token
 x-aiproxy-token: &x-aiproxy-token 'token'
 # 数据库连接相关配置
@@ -43,7 +45,6 @@ x-vec-config: &x-vec-config
   MILVUS_TOKEN: none
     
 
-version: '3.3'
 services:
   # Vector DB
   milvus-minio:
@@ -189,9 +190,9 @@ services:
       timeout: 20s
       retries: 3
 
-  fastgpt:
-    container_name: fastgpt
-    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt:v4.14.9.1 # git
+  fastgpt-app:
+    container_name: fastgpt-app
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt:v4.14.10 
     ports:
       - 3000:3000
     networks:
@@ -227,12 +228,25 @@ services:
       PLUGIN_BASE_URL: http://fastgpt-plugin:3000
       PLUGIN_TOKEN: *x-plugin-auth-token
       # code-sandbox 地址
-      SANDBOX_URL: http://code-sandbox:3000
-      SANDBOX_TOKEN: *x-code-sandbox-token
+      CODE_SANDBOX_URL: http://code-sandbox:3000
+      CODE_SANDBOX_TOKEN: *x-code-sandbox-token
       # AI Proxy 的地址，如果配了该地址，优先使用
       AIPROXY_API_ENDPOINT: http://aiproxy:3000
       # AI Proxy 的 Admin Token，与 AI Proxy 中的环境变量 ADMIN_KEY
       AIPROXY_API_TOKEN: *x-aiproxy-token
+
+      # ==================== Agent sandbox 配置 ====================
+      AGENT_SANDBOX_PROVIDER: opensandbox
+      # OpenSandbox 配置（PROVIDER: opensandbox 时生效）
+      AGENT_SANDBOX_OPENSANDBOX_BASEURL: http://opensandbox-server:8090
+      AGENT_SANDBOX_OPENSANDBOX_API_KEY:
+      AGENT_SANDBOX_OPENSANDBOX_RUNTIME: docker
+      AGENT_SANDBOX_OPENSANDBOX_IMAGE_REPO: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-agent-sandbox
+      AGENT_SANDBOX_OPENSANDBOX_IMAGE_TAG: v0.1
+      # Volume 持久化配置（opensandbox provider 下可选）
+      AGENT_SANDBOX_ENABLE_VOLUME: true
+      AGENT_SANDBOX_VOLUME_MANAGER_URL: http://volume-manager:3000
+      AGENT_SANDBOX_VOLUME_MANAGER_TOKEN: *x-volume-manager-auth-token
 
       # ==================== 日志与监控 ====================
       # 传递给 OTLP 收集器的服务名称
@@ -265,7 +279,7 @@ services:
       - ./config.json:/app/data/config.json
   code-sandbox:
     container_name: code-sandbox
-    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-sandbox:v4.14.9.1
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-code-sandbox:v4.14.10
     networks:
       - fastgpt
     restart: always
@@ -310,7 +324,7 @@ services:
       retries: 3
   fastgpt-mcp-server:
     container_name: fastgpt-mcp-server
-    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-mcp_server:v4.14.9.1
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-mcp_server:v4.14.10
     networks:
       - fastgpt
     ports:
@@ -318,9 +332,9 @@ services:
     restart: always
     environment:
       <<: [*x-log-config]
-      FASTGPT_ENDPOINT: http://fastgpt:3000
+      FASTGPT_ENDPOINT: http://fastgpt-app:3000
   fastgpt-plugin:
-    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-plugin:v0.5.5
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-plugin:v0.5.6
     container_name: fastgpt-plugin
     restart: always
     networks:
@@ -342,6 +356,61 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+
+  # 沙盒控制器：管理 Docker 容器的创建/执行/停止/删除
+  # runtime=docker 模式需要挂载 Docker socket
+  # 配置 docker.host_ip 为宿主机 LAN IP（容器内访问宿主机服务用）
+  opensandbox-server:
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/opensandbox-server:v0.1.9
+    container_name: opensandbox-server
+    restart: always
+    networks:
+      - fastgpt
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Docker 模式必须挂载
+    configs:
+      - source: opensandbox-config
+        target: /etc/opensandbox/config.toml
+    environment:
+      SANDBOX_CONFIG_PATH: /etc/opensandbox/config.toml
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8090/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  # 卷管理微服务：负责幂等创建/删除 Docker named volume 或 k8s PVC
+  volume-manager:
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-agent-volume-manager:v0.1
+    container_name: volume-manager
+    restart: always
+    networks:
+      - fastgpt
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Docker 模式必须挂载（只读即可）
+    environment:
+      PORT: 3000
+      VM_RUNTIME: docker
+      VM_AUTH_TOKEN: *x-volume-manager-auth-token # 对应 AGENT_SANDBOX_VOLUME_MANAGER_TOKEN
+      VM_VOLUME_NAME_PREFIX: fastgpt-session # volume 名称前缀
+      VM_LOG_LEVEL: info
+      VM_DOCKER_API_VERSION: v1.44
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'bun',
+          '-e',
+          "fetch('http://localhost:3000/health').then((res) => { if (!res.ok) throw new Error(String(res.status)); })"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  # Pre-pull only: not started by `docker compose up` (uses profile `prepull`).
+  agent-sandbox-image:
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-agent-sandbox:v0.1
+    profiles:
+      - prepull
+
   # AI Proxy
   aiproxy:
     image: registry.cn-hangzhou.aliyuncs.com/labring/aiproxy:v0.3.5
@@ -394,3 +463,24 @@ networks:
   aiproxy:
   vector:
 
+configs:
+  opensandbox-config:
+    content: |
+      [server]
+      host = "0.0.0.0"
+      port = 8090
+      log_level = "INFO"
+
+      [runtime]
+      type = "docker"
+       execd_image = "sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/execd:v1.0.6"
+
+      [egress]
+      image = "sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/egress:v1.0.1"
+
+      [docker]
+      network_mode = "bridge"
+      # 容器内访问宿主机服务时需要设置为宿主机 IP 或 hostname
+      # macOS/Windows: host.docker.internal；Linux: 宿主机 LAN IP（如 192.168.1.100）
+      host_ip = "host.docker.internal"
+  

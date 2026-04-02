@@ -35,8 +35,8 @@ import type { RerankModelItemType } from '@fastgpt/global/core/ai/model.schema';
 import { formatDatasetDataValue } from '../data/controller';
 import { pushTrack } from '../../../common/middle/tracks/utils';
 import { replaceS3KeyToPreviewUrl } from '../../../core/dataset/utils';
+import { addDays } from 'date-fns';
 import { DatasetDataIndexTypeEnum } from '@fastgpt/global/core/dataset/data/constants';
-import { addDays, addHours } from 'date-fns';
 import { getLogger, LogCategories } from '../../../common/logger';
 
 const logger = getLogger(LogCategories.MODULE.DATASET.DATA);
@@ -113,7 +113,7 @@ export const datasetDataReRank = async ({
     query,
     documents: data.map((item) => ({
       id: item.id,
-      text: `${item.q}\n${item.a}`
+      text: `${item.q}\n${item.a}`.trim()
     }))
   });
 
