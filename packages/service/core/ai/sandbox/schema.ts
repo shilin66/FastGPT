@@ -44,11 +44,17 @@ const SandboxInstanceSchema = new Schema({
   },
   limit: {
     type: SandboxLimitSchema.shape
+  },
+  storage: {
+    type: Schema.Types.Mixed
+  },
+  metadata: {
+    type: Schema.Types.Mixed
   }
 });
 
 SandboxInstanceSchema.index(
-  { appId: 1, userId: 1, chatId: 1 },
+  { provider: 1, appId: 1, userId: 1, chatId: 1 },
   {
     unique: true,
     partialFilterExpression: {

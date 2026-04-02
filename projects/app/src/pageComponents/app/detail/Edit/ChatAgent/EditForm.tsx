@@ -61,7 +61,7 @@ const EditForm = ({
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
   const { teamPlanStatus } = useUserStore();
-  const enableSandbox = teamPlanStatus?.standard?.enableSandbox;
+  const enableSandbox = !teamPlanStatus?.standard || !!teamPlanStatus?.standard?.enableSandbox;
   const showSandbox = feConfigs.show_agent_sandbox;
 
   const selectDatasets = useMemo(() => appForm?.dataset?.datasets, [appForm]);
@@ -155,7 +155,6 @@ const EditForm = ({
             <Box flex={'1 0 0'}>
               <SettingLLMModel
                 bg="myGray.50"
-                llmModelType={'all'}
                 defaultData={{
                   model: appForm.aiSettings.model
                   // temperature: appForm.aiSettings.temperature,
