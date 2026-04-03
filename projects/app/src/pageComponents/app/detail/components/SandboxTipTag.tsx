@@ -9,8 +9,8 @@ const SandboxTipTag = () => {
 
   const showSandboxTip = feConfigs.show_agent_sandbox;
   if (!showSandboxTip) return null;
-
-  return <MyTag>{t('app:sandbox_free_tip')}</MyTag>;
+  return null;
+  // return <MyTag>{t('app:sandbox_free_tip')}</MyTag>;
 };
 
 export default SandboxTipTag;

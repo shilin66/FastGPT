@@ -58,7 +58,7 @@ export const postSimpleRegister = ({
   username: string;
   password: string;
 }) =>
-  POST<LoginSuccessResponse>(`support/user/account/register/simple`, {
+  POST<LoginSuccessResponseType>(`support/user/account/register/simple`, {
     username,
     password: hashStr(password)
   });

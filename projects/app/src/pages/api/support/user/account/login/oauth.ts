@@ -4,7 +4,6 @@ import {
   createUserWithDefaultTeamAndPermission,
   getUserDetail
 } from '@fastgpt/service/support/user/controller';
-import type { OauthLoginProps } from '@fastgpt/global/support/user/api';
 import axios from 'axios';
 import { MongoUser } from '@fastgpt/service/support/user/schema';
 import type { Configuration } from '@azure/msal-node';
@@ -14,11 +13,12 @@ import { createUserSession } from '@fastgpt/service/support/user/session';
 import requestIp from 'request-ip';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import { setCookie } from '@fastgpt/service/support/permission/auth/common';
+import type { OauthLoginBodyType } from '@fastgpt/global/openapi/support/user/account/login/api';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     // await connectToDatabase();
-    const { props, callbackUrl, type } = req.body as OauthLoginProps;
+    const { props, callbackUrl, type } = req.body as OauthLoginBodyType;
     let username;
     switch (type) {
       case OAuthEnum.github:
