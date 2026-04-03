@@ -116,6 +116,7 @@ export const dispatchRunAppNode = async (props: Props): Promise<Response> => {
         histories: chatHistories,
         uid: props.uid,
         chatConfig,
+        runningUserInfo: await getRunningUserInfoByTmbId(appData.tmbId),
         variables: childrenAppVariables
       })),
       ...(externalProvider ? externalProvider.externalWorkflowVariables : {})

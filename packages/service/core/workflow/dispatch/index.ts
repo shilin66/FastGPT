@@ -258,6 +258,7 @@ export async function dispatchWorkFlow({
     ...(await getSystemVariables({
       runningAppInfo: runningAppInfo,
       chatId: chatId,
+      runningUserInfo,
       responseChatItemId: data.responseChatItemId,
       histories: histories,
       uid: data.uid,

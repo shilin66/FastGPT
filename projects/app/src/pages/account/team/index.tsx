@@ -126,7 +126,7 @@ const Team = () => {
             </Flex>
             <Flex align={'center'} justify={'center'} ml={2} p={'0.44rem'}>
               <MyIcon
-                name="common/addCircleLight"
+                name={'common/addCircleLight'}
                 w="18px"
                 cursor="pointer"
                 _hover={{

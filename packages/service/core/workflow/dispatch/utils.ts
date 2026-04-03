@@ -40,6 +40,7 @@ import { getSystemTime } from '@fastgpt/global/common/time/timezone';
 export const getSystemVariables = async ({
   timezone,
   runningAppInfo,
+  runningUserInfo,
   chatId,
   responseChatItemId,
   histories = [],
@@ -48,6 +49,7 @@ export const getSystemVariables = async ({
   variables
 }: {
   runningAppInfo: ChatDispatchProps['runningAppInfo'];
+  runningUserInfo: ChatDispatchProps['runningUserInfo'];
   chatId: ChatDispatchProps['chatId'];
   responseChatItemId: ChatDispatchProps['responseChatItemId'];
   histories: ChatDispatchProps['histories'];
@@ -93,6 +95,7 @@ export const getSystemVariables = async ({
     // System var:
     userId: uid,
     appId: String(runningAppInfo.id),
+    memberName: runningUserInfo?.memberName || '',
     chatId,
     responseChatItemId,
     histories,
