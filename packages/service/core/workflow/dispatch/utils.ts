@@ -301,17 +301,19 @@ export const runtimeSystemVar2StoreType = ({
           try {
             const urlObj = new URL(url);
             // Extract key: remove bucket prefix (e.g., "/fastgpt-private/")
-            const key = decodeURIComponent(urlObj.pathname.replace(/^\/[^/]+\//, ''));
+            const key = decodeURIComponent(
+              urlObj.pathname.replace('/api/common/s3/proxy', '').replace(/^\/[^/]+\//, '')
+            );
             const filename = path.basename(key) || 'file';
             const extname = path.extname(key).toLowerCase(); // includes the dot, e.g., ".jpg"
-
+            const cleaned = filename.replace(/_[^_]+(?=\.[^.]+$)/, '');
             // Check if it's an image type
             const isImage = extname && imageFileType.includes(extname);
 
             return {
               id: path.basename(key, path.extname(key)), // filename without extension
               key,
-              name: filename
+              name: cleaned
             };
           } catch {
             return null;
