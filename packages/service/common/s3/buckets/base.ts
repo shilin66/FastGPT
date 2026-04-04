@@ -317,12 +317,16 @@ export class S3BaseBucket {
       : decodeURIComponent(decodedFilename);
     const extension = parseFileExtensionFromUrl(filename);
     const contentType: string = metadataResponse.contentType || 'application/octet-stream';
+    const uploadTime: string = metadataResponse.metadata.uploadTime || '';
+    const originFileUploadTime: string = metadataResponse.metadata.originFileUploadTime || '';
 
     return {
       filename,
       extension,
       contentType,
-      contentLength
+      contentLength,
+      uploadTime,
+      originFileUploadTime
     };
   }
 
