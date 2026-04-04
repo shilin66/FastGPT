@@ -20,8 +20,33 @@ export class S3ChatSource extends S3PrivateBucket {
 
   static parseChatUrl(url: string | URL) {
     try {
-      const parseUrl = new URL(url);
-      const pathname = decodeURIComponent(parseUrl.pathname);
+      let pathname: string;
+
+      if (typeof url === 'string') {
+        // 处理代理 URL 格式：/api/common/s3/proxy/{bucket}/{encoded_key}
+        if (url.startsWith('/api/common/s3/proxy/')) {
+          const withoutProxy = url.replace('/api/common/s3/proxy', '');
+          // 提取 bucket 后的部分（跳过 bucket 名称）
+          const slashIndex = withoutProxy.indexOf('/');
+          if (slashIndex === -1) {
+            return {
+              filename: '',
+              extension: '',
+              imageParsePrefix: ''
+            };
+          }
+          // const encodedKey = withoutProxy.substring(slashIndex + 1);
+          // 解码 URL 编码的 key
+          pathname = decodeURIComponent(withoutProxy);
+        } else {
+          // 尝试作为完整 URL 解析
+          const urlObj = new URL(url);
+          pathname = decodeURIComponent(urlObj.pathname);
+        }
+      } else {
+        // 已经是 URL 对象
+        pathname = decodeURIComponent(url.pathname);
+      }
       // 非 S3 key
       if (!pathname.startsWith(`/${S3Buckets.private}/${S3Sources.chat}/`)) {
         return {
@@ -33,9 +58,10 @@ export class S3ChatSource extends S3PrivateBucket {
 
       const filename = pathname.split('/').pop() || 'file';
       const extension = path.extname(filename);
-
+      // 去掉下划线及其后面的部分，保留原始扩展名
+      const cleaned = filename.replace(/_[^_]+(?=\.[^.]+$)/, '');
       return {
-        filename,
+        filename: cleaned,
         extension: extension.replace('.', ''),
         imageParsePrefix: `${pathname.replace(`/${S3Buckets.private}/`, '').replace(extension, '')}-parsed`
       };

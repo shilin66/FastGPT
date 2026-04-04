@@ -22,6 +22,7 @@ import { S3Buckets } from '../../../../common/s3/constants';
 import { S3Sources } from '../../../../common/s3/type';
 import { getS3RawTextSource } from '../../../../common/s3/sources/rawText';
 import { getLogger, LogCategories } from '../../../../common/logger';
+import metadata from 'next/dist/server/typescript/rules/metadata';
 
 const logger = getLogger(LogCategories.MODULE.WORKFLOW.TOOLS);
 
@@ -35,19 +36,25 @@ type Response = DispatchNodeResultType<{
 
 const formatResponseObject = ({
   filename,
+  metadata,
   url,
   content
 }: {
   filename: string;
+  metadata?: string;
   url: string;
   content: string;
 }) => ({
   filename,
   url,
-  text: `File: ${filename}
-<Content>
+  text: `  <File>
+    <Metadata>
+${metadata}
+    </Metadata>
+    <Content>
 ${content}
-</Content>`,
+    </Content>
+  </File>`,
   nodeResponsePreviewText: `File: ${filename}
 <Content>
 ${content.slice(0, 100)}${content.length > 100 ? '......' : ''}
@@ -172,20 +179,28 @@ export const getFileContentFromLinks = async ({
 
   const readFilesResult = await Promise.all(
     parseUrlList
-      .map(async (url) => {
+      .map(async (url, index) => {
         // Get from buffer
         const rawTextBuffer = await getS3RawTextSource().getRawTextBuffer({
           sourceId: url,
           customPdfParse
         });
+        const fullUrl = url.startsWith('/')
+          ? `${process.env.FE_DOMAIN || process.env.FILE_DOMAIN || ''}${process.env.NEXT_PUBLIC_BASE_URL || ''}${url}`
+          : url;
         if (rawTextBuffer) {
+          const metadata = `index:${index + 1}
+filename: ${rawTextBuffer.filename || url}
+uploadTime: ${rawTextBuffer.originFileUploadTime || ''}
+url:${fullUrl}
+`;
           return formatResponseObject({
             filename: rawTextBuffer.filename || url,
+            metadata,
             url,
             content: rawTextBuffer.text
           });
         }
-
         try {
           if (await isInternalAddress(url)) {
             return Promise.reject(PRIVATE_URL_TEXT);
@@ -200,8 +215,8 @@ export const getFileContentFromLinks = async ({
           const buffer = Buffer.from(response.data, 'binary');
 
           const urlObj = new URL(url, 'http://localhost:3000');
-          const isChatExternalUrl = !urlObj.pathname.startsWith(
-            `/${S3Buckets.private}/${S3Sources.chat}/`
+          const isChatExternalUrl = !urlObj.pathname.includes(
+            `/${S3Buckets.private}/${S3Sources.chat}`
           );
 
           // Get file name
@@ -262,7 +277,38 @@ export const getFileContentFromLinks = async ({
 
             return detectFileEncoding(buffer);
           })();
+          // Get actual file upload time from headers or S3 metadata
+          const getActualUploadTime = async (): Promise<string> => {
+            if (isChatExternalUrl) {
+              // For external URLs, try to get Last-Modified header
+              const lastModified = response.headers['last-modified'];
+              if (lastModified) {
+                return new Date(lastModified).toISOString();
+              }
+            } else {
+              // For S3 chat files, get metadata from S3
+              try {
+                const urlObj = new URL(url, 'http://localhost:3000');
+                // Remove proxy prefix and decode to get the actual S3 key
+                const pathnameWithoutProxy = urlObj.pathname.replace('/api/common/s3/proxy/', '');
+                // Split by '/' to get bucket name and object key
+                const pathSegments = pathnameWithoutProxy.split('/');
+                // Skip the first segment (bucket name) and join the rest as the object key
+                const s3Key = decodeURIComponent(pathSegments.slice(1).join('/'));
+                const s3ChatSource = new S3ChatSource();
+                const metadata = await s3ChatSource.getFileMetadata(s3Key);
+                if (metadata?.uploadTime) {
+                  return metadata.uploadTime;
+                }
+              } catch (error) {
+                logger.warn('Failed to get S3 file metadata', { url, error });
+              }
+            }
+            // Fallback to current time
+            return new Date().toISOString();
+          };
 
+          const actualUploadTime = await getActualUploadTime();
           const { rawText } = await readFileContentByBuffer({
             extension,
             teamId,
@@ -288,24 +334,55 @@ export const getFileContentFromLinks = async ({
             sourceId: url,
             sourceName: filename,
             text: replacedText,
-            customPdfParse
+            customPdfParse,
+            originFileUploadTime: actualUploadTime
           });
-
-          return formatResponseObject({ filename, url, content: replacedText });
+          const metadata = `index:${index + 1}
+filename: ${filename}
+uploadTime: ${actualUploadTime}
+url:${fullUrl}`;
+          return formatResponseObject({ filename, metadata, url, content: replacedText });
         } catch (error) {
           return formatResponseObject({
             filename: '',
             url,
+            metadata: '',
             content: getErrText(error, 'Load file error')
           });
         }
       })
       .filter(Boolean)
   );
-  const text = readFilesResult.map((item) => item?.text ?? '').join('\n******\n');
+  // Sort by upload time in ascending order
+  const sortedReadFilesResult = readFilesResult.sort((a, b) => {
+    const extractUploadTime = (text: string): string => {
+      const uploadTimeMatch = text.match(/uploadTime:\s*(.+?)(?:,|\n)/);
+      return uploadTimeMatch ? uploadTimeMatch[1].trim() : '';
+    };
 
+    const timeA = extractUploadTime(a.text);
+    const timeB = extractUploadTime(b.text);
+
+    if (!timeA && !timeB) return 0;
+    if (!timeA) return 1;
+    if (!timeB) return -1;
+
+    return new Date(timeA).getTime() - new Date(timeB).getTime();
+  });
+
+  const finalReadFilesResult = sortedReadFilesResult.map((item, index) => {
+    const newIndex = index + 1;
+    const updatedText = item.text.replace(/index:\s*\d+/, `index:${newIndex}`);
+    return {
+      ...item,
+      text: updatedText,
+      nodeResponsePreviewText: item.nodeResponsePreviewText
+    };
+  });
+
+  const text = finalReadFilesResult.map((item) => item?.text ?? '').join('\n******\n');
   return {
     text,
-    readFilesResult
+    readFilesResult: finalReadFilesResult
   };
 };
