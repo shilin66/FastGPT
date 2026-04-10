@@ -33,9 +33,9 @@ export const ShareLinkContainer = ({
   const { t } = useTranslation();
   const [customDomain, setCustomDomain] = useState<string | undefined>(undefined);
 
-  const { data: customDomainList = [] } = useRequest(listCustomDomain, {
-    manual: !showCustomDomainSelector
-  });
+  // const { data: customDomainList = [] } = useRequest(listCustomDomain, {
+  //   manual: !showCustomDomainSelector
+  // });
 
   // 从 shareLink 中提取原始域名
   const originalDomain = useMemo(() => {
@@ -56,46 +56,46 @@ export const ShareLinkContainer = ({
   }, [shareLink, customDomain, originalDomain]);
 
   // 处理域名选择选项
-  const domainOptions = useMemo(() => {
-    const defaultOption = [
-      {
-        label: t('publish:use_default_domain'),
-        value: ''
-      }
-    ];
-
-    // 只显示已激活的自定义域名
-    const activeDomains = customDomainList
-      .filter((item) => item.status === 'active')
-      .map((item) => ({
-        label: item.domain,
-        value: item.domain
-      }));
-
-    return activeDomains.length === 0
-      ? [...defaultOption]
-      : [...(defaultDomain ? defaultOption : []), ...activeDomains];
-  }, [customDomainList, defaultDomain, t]);
+  // const domainOptions = useMemo(() => {
+  //   const defaultOption = [
+  //     {
+  //       label: t('publish:use_default_domain'),
+  //       value: ''
+  //     }
+  //   ];
+  //
+  //   // 只显示已激活的自定义域名
+  //   const activeDomains = customDomainList
+  //     .filter((item) => item.status === 'active')
+  //     .map((item) => ({
+  //       label: item.domain,
+  //       value: item.domain
+  //     }));
+  //
+  //   return activeDomains.length === 0
+  //     ? [...defaultOption]
+  //     : [...(defaultDomain ? defaultOption : []), ...activeDomains];
+  // }, [customDomainList, defaultDomain, t]);
 
   // 当 defaultDomain=false 时，自动选择第一个自定义域名
-  useEffect(() => {
-    if (!defaultDomain && domainOptions.length > 0 && customDomain === undefined) {
-      setCustomDomain(domainOptions[0].value || undefined);
-    }
-  }, [defaultDomain, domainOptions, customDomain]);
+  // useEffect(() => {
+  //   if (!defaultDomain && domainOptions.length > 0 && customDomain === undefined) {
+  //     setCustomDomain(domainOptions[0].value || undefined);
+  //   }
+  // }, [defaultDomain, domainOptions, customDomain]);
 
   return (
     <>
-      {/* 自定义域名选择器 */}
-      {showCustomDomainSelector && domainOptions.length > 1 && (
-        <Box mb={4}>
-          <MySelect
-            value={customDomain || ''}
-            list={domainOptions}
-            onChange={(value) => setCustomDomain(value || undefined)}
-          />
-        </Box>
-      )}
+      {/*/!* 自定义域名选择器 *!/*/}
+      {/*{showCustomDomainSelector && domainOptions.length > 1 && (*/}
+      {/*  <Box mb={4}>*/}
+      {/*    <MySelect*/}
+      {/*      value={customDomain || ''}*/}
+      {/*      list={domainOptions}*/}
+      {/*      onChange={(value) => setCustomDomain(value || undefined)}*/}
+      {/*    />*/}
+      {/*  </Box>*/}
+      {/*)}*/}
 
       <Box borderRadius={'md'} bg={'myGray.100'} overflow={'hidden'} fontSize={'sm'}>
         <Flex

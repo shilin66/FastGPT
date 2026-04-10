@@ -147,9 +147,9 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       model: modelConstantsData,
       maxToken
     });
-    if (modelConstantsData.model.toLowerCase().startsWith('qwen3') && !aiChatReasoning) {
-      systemPrompt = `enable_thinking=false\n${systemPrompt}`;
-    }
+    // if (modelConstantsData.model.toLowerCase().startsWith('qwen3-') && !aiChatReasoning) {
+    //   systemPrompt = `enable_thinking=false\n${systemPrompt}`;
+    // }
 
     const [{ filterMessages }] = await Promise.all([
       getChatMessages({

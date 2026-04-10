@@ -19,7 +19,7 @@ const Logs = () => {
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
   const [viewMode, setViewMode] = useLocalStorageState<'chart' | 'table'>(`app_log_view_mode`, {
-    defaultValue: feConfigs.isPlus ? 'chart' : 'table'
+    defaultValue: 'table'
   });
   const appId = useContextSelector(AppContext, (v) => v.appId);
 
@@ -79,16 +79,16 @@ const Logs = () => {
               {t('app:log_detail')}
             </Flex>
           </Flex>
-          {viewMode === 'chart' && !feConfigs.isPlus && (
-            <ProText signKey={'app_log'}>
-              <Flex alignItems={'center'} cursor={'pointer'}>
-                <Box color={'primary.600'} fontSize="sm" fontWeight={'medium'} mr={1}>
-                  {t('common:upgrade')}
-                </Box>
-                <ProTag />
-              </Flex>
-            </ProText>
-          )}
+          {/*{viewMode === 'chart' && !feConfigs.isPlus && (*/}
+          {/*  <ProText signKey={'app_log'}>*/}
+          {/*    <Flex alignItems={'center'} cursor={'pointer'}>*/}
+          {/*      <Box color={'primary.600'} fontSize="sm" fontWeight={'medium'} mr={1}>*/}
+          {/*        {t('common:upgrade')}*/}
+          {/*      </Box>*/}
+          {/*      <ProTag />*/}
+          {/*    </Flex>*/}
+          {/*  </ProText>*/}
+          {/*)}*/}
         </Flex>
       </Flex>
       {viewMode === 'table' ? (

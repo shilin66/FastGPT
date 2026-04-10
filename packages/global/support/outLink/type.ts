@@ -90,8 +90,10 @@ export type OutLinkSchema<T extends OutlinkAppType = undefined> = {
 
   // response when request
   immediateResponse?: string;
-  // response when error or other situation
+  // response when unsupported message type or no valid answer
   defaultResponse?: string;
+  // response when process throws exception
+  exceptionResponse?: string;
 
   limit?: {
     expiredTime?: Date;
@@ -120,8 +122,10 @@ export type OutLinkEditType<T extends OutlinkAppType = undefined> = {
   canDownloadSource?: OutLinkSchema<T>['canDownloadSource'];
   // response when request
   immediateResponse?: string;
-  // response when error or other situation
+  // response when unsupported message type or no valid answer
   defaultResponse?: string;
+  // response when process throws exception
+  exceptionResponse?: string;
   limit?: OutLinkSchema<T>['limit'];
 
   // config for specific platform

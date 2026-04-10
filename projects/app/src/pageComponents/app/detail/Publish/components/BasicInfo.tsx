@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Flex, Input } from '@chakra-ui/react';
+import { Box, Flex, Input, Textarea } from '@chakra-ui/react';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import dayjs from 'dayjs';
 import { useTranslation } from 'next-i18next';
@@ -10,11 +10,13 @@ import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 function BasicInfo({
   register,
   setValue,
-  defaultData
+  defaultData,
+  showResponseConfig = true
 }: {
   register: UseFormRegister<OutLinkEditType<any>>;
   setValue: UseFormSetValue<OutLinkEditType<any>>;
   defaultData: OutLinkEditType<any>;
+  showResponseConfig?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -32,6 +34,40 @@ function BasicInfo({
           })}
         />
       </Flex>
+      {showResponseConfig && (
+        <>
+          <Flex alignItems={'start'}>
+            <FormLabel flex={'0 0 6.25rem'} pt={2}>
+              立即回复
+            </FormLabel>
+            <Textarea
+              placeholder="收到消息后立刻回复的内容"
+              rows={3}
+              {...register('immediateResponse')}
+            />
+          </Flex>
+          <Flex alignItems={'start'}>
+            <FormLabel flex={'0 0 6.25rem'} pt={2}>
+              默认回复
+            </FormLabel>
+            <Textarea
+              placeholder="空回答或不支持的消息类型时返回的内容"
+              rows={3}
+              {...register('defaultResponse')}
+            />
+          </Flex>
+          <Flex alignItems={'start'}>
+            <FormLabel flex={'0 0 6.25rem'} pt={2}>
+              异常回复
+            </FormLabel>
+            <Textarea
+              placeholder="处理异常时返回的内容"
+              rows={3}
+              {...register('exceptionResponse')}
+            />
+          </Flex>
+        </>
+      )}
       {/*<Flex alignItems={'center'}>*/}
       {/*  <FormLabel flex={'0 0 6.25rem'} alignItems={'center'}>*/}
       {/*    QPM*/}

@@ -48,13 +48,13 @@ const OutLink = () => {
       value: PublishChannelEnum.apikey,
       isProFn: false
     },
-    {
-      icon: 'core/app/publish/wechat',
-      title: t('publish:wechat.bot'),
-      desc: t('publish:wechat.bot_desc'),
-      value: PublishChannelEnum.wechat,
-      isProFn: false
-    },
+    // {
+    //   icon: 'core/app/publish/wechat',
+    //   title: t('publish:wechat.bot'),
+    //   desc: t('publish:wechat.bot_desc'),
+    //   value: PublishChannelEnum.wechat,
+    //   isProFn: false
+    // },
     ...(feConfigs?.show_publish_feishu !== false &&
     !userInfo?.tags?.includes(UserTagsEnum.enum.wecom)
       ? [
@@ -63,7 +63,7 @@ const OutLink = () => {
             title: t('publish:feishu_bot'),
             desc: t('publish:feishu_bot_desc'),
             value: PublishChannelEnum.feishu,
-            isProFn: true
+            isProFn: false
           }
         ]
       : []),
@@ -75,32 +75,32 @@ const OutLink = () => {
             title: t('publish:dingtalk.bot'),
             desc: t('publish:dingtalk.bot_desc'),
             value: PublishChannelEnum.dingtalk,
-            isProFn: true
+            isProFn: false
           }
         ]
       : []),
-    ...(feConfigs?.show_publish_wecom === true
+    ...(feConfigs?.show_publish_wecom !== false
       ? [
           {
             icon: 'core/app/publish/wecom',
             title: t('publish:wecom.bot'),
             desc: t('publish:wecom.bot_desc'),
             value: PublishChannelEnum.wecom,
-            isProFn: true
+            isProFn: false
           }
         ]
       : []),
-    ...(feConfigs?.show_publish_offiaccount !== false
-      ? [
-          {
-            icon: 'core/app/publish/offiaccount',
-            title: t('publish:official_account.name'),
-            desc: t('publish:official_account.desc'),
-            value: PublishChannelEnum.officialAccount,
-            isProFn: true
-          }
-        ]
-      : []),
+    // ...(feConfigs?.show_publish_offiaccount !== false
+    //   ? [
+    //       {
+    //         icon: 'core/app/publish/offiaccount',
+    //         title: t('publish:official_account.name'),
+    //         desc: t('publish:official_account.desc'),
+    //         value: PublishChannelEnum.officialAccount,
+    //         isProFn: true
+    //       }
+    //     ]
+    //   : []),
 
     {
       icon: 'common/teamsFill',
@@ -115,14 +115,14 @@ const OutLink = () => {
       desc: '集成到浏览器中,在任意页面使用Chatbot',
       value: PublishChannelEnum.chromeExtension,
       isProFn: false
-    },
-    {
-      icon: 'core/chat/sidebar/home',
-      title: t('common:navbar.Chat'),
-      desc: t('app:publish.chat_desc'),
-      value: PublishChannelEnum.playground,
-      isProFn: false
     }
+    // {
+    //   icon: 'core/chat/sidebar/home',
+    //   title: t('common:navbar.Chat'),
+    //   desc: t('app:publish.chat_desc'),
+    //   value: PublishChannelEnum.playground,
+    //   isProFn: false
+    // }
   ]);
 
   const [linkType, setLinkType] = useState<PublishChannelEnum>(PublishChannelEnum.share);
