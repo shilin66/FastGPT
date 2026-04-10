@@ -15,7 +15,8 @@ export type OutLinkUpdateQuery = {};
 // name: string; // Outlink 的名称
 // responseDetail?: boolean; // 是否开启详细回复
 // immediateResponse?: string; // 立即回复的内容
-// defaultResponse?: string; // 默认回复的内容
+// defaultResponse?: string; // 空回答或不支持消息时的回复
+// exceptionResponse?: string; // 处理异常时的回复
 // limit?: OutLinkSchema<T>['limit']; // 限制
 // app?: T; // 平台的配置
 // }
@@ -26,8 +27,19 @@ export type OutLinkUpdateResponse = string;
 async function handler(
   req: ApiRequestProps<OutLinkUpdateBody, OutLinkUpdateQuery>
 ): Promise<OutLinkUpdateResponse> {
-  const { _id, name, showCite, limit, app, canDownloadSource, showRunningStatus, showFullText } =
-    req.body;
+  const {
+    _id,
+    name,
+    showCite,
+    limit,
+    app,
+    canDownloadSource,
+    showRunningStatus,
+    showFullText,
+    immediateResponse,
+    defaultResponse,
+    exceptionResponse
+  } = req.body;
 
   if (!_id) {
     return Promise.reject(CommonErrEnum.missingParams);
@@ -51,6 +63,9 @@ async function handler(
     canDownloadSource,
     showRunningStatus,
     showFullText,
+    immediateResponse,
+    defaultResponse,
+    exceptionResponse,
     limit,
     app
   });

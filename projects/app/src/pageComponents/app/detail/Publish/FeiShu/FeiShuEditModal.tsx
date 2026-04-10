@@ -83,7 +83,12 @@ const FeiShuEditModal = ({
     >
       <ModalBody display={'grid'} gridTemplateColumns={['1fr', '1fr 1fr']} fontSize={'14px'} p={0}>
         <Box p={8} h={['auto', '400px']} borderRight={'base'}>
-          <BasicInfo register={register} setValue={setValue} defaultData={defaultData} />
+          <BasicInfo
+            register={register}
+            setValue={setValue}
+            defaultData={defaultData}
+            showResponseConfig={false}
+          />
         </Box>
         <Flex p={8} h={['auto', '400px']} flexDirection="column" gap={6}>
           <Flex alignItems="center">

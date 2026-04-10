@@ -187,6 +187,7 @@ const FeiShu = ({ appId }: { appId: string }) => {
                                 app: item.app,
                                 showCite: item.showCite,
                                 defaultResponse: item.defaultResponse,
+                                exceptionResponse: item.exceptionResponse,
                                 immediateResponse: item.immediateResponse
                               });
                               setIsEdit(true);

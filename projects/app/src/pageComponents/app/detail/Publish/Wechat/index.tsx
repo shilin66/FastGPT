@@ -185,6 +185,7 @@ const Wechat = ({ appId }: { appId: string }) => {
                                 limit: item.limit,
                                 app: item.app,
                                 defaultResponse: item.defaultResponse,
+                                exceptionResponse: item.exceptionResponse,
                                 immediateResponse: item.immediateResponse
                               });
                               setIsEdit(true);

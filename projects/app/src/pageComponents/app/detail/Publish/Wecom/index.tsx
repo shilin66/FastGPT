@@ -61,10 +61,10 @@ const Wecom = ({ appId }: { appId: string }) => {
 
   const [showShareLink, setShowShareLink] = useState<string | null>(null);
 
-  const { data: customDomains = [] } = useRequest(listCustomDomain, {
-    manual: false,
-    refreshOnWindowFocus: true
-  });
+  // const { data: customDomains = [] } = useRequest(listCustomDomain, {
+  //   manual: false,
+  //   refreshOnWindowFocus: true
+  // });
 
   return (
     <Box position={'relative'} pt={3} px={5} minH={'50vh'}>
@@ -89,17 +89,17 @@ const Wecom = ({ appId }: { appId: string }) => {
           )}
         </Flex>
         <Flex gap={3}>
-          {feConfigs.customDomain?.enable && (
-            <Button
-              variant={'whitePrimary'}
-              size={['sm', 'md']}
-              onClick={() => {
-                window.open('/account/customDomain', '_blank');
-              }}
-            >
-              {t('publish:custom_domain_management')}
-            </Button>
-          )}
+          {/*{feConfigs.customDomain?.enable && (*/}
+          {/*  <Button*/}
+          {/*    variant={'whitePrimary'}*/}
+          {/*    size={['sm', 'md']}*/}
+          {/*    onClick={() => {*/}
+          {/*      window.open('/account/customDomain', '_blank');*/}
+          {/*    }}*/}
+          {/*  >*/}
+          {/*    {t('publish:custom_domain_management')}*/}
+          {/*  </Button>*/}
+          {/*)}*/}
           <Button
             variant={'primary'}
             colorScheme={'blue'}
@@ -202,6 +202,7 @@ const Wecom = ({ appId }: { appId: string }) => {
                                 app: item.app,
                                 showCite: item.showCite,
                                 defaultResponse: item.defaultResponse,
+                                exceptionResponse: item.exceptionResponse,
                                 immediateResponse: item.immediateResponse
                               });
                               setIsEdit(true);
@@ -245,30 +246,30 @@ const Wecom = ({ appId }: { appId: string }) => {
           isEdit={isEdit}
         />
       )}
-      {shareChatList.length === 0 && !isFetching && (
-        <EmptyTip
-          {...(feConfigs.customDomain?.enable && customDomains.length > 0
-            ? { text: '' }
-            : {
-                text: (
-                  <Trans
-                    i18nKey="app:publish_channel.wecom.empty"
-                    components={{
-                      a: (
-                        <Link
-                          color="primary.600"
-                          key="link"
-                          href="/account/customDomain"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        />
-                      )
-                    }}
-                  />
-                )
-              })}
-        />
-      )}
+      {/*{shareChatList.length === 0 && !isFetching && (*/}
+      {/*  <EmptyTip*/}
+      {/*    {...(feConfigs.customDomain?.enable && customDomains.length > 0*/}
+      {/*      ? { text: '' }*/}
+      {/*      : {*/}
+      {/*          text: (*/}
+      {/*            <Trans*/}
+      {/*              i18nKey="app:publish_channel.wecom.empty"*/}
+      {/*              components={{*/}
+      {/*                a: (*/}
+      {/*                  <Link*/}
+      {/*                    color="primary.600"*/}
+      {/*                    key="link"*/}
+      {/*                    href="/account/customDomain"*/}
+      {/*                    target="_blank"*/}
+      {/*                    rel="noopener noreferrer"*/}
+      {/*                  />*/}
+      {/*                )*/}
+      {/*              }}*/}
+      {/*            />*/}
+      {/*          )*/}
+      {/*        })}*/}
+      {/*  />*/}
+      {/*)}*/}
       <Loading loading={isFetching} fixed={false} />
       {showShareLinkModalOpen && (
         <ShowShareLinkModal

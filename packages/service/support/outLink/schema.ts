@@ -91,6 +91,9 @@ const OutLinkSchema = new Schema({
   defaultResponse: {
     type: String
   },
+  exceptionResponse: {
+    type: String
+  },
 
   //@deprecated
   responseDetail: Boolean,
