@@ -53,7 +53,7 @@ export const Input_Template_System_Prompt: FlowNodeInputItemType = {
   key: NodeInputKeyEnum.aiSystemPrompt,
   renderTypeList: [FlowNodeInputTypeEnum.textarea, FlowNodeInputTypeEnum.reference],
   maxLength: 100000,
-  isRichText: true,
+  isRichText: false,
   valueType: WorkflowIOValueTypeEnum.string,
   label: i18nT('common:core.ai.Prompt'),
   description: systemPromptTip,
