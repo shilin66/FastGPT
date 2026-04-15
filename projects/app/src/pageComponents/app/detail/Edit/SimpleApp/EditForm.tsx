@@ -244,7 +244,7 @@ const EditForm = ({
                 placeholder={t('common:core.app.tip.systemPromptTip')}
                 title={t('common:core.ai.Prompt')}
                 ExtensionPopover={[OptimizerPopverComponent]}
-                isRichText={true}
+                isRichText={false}
               />
             </Box>
           </Box>
