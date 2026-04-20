@@ -35,8 +35,13 @@ import z from 'zod';
   2. 递归线，会根据最近的一个 target 分支进行分类，同一个分支的属于一组
   2. 起始线全部非 waiting 执行，或递归线任意一组全部非 waiting 执行
 */
-// 节点边分组结构（简化版：不再区分 common 和 recursive）
-export type NodeEdgeGroups = RuntimeEdgeItemType[][]; // 二维数组，每组代表一个独立的逻辑路径
+export type NodeEdgeGroupItem = {
+  kind: 'nonBack' | 'back';
+  edges: RuntimeEdgeItemType[];
+};
+
+// 节点边分组结构，每组代表一个独立的逻辑路径
+export type NodeEdgeGroups = NodeEdgeGroupItem[];
 
 // 预构建的 Map
 export type NodeEdgeGroupsMap = Map<string, NodeEdgeGroups>;
