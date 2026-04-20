@@ -540,10 +540,18 @@ export class WorkflowQueue {
             formatNodesMap,
             isBranchNode
           );
-          edgesGroup.push(...branchGroups);
+          edgesGroup.push(
+            ...branchGroups.map((edges) => ({
+              kind: 'nonBack' as const,
+              edges
+            }))
+          );
         } else {
           // 目标节点不在循环中 → 所有非回边放在同一组
-          edgesGroup.push(nonBackEdges);
+          edgesGroup.push({
+            kind: 'nonBack',
+            edges: nonBackEdges
+          });
         }
       }
 
@@ -556,7 +564,12 @@ export class WorkflowQueue {
           formatNodesMap,
           isBranchNode
         );
-        edgesGroup.push(...branchGroups);
+        edgesGroup.push(
+          ...branchGroups.map((edges) => ({
+            kind: 'back' as const,
+            edges
+          }))
+        );
       }
 
       nodeEdgeGroupsMap.set(targetNode.nodeId, edgesGroup);
@@ -666,15 +679,27 @@ export class WorkflowQueue {
     if (
       edgeGroups.some(
         (group) =>
-          group.some((edge) => edge.status === 'active') &&
-          group.every((edge) => edge.status !== 'waiting')
+          group.edges.some((edge) => edge.status === 'active') &&
+          group.edges.every((edge) => edge.status !== 'waiting')
       )
     ) {
       return 'run';
     }
 
     // check skip（所有组的边都是 skipped 才跳过）
-    if (edgeGroups.every((group) => group.every((edge) => edge.status === 'skipped'))) {
+    if (edgeGroups.every((group) => group.edges.every((edge) => edge.status === 'skipped'))) {
+      return 'skip';
+    }
+
+    // 分支未命中时，允许跳过传播到环内节点，不必等待尚未触发的回边。
+    const nonBackGroups = edgeGroups.filter((group) => group.kind === 'nonBack');
+    const backGroups = edgeGroups.filter((group) => group.kind === 'back');
+
+    if (
+      nonBackGroups.length > 0 &&
+      nonBackGroups.every((group) => group.edges.every((edge) => edge.status === 'skipped')) &&
+      backGroups.every((group) => group.edges.every((edge) => edge.status !== 'active'))
+    ) {
       return 'skip';
     }
 
