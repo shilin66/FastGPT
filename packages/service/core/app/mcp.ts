@@ -10,8 +10,12 @@ import type { McpToolDataType } from '@fastgpt/global/core/app/tool/mcpTool/type
 import { UserError } from '@fastgpt/global/common/error/utils';
 import $RefParser from '@apidevtools/json-schema-ref-parser';
 import { getLogger, LogCategories } from '../../common/logger';
+import { Agent } from 'undici';
 
 const logger = getLogger(LogCategories.MODULE.APP.MCP_TOOLS);
+const agent = new Agent({
+  headersTimeout: 3600000 // 5分钟
+});
 
 export class MCPClient {
   private client: Client;
@@ -50,8 +54,9 @@ export class MCPClient {
     try {
       const transport = new StreamableHTTPClientTransport(new URL(this.url), {
         requestInit: {
-          headers: this.headers
-        }
+          headers: this.headers,
+          dispatcher: agent
+        } as any
       });
       await this.client.connect(transport);
     } catch (error) {
@@ -197,7 +202,7 @@ export class MCPClient {
         },
         undefined,
         {
-          timeout: 300000
+          timeout: 3600000
         }
       );
     } catch (error) {
