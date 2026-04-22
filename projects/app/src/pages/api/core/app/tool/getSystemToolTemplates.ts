@@ -11,6 +11,7 @@ import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { getSystemToolsWithInstalled } from '@fastgpt/service/core/app/tool/controller';
 import { FlowNodeTemplateTypeEnum } from '@fastgpt/global/core/workflow/constants';
 import { getUserDetail } from '@fastgpt/service/support/user/controller';
+import { isS3ProxyEnabled } from '@fastgpt/service/common/s3/proxy';
 
 export type GetSystemPluginTemplatesBody = {
   getAll?: boolean;

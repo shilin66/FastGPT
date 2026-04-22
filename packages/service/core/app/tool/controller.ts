@@ -60,6 +60,7 @@ import { getOrgIdSetWithParentByTmbId } from '../../../support/permission/org/co
 import { sumPer } from '@fastgpt/global/support/permission/utils';
 import { AppPermission } from '@fastgpt/global/support/permission/app/controller';
 import type { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
+import { isS3ProxyEnabled } from '../../../common/s3/proxy';
 
 type ChildAppType = AppToolTemplateItemType & {
   teamId?: string;
@@ -205,6 +206,12 @@ export const getSystemToolsWithInstalled = async ({
       return true;
     })
     .map((tool) => {
+      if (isS3ProxyEnabled() && tool.avatar) {
+        tool.avatar = tool.avatar.replace(
+          process.env.STORAGE_S3_ENDPOINT || '',
+          `${process.env.FE_DOMAIN || process.env.FILE_DOMAIN || ''}${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/common/s3/proxy`
+        );
+      }
       const installed = (() => {
         // 优先级1: 明确记录
         if (installedSet.has(tool.id)) {
@@ -224,6 +231,7 @@ export const getSystemToolsWithInstalled = async ({
           const shouldAutoInstall = tool.promoteTags.some((tag) => userTags.includes(tag));
           if (shouldAutoInstall) return true;
         }
+
         // 优先级4: 全局默认安装
         if (tool.defaultInstalled && !uninstalledSet.has(tool.id)) {
           return true;
@@ -270,7 +278,12 @@ export const getSystemToolByIdAndVersionId = async (
           versionId: version.versionId
         })
       : true;
-
+    if (isS3ProxyEnabled() && tool.avatar) {
+      tool.avatar = tool.avatar.replace(
+        process.env.STORAGE_S3_ENDPOINT || '',
+        `${process.env.FE_DOMAIN || process.env.FILE_DOMAIN || ''}${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/common/s3/proxy`
+      );
+    }
     return {
       ...tool,
       workflow: {
