@@ -20,7 +20,6 @@ import { getLogger, LogCategories } from '../../../common/logger';
 const logger = getLogger(LogCategories.MODULE.WALLET.USAGE);
 import { MongoTeam } from '../../user/team/teamSchema';
 import type { TeamSchema } from '@fastgpt/global/support/user/team/type';
-import type { PaginationResponse } from '../../../../web/common/fetch/type';
 import type {
   TeamUsageItemType,
   UsageItemType,
@@ -32,6 +31,7 @@ import type { UserModelSchema } from '@fastgpt/global/support/user/type';
 import { TeamMemberStatusEnum } from '@fastgpt/global/support/user/team/constant';
 import { MongoTeamMember } from '../../user/team/teamMemberSchema';
 import { get } from 'lodash';
+import type { PaginationResponse } from '@fastgpt/global/openapi/api';
 
 export async function createUsage(data: CreateUsageProps) {
   try {

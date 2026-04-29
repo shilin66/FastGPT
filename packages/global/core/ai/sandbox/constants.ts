@@ -1,12 +1,12 @@
 import type { I18nStringType } from '../../../common/i18n/type';
 import { hashStr } from '../../../common/string/tools';
-import type { ChatCompletionTool } from '../type';
-import { z } from 'zod';
+import type { ChatCompletionTool } from '../llm/type';
+import z from 'zod';
 
 // ---- 沙盒状态 ----
 export const SandboxStatusEnum = {
   running: 'running',
-  stoped: 'stoped'
+  stopped: 'stopped'
 } as const;
 export type SandboxStatusType = (typeof SandboxStatusEnum)[keyof typeof SandboxStatusEnum];
 
@@ -88,4 +88,4 @@ export const SANDBOX_SYSTEM_PROMPT = `你拥有一个独立的 Linux 沙盒环�
 - 预装：bash / python3 / node / bun / git / curl
 - 可自行安装软件包（apt / pip / npm）
 - 生成的文件内容都保存在当前目录下即可
-- 若需要将生成的文件分享给用户，可使用 ${SANDBOX_GET_FILE_URL_TOOL_NAME} 工具获取文件的临时访问链接（有效期 2 小时）`;
+- 若需要将生成的文件分享给用户，可使用 ${SANDBOX_GET_FILE_URL_TOOL_NAME} 工具获取文件的临时访问链接`;

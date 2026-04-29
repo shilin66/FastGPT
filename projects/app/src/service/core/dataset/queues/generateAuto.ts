@@ -1,6 +1,5 @@
 import { MongoDatasetTraining } from '@fastgpt/service/core/dataset/training/schema';
 import { TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
-import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/type';
 import { replaceVariable } from '@fastgpt/global/common/string/tools';
 import { AutoIndexPromptDefault } from '@fastgpt/global/core/ai/prompt/agent';
 import type { PushDatasetDataChunkProps } from '@fastgpt/global/core/dataset/api';
@@ -15,6 +14,7 @@ import { getErrText } from '@fastgpt/global/common/error/utils';
 import { UsageItemTypeEnum } from '@fastgpt/global/support/wallet/usage/constants';
 import { createLLMResponse } from '@fastgpt/service/core/ai/llm/request';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
+import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/llm/type';
 
 const logger = getLogger(LogCategories.MODULE.DATASET.QUEUES);
 const reduceQueue = () => {

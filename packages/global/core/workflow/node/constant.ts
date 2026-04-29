@@ -28,6 +28,9 @@ export enum FlowNodeInputTypeEnum { // render ui
   hidden = 'hidden',
   custom = 'custom', // 自定义渲染
 
+  selectSkill = 'selectSkill',
+  selectTool = 'selectTool',
+
   fileSelect = 'fileSelect',
   timePointSelect = 'timePointSelect',
   timeRangeSelect = 'timeRangeSelect',
@@ -86,6 +89,12 @@ export const FlowNodeInputMap: Record<
   },
   [FlowNodeInputTypeEnum.custom]: {
     icon: 'core/workflow/inputType/custom'
+  },
+  [FlowNodeInputTypeEnum.selectSkill]: {
+    icon: 'core/workflow/inputType/selectDataset'
+  },
+  [FlowNodeInputTypeEnum.selectTool]: {
+    icon: 'core/workflow/inputType/selectDataset'
   },
   [FlowNodeInputTypeEnum.input]: {
     icon: 'core/workflow/inputType/input'
@@ -148,8 +157,9 @@ export enum FlowNodeTypeEnum {
   readFiles = 'readFiles',
   userSelect = 'userSelect',
   loop = 'loop',
-  loopStart = 'loopStart',
-  loopEnd = 'loopEnd',
+  nestedStart = 'loopStart',
+  nestedEnd = 'loopEnd',
+  parallelRun = 'parallelRun',
   formInput = 'formInput',
   tool = 'tool',
   toolSet = 'toolSet',
@@ -292,7 +302,8 @@ export const NodeGradients = {
   lafTeal: 'linear-gradient(180deg, rgba(72, 213, 186, 0.20) 0%, rgba(255, 255, 255, 0.00) 100%)',
   skyBlue: 'linear-gradient(180deg, rgba(137, 229, 255, 0.20) 0%, rgba(255, 255, 255, 0.00) 100%)',
   salmon: 'linear-gradient(180deg, rgba(255, 160, 160, 0.20) 0%, rgba(255, 255, 255, 0.00) 100%)',
-  gray: 'linear-gradient(180deg, rgba(136, 136, 136, 0.20) 0%, rgba(255, 255, 255, 0.00) 100%)'
+  gray: 'linear-gradient(180deg, rgba(136, 136, 136, 0.20) 0%, rgba(255, 255, 255, 0.00) 100%)',
+  emerald: 'linear-gradient(180deg, rgba(20, 168, 70, 0.20) 0%, rgba(255, 255, 255, 0.00) 100%)'
 };
 export const NodeBorderColors = {
   pink: 'rgba(255, 161, 206, 0.6)',
@@ -313,7 +324,8 @@ export const NodeBorderColors = {
   lafTeal: 'rgba(72, 213, 186, 0.6)',
   skyBlue: 'rgba(137, 229, 255, 0.6)',
   salmon: 'rgba(255, 160, 160, 0.6)',
-  gray: 'rgba(136, 136, 136, 0.6)'
+  gray: 'rgba(136, 136, 136, 0.6)',
+  emerald: 'rgba(20, 168, 70, 0.6)'
 };
 export const NodeColorSchemaEnum = [
   'pink',
@@ -334,5 +346,20 @@ export const NodeColorSchemaEnum = [
   'lafTeal',
   'skyBlue',
   'salmon',
-  'gray'
+  'gray',
+  'emerald'
 ] as const;
+
+/** 返回 true 表示该节点是嵌套父容器（loop / parallelRun）。 */
+export const isNestedParentNodeType = (flowNodeType: FlowNodeTypeEnum | string): boolean =>
+  flowNodeType === FlowNodeTypeEnum.loop || flowNodeType === FlowNodeTypeEnum.parallelRun;
+
+/** 交互类节点类型集合（在 parallelRun 体内禁止使用）。 */
+export const INTERACTIVE_NODE_TYPES: ReadonlySet<FlowNodeTypeEnum> = new Set([
+  FlowNodeTypeEnum.userSelect,
+  FlowNodeTypeEnum.formInput
+]);
+
+/** 返回 true 表示该节点是交互类节点（userSelect / formInput）。 */
+export const isInteractiveNodeType = (flowNodeType: FlowNodeTypeEnum | string): boolean =>
+  INTERACTIVE_NODE_TYPES.has(flowNodeType as FlowNodeTypeEnum);

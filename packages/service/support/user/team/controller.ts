@@ -45,7 +45,6 @@ import {
 } from '../../permission/org/controllers';
 import { getS3AvatarSource } from '../../../common/s3/sources/avatar';
 import { MongoOrgModel } from '../../permission/org/orgSchema';
-import type { PaginationResponse } from '../../../../web/common/fetch/type';
 import { MongoOrgMemberModel } from '../../permission/org/orgMemberSchema';
 import { createUserSession } from '../session';
 import type {
@@ -56,6 +55,7 @@ import type {
 import { randomUUID } from 'crypto';
 import { UserStatusEnum } from '@fastgpt/global/support/user/constant';
 import { getLogger, LogCategories } from '../../../common/logger';
+import type { PaginationResponse } from '@fastgpt/global/openapi/api';
 
 const logger = getLogger(LogCategories.MODULE.USER.TEAM);
 

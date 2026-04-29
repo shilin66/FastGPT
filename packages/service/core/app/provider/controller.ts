@@ -8,7 +8,7 @@ import { isS3ProxyEnabled } from '../../../common/s3/proxy';
 
 // Preload model providers
 export async function preloadModelProviders(): Promise<void> {
-  const { modelProviders, aiproxyIdMap } = await loadModelProviders();
+  const { modelProviders, aiproxyChannels } = await loadModelProviders();
   const newProviders = modelProviders.map((provider) => {
     return {
       ...provider,
@@ -20,12 +20,12 @@ export async function preloadModelProviders(): Promise<void> {
         : provider.avatar
     };
   });
-  const { ModelProviderListCache, ModelProviderMapCache } = formatModelProviders(newProviders);
+  const { ModelProviderListCache, ModelProviderMapCache } = formatModelProviders(modelProviders);
   global.ModelProviderRawCache = newProviders;
   global.ModelProviderListCache = ModelProviderListCache;
   global.ModelProviderMapCache = ModelProviderMapCache;
 
-  global.aiproxyIdMapCache = aiproxyIdMap;
+  global.aiproxyChannelsCache = aiproxyChannels;
 }
 
 export const getModelProviders = (language = 'en') => {

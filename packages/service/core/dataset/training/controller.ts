@@ -1,8 +1,8 @@
 import { MongoDatasetTraining } from './schema';
 import type {
-  PushDatasetDataChunkProps,
-  PushDatasetDataResponse
-} from '@fastgpt/global/core/dataset/api';
+  PushDataChunkType,
+  PushDataResponseType
+} from '@fastgpt/global/openapi/core/dataset/data/api';
 import { DatasetStatusEnum, TrainingModeEnum } from '@fastgpt/global/core/dataset/constants';
 import { type ClientSession } from '../../../common/mongo';
 import { getLLMModel, getEmbeddingModel, getVlmModel } from '../../ai/model';
@@ -16,10 +16,17 @@ import pLimit from 'p-limit';
 import { syncCollection } from '../collection/utils';
 import { MongoDatasetCollection } from '../collection/schema';
 import { getLogger, LogCategories } from '../../../common/logger';
+import { checkTimerLock, deleteTimerLock } from '../../../common/system/timerLock/utils';
 
 const logger = getLogger(LogCategories.MODULE.DATASET.TRAINING);
 
 export const lockTrainingDataByTeamId = async (teamId: string): Promise<any> => {
+  const timerId = `lock_training_data--${teamId}`;
+
+  // 5 分钟闸门：并发/多节点调用时，只有首个抢到锁的会执行；TTL 作为兜底
+  const acquired = await checkTimerLock({ timerId, lockMinuted: 30 });
+  if (!acquired) return;
+
   try {
     await MongoDatasetTraining.updateMany(
       {
@@ -29,10 +36,15 @@ export const lockTrainingDataByTeamId = async (teamId: string): Promise<any> => 
         lockTime: new Date('2999/5/5')
       }
     );
-  } catch (error) {}
+  } catch (error) {
+    logger.error('lockTrainingDataByTeamId failed', { teamId, error });
+  } finally {
+    // 执行完立即释放锁
+    await deleteTimerLock({ timerId }).catch(() => {});
+  }
 };
 
-export async function pushDataListToTrainingQueue({
+export const pushDataListToTrainingQueue = async ({
   teamId,
   tmbId,
   datasetId,
@@ -51,7 +63,7 @@ export async function pushDataListToTrainingQueue({
   datasetId: string;
   collectionId: string;
 
-  data: PushDatasetDataChunkProps[];
+  data: PushDataChunkType[];
   mode?: TrainingModeEnum;
 
   agentModel: string;
@@ -60,9 +72,9 @@ export async function pushDataListToTrainingQueue({
 
   indexSize?: number;
 
-  billId?: string;
+  billId: string;
   session?: ClientSession;
-}): Promise<PushDatasetDataResponse> {
+}): Promise<PushDataResponseType> => {
   const vectorModelData = getEmbeddingModel(vectorModel);
   if (!vectorModelData) {
     return Promise.reject(i18nT('common:error_embedding_not_config'));
@@ -214,7 +226,7 @@ export async function pushDataListToTrainingQueue({
     logger.info('Single transaction completed', { durationMs: Date.now() - start });
     return { insertLen: insertedCount };
   }
-}
+};
 
 export const pushDatasetToParseQueue = async ({
   teamId,

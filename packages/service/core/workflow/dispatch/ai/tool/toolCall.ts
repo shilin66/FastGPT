@@ -2,7 +2,7 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
   CompletionFinishReason
-} from '@fastgpt/global/core/ai/type';
+} from '@fastgpt/global/core/ai/llm/type';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import { textAdaptGptResponse } from '@fastgpt/global/core/workflow/runtime/utils';
 import { runWorkflow } from '../../index';
@@ -85,7 +85,7 @@ export const runToolCall = async (props: DispatchToolModuleProps): Promise<Respo
         type: 'function',
         function: {
           name: item.nodeId,
-          description: item.intro || item.name,
+          description: `${item.name}: ${item.toolDescription || item.intro}`,
           parameters: item.jsonSchema
         }
       };

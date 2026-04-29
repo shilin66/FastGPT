@@ -12,8 +12,10 @@ export enum TimerIdEnum {
   clearExpiredMinioFiles = 'clearExpiredMinioFiles',
   recordTeamQPM = 'recordTeamQPM',
   auditLogCleanup = 'auditLogCleanup',
+  clearInvalidInvitationLink = 'clearInvalidInvitationLink',
   chatHistoryCleanup = 'chatHistoryCleanup',
-  clearInvalidInvitationLink = 'clearInvalidInvitationLink'
+  /** 纠正长时间卡在 generating 的会话状态 */
+  cleanStaleGeneratingChat = 'cleanStaleGeneratingChat'
 }
 
 export enum LockNotificationEnum {

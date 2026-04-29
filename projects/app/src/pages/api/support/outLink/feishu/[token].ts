@@ -2,7 +2,7 @@ import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/nex
 import { NextAPI } from '@/service/middleware/entry';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
-import type { FeishuAppType, OutLinkSchema } from '@fastgpt/global/support/outLink/type';
+import type { FeishuAppType, OutLinkSchemaType } from '@fastgpt/global/support/outLink/type';
 import { MongoOutLink } from '@fastgpt/service/support/outLink/schema';
 import { MongoApp } from '@fastgpt/service/core/app/schema';
 import type { FeishuMessage, FeishuSenderId } from '@fastgpt/service/support/outLink/feishu/type';
@@ -43,7 +43,7 @@ async function handler(
   const outLink = await MongoOutLink.findOne({
     shareId: token,
     type: PublishChannelEnum.feishu
-  }).lean<OutLinkSchema<FeishuAppType>>();
+  }).lean<OutLinkSchemaType<FeishuAppType>>();
   if (!outLink) {
     return Promise.reject(CommonErrEnum.invalidParams);
   }
@@ -134,7 +134,7 @@ async function processFeishuEvent({
   senderId
 }: {
   token: string;
-  outLink: OutLinkSchema<FeishuAppType>;
+  outLink: OutLinkSchemaType<FeishuAppType>;
   appConfig: FeishuAppType;
   message: FeishuMessage;
   senderId?: FeishuSenderId;

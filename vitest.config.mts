@@ -5,11 +5,18 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve('projects/app/src'),
-      '@fastgpt': resolve('packages'),
+      '@fastgpt/global': resolve('packages/global'),
+      '@fastgpt/service': resolve('packages/service'),
+      '@fastgpt/web': resolve('packages/web'),
       '@test': resolve('test')
     }
   },
   test: {
+    env: {
+      FILE_TOKEN_KEY:
+        process.env.FILE_TOKEN_KEY ??
+        'bfd697e7e798f75deaf2d31210bc93a2e41ad4eed9e7831071d77821b7b97cff'
+    },
     coverage: {
       enabled: true,
       reporter: ['html', 'json-summary', 'json'],

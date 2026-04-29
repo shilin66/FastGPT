@@ -50,7 +50,7 @@ const nodeTypes: Record<FlowNodeTypeEnum, any> = {
   [FlowNodeTypeEnum.pluginModule]: NodeSimple,
   [FlowNodeTypeEnum.queryExtension]: NodeSimple,
   [FlowNodeTypeEnum.stopTool]: NodeStopTool,
-  [FlowNodeTypeEnum.agent]: undefined,
+  [FlowNodeTypeEnum.agent]: dynamic(() => import('./nodes/NodeAgent')),
   [FlowNodeTypeEnum.toolCall]: dynamic(() => import('./nodes/NodeToolCall')),
   [FlowNodeTypeEnum.tool]: NodeSimple,
   [FlowNodeTypeEnum.toolSet]: dynamic(() => import('./nodes/NodeToolSet')),
@@ -61,8 +61,9 @@ const nodeTypes: Record<FlowNodeTypeEnum, any> = {
   [FlowNodeTypeEnum.code]: dynamic(() => import('./nodes/NodeCode')),
   [FlowNodeTypeEnum.userSelect]: dynamic(() => import('./nodes/NodeUserSelect')),
   [FlowNodeTypeEnum.loop]: dynamic(() => import('./nodes/Loop/NodeLoop')),
-  [FlowNodeTypeEnum.loopStart]: dynamic(() => import('./nodes/Loop/NodeLoopStart')),
-  [FlowNodeTypeEnum.loopEnd]: dynamic(() => import('./nodes/Loop/NodeLoopEnd')),
+  [FlowNodeTypeEnum.parallelRun]: dynamic(() => import('./nodes/Loop/NodeParallelRun')),
+  [FlowNodeTypeEnum.nestedStart]: dynamic(() => import('./nodes/Loop/NodeLoopStart')),
+  [FlowNodeTypeEnum.nestedEnd]: dynamic(() => import('./nodes/Loop/NodeLoopEnd')),
   [FlowNodeTypeEnum.formInput]: dynamic(() => import('./nodes/NodeFormInput')),
   [FlowNodeTypeEnum.comment]: dynamic(() => import('./nodes/NodeComment'))
 };

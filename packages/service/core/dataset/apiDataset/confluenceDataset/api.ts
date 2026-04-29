@@ -1,8 +1,8 @@
 import type {
   ApiDatasetDetailResponse,
   APIFileItemType,
-  ApiFileReadContentResponse,
-  ConfluenceServer
+  ApiFileReadContentResponseType,
+  ConfluenceServerType
 } from '@fastgpt/global/core/dataset/apiDataset/type';
 import type { Page } from './client';
 import ConfluenceClient from './client';
@@ -12,12 +12,12 @@ import { Converter } from './adf2md';
 import adf2md = Converter.adf2md;
 import parseADF = Converter.parseADF;
 import { getFileS3Key, uploadImage2S3Bucket } from '../../../../common/s3/utils';
-import { Mimes, S3Buckets } from '../../../../common/s3/constants';
+import { S3Buckets } from '../../../../common/s3/config/constants';
 
 export const useConfluenceDatasetRequest = ({
   confluenceServer
 }: {
-  confluenceServer: ConfluenceServer;
+  confluenceServer: ConfluenceServerType;
 }) => {
   const confluenceBaseUrl = confluenceServer.baseUrl || feConfigs.confluenceUrl;
   if (!confluenceBaseUrl) {
@@ -84,7 +84,7 @@ export const useConfluenceDatasetRequest = ({
   }: {
     apiFileId: string;
     datasetId: string;
-  }): Promise<ApiFileReadContentResponse> => {
+  }): Promise<ApiFileReadContentResponseType> => {
     const { title, body } = await client.getPageById(apiFileId, 'atlas_doc_format');
     const markdown = adf2md(parseADF(body.atlas_doc_format.value));
     const attachments = await getAllAttachmentsByPageId(client, apiFileId);
@@ -105,7 +105,7 @@ export const useConfluenceDatasetRequest = ({
           const src = await uploadImage2S3Bucket('private', {
             base64Img: `${imgBase64}`,
             uploadKey: `${fileParsedPrefix}/${attachment.fileId}${ext}`,
-            mimetype: Mimes[ext as keyof typeof Mimes],
+            mimetype: mime,
             filename: `${attachment.fileId}${ext}`
           });
           markdown.result = markdown.result.replaceAll(

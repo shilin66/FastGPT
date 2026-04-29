@@ -1,5 +1,5 @@
 import { EndpointUrl } from '@fastgpt/global/common/file/constants';
-import { S3Buckets } from './constants';
+import { S3Buckets } from './config/constants';
 
 /**
  * 是否启用 S3 代理

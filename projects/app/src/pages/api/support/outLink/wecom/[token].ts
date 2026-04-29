@@ -2,7 +2,7 @@ import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/nex
 import { NextAPI } from '@/service/middleware/entry';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
-import type { OutLinkSchema, WecomAppType } from '@fastgpt/global/support/outLink/type';
+import type { OutLinkSchemaType, WecomAppType } from '@fastgpt/global/support/outLink/type';
 import { MongoOutLink } from '@fastgpt/service/support/outLink/schema';
 import {
   createWecomOutLinkUid,
@@ -40,7 +40,7 @@ async function handler(
   const outLink = await MongoOutLink.findOne({
     shareId: token,
     type: PublishChannelEnum.wecom
-  }).lean<OutLinkSchema<WecomAppType>>();
+  }).lean<OutLinkSchemaType<WecomAppType>>();
   if (!outLink) {
     return Promise.reject(CommonErrEnum.invalidParams);
   }
@@ -131,7 +131,7 @@ async function processWecomEvent({
   message
 }: {
   token: string;
-  outLink: OutLinkSchema<WecomAppType>;
+  outLink: OutLinkSchemaType<WecomAppType>;
   message: NonNullable<ReturnType<typeof parseWecomMessage>>;
 }) {
   if (!message.response_url) return;
@@ -171,7 +171,7 @@ async function getReply({
   outLinkUid,
   messageType
 }: {
-  outLink: OutLinkSchema<WecomAppType>;
+  outLink: OutLinkSchemaType<WecomAppType>;
   token: string;
   question: string;
   chatId: string;

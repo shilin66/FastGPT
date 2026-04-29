@@ -12,6 +12,7 @@ import { WorkflowStart } from './system/workflowStart';
 
 import { StopToolNode } from './system/stopTool';
 import { ToolCallNode } from './system/toolCall';
+import { AgentNode } from './system/agent';
 
 import { RunAppModule } from './system/abandoned/runApp/index';
 import { PluginInputModule } from './system/pluginInput';
@@ -29,6 +30,7 @@ import { LafModule } from './system/laf';
 import { LoopNode } from './system/loop/loop';
 import { LoopEndNode } from './system/loop/loopEnd';
 import { LoopStartNode } from './system/loop/loopStart';
+import { ParallelRunNode } from './system/parallelRun/parallelRun';
 import { ReadFilesNode } from './system/readFiles';
 import { RunToolNode } from './system/runTool';
 import { RunToolSetNode } from './system/runToolSet';
@@ -48,6 +50,7 @@ const systemNodes: FlowNodeTemplateType[] = [
   ToolCallNode,
   ToolParamsNode,
   StopToolNode,
+  AgentNode,
   ReadFilesNode,
   HttpNode468,
   AiQueryExtension,
@@ -55,7 +58,8 @@ const systemNodes: FlowNodeTemplateType[] = [
   IfElseNode,
   VariableUpdateNode,
   CodeNode,
-  LoopNode
+  LoopNode,
+  ParallelRunNode
 ];
 /* app flow module templates */
 export const appSystemModuleTemplates: FlowNodeTemplateType[] = [

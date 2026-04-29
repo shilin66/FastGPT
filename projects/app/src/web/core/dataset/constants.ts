@@ -2,7 +2,8 @@ import { defaultQAModels, defaultVectorModels } from '@fastgpt/global/core/ai/co
 import {
   DatasetCollectionDataProcessModeEnum,
   DatasetCollectionTypeEnum,
-  DatasetTypeEnum
+  DatasetTypeEnum,
+  DatasetStatusEnum
 } from '@fastgpt/global/core/dataset/constants';
 import type { DatasetCollectionItemType, DatasetItemType } from '@fastgpt/global/core/dataset/type';
 import { DatasetPermission } from '@fastgpt/global/support/permission/dataset/controller';
@@ -19,7 +20,7 @@ export const defaultDatasetDetail: DatasetItemType = {
   avatar: '/icon/logo.svg',
   name: '',
   intro: '',
-  status: 'active',
+  status: DatasetStatusEnum.active,
   permission: new DatasetPermission(),
   vectorModel: defaultVectorModels[0],
   agentModel: defaultQAModels[0],
@@ -59,6 +60,7 @@ export const defaultCollectionDetail: DatasetCollectionItemType = {
   chunkSize: 0,
   indexSize: 512,
   permission: new DatasetPermission(),
+  status: DatasetStatusEnum.active,
   indexAmount: 0
 };
 

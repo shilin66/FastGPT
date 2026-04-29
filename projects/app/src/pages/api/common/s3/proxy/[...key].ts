@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { S3PrivateBucket } from '@fastgpt/service/common/s3/buckets/private';
 import { S3PublicBucket } from '@fastgpt/service/common/s3/buckets/public';
-import { S3Buckets } from '@fastgpt/service/common/s3/constants';
 import { encodeContentDisposition } from '@fastgpt/service/common/s3/proxy';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
+import { S3Buckets } from '@fastgpt/service/common/s3/config/constants';
 
 const logger = getLogger(LogCategories.MODULE.DATASET.QUEUES);
 /**

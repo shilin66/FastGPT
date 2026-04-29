@@ -1,5 +1,5 @@
 import { NextAPI } from '@/service/middleware/entry';
-import type { PaginationProps } from '@fastgpt/web/common/fetch/type';
+import type { PaginationProps } from '@fastgpt/global/openapi/api';
 import type { GetUsageProps } from '@fastgpt/global/support/wallet/usage/api';
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';

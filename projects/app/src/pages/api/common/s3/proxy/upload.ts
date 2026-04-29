@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { S3PrivateBucket } from '@fastgpt/service/common/s3/buckets/private';
-import { S3Buckets } from '@fastgpt/service/common/s3/constants';
+import { S3Buckets } from '@fastgpt/service/common/s3/config/constants';
 import { S3PublicBucket } from '@fastgpt/service/common/s3/buckets/public';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 

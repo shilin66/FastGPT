@@ -106,6 +106,9 @@ export type FastGPTFeConfigsType = {
   limit?: {
     exportDatasetLimitMinutes?: number;
     websiteSyncLimitMinuted?: number;
+    agentSandboxMaxEditDebug?: number;
+    agentSandboxMaxSessionRuntime?: number;
+    workflowParallelRunMaxConcurrency?: number;
   };
   perplexica_url?: string;
   uploadFileMaxAmount?: number;
@@ -146,6 +149,8 @@ export type FastGPTFeConfigsType = {
   imageParsePrompt?: string;
   markdownIframeSandbox?: string;
   checkLicenseCron?: string;
+  // Beta features
+  show_skill?: boolean;
 };
 
 export type SystemEnvType = {

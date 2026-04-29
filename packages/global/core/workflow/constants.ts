@@ -174,6 +174,7 @@ export enum NodeInputKeyEnum {
   datasetParams = 'agent_datasetParams',
   skills = 'skills',
   useAgentSandbox = 'useAgentSandbox',
+  useEditDebugSandbox = 'useEditDebugSandbox',
 
   // dataset
   datasetSelectList = 'datasets',
@@ -238,17 +239,20 @@ export enum NodeInputKeyEnum {
   // user select
   userSelectOptions = 'userSelectOptions',
 
-  // loop
-  loopInputArray = 'loopInputArray',
+  // nested container (loop / parallelRun)
+  nestedInputArray = 'loopInputArray',
   childrenNodeIdList = 'childrenNodeIdList',
   nodeWidth = 'nodeWidth',
   nodeHeight = 'nodeHeight',
-  loopNodeInputHeight = 'loopNodeInputHeight',
-  // loop start
-  loopStartInput = 'loopStartInput',
-  loopStartIndex = 'loopStartIndex',
-  // loop end
-  loopEndInput = 'loopEndInput',
+  nestedNodeInputHeight = 'loopNodeInputHeight',
+  // nested start
+  nestedStartInput = 'loopStartInput',
+  nestedStartIndex = 'loopStartIndex',
+  // nested end
+  nestedEndInput = 'loopEndInput',
+  // parallel run
+  parallelRunMaxConcurrency = 'parallelRunMaxConcurrency',
+  parallelRunMaxRetryTimes = 'parallelRunMaxRetryTimes',
 
   // form input
   userInputForms = 'userInputForms',
@@ -306,11 +310,16 @@ export enum NodeOutputKeyEnum {
   //user select
   selectResult = 'selectResult',
 
-  // loop
-  loopArray = 'loopArray',
-  // loop start
-  loopStartInput = 'loopStartInput',
-  loopStartIndex = 'loopStartIndex',
+  // nested container result (loop)
+  nestedArrayResult = 'loopArray',
+  // nested start
+  nestedStartInput = 'loopStartInput',
+  nestedStartIndex = 'loopStartIndex',
+
+  // parallel run outputs
+  parallelSuccessResults = 'parallelSuccessResults',
+  parallelFullResults = 'parallelFullResults',
+  parallelStatus = 'parallelStatus',
 
   // form input
   formInputResult = 'formInputResult',
@@ -320,6 +329,12 @@ export enum NodeOutputKeyEnum {
 
   /** @deprecated */
   error = 'error'
+}
+
+export enum ParallelRunStatusEnum {
+  success = 'success',
+  partial_success = 'partial_success',
+  failed = 'failed'
 }
 
 export enum VariableInputEnum {

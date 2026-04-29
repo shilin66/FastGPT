@@ -11,8 +11,9 @@ import { TimerIdEnum } from '@fastgpt/service/common/system/timerLock/constants'
 import { addHours } from 'date-fns';
 import { getScheduleTriggerApp } from '@/service/core/app/utils';
 import { cronRefreshModels } from '@fastgpt/service/core/ai/config/utils';
-import { clearExpiredS3FilesCron } from '@fastgpt/service/common/s3/controller';
 import { cronJob as sandboxCronJob } from '@fastgpt/service/core/ai/sandbox/controller';
+import { clearExpiredS3FilesCron } from '@fastgpt/service/common/s3/lifecycle/cleanup';
+import { cleanStaleGeneratingChats } from '@fastgpt/service/core/chat/cleanStaleGeneratingChats';
 import { localCacheManager } from '@fastgpt/service/support/globalCache/cache';
 import { checkCacheLicense } from '@fastgpt/service/common/license/verify';
 
@@ -70,6 +71,20 @@ const scheduleTriggerAppCron = () => {
   getScheduleTriggerApp();
 };
 
+/** 超过 30 分钟仍为 generating 的会话纠正为 done（与 cleanStaleGeneratingChats 阈值一致） */
+const cleanStaleGeneratingChatCron = () => {
+  setCron('*/5 * * * *', async () => {
+    if (
+      await checkTimerLock({
+        timerId: TimerIdEnum.cleanStaleGeneratingChat,
+        lockMinuted: 4
+      })
+    ) {
+      await cleanStaleGeneratingChats();
+    }
+  });
+};
+
 const scheduleClearInvitationLinkCron = () => {
   setCron('0 0 * * *', async () => {
     if (
@@ -119,4 +134,5 @@ export const startCron = () => {
   clearExpiredS3FilesCron();
   sandboxCronJob();
   scheduleClearInvitationLinkCron();
+  cleanStaleGeneratingChatCron();
 };

@@ -11,7 +11,7 @@ import { runToolCall } from './toolCall';
 import { type DispatchToolModuleProps, type ToolNodeItemType } from './type';
 import type {
   UserChatItemFileItemType,
-  ChatItemType,
+  ChatItemMiniType,
   UserChatItemValueItemType
 } from '@fastgpt/global/core/chat/type';
 import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
@@ -97,25 +97,31 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
         }
         return true;
       })
-      .map<ToolNodeItemType>((tool) => {
+      .map<ToolNodeItemType>((_) => {
+        const tool = _!;
         const toolParams: FlowNodeInputItemType[] = [];
-        // Raw json schema(MCP tool)
-        let jsonSchema: JSONSchemaInputType | undefined = undefined;
         tool?.inputs.forEach((input) => {
           if (input.toolDescription) {
             toolParams.push(input);
           }
-
-          if (input.key === NodeInputKeyEnum.toolData || input.key === 'toolData') {
+          if (
+            (input.key === NodeInputKeyEnum.toolData || input.key === 'toolData') &&
+            input.value?.inputSchema
+          ) {
             const value = input.value as McpToolDataType;
-            jsonSchema = value.inputSchema;
+            tool.jsonSchema = value.inputSchema;
           }
         });
 
         return {
-          ...(tool as RuntimeNodeItemType),
-          toolParams,
-          jsonSchema
+          nodeId: tool.nodeId,
+          name: tool.name,
+          flowNodeType: tool.flowNodeType,
+          avatar: tool.avatar,
+          intro: tool.intro,
+          toolDescription: tool.toolDescription,
+          jsonSchema: tool.jsonSchema,
+          toolParams
         };
       });
 
@@ -153,8 +159,8 @@ export const dispatchRunTools = async (props: DispatchToolModuleProps): Promise<
       .filter(Boolean)
       .join('\n\n===---===---===\n\n');
 
-    const messages: ChatItemType[] = (() => {
-      const value: ChatItemType[] = [
+    const messages: ChatItemMiniType[] = (() => {
+      const value: ChatItemMiniType[] = [
         ...getSystemPrompt_ChatItemType(concatenateSystemPrompt),
         // Add file input prompt to histories
         ...chatHistories.map((item) => {
@@ -320,7 +326,7 @@ const getMultiInput = async ({
   uId
 }: {
   runningUserInfo: ChatDispatchProps['runningUserInfo'];
-  histories: ChatItemType[];
+  histories: ChatItemMiniType[];
   fileLinks?: string[];
   requestOrigin?: string;
   maxFiles: number;
