@@ -196,7 +196,6 @@ export const listMemberGroup = async (
         avatar: member.tmb?.avatar
       };
     }
-    console.log('groupMemberMap', groupMemberMap);
     if (member.tmbId.toString() === tmbId) {
       if (member.role === GroupMemberRole.owner) {
         groupPermissionMap[member.groupId] = new Permission({

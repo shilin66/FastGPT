@@ -1,10 +1,14 @@
 {
-  "name": "fast",
+  "name": "@fastgpt/document",
   "version": "0.0.0",
   "private": true,
   "scripts": {
     "build": "next build",
     "dev": "next dev --turbo",
+    "format-doc": "cd .. && zhlint --dir ./document/ *.mdx --fix",
+    "initDocTime": "cd .. && node ./document/script/initDocTime.js",
+    "initDocToc": "cd .. && node ./document/lib/generateToc.js",
+    "removeInvalidImg": "cd .. && node ./document/script/removeInvalidImg.js",
     "start": "next start",
     "postinstall": "fumadocs-mdx"
   },

@@ -1,22 +1,16 @@
 # AGENTS.md
 
-本文件为 Codex (Codex.ai/code) 在本仓库中工作时提供指导说明。
-
-## 输出要求
-
-1. 输出语言：中文
-2. 输出文档位置:
-   1. 设计文档：.Codex/design，todo 跟在设计文档后面。
-   2. 问题分析文档: .Codex/issue
-3. 相同需求文档，尽量写在一起（内容超过 300 行，可以分批写入），或者创建要给目录一起管理，不要随意平铺一堆不同版本的相同问题的文档。
-4. 文件输出，使用正确的编码格式，例如UTF-8。
-5. 如果用户未指明，不要随意编写总结报告。
+本文件为 Agent 在本仓库中工作时提供指导说明。
 
 ## 项目概述
 
 FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据处理、模型调用能力和可视化工作流编排。这是一个基于 NextJS 构建的全栈 TypeScript 应用,后端使用 MongoDB/PostgreSQL。
 
-**技术栈**: NextJS + TypeScript + ChakraUI + MongoDB + PostgreSQL (PG Vector)/Milvus
+**技术栈**: NextJS + TypeScript + ChakraUI + MongoDB + VectorDB(PG, Milvus, Zilliz, OceanBase, SeekDB, OpenGauss......)
+
+## 设计文档
+
+你可以参考 [项目设计文档](./.codex/design/) 来了解 FastGPT 已有的设计方案。
 
 ## 架构
 
@@ -26,7 +20,6 @@ FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据�
 - `packages/global/` - 所有项目共享的类型、常量、工具函数
 - `packages/service/` - 后端服务、数据库模型、API 控制器、工作流引擎
 - `packages/web/` - 共享的前端组件、hooks、样式、国际化
-- `packages/templates/` - 模板市场的应用模板
 
 ### Projects (应用程序)
 - `projects/app/` - 主 NextJS Web 应用(前端 + API 路由)
@@ -40,14 +33,6 @@ FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据�
 - `test/` - 集中的测试文件和工具
 
 ## 开发命令
-
-### 主要命令(从项目根目录运行)
-- `pnpm dev` - 启动所有项目的开发环境(使用 package.json 的 workspace 脚本)
-- `pnpm build` - 构建所有项目
-- `pnpm test` - 使用 Vitest 运行测试
-- `pnpm test:workflow` - 运行工作流相关测试
-- `pnpm lint` - 对所有 TypeScript 文件运行 ESLint 并自动修复
-- `pnpm format-code` - 使用 Prettier 格式化代码
 
 ### 项目专用命令
 **主应用 (projects/app/)**:
@@ -66,8 +51,7 @@ FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据�
 - `cd projects/mcp_server && bun start` - 启动 MCP 服务器
 
 ### 工具命令
-- `pnpm create:i18n` - 生成国际化翻译文件
-- `pnpm api:gen` - 生成 OpenAPI 文档
+- `pnpm lint` - 对所有 TypeScript 文件运行 ESLint 并自动修复
 - `pnpm initIcon` - 初始化图标资源
 - `pnpm gen:theme-typings` - 生成 Chakra UI 主题类型定义
 
@@ -75,8 +59,8 @@ FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据�
 
 项目使用 Vitest 进行测试并生成覆盖率报告。主要测试命令:
 - `pnpm test` - 运行所有测试
-- `pnpm test:workflow` - 专门运行工作流测试
-- 测试文件位于 `test/` 目录和 `projects/app/test/`
+- `pnpm test {file-path}` - 使用 Vitest 运行指定测试文件的指定测试
+- 测试文件位于 `test/` 目录和 `projects/{{name}}/test/`，代表这`packages`和`单个 project`的测试文件目录。
 - 覆盖率报告生成在 `coverage/` 目录
 
 ## 代码组织模式
@@ -101,7 +85,7 @@ FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据�
 ## 开发注意事项
 
 - **包管理器**: 使用 pnpm 及 workspace 配置
-- **Node 版本**: 需要 Node.js >=18.16.0, pnpm >=9.0.0
+- **Node 版本**: 需要 Node.js >=20.x, pnpm >=9.x
 - **数据库**: 支持 MongoDB、带 pgvector 的 PostgreSQL 或 Milvus 向量存储
 - **AI 集成**: 通过统一接口支持多个 AI 提供商
 - **国际化**: 完整支持中文、英文和日文
@@ -112,7 +96,7 @@ FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据�
 - 数据库模型使用 Mongoose 配合 TypeScript
 - API 路由遵循 NextJS 约定
 - 组件文件使用 React 函数式组件和 hooks
-- 共享类型定义在 `packages/global/` 的 `.d.ts` 文件中
+- 共享类型定义在 `packages/global/`中
 
 ## 环境配置
 
@@ -122,9 +106,55 @@ FastGPT 是一个 AI Agent 构建平台,通过 Flow 提供开箱即用的数据�
 
 ## 代码规范
 
-- 尽可能使用 type 进行类型声明，而不是 interface。
+[FastGPT 代码规范](./.codex/code/syntax.md)
 
-## Agent 设计规范
+## 运行要求
 
-1. 对于功能的实习和复杂问题修复，优先进行文档设计，并于让用户确认后，再进行执行修复。
-2. 采用"设计文档-测试示例-代码编写-测试运行-修正代码/文档"的工作模式，以测试为核心来确保设计的正确性。
+### 性格
+
+1. 保持怀疑态度，要深入思考和分析现有代码，提出问题，并让用户确认。
+2. 编写单个需求时，运行测试命令，中途不要运行全量测试，只需局部测试即可，只需最后运行全量测试，确保没有问题。
+
+### 工作流程
+
+对于简单任务，可以直接进行编写实现，对于复杂任务，遵循以下流程：
+
+function agent_loop(用户需求){
+   // 1. 需求文档编写
+   while(需求文档编写未完成){
+      用户需求分析
+      编写需求分析文档;
+      提出问题，让用户提供答案;
+      调整需求文档;
+   }
+   
+   // 2. 开发文档编写
+   while(开发文档编写未完成){
+      编写开发文档;
+      提出问题，让用户提供答案;
+      调整开发文档;
+   }
+
+   // 3. 列出 TODO
+   while(TODO 列表编写未完成){
+      编写 TODO 列表; // 包含写代码，运行测试等，需要与开发文档对应
+      提出问题，让用户提供答案;
+      调整 TODO 列表;
+   }
+
+   // 4. 执行 TODO List
+   while(TODO List 执行未完成){
+      执行 TODO List;
+      更新 TODO List 状态;
+   }
+}
+
+### 输出规范
+
+1. 输出语言：中文
+2. 输出文档位置:
+   2.1. 设计文档: [.codex/design](.codex/design)，todo 跟在设计文档后面。
+   2.2. 问题分析文档: [.codex/issue](.codex/issue)
+3. 相同需求文档，尽量写在一起（内容超过 300 行，可以分批写入），或者创建要给目录一起管理，不要随意平铺一堆不同版本的相同问题的文档。
+4. 文件输出，使用正确的编码格式，例如UTF-8。
+5. 除非用户指明，否则不要编写总结报告。
