@@ -35,6 +35,7 @@ import { encryptSecretValue, anyValueDecrypt } from '../../common/secret/utils';
 import type { SecretValueType } from '@fastgpt/global/common/secret/type';
 import type { WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import { getFlatAppResponses } from '@fastgpt/global/core/chat/utils';
+import { sliceStrStartEnd } from '@fastgpt/global/common/string/tools';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 
@@ -203,6 +204,162 @@ const formatAiContent = ({
     citeCollectionIds,
     errorCount
   };
+};
+
+const isSlimChatItemInteractiveEnabled = () => {
+  return process.env.CHATITEM_INTERACTIVE_HISTORY_SLIM !== 'false';
+};
+
+const getInteractiveDisplayValueMaxLength = () => {
+  const value = Number(process.env.CHATITEM_INTERACTIVE_DISPLAY_VALUE_MAX_LENGTH);
+  return Number.isFinite(value) && value > 0 ? value : 4000;
+};
+
+const stringifyValue = (value: any) => {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const slimDisplayValue = (value: any): any => {
+  if (value === undefined || value === null) return value;
+
+  // Keep file references usable for historical form display and URL refresh.
+  if (Array.isArray(value)) {
+    const isFileList = value.every(
+      (item) => item && typeof item === 'object' && ('key' in item || 'url' in item)
+    );
+    if (isFileList) {
+      return value.map((file) => ({
+        type: file.type,
+        name: file.name,
+        key: file.key,
+        url: file.url,
+        icon: file.icon
+      }));
+    }
+  }
+
+  const text = stringifyValue(value);
+  const maxLength = getInteractiveDisplayValueMaxLength();
+
+  return text.length > maxLength ? sliceStrStartEnd(text, maxLength / 2, maxLength / 2) : value;
+};
+
+const slimInputFormItem = (item: any) => {
+  const value = slimDisplayValue(item.value);
+
+  return {
+    ...item,
+    value,
+    ...(item.defaultValue !== undefined
+      ? {
+          defaultValue: slimDisplayValue(item.defaultValue)
+        }
+      : {})
+  };
+};
+
+const slimInteractiveForHistoryDisplay = (interactive: WorkflowInteractiveResponseType): any => {
+  const finalInteractive = extractDeepestInteractive(interactive) as any;
+  const planId = finalInteractive.planId || interactive.planId;
+
+  if (
+    finalInteractive.type === 'userSelect' ||
+    finalInteractive.type === 'agentPlanAskUserSelect'
+  ) {
+    return {
+      type: finalInteractive.type,
+      planId,
+      params: {
+        description: finalInteractive.params.description,
+        userSelectOptions: finalInteractive.params.userSelectOptions,
+        userSelectedVal: finalInteractive.params.userSelectedVal
+      }
+    };
+  }
+
+  if (finalInteractive.type === 'userInput' || finalInteractive.type === 'agentPlanAskUserForm') {
+    return {
+      type: finalInteractive.type,
+      planId,
+      params: {
+        description: finalInteractive.params.description,
+        submitted: finalInteractive.params.submitted,
+        inputForm: finalInteractive.params.inputForm.map(slimInputFormItem)
+      }
+    };
+  }
+
+  if (finalInteractive.type === 'agentPlanAskQuery') {
+    return {
+      type: finalInteractive.type,
+      planId,
+      params: {
+        content: finalInteractive.params.content,
+        answer: slimDisplayValue(finalInteractive.params.answer)
+      }
+    };
+  }
+
+  if (finalInteractive.type === 'agentPlanCheck') {
+    return {
+      type: finalInteractive.type,
+      planId,
+      params: {
+        confirmed: finalInteractive.params.confirmed
+      }
+    };
+  }
+
+  if (finalInteractive.type === 'paymentPause') {
+    return {
+      type: finalInteractive.type,
+      planId,
+      params: {
+        description: finalInteractive.params.description,
+        continue: finalInteractive.params.continue
+      }
+    };
+  }
+
+  return {
+    type: finalInteractive.type,
+    planId,
+    params: {}
+  };
+};
+
+const slimChatItemHistoryInteractives = <
+  T extends {
+    value?: any[];
+  }
+>(
+  item: T,
+  {
+    keepLastInteractiveFull = true
+  }: {
+    keepLastInteractiveFull?: boolean;
+  } = {}
+): T => {
+  if (!isSlimChatItemInteractiveEnabled() || !Array.isArray(item.value)) return item;
+
+  const lastIndex = item.value.length - 1;
+
+  item.value = item.value.map((value, index) => {
+    if (!value.interactive) return value;
+    if (keepLastInteractiveFull && index === lastIndex) return value;
+
+    return {
+      ...value,
+      interactive: slimInteractiveForHistoryDisplay(value.interactive)
+    };
+  });
+
+  return item;
 };
 
 const getChatDataLog = async ({
@@ -704,6 +861,7 @@ export const pushChatRecords = async (props: Props) => {
       durationSeconds,
       errorMsg
     });
+    slimChatItemHistoryInteractives(aiResponse);
     const processedContent = [userContent, aiResponse];
 
     await mongoSessionRun(async (session) => {
@@ -886,7 +1044,9 @@ export const updateInteractiveChat = async ({
 
   // 如果是发送一条新的 user 消息，则直接用推送记录的方式
   const status = checkInteractiveResponseStatus({
-    interactive,
+    interactive: {
+      type: interactive.type
+    },
     input: userInteractiveVal
   });
   // 提取嵌套在子流程里的交互节点
@@ -898,6 +1058,7 @@ export const updateInteractiveChat = async ({
       if (finalInteractive.type === 'agentPlanAskQuery') {
         finalInteractive.params.answer = userInteractiveVal;
         chatItem.value[chatItem.value.length - 1].interactive = interactive;
+        slimChatItemHistoryInteractives(chatItem, { keepLastInteractiveFull: false });
         chatItem.markModified('value');
         await chatItem.save();
 
@@ -1008,6 +1169,7 @@ export const updateInteractiveChat = async ({
   }
 
   chatItem.markModified('value');
+  slimChatItemHistoryInteractives(chatItem);
   await mongoSessionRun(async (session) => {
     await chatItem.save({ session });
     await MongoChat.updateOne(
