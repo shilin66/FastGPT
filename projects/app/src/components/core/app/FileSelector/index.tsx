@@ -95,6 +95,41 @@ const FileSelector = ({
     canSelectCustomFileExtension,
     customFileExtensionList
   ]);
+
+  const componentFileSelectConfig = useMemo<AppFileSelectConfigType | undefined>(() => {
+    const hasComponentConfig = [
+      maxFiles,
+      canSelectFile,
+      canSelectImg,
+      canSelectVideo,
+      canSelectAudio,
+      canSelectCustomFileExtension,
+      customFileExtensionList
+    ].some((item) => item !== undefined);
+
+    if (!hasComponentConfig) return undefined;
+
+    return {
+      maxFiles,
+      canSelectFile,
+      canSelectImg,
+      canSelectVideo,
+      canSelectAudio,
+      canSelectCustomFileExtension,
+      customFileExtensionList
+    };
+  }, [
+    maxFiles,
+    canSelectFile,
+    canSelectImg,
+    canSelectVideo,
+    canSelectAudio,
+    canSelectCustomFileExtension,
+    customFileExtensionList
+  ]);
+
+  const uploadFileSelectConfig = componentFileSelectConfig ?? runtimeFileSelectConfig;
+
   // 文件数量限制：组件参数 || 团队套餐 || 系统配置 || 默认值
   const maxSelectFiles =
     maxFiles ||
@@ -131,7 +166,7 @@ const FileSelector = ({
               filename: file.rawFile.name,
               appId,
               chatId,
-              fileSelectConfig: runtimeFileSelectConfig,
+              fileSelectConfig: uploadFileSelectConfig,
               outLinkAuthData
             });
 
@@ -186,7 +221,7 @@ const FileSelector = ({
       setFileUploadingCount,
       appId,
       chatId,
-      runtimeFileSelectConfig,
+      uploadFileSelectConfig,
       outLinkAuthData
     ]
   );
