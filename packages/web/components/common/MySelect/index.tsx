@@ -54,6 +54,7 @@ export type SelectProps<T = any> = Omit<ButtonProps, 'onChange'> & {
   ScrollData?: ReturnType<typeof useScrollPagination>['ScrollData'];
   customOnOpen?: () => void;
   customOnClose?: () => void;
+  menuListMatchWidth?: boolean;
 
   isInvalid?: boolean;
   isDisabled?: boolean;
@@ -86,6 +87,7 @@ const MySelect = <T = any,>(
     ScrollData,
     customOnOpen,
     customOnClose,
+    menuListMatchWidth = false,
     isInvalid,
     isDisabled,
     ...props
@@ -196,6 +198,13 @@ const MySelect = <T = any,>(
   }, [filterList, onClickChange, value]);
 
   const isSelecting = loading || isLoading;
+  const menuWidth = (() => {
+    const w = ButtonRef.current?.clientWidth;
+    if (w) {
+      return `${w}px !important`;
+    }
+    return Array.isArray(width) ? width.map((item) => `${item} !important`) : `${width} !important`;
+  })();
 
   return (
     <Box>
@@ -290,16 +299,9 @@ const MySelect = <T = any,>(
         <MenuList
           ref={MenuListRef}
           className={props.className}
-          minW={(() => {
-            const w = ButtonRef.current?.clientWidth;
-            if (w) {
-              return `${w}px !important`;
-            }
-            return Array.isArray(width)
-              ? width.map((item) => `${item} !important`)
-              : `${width} !important`;
-          })()}
-          w={'max-content'}
+          minW={menuWidth}
+          w={menuListMatchWidth ? menuWidth : 'max-content'}
+          maxW={menuListMatchWidth ? menuWidth : undefined}
           px={'6px'}
           py={'6px'}
           border={'1px solid #fff'}

@@ -90,6 +90,7 @@ function DataProcess() {
                         onChange={(val) => setValue('customPdfParse', val)}
                         size={'sm'}
                         h={'32px'}
+                        menuListMatchWidth
                       />
                       {customPdfParseValue && feConfigs?.show_pay && (
                         <MyTag

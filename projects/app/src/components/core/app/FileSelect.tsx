@@ -179,6 +179,7 @@ const FileSelect = ({
                   // }}
                   size={'sm'}
                   h={'32px'}
+                  menuListMatchWidth
                 />
                 {localValue.customPdfParse && feConfigs?.show_pay && (
                   <MyTag
