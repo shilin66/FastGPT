@@ -61,6 +61,9 @@ export const appWorkflow2AgentForm = ({
       defaultAppForm.aiSettings.temperature = inputMap.get(NodeInputKeyEnum.aiChatTemperature);
       defaultAppForm.aiSettings.maxHistories = inputMap.get(NodeInputKeyEnum.history);
       defaultAppForm.aiSettings.aiChatTopP = inputMap.get(NodeInputKeyEnum.aiChatTopP);
+      defaultAppForm.aiSettings.aiChatDefaultConfig = inputMap.get(
+        NodeInputKeyEnum.aiChatDefaultConfig
+      );
       defaultAppForm.aiSettings.useAgentSandbox = inputMap.get(NodeInputKeyEnum.useAgentSandbox);
 
       const tools = inputMap.get(NodeInputKeyEnum.selectedTools) as FlowNodeTemplateType[];
@@ -258,6 +261,13 @@ export function agentForm2AppWorkflow(
               label: '',
               valueType: WorkflowIOValueTypeEnum.boolean,
               value: data.aiSettings.useAgentSandbox ?? false
+            },
+            {
+              key: NodeInputKeyEnum.aiChatDefaultConfig,
+              renderTypeList: [FlowNodeInputTypeEnum.hidden],
+              label: '',
+              valueType: WorkflowIOValueTypeEnum.any,
+              value: data.aiSettings.aiChatDefaultConfig
             },
             // Skills configuration
             ...(data.selectedAgentSkills && data.selectedAgentSkills.length > 0
