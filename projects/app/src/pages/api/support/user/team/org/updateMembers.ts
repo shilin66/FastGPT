@@ -15,16 +15,23 @@ async function handler(req: ApiRequestProps<putUpdateOrgMembersData>, res: ApiRe
 
   try {
     await mongoSessionRun(async (session) => {
-      const org = await MongoOrgModel.findById(orgId, undefined, { session });
+      const org =
+        orgId === ''
+          ? await MongoOrgModel.findOne({ teamId, path: '' }, undefined, { session })
+          : orgId
+            ? await MongoOrgModel.findOne({ _id: orgId, teamId }, undefined, { session })
+            : null;
 
       if (!org) {
         return Promise.reject(TeamErrEnum.orgNotExist);
       }
 
+      const realOrgId = org._id;
+
       // remove old members
       await MongoOrgMemberModel.deleteMany(
         {
-          orgId,
+          orgId: realOrgId,
           teamId
         },
         { session }
@@ -35,7 +42,7 @@ async function handler(req: ApiRequestProps<putUpdateOrgMembersData>, res: ApiRe
           [
             {
               teamId,
-              orgId,
+              orgId: realOrgId,
               tmbId: member.tmbId
             }
           ],
