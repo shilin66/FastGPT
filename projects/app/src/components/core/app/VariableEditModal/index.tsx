@@ -76,6 +76,13 @@ const VariableEditModal = ({
   const onSubmitSuccess = useCallback(
     (data: VariableItemType, action: 'confirm' | 'continue') => {
       data.label = data?.label?.trim();
+      const optionalNumberKeys = ['maxLength', 'minLength', 'max', 'min', 'maxFiles'] as const;
+      optionalNumberKeys.forEach((key) => {
+        const formData = data as Record<string, unknown>;
+        if (formData[key] === '') {
+          delete formData[key];
+        }
+      });
 
       const otherVariables = variables.filter((v) => v.key !== data.key);
       const isValid = validateFieldName(data.label, {
