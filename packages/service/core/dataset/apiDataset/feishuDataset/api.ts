@@ -6,7 +6,7 @@ import type {
 } from '@fastgpt/global/core/dataset/apiDataset/type';
 import { type ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { type Method } from 'axios';
-import { createProxyAxios, axios } from '../../../../common/api/axios';
+import { createFeishuAxios } from '../../../../common/api/feishu';
 import { getLogger, LogCategories } from '../../../../common/logger';
 
 type ResponseDataType = {
@@ -34,15 +34,18 @@ const feishuBaseUrl = process.env.FEISHU_BASE_URL || 'https://open.feishu.cn';
 const logger = getLogger(LogCategories.MODULE.DATASET.API_DATASET);
 
 export const useFeishuDatasetRequest = ({ feishuServer }: { feishuServer: FeishuServerType }) => {
-  const instance = createProxyAxios({
+  const instance = createFeishuAxios({
     baseURL: feishuBaseUrl,
+    timeout: 60000
+  });
+  const tokenInstance = createFeishuAxios({
     timeout: 60000
   });
 
   // 添加请求拦截器
   instance.interceptors.request.use(async (config) => {
     if (!config.headers.Authorization) {
-      const { data } = await axios.post<{ tenant_access_token: string }>(
+      const { data } = await tokenInstance.post<{ tenant_access_token: string }>(
         `${feishuBaseUrl}/open-apis/auth/v3/tenant_access_token/internal`,
         {
           app_id: feishuServer.appId,
