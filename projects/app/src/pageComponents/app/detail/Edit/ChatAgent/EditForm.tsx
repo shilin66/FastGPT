@@ -34,6 +34,7 @@ import SandboxTipTag from '../../components/SandboxTipTag';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import SandboxNotSupportTip from '../../components/SandboxNotSupportTip';
 import { useUserStore } from '@/web/support/user/useUserStore';
+import { getAgentLLMModelDefaultData } from './utils';
 
 const DatasetSelectModal = dynamic(() => import('@/components/core/app/DatasetSelectModal'));
 const DatasetParamsModal = dynamic(() => import('@/components/core/app/DatasetParamsModal'));
@@ -156,17 +157,7 @@ const EditForm = ({
             <Box flex={'1 0 0'}>
               <SettingLLMModel
                 bg="myGray.50"
-                defaultData={{
-                  model: appForm.aiSettings.model
-                  // temperature: appForm.aiSettings.temperature,
-                  // maxToken: appForm.aiSettings.maxToken,
-                  // maxHistories: appForm.aiSettings.maxHistories,
-                  // aiChatReasoning: appForm.aiSettings.aiChatReasoning ?? true,
-                  // aiChatTopP: appForm.aiSettings.aiChatTopP,
-                  // aiChatStopSign: appForm.aiSettings.aiChatStopSign,
-                  // aiChatResponseFormat: appForm.aiSettings.aiChatResponseFormat,
-                  // aiChatJsonSchema: appForm.aiSettings.aiChatJsonSchema
-                }}
+                defaultData={getAgentLLMModelDefaultData(appForm.aiSettings)}
                 showMaxToken={false}
                 showTemperature={false}
                 showTopP={false}

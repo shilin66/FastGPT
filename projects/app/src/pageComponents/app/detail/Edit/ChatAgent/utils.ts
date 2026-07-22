@@ -3,7 +3,7 @@ import {
   type SelectedAgentSkillItemType,
   type SelectedToolItemType
 } from '@fastgpt/global/core/app/formEdit/type';
-import type { AppChatConfigType } from '@fastgpt/global/core/app/type';
+import type { AppChatConfigType, SettingAIDataType } from '@fastgpt/global/core/app/type';
 import type { AppFormEditFormType } from '@fastgpt/global/core/app/formEdit/type';
 import type {
   FlowNodeTemplateType,
@@ -39,6 +39,13 @@ import {
 import { getToolPreviewNode } from '@/web/core/app/api/tool';
 import type { AppFileSelectConfigType } from '@fastgpt/global/core/app/type/config.schema';
 import { DatasetSearchModeEnum } from '@fastgpt/global/core/dataset/constants';
+
+export const getAgentLLMModelDefaultData = (
+  aiSettings: AppFormEditFormType['aiSettings']
+): SettingAIDataType => ({
+  model: aiSettings.model,
+  [NodeInputKeyEnum.aiChatDefaultConfig]: aiSettings.aiChatDefaultConfig
+});
 
 /* format app nodes to edit form */
 export const appWorkflow2AgentForm = ({
