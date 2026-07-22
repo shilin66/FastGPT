@@ -21,6 +21,7 @@ import SandboxTipTag from '../../components/SandboxTipTag';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import SandboxNotSupportTip from '../../components/SandboxNotSupportTip';
 import { useUserStore } from '@/web/support/user/useUserStore';
+import { getAgentLLMModelDefaultData } from './utils';
 import { agentConfigSectionIds, type AgentConfigSectionKey } from './configSections';
 import { AgentParameterRow, AgentParameterSection } from '../FormComponent/AgentParameterSection';
 import { omniTheme } from '@/web/common/brand/theme';
@@ -184,9 +185,7 @@ const EditForm = ({
         >
           <SettingLLMModel
             bg={omniTheme.colors.pageBg}
-            defaultData={{
-              model: appForm.aiSettings.model
-            }}
+            defaultData={getAgentLLMModelDefaultData(appForm.aiSettings)}
             showMaxToken={false}
             showTemperature={false}
             showTopP={false}
