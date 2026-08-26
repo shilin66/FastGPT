@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createProxyAxios } from '@fastgpt/service/common/api/axios';
+import { createProxyAxios, getProxyForUrlWithCidr } from '@fastgpt/service/common/api/axios';
 
 type AxiosRequestConfig = {
   timeout?: number;
@@ -11,9 +11,30 @@ type AxiosRequestConfig = {
 };
 
 describe('axios.ts', () => {
+  const originalEnv = {
+    HTTP_PROXY: process.env.HTTP_PROXY,
+    HTTPS_PROXY: process.env.HTTPS_PROXY,
+    NO_PROXY: process.env.NO_PROXY,
+    http_proxy: process.env.http_proxy,
+    https_proxy: process.env.https_proxy,
+    no_proxy: process.env.no_proxy,
+    npm_config_no_proxy: process.env.npm_config_no_proxy
+  };
+
+  const restoreProxyEnv = () => {
+    for (const [key, value] of Object.entries(originalEnv)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  };
+
   describe('createProxyAxios', () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      restoreProxyEnv();
     });
 
     it('应该创建一个带有 ProxyAgent 的 axios 实例', () => {
@@ -97,6 +118,40 @@ describe('axios.ts', () => {
       expect(axios.defaults.proxy).toBe(false);
       expect(axios.defaults.httpAgent).toBeDefined();
       expect(axios.defaults.httpsAgent).toBeDefined();
+    });
+  });
+
+  describe('getProxyForUrlWithCidr', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      restoreProxyEnv();
+      delete process.env.http_proxy;
+      delete process.env.https_proxy;
+      delete process.env.no_proxy;
+      delete process.env.npm_config_no_proxy;
+      process.env.HTTP_PROXY = 'http://proxy.example:8080';
+      process.env.HTTPS_PROXY = 'http://proxy.example:8080';
+    });
+
+    it('应该支持 NO_PROXY 中的 IPv4 CIDR', () => {
+      process.env.NO_PROXY = 'localhost,10.0.0.0/8,192.168.0.0/16';
+
+      expect(getProxyForUrlWithCidr('http://10.5.10.49:8011')).toBe('');
+      expect(getProxyForUrlWithCidr('http://192.168.1.10:8011')).toBe('');
+      expect(getProxyForUrlWithCidr('http://8.8.8.8:8011')).toBe('http://proxy.example:8080');
+    });
+
+    it('应该保留原有 host:port 精确匹配逻辑', () => {
+      process.env.NO_PROXY = '10.5.10.49:8011';
+
+      expect(getProxyForUrlWithCidr('http://10.5.10.49:8011')).toBe('');
+      expect(getProxyForUrlWithCidr('http://10.5.10.49:8081')).toBe('http://proxy.example:8080');
+    });
+
+    it('应该忽略非法 CIDR 并回退到原有代理规则', () => {
+      process.env.NO_PROXY = '10.0.0.0/invalid';
+
+      expect(getProxyForUrlWithCidr('http://10.5.10.49:8011')).toBe('http://proxy.example:8080');
     });
   });
 });
