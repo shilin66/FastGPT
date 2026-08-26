@@ -52,6 +52,7 @@ export abstract class BaseProcessPool {
   protected static readonly HEALTH_CHECK_INTERVAL = 30_000;
   protected static readonly HEALTH_CHECK_TIMEOUT = 5_000;
   protected static readonly SPAWN_TIMEOUT = 120_000;
+  protected static readonly SLOW_QUEUE_WAIT_MS = 10_000;
 
   constructor(
     poolSize: number | undefined,
@@ -261,21 +262,79 @@ export abstract class BaseProcessPool {
   // ============================================================
 
   async execute(options: ExecuteOptions): Promise<ExecuteResult> {
-    const { code, variables } = options;
+    const { code, variables, requestId } = options;
 
     if (!code || typeof code !== 'string' || !code.trim()) {
       return { success: false, message: 'Code cannot be empty' };
     }
 
     const timeoutMs = config.maxTimeoutMs;
-    const worker = await this.acquire();
+    const queuedAt = Date.now();
+    const wasQueued = this.idleWorkers.length === 0;
+    let slowQueueTimer: ReturnType<typeof setTimeout> | undefined;
+
+    if (wasQueued) {
+      serverLogger.debug('sandbox.pool.queued', {
+        requestId,
+        language: this.options.name,
+        ...this.stats
+      });
+      slowQueueTimer = setTimeout(() => {
+        serverLogger.warn('sandbox.pool.queue_wait_slow', {
+          requestId,
+          language: this.options.name,
+          queueWaitMs: Date.now() - queuedAt,
+          ...this.stats
+        });
+      }, BaseProcessPool.SLOW_QUEUE_WAIT_MS);
+    }
+
+    const worker = await this.acquire().finally(() => {
+      if (slowQueueTimer) clearTimeout(slowQueueTimer);
+    });
+    const queueWaitMs = Date.now() - queuedAt;
+
+    serverLogger.info('sandbox.pool.worker_acquired', {
+      requestId,
+      language: this.options.name,
+      workerId: worker.id,
+      queueWaitMs,
+      wasQueued,
+      ...this.stats
+    });
+
+    const executionStartedAt = Date.now();
 
     try {
-      return await this.sendTask(
+      const result = await this.sendTask(
         worker,
         { code, variables: variables || {}, timeoutMs },
         timeoutMs
       );
+      const executionContext = {
+        requestId,
+        language: this.options.name,
+        workerId: worker.id,
+        executionMs: Date.now() - executionStartedAt,
+        success: result.success
+      };
+
+      if (result.success) {
+        serverLogger.info('sandbox.pool.execution.complete', executionContext);
+      } else {
+        serverLogger.warn('sandbox.pool.execution.complete', executionContext);
+      }
+
+      return result;
+    } catch (error) {
+      serverLogger.error('sandbox.pool.execution.failed', {
+        requestId,
+        language: this.options.name,
+        workerId: worker.id,
+        executionMs: Date.now() - executionStartedAt,
+        error
+      });
+      throw error;
     } finally {
       this.release(worker);
     }

@@ -81,6 +81,7 @@ export type ChatDispatchProps = {
 
   chatId: string;
   responseChatItemId?: string;
+  workflowRunId?: string;
   histories: ChatItemMiniType[];
   variables: Record<string, any>; // global variable
   query: UserChatItemValueItemType[]; // trigger query

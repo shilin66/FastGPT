@@ -26,13 +26,31 @@ describe('API Routes', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.status).toBe('ok');
+    expect(data.pools.js).toMatchObject({
+      total: expect.any(Number),
+      idle: expect.any(Number),
+      busy: expect.any(Number),
+      queued: expect.any(Number),
+      poolSize: expect.any(Number)
+    });
+    expect(data.pools.python).toMatchObject({
+      total: expect.any(Number),
+      idle: expect.any(Number),
+      busy: expect.any(Number),
+      queued: expect.any(Number),
+      poolSize: expect.any(Number)
+    });
   });
 
   // ===== JS =====
   it('POST /sandbox/js 正常执行', async () => {
+    const requestId = 'workflow-test-request';
     const res = await app.request('/sandbox/js', {
       method: 'POST',
-      headers: headers({ 'Content-Type': 'application/json' }),
+      headers: headers({
+        'Content-Type': 'application/json',
+        'x-fastgpt-request-id': requestId
+      }),
       body: JSON.stringify({
         code: 'async function main(v) { return { hello: v.name } }',
         variables: { name: 'world' }
@@ -41,6 +59,7 @@ describe('API Routes', () => {
     const data = await res.json();
     expect(data.success).toBe(true);
     expect(data.data.codeReturn.hello).toBe('world');
+    expect(res.headers.get('x-fastgpt-request-id')).toBe(requestId);
   });
 
   it('POST /sandbox/js 忽略额外参数', async () => {

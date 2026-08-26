@@ -2,6 +2,7 @@
 export type ExecuteOptions = {
   code: string;
   variables: Record<string, any>;
+  requestId?: string;
 };
 
 /** 执行结果 */

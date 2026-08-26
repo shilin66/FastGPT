@@ -8,6 +8,7 @@ import { PythonProcessPool } from './pool/python-process-pool';
 import type { ExecuteOptions } from './types';
 import { getErrText } from './utils';
 import { configureLogger, getLogger, LogCategories } from './utils/logger';
+import { randomUUID } from 'node:crypto';
 
 await configureLogger();
 
@@ -23,7 +24,13 @@ const executeSchema = z.object({
   variables: z.record(z.string(), z.any()).default({})
 });
 
-const app = new Hono();
+type AppEnv = {
+  Variables: {
+    requestId: string;
+  };
+};
+
+const app = new Hono<AppEnv>();
 
 /** 进程池 */
 const jsPool = new ProcessPool(config.poolSize);
@@ -45,53 +52,76 @@ app.get('/health', (c) => {
   const jsStats = jsPool.stats;
   const pyStats = pythonPool.stats;
   const isReady = jsStats.total > 0 && pyStats.total > 0;
-  return c.json({ status: isReady ? 'ok' : 'degraded' }, isReady ? 200 : 503);
+  return c.json(
+    {
+      status: isReady ? 'ok' : 'degraded',
+      pools: {
+        js: jsStats,
+        python: pyStats
+      }
+    },
+    isReady ? 200 : 503
+  );
 });
 
-// 增加日志中间件，打印请求信息
 app.use('/sandbox/*', async (c, next) => {
-  apiLogger.info(`Request: ${c.req.url}`);
-  await next();
-});
-// 增加响应日志，打印时间，状态，错误信息，并检查业务层面的成功状态
-app.use('/sandbox/*', async (c, next) => {
+  const requestId = c.req.header('x-fastgpt-request-id') ?? randomUUID();
   const startTime = Date.now();
+  const language = c.req.path.endsWith('/python')
+    ? 'python3'
+    : c.req.path.endsWith('/js')
+      ? 'js'
+      : 'system';
+  const poolStats =
+    language === 'python3' ? pythonPool.stats : language === 'js' ? jsPool.stats : undefined;
+
+  c.set('requestId', requestId);
+  c.header('x-fastgpt-request-id', requestId);
+  apiLogger.info('sandbox.request.start', {
+    requestId,
+    method: c.req.method,
+    path: c.req.path,
+    language,
+    contentLength: Number(c.req.header('content-length') ?? 0),
+    ...poolStats
+  });
+
   await next();
 
   const duration = Date.now() - startTime;
-  const { method, url } = c.req;
   const { status } = c.res;
 
-  // 尝试解析响应体以检查业务状态
   let businessSuccess = true;
-  let errorMessage = '';
 
   try {
-    // 克隆响应以读取内容（避免消耗原始响应流）
     const clonedRes = c.res.clone();
     const contentType = clonedRes.headers.get('content-type');
 
     if (contentType?.includes('application/json')) {
       const body = await clonedRes.json();
-      businessSuccess = body.success !== false; // 如果没有 success 字段，默认为成功
-      errorMessage = body.message || '';
+      businessSuccess = body.success !== false;
     }
-  } catch (err) {
-    // 解析失败时不影响日志记录
-  }
+  } catch {}
 
-  // 根据 HTTP 状态码和业务状态决定日志级别
   const isHttpSuccess = status >= 200 && status < 300;
   const isFullSuccess = isHttpSuccess && businessSuccess;
 
-  const logMessage = `Response: ${url} | HTTP ${status} | Business ${businessSuccess ? '✓' : '✗'} | ${duration}ms${errorMessage ? ` | Error: ${errorMessage}` : ''}`;
+  const responseContext = {
+    requestId,
+    method: c.req.method,
+    path: c.req.path,
+    language,
+    status,
+    businessSuccess,
+    durationMs: duration
+  };
 
   if (isFullSuccess) {
-    apiLogger.info(logMessage);
-  } else if (!businessSuccess) {
-    apiLogger.warn(logMessage);
+    apiLogger.info('sandbox.request.complete', responseContext);
+  } else if (status >= 500) {
+    apiLogger.error('sandbox.request.complete', responseContext);
   } else {
-    apiLogger.error(logMessage);
+    apiLogger.warn('sandbox.request.complete', responseContext);
   }
 });
 /** 认证中间件：仅当配置了 token 时启用 */
@@ -117,7 +147,10 @@ app.post('/sandbox/js', async (c) => {
         400
       );
     }
-    const result = await jsPool.execute(parsed.data as ExecuteOptions);
+    const result = await jsPool.execute({
+      ...(parsed.data as ExecuteOptions),
+      requestId: c.get('requestId')
+    });
     return c.json(result);
   } catch (err: any) {
     return c.json({
@@ -141,7 +174,10 @@ app.post('/sandbox/python', async (c) => {
         400
       );
     }
-    const result = await pythonPool.execute(parsed.data as ExecuteOptions);
+    const result = await pythonPool.execute({
+      ...(parsed.data as ExecuteOptions),
+      requestId: c.get('requestId')
+    });
     return c.json(result);
   } catch (err: any) {
     return c.json({

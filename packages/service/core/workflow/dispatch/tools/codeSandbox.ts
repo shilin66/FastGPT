@@ -5,6 +5,10 @@ import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runti
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { formatHttpError } from '../utils';
 import { codeSandbox } from '../../../../thirdProvider/codeSandbox';
+import { getNanoid } from '@fastgpt/global/common/string/tools';
+import { getLogger, LogCategories } from '../../../../common/logger';
+
+const logger = getLogger(LogCategories.MODULE.WORKFLOW.CODE_SANDBOX);
 
 type RunCodeType = ModuleDispatchProps<{
   [NodeInputKeyEnum.codeType]: 'python3' | 'js';
@@ -26,11 +30,35 @@ type RunCodeResponse = DispatchNodeResultType<
 
 export const dispatchCodeSandbox = async (props: RunCodeType): Promise<RunCodeResponse> => {
   const {
-    node: { catchError },
-    params: { codeType, code, [NodeInputKeyEnum.addInputParam]: customVariables }
+    node,
+    params: { codeType, code, [NodeInputKeyEnum.addInputParam]: customVariables },
+    workflowRunId,
+    responseChatItemId,
+    chatId,
+    runningAppInfo
   } = props;
+  const { catchError } = node;
+  const requestId = getNanoid();
+  const correlationId = workflowRunId ?? responseChatItemId ?? chatId;
+  const startedAt = Date.now();
+  const logContext = {
+    workflowRunId: correlationId,
+    requestId,
+    appId: runningAppInfo.id,
+    chatId,
+    nodeId: node.nodeId,
+    nodeType: node.flowNodeType,
+    language: codeType,
+    codeBytes: Buffer.byteLength(code, 'utf8'),
+    inputCount: Object.keys(customVariables ?? {}).length
+  };
 
   if (!process.env.CODE_SANDBOX_URL) {
+    logger.error('workflow.code_sandbox.request.failed', {
+      ...logContext,
+      durationMs: Date.now() - startedAt,
+      error: 'CODE_SANDBOX_URL is not configured'
+    });
     return {
       data: undefined,
       error: {
@@ -44,10 +72,19 @@ export const dispatchCodeSandbox = async (props: RunCodeType): Promise<RunCodeRe
   }
 
   try {
+    logger.info('workflow.code_sandbox.request.start', logContext);
+
     const { codeReturn, log } = await codeSandbox.runCode({
       codeType,
       code,
-      variables: customVariables
+      variables: customVariables,
+      requestId
+    });
+
+    logger.info('workflow.code_sandbox.request.complete', {
+      ...logContext,
+      durationMs: Date.now() - startedAt,
+      outputCount: codeReturn == null ? 0 : Object.keys(codeReturn).length
     });
 
     return {
@@ -64,6 +101,11 @@ export const dispatchCodeSandbox = async (props: RunCodeType): Promise<RunCodeRe
     };
   } catch (error) {
     const text = getErrText(error, 'Request code sandbox failed');
+    logger.error('workflow.code_sandbox.request.failed', {
+      ...logContext,
+      durationMs: Date.now() - startedAt,
+      error: text
+    });
 
     // @adapt
     if (catchError === undefined) {

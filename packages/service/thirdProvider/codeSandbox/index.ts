@@ -49,11 +49,13 @@ export class CodeSandbox {
   async runCode({
     codeType,
     code,
-    variables
+    variables,
+    requestId
   }: {
     codeType: string;
     code: string;
     variables: Record<string, any>;
+    requestId?: string;
   }) {
     const url = (() => {
       if (codeType == SandboxCodeTypeEnum.py) {
@@ -66,7 +68,17 @@ export class CodeSandbox {
     const { data } = await this.client.post<{
       codeReturn: Record<string, any>;
       log: string;
-    }>(url, { code, variables });
+    }>(
+      url,
+      { code, variables },
+      {
+        headers: requestId
+          ? {
+              'x-fastgpt-request-id': requestId
+            }
+          : undefined
+      }
+    );
 
     return data;
   }
