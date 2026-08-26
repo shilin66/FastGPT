@@ -1,7 +1,7 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/router';
-import { Box, Flex, type FlexProps } from '@chakra-ui/react';
+import { Box, Flex } from '@chakra-ui/react';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import dynamic from 'next/dynamic';
@@ -20,6 +20,7 @@ import { useContextSelector } from 'use-context-selector';
 import NextHead from '@/components/common/NextHead';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const CollectionCard = dynamic(
   () => import('@/pageComponents/dataset/detail/CollectionCard/index')
@@ -38,13 +39,6 @@ export enum TabEnum {
 }
 type Props = { datasetId: string; currentTab: TabEnum };
 
-const sliderStyles: FlexProps = {
-  bg: 'white',
-  borderRadius: 'md',
-  overflowY: 'auto',
-  boxShadow: 2
-};
-
 const Detail = ({ datasetId, currentTab }: Props) => {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -52,6 +46,9 @@ const Detail = ({ datasetId, currentTab }: Props) => {
   const { isPc } = useSystem();
   const datasetDetail = useContextSelector(DatasetPageContext, (v) => v.datasetDetail);
   const loadDatasetDetail = useContextSelector(DatasetPageContext, (v) => v.loadDatasetDetail);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+
+  const showDatasetInfo = [TabEnum.collectionCard, TabEnum.test].includes(currentTab);
 
   useRequest(() => loadDatasetDetail(datasetId), {
     onError(err: any) {
@@ -69,10 +66,28 @@ const Detail = ({ datasetId, currentTab }: Props) => {
       <NextHead title={datasetDetail?.name} icon={datasetDetail?.avatar} />
 
       {isPc ? (
-        <Flex h={'100%'} py={3} pl={1} pr={3} gap={2}>
-          <Flex flex={1} w={0} bg={'white'} flexDir={'column'} boxShadow={'2'} borderRadius={'md'}>
-            {currentTab !== TabEnum.import && <NavBar currentTab={currentTab} />}
-            <Box flex={'1'} overflowY={'auto'}>
+        <Flex
+          h={'100%'}
+          minW={0}
+          bg={omniTheme.colors.surface}
+          flexDir={'column'}
+          overflow={'hidden'}
+        >
+          {currentTab !== TabEnum.import && (
+            <NavBar
+              currentTab={currentTab}
+              isInfoOpen={isInfoOpen}
+              onToggleInfo={() => setIsInfoOpen((value) => !value)}
+            />
+          )}
+          <Flex flex={1} minH={0}>
+            <Box
+              flex={1}
+              minW={0}
+              overflowY={
+                [TabEnum.collectionCard, TabEnum.test].includes(currentTab) ? 'hidden' : 'auto'
+              }
+            >
               {currentTab === TabEnum.collectionCard && (
                 <CollectionPageContextProvider>
                   <CollectionCard />
@@ -82,21 +97,34 @@ const Detail = ({ datasetId, currentTab }: Props) => {
               {currentTab === TabEnum.dataCard && <DataCard />}
               {currentTab === TabEnum.import && <Import />}
             </Box>
-          </Flex>
 
-          {/* Slider */}
-          <>
             {currentTab === TabEnum.dataCard && (
-              <Flex {...sliderStyles} flex={'0 0 20rem'}>
+              <Flex
+                flex={'0 0 20rem'}
+                minW={0}
+                overflowY={'auto'}
+                borderLeft={'1px solid'}
+                borderColor={omniTheme.colors.border}
+                bg={omniTheme.colors.surface}
+              >
                 <MetaDataCard datasetId={datasetId} />
               </Flex>
             )}
-            {[TabEnum.collectionCard, TabEnum.test].includes(currentTab) && (
-              <Flex {...sliderStyles} flex={'0 0 17rem'}>
-                <Info datasetId={datasetId} />
+            {showDatasetInfo && (
+              <Flex
+                display={isInfoOpen ? 'flex' : 'none'}
+                flex={'0 0 clamp(360px, 22vw, 400px)'}
+                minW={0}
+                overflow={'hidden'}
+                borderLeftWidth={'1px'}
+                borderLeftStyle={'solid'}
+                borderLeftColor={omniTheme.colors.border}
+                bg={omniTheme.colors.pageBg}
+              >
+                <Info datasetId={datasetId} onClose={() => setIsInfoOpen(false)} />
               </Flex>
             )}
-          </>
+          </Flex>
         </Flex>
       ) : (
         <PageContainer insertProps={{ bg: 'white' }}>

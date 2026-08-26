@@ -1,32 +1,29 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type LoopLinearProps = React.SVGProps<SVGSVGElement>;
 
 const LoopLinear: React.FC<LoopLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M24 30L28 34L36 26M8 32C5.8 32 4 30.2 4 28V8C4 5.8 5.8 4 8 4H28C30.2 4 32 5.8 32 8M20 16H40C42.2091 16 44 17.7909 44 20V40C44 42.2091 42.2091 44 40 44H20C17.7909 44 16 42.2091 16 40V20C16 17.7909 17.7909 16 20 16Z"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="24"
-          y1="4"
-          x2="24"
-          y2="44"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          transform="translate(1.6 1.6) scale(0.7)"
+          fill="none"
+          stroke="#C071FF"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#EB78FE" />
-          <stop offset="1" stopColor="#C572FF" />
-        </linearGradient>
-      </defs>
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+          <path d="M8 16H3v5" />
+        </g>
+        <g fill="#C071FF">
+          <path transform="translate(1.6 1.6) scale(0.7)" d="M21 3v5h-5z" />
+          <path transform="translate(1.6 1.6) scale(0.7)" d="M8 16H3v5z" />
+        </g>
+      </g>
     </svg>
   );
 };

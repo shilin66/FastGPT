@@ -13,6 +13,7 @@ import { WorkflowInitContext, WorkflowBufferDataContext } from '../context/workf
 import ContextMenu from './components/ContextMenu';
 import FlowController from './components/FlowController';
 import HelperLines from './components/HelperLines';
+import SelectedNodeInspector from './components/SelectedNodeInspector';
 import { useWorkflow } from './hooks/useWorkflow';
 import { EDGE_TYPE, FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import type { NodeProps } from 'reactflow';
@@ -20,6 +21,9 @@ import ReactFlow, { SelectionMode, useReactFlow } from 'reactflow';
 import { Box, IconButton, useDisclosure } from '@chakra-ui/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { WorkflowUIContext } from '../context/workflowUIContext';
+import { useTranslation } from 'next-i18next';
+import { sliderWidth } from './NodeTemplatesModal';
+import { NodeConfigurationProvider } from './context/NodeConfigurationContext';
 
 const NodeSimple = dynamic(() => import('./nodes/NodeSimple'));
 const NodeStopTool = React.memo((props: NodeProps<FlowNodeItemType>) => (
@@ -72,6 +76,7 @@ const edgeTypes = {
 };
 
 const Workflow = () => {
+  const { t } = useTranslation();
   const nodes = useContextSelector(WorkflowInitContext, (v) => v.nodes);
   const edges = useContextSelector(WorkflowBufferDataContext, (v) => v.edges);
   const { reactFlowWrapperCallback, workflowControlMode, menu } = useContextSelector(
@@ -98,7 +103,12 @@ const Workflow = () => {
     isOpen: isOpenTemplate,
     onOpen: onOpenTemplate,
     onClose: onCloseTemplate
-  } = useDisclosure();
+  } = useDisclosure({ defaultIsOpen: true });
+  const {
+    isOpen: isOpenInspector,
+    onOpen: onOpenInspector,
+    onClose: onCloseInspector
+  } = useDisclosure({ defaultIsOpen: true });
 
   const [movingCanvas, setMovingCanvas] = useState(false);
 
@@ -125,7 +135,7 @@ const Workflow = () => {
   }, [nodes, fitView]);
 
   return (
-    <>
+    <NodeConfigurationProvider>
       <Box
         flex={'1 0 0'}
         h={0}
@@ -138,24 +148,35 @@ const Workflow = () => {
       >
         {/* open module template */}
         <>
-          <Box position={'absolute'} top={20} left={6} zIndex={1}>
+          <Box
+            position={'absolute'}
+            top={'82px'}
+            left={4}
+            zIndex={2}
+            display={isOpenTemplate ? 'none' : 'block'}
+          >
             <IconButton
               icon={<MyIcon name="common/addLight" w={6} />}
               w={9}
               h={9}
-              borderRadius={'50%'}
-              bg={'black'}
-              _hover={{ bg: 'myGray.700' }}
-              aria-label={''}
-              boxShadow={'0 4px 10px 0 rgba(19, 51, 107, 0.20), 0 0 1px 0 rgba(19, 51, 107, 0.50)'}
+              borderRadius={'14px'}
+              bg={'#1E293B'}
+              _hover={{ bg: '#2563EB' }}
+              aria-label={t('workflow:node_templates.open')}
+              boxShadow={'0 18px 34px rgba(15, 23, 42, 0.18)'}
               onClick={() => {
                 isOpenTemplate ? onCloseTemplate() : onOpenTemplate();
               }}
             />
           </Box>
-          <SearchButton />
+          <SearchButton closedButtonLeft={isOpenTemplate ? [4, `${sliderWidth + 32}px`] : 16} />
           <NodeTemplatesModal isOpen={isOpenTemplate} onClose={onCloseTemplate} />
           <NodeTemplatesPopover />
+          <SelectedNodeInspector
+            isOpen={isOpenInspector}
+            onOpen={onOpenInspector}
+            onClose={onCloseInspector}
+          />
         </>
 
         <ReactFlow
@@ -181,8 +202,13 @@ const Workflow = () => {
           panOnScrollSpeed={2}
           onPaneContextMenu={onPaneContextMenu}
           onPaneClick={onPaneClick}
+          onNodeClick={() => onOpenInspector()}
           snapToGrid
-          style={{ background: '#F7F8FA' }}
+          style={{
+            background:
+              'linear-gradient(rgba(37, 99, 235, 0.065) 1px, transparent 1px), linear-gradient(90deg, rgba(37, 99, 235, 0.065) 1px, transparent 1px), linear-gradient(rgba(37, 99, 235, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(37, 99, 235, 0.035) 1px, transparent 1px), #F8FBFF',
+            backgroundSize: '80px 80px, 80px 80px, 16px 16px, 16px 16px'
+          }}
           {...(workflowControlMode === 'select'
             ? {
                 selectionMode: SelectionMode.Full,
@@ -209,7 +235,7 @@ const Workflow = () => {
           <HelperLines horizontal={helperLineHorizontal} vertical={helperLineVertical} />
         </ReactFlow>
       </Box>
-    </>
+    </NodeConfigurationProvider>
   );
 };
 

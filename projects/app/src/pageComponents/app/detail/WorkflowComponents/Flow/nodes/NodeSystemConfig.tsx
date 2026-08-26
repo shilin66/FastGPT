@@ -1,5 +1,5 @@
 import React, { type Dispatch, useCallback, useMemo } from 'react';
-import { type NodeProps, useViewport } from 'reactflow';
+import { type NodeProps } from 'reactflow';
 import { Box } from '@chakra-ui/react';
 import { type FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node';
 
@@ -131,9 +131,7 @@ function ChatStartVariable({ chatConfig: { variables = [] }, setAppDetail }: Com
     },
     [setAppDetail]
   );
-  const { zoom } = useViewport();
-
-  return <VariableEdit variables={variables} onChange={(e) => updateVariables(e)} zoom={zoom} />;
+  return <VariableEdit variables={variables} onChange={(e) => updateVariables(e)} zoom={1} />;
 }
 
 function AutoExecute({ chatConfig: { autoExecute }, setAppDetail }: ComponentProps) {

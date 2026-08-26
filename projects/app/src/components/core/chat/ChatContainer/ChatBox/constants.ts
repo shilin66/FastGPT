@@ -3,12 +3,12 @@ import { type BoxProps } from '@chakra-ui/react';
 export const textareaMinH = '22px';
 
 export const MessageCardStyle: BoxProps = {
-  px: 4,
+  px: [3, 4],
   py: 3,
-  borderRadius: '0 8px 8px 8px',
+  borderRadius: '8px',
   boxShadow: 'none',
   display: 'inline-block',
-  maxW: ['calc(100% - 25px)', 'calc(100% - 40px)'],
+  maxW: '100%',
   color: 'myGray.900'
 };
 

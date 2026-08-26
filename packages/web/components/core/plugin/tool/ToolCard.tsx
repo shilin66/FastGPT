@@ -33,6 +33,7 @@ const ToolCard = ({
   isInstallingOrDeleting,
   isUpdating,
   mode,
+  variant = 'default',
   onInstall,
   onDelete,
   onUpdate,
@@ -43,6 +44,7 @@ const ToolCard = ({
   isInstallingOrDeleting?: boolean;
   isUpdating?: boolean;
   mode: 'admin' | 'team' | 'marketplace';
+  variant?: 'default' | 'omniRail';
   onInstall: () => Promise<void>;
   onDelete?: () => Promise<void>;
   onUpdate?: () => Promise<void>;
@@ -121,44 +123,84 @@ const ToolCard = ({
           }
         : null;
     }
-  }, [item.installed, item.status]);
+  }, [item.installed, item.status, mode, t]);
+
+  const isOmniRail = variant === 'omniRail';
+  const omniColors = {
+    graphite: '#27364A',
+    saturatedBlue: '#2563EB',
+    gold: '#C69B4A',
+    border: '#DFE5EE',
+    text: '#1F2937',
+    muted: '#667085'
+  };
 
   return (
     <MyBox
       key={item.id}
-      p={4}
-      pb={3}
-      border={'base'}
+      pt={isOmniRail ? 3 : 4}
+      pb={isOmniRail ? 3 : 3}
+      pl={isOmniRail ? 5 : 4}
+      pr={isOmniRail ? 4 : 4}
+      border={isOmniRail ? '1px solid' : 'base'}
+      borderColor={isOmniRail ? omniColors.border : undefined}
       bg={'white'}
-      borderRadius={'10px'}
+      borderRadius={isOmniRail ? '12px' : '10px'}
       display={'flex'}
       flexDirection={'column'}
       cursor={onClickCard ? 'pointer' : 'default'}
       position={'relative'}
+      overflow={isOmniRail ? 'hidden' : undefined}
+      minH={isOmniRail ? '156px' : undefined}
+      transition={isOmniRail ? 'all 0.18s ease' : undefined}
       onClick={() => {
         if (isInstallingOrDeleting || isUpdating) return;
         onClickCard?.();
       }}
-      _hover={{
-        boxShadow: '0 4px 4px 0 rgba(19, 51, 107, 0.05), 0 0 1px 0 rgba(19, 51, 107, 0.08);',
-        '& .install-button': {
-          display: 'flex'
-        },
-        '& .update-button': {
-          display: 'flex'
-        },
-        // Only hide author info when there are multiple buttons
-        ...(item.update && mode === 'admin'
+      _hover={
+        isOmniRail
           ? {
-              '& .author-info': {
+              borderColor: omniColors.saturatedBlue,
+              boxShadow: '0 18px 44px -34px rgba(31, 41, 55, 0.28)',
+              transform: 'translateY(-1px)',
+              '& .install-button': {
+                display: 'flex'
+              },
+              '& .update-button': {
+                display: 'flex'
+              },
+              ...(item.update && mode === 'admin'
+                ? {
+                    '& .author-info': {
+                      display: 'none'
+                    }
+                  }
+                : {}),
+              '& .download-count': {
                 display: 'none'
               }
             }
-          : {}),
-        '& .download-count': {
-          display: 'none'
-        }
-      }}
+          : {
+              boxShadow: '0 4px 4px 0 rgba(19, 51, 107, 0.05), 0 0 1px 0 rgba(19, 51, 107, 0.08);',
+              '& .install-button': {
+                display: 'flex'
+              },
+              '& .update-button': {
+                display: 'flex'
+              },
+              // Only hide author info when there are multiple buttons
+              ...(item.update && mode === 'admin'
+                ? {
+                    '& .author-info': {
+                      display: 'none'
+                    }
+                  }
+                : {}),
+              '& .download-count': {
+                display: 'none'
+              }
+            }
+      }
     >
       {/* Update badge in top-right corner */}
       {item.update && mode === 'admin' && (
@@ -196,45 +238,95 @@ const ToolCard = ({
         </Flex>
       )}
 
-      <HStack>
-        <Avatar src={item.icon} borderRadius={'sm'} w={'1.5rem'} />
-        <Box color={'myGray.900'} fontWeight={'medium'}>
-          {parseI18nString(item.name, i18n.language)}
-        </Box>
-        {statusLabel && (
-          <Flex fontSize={'12px'} fontWeight={'medium'} color={statusLabel.color} gap={1}>
-            {statusLabel.icon && <MyIcon name={statusLabel.icon as any} w={4} />}
-            {statusLabel.label}
-          </Flex>
-        )}
-      </HStack>
+      {isOmniRail ? (
+        <Flex
+          position={'relative'}
+          zIndex={1}
+          alignItems={'center'}
+          gap={3}
+          pb={2.5}
+          borderBottom={'1px solid #EDF1F6'}
+        >
+          <Box minW={0} flex={1}>
+            <Box
+              color={omniColors.text}
+              fontWeight={800}
+              fontSize={'sm'}
+              className={'textEllipsis'}
+            >
+              {parseI18nString(item.name, i18n.language)}
+            </Box>
+            {statusLabel && (
+              <Flex
+                mt={1}
+                display={'inline-flex'}
+                alignItems={'center'}
+                h={'18px'}
+                px={0}
+                bg={'transparent'}
+                color={omniColors.saturatedBlue}
+                fontSize={'11px'}
+                fontWeight={800}
+                gap={1}
+              >
+                {statusLabel.icon && <MyIcon name={statusLabel.icon as any} w={3} />}
+                {statusLabel.label}
+              </Flex>
+            )}
+          </Box>
+          <Avatar src={item.icon} borderRadius={'8px'} w={'30px'} h={'30px'} flexShrink={0} />
+        </Flex>
+      ) : (
+        <HStack>
+          <Avatar src={item.icon} borderRadius={'sm'} w={'1.5rem'} />
+          <Box color={'myGray.900'} fontWeight={'medium'}>
+            {parseI18nString(item.name, i18n.language)}
+          </Box>
+          {statusLabel && (
+            <Flex fontSize={'12px'} fontWeight={'medium'} color={statusLabel.color} gap={1}>
+              {statusLabel.icon && <MyIcon name={statusLabel.icon as any} w={4} />}
+              {statusLabel.label}
+            </Flex>
+          )}
+        </HStack>
+      )}
       <Box
-        flex={['1 0 48px', '1 0 56px']}
-        mt={3}
+        flex={isOmniRail ? '0 0 38px' : ['1 0 48px', '1 0 56px']}
+        mt={isOmniRail ? 3 : 3}
         pr={1}
+        position={isOmniRail ? 'relative' : undefined}
+        zIndex={isOmniRail ? 1 : undefined}
         textAlign={'justify'}
         wordBreak={'break-all'}
-        fontSize={'xs'}
-        color={'myGray.500'}
+        fontSize={isOmniRail ? 'xs' : 'xs'}
+        lineHeight={isOmniRail ? 1.45 : undefined}
+        color={isOmniRail ? omniColors.muted : 'myGray.500'}
       >
         <Box className={'textEllipsis2'}>
           {parseI18nString(item.description || '', i18n.language) ||
             t('app:templateMarket.no_intro')}
         </Box>
       </Box>
-      <Flex gap={1} overflow={'hidden'} ref={tagsContainerRef}>
+      <Flex
+        gap={1}
+        overflow={'hidden'}
+        ref={tagsContainerRef}
+        position={isOmniRail ? 'relative' : undefined}
+        zIndex={isOmniRail ? 1 : undefined}
+      >
         {item.tags?.slice(0, visibleTagsCount).map((tag) => {
           return (
             <Box
               key={tag}
               px={2}
               py={1}
-              border={'1px solid'}
+              border={isOmniRail ? '0' : '1px solid'}
               borderRadius={'6px'}
-              borderColor={'myGray.200'}
+              borderColor={isOmniRail ? undefined : 'myGray.200'}
+              bg={isOmniRail ? '#F1F4F8' : undefined}
               fontSize={'11px'}
               fontWeight={'medium'}
-              color={'myGray.700'}
+              color={isOmniRail ? omniColors.muted : 'myGray.700'}
               flexShrink={0}
               data-tag-item
             >
@@ -246,12 +338,13 @@ const ToolCard = ({
           <Box
             px={2}
             py={1}
-            border={'1px solid'}
+            border={isOmniRail ? '0' : '1px solid'}
             borderRadius={'6px'}
-            borderColor={'myGray.200'}
+            borderColor={isOmniRail ? undefined : 'myGray.200'}
+            bg={isOmniRail ? '#F1F4F8' : undefined}
             fontSize={'11px'}
             fontWeight={'medium'}
-            color={'myGray.700'}
+            color={isOmniRail ? omniColors.muted : 'myGray.700'}
             flexShrink={0}
           >
             +{item.tags.length - visibleTagsCount}
@@ -259,12 +352,22 @@ const ToolCard = ({
         )}
       </Flex>
 
-      <Flex w={'full'} fontSize={'mini'} alignItems={'end'} justifyContent={'space-between'}>
+      <Flex
+        w={'full'}
+        fontSize={'mini'}
+        alignItems={'end'}
+        justifyContent={'space-between'}
+        mt={isOmniRail ? 'auto' : undefined}
+        pt={isOmniRail ? 2.5 : undefined}
+        borderTop={isOmniRail ? '1px solid #EDF1F6' : undefined}
+        position={isOmniRail ? 'relative' : undefined}
+        zIndex={isOmniRail ? 1 : undefined}
+      >
         <Box
           className="author-info"
           color={'myGray.500'}
-          mt={3}
-        >{`by ${item.author || systemTitle || 'FastGPT'}`}</Box>
+          mt={isOmniRail ? 0 : 3}
+        >{`by ${item.author || systemTitle || (isOmniRail ? 'OmniCockpit' : 'FastGPT')}`}</Box>
         {/*TODO: when statistics is ready*/}
         {/*<Flex flexDirection={'row'} gap={1} className="download-count" color={'myGray.500'} mt={3}>
           <MyIcon name="common/downloadLine" />

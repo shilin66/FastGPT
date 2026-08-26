@@ -66,24 +66,23 @@ const UserIpTypeFilter = ({ userIpType, setUserIpType, menuButtonProps }: Filter
         w={'180px'}
         px={'6px'}
         py={'6px'}
-        border={'1px solid #fff'}
-        boxShadow={
-          '0px 4px 10px 0px rgba(19, 51, 107, 0.10), 0px 0px 1px 0px rgba(19, 51, 107, 0.10)'
-        }
+        border={'1px solid rgba(37, 99, 235, 0.16)'}
+        borderRadius={'12px'}
+        boxShadow={'0 18px 45px rgba(15, 23, 42, 0.14)'}
         zIndex={99}
       >
         {/* Radio options */}
         {userIpOptions.map((option) => (
           <MenuItem
             key={option.value}
-            borderRadius="sm"
+            borderRadius="9px"
             py={2}
             px={3}
             fontSize={'sm'}
             fontWeight={'normal'}
             color={userIpType === option.value ? 'primary.600' : 'myGray.900'}
-            bg={userIpType === option.value ? 'primary.50' : 'transparent'}
-            _hover={{ bg: 'myGray.100' }}
+            bg={userIpType === option.value ? 'rgba(37, 99, 235, 0.08)' : 'transparent'}
+            _hover={{ bg: 'rgba(37, 99, 235, 0.06)' }}
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();

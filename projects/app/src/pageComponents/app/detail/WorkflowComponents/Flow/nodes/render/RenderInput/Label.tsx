@@ -48,8 +48,8 @@ const InputLabel = ({ nodeId, input, RightComponent }: Props) => {
 
   return (
     <Flex className="nodrag" cursor={'default'} alignItems={'center'} position={'relative'}>
-      <Flex alignItems={'center'} position={'relative'} fontWeight={'medium'}>
-        <FormLabel required={required} color={'myGray.600'}>
+      <Flex alignItems={'center'} position={'relative'} fontWeight={800} minW={0}>
+        <FormLabel required={required} color={'#1E293B'} fontSize={'12px'} fontWeight={800}>
           {t(label as any)}
         </FormLabel>
         {description && <QuestionTip ml={1} label={t(description as any)}></QuestionTip>}

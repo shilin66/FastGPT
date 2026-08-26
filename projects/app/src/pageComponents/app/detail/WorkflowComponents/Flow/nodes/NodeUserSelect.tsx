@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { type NodeProps, Position, useViewport } from 'reactflow';
+import { type NodeProps, Position } from 'reactflow';
 import { Box, Button, HStack, Input } from '@chakra-ui/react';
 import NodeCard from './render/NodeCard';
 import { type FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node';
@@ -28,7 +28,6 @@ const NodeUserSelect = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
   const { t } = useTranslation();
   const { nodeId, inputs, outputs } = data;
   const onChangeNode = useContextSelector(WorkflowActionsContext, (v) => v.onChangeNode);
-  const { zoom } = useViewport();
 
   const CustomComponent = useMemo(
     () => ({
@@ -62,7 +61,7 @@ const NodeUserSelect = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
                   index={rubric.source.index}
                 />
               )}
-              zoom={zoom}
+              zoom={1}
             >
               {({ provided }) => (
                 <Box ref={provided.innerRef} {...provided.droppableProps}>
@@ -106,7 +105,7 @@ const NodeUserSelect = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
         );
       }
     }),
-    [nodeId, onChangeNode, t, zoom]
+    [nodeId, onChangeNode, t]
   );
 
   return (

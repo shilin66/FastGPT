@@ -70,9 +70,9 @@ const DynamicOutputs = ({ nodeId, outputs, addOutput }: DynamicOutputsProps) => 
 
   const Render = useMemo(() => {
     return (
-      <Box pb={3}>
+      <Box pb={2}>
         <HStack className="nodrag" cursor={'default'} position={'relative'}>
-          <HStack spacing={1} position={'relative'} fontWeight={'medium'} color={'myGray.600'}>
+          <HStack spacing={1} position={'relative'} fontWeight={800} color={'#27364A'}>
             <Box>{addOutput.label || t('common:core.workflow.Custom outputs')}</Box>
             {addOutput.description && <QuestionTip label={addOutput.description} />}
           </HStack>
@@ -80,10 +80,10 @@ const DynamicOutputs = ({ nodeId, outputs, addOutput }: DynamicOutputsProps) => 
         <Box mt={2}>
           <Flex alignItems={'center'} mb={2} gap={2} px={1}>
             <Flex flex={'1'}>
-              <Box fontSize={'sm'} color={'myGray.500'} fontWeight={'medium'} flex={1} px={3}>
+              <Box fontSize={'12px'} color={'#64748B'} fontWeight={800} flex={1} px={3}>
                 {t('workflow:Variable_name')}
               </Box>
-              <Box fontSize={'sm'} color={'myGray.500'} fontWeight={'medium'} minW={'240px'} px={3}>
+              <Box fontSize={'12px'} color={'#64748B'} fontWeight={800} minW={'240px'} px={3}>
                 {t('common:core.module.Data Type')}
               </Box>
             </Flex>
@@ -182,7 +182,14 @@ const DynamicOutputItem = ({
 
   return (
     <Flex alignItems={'center'} mb={1} gap={2}>
-      <Flex flex={'1'} bg={'white'} rounded={'md'}>
+      <Flex
+        flex={'1'}
+        bg={'rgba(255, 255, 255, 0.68)'}
+        rounded={'8px'}
+        border={'1px solid rgba(223, 229, 238, 0.74)'}
+        overflow={'hidden'}
+        boxShadow={'none'}
+      >
         <Input
           placeholder={t('workflow:Variable_name')}
           value={isEditing ? tempLabel : output?.label || ''}
@@ -193,13 +200,14 @@ const DynamicOutputItem = ({
           onChange={(e) => setTempLabel(e.target.value.trim())}
           onBlur={(e) => onLabelBlur(e.target.value.trim())}
           h={10}
+          border={'0'}
           borderRightRadius={'none'}
           flex={1}
         />
         <MySelect
           h={10}
           borderLeftRadius={'none'}
-          borderColor={'myGray.200'}
+          borderColor={'rgba(148, 163, 184, 0.18)'}
           value={selectValueType}
           list={valueTypeList}
           onChange={onChangeValueType}

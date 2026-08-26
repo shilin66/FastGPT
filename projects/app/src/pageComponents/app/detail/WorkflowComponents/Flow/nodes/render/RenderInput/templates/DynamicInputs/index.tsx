@@ -39,9 +39,9 @@ const DynamicInputs = ({ item, inputs = [], nodeId }: RenderInputProps) => {
   const existsKeys = useMemoEnhance(() => inputs.map((item) => item.key), [inputs]);
 
   return (
-    <Box borderBottom={'base'} pb={3}>
+    <Box pb={2}>
       <HStack className="nodrag" cursor={'default'} position={'relative'}>
-        <HStack spacing={1} position={'relative'} fontWeight={'medium'} color={'myGray.600'}>
+        <HStack spacing={1} position={'relative'} fontWeight={900} color={'#27364A'}>
           <Box>{item.label || t('workflow:custom_input')}</Box>
           {item.description && <QuestionTip label={t(item.description as any)} />}
 
@@ -80,13 +80,13 @@ const DynamicInputs = ({ item, inputs = [], nodeId }: RenderInputProps) => {
       <Box mt={2}>
         <Flex alignItems={'center'} mb={2} gap={2} px={1}>
           <Flex flex={'1'}>
-            <Box fontSize={'sm'} color={'myGray.500'} fontWeight={'medium'} flex={1} px={3}>
+            <Box fontSize={'11px'} color={'#64748B'} fontWeight={900} flex={1} px={3}>
               {t('workflow:Variable_name')}
             </Box>
-            <Box fontSize={'sm'} color={'myGray.500'} fontWeight={'medium'} minW={'240px'} px={3}>
+            <Box fontSize={'11px'} color={'#64748B'} fontWeight={900} minW={'240px'} px={3}>
               {t('app:reference_variable')}
             </Box>
-            <Box fontSize={'sm'} color={'myGray.500'} fontWeight={'medium'} minW={'140px'} px={3}>
+            <Box fontSize={'11px'} color={'#64748B'} fontWeight={900} minW={'140px'} px={3}>
               {t('common:core.module.Data Type')}
             </Box>
           </Flex>
@@ -212,7 +212,13 @@ const Reference = ({
 
   return (
     <Flex alignItems={'center'} mb={1} gap={2}>
-      <Flex flex={'1'} bg={'white'} rounded={'md'}>
+      <Flex
+        flex={'1'}
+        bg={'rgba(255, 255, 255, 0.68)'}
+        rounded={'8px'}
+        border={'1px solid rgba(223, 229, 238, 0.74)'}
+        overflow={'hidden'}
+      >
         <Input
           placeholder={t('workflow:Variable_name')}
           value={isEditing ? tempLabel : inputChildren.label || ''}
@@ -222,7 +228,8 @@ const Reference = ({
           }}
           onChange={(e) => setTempLabel(e.target.value.trim())}
           onBlur={(e) => onlBlurLabel(e.target.value.trim())}
-          h={10}
+          h={'36px'}
+          border={'0'}
           borderRightRadius={'none'}
         />
         <ReferSelector
@@ -233,27 +240,28 @@ const Reference = ({
           ButtonProps={{
             bg: 'none',
             borderRadius: 'none',
-            borderColor: 'myGray.200',
+            borderColor: 'rgba(223, 229, 238, 0.74)',
             borderLeftColor: 'transparent',
             borderRightColor: 'transparent',
             isDisabled: isEmptyItem,
             w: '240px',
             _hover: {
-              borderColor: 'blue.300'
+              borderColor: 'rgba(37, 99, 235, 0.28)'
             }
           }}
         />
         <Flex
-          h={10}
+          h={'36px'}
           border={'1px solid'}
           borderRightRadius={'sm'}
-          borderColor={'myGray.200'}
+          borderColor={'rgba(223, 229, 238, 0.96)'}
           minW={'150px'}
           alignItems={'center'}
           pl={4}
           opacity={isEmptyItem ? 0.5 : 1}
-          fontSize={'sm'}
-          fontWeight={'medium'}
+          fontSize={'12px'}
+          fontWeight={900}
+          color={'#2563EB'}
         >
           {t(getFlowValueTypeMeta(inputChildren.valueType).label)}
         </Flex>

@@ -22,11 +22,64 @@ import { MongoEvaluation } from '../../../../core/app/evaluation/evalSchema';
 import { MongoEvalItem } from '../../../../core/app/evaluation/evalItemSchema';
 import { MongoTeamSub } from '../../../../support/wallet/sub/schema';
 import { getLogger, LogCategories } from '../../../../common/logger';
+import { getAdminTask, updateAdminTask } from '../../../../admin/operation/controller';
+import { addAdminAuditLog } from '../../../../admin/audit/controller';
 
 const logger = getLogger(LogCategories.MODULE.USER.TEAM);
 
 export const teamDeleteProcessor: Processor<TeamDeleteJobData> = async (job) => {
-  const { teamId } = job.data;
+  const { teamId, adminTaskId } = job.data;
+  if (!adminTaskId) return deleteTeamData(teamId);
+
+  const task = await getAdminTask(adminTaskId);
+  await updateAdminTask(adminTaskId, {
+    status: 'running',
+    progress: 20,
+    currentStep: '级联删除团队资源'
+  });
+  try {
+    await deleteTeamData(teamId);
+    await updateAdminTask(adminTaskId, {
+      status: 'succeeded',
+      progress: 100,
+      currentStep: '执行完成'
+    });
+    await addAdminAuditLog({
+      operatorId: task.operatorId,
+      event: task.type,
+      targetType: task.targetType,
+      targetId: task.targetId,
+      targetName: task.targetName,
+      success: true,
+      ip: task.ip,
+      taskId: adminTaskId
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '团队删除失败';
+    const isFinalAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
+    await updateAdminTask(adminTaskId, {
+      status: isFinalAttempt ? 'failed' : 'running',
+      currentStep: isFinalAttempt ? '执行失败' : '执行失败，等待自动重试',
+      error: message
+    });
+    if (isFinalAttempt) {
+      await addAdminAuditLog({
+        operatorId: task.operatorId,
+        event: task.type,
+        targetType: task.targetType,
+        targetId: task.targetId,
+        targetName: task.targetName,
+        success: false,
+        error: message,
+        ip: task.ip,
+        taskId: adminTaskId
+      });
+    }
+    throw error;
+  }
+};
+
+export const deleteTeamData = async (teamId: string) => {
   const startTime = Date.now();
 
   logger.info('Team delete started', { teamId });

@@ -1,32 +1,30 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type SystemConfigLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const SystemConfigLinearLinear: React.FC<SystemConfigLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M16 16V24.1M16 32.2001V24.1M16 24.1H24M24 24.1V32.2001M24 24.1V16M32 24.1V32.2001M32 18.8183V18M15.8 40.0001C19.6172 41.9582 24.0082 42.4886 28.1818 41.4956C32.3554 40.5027 36.0371 38.0518 38.5635 34.5845C41.0899 31.1171 42.2948 26.8615 41.9612 22.5844C41.6275 18.3073 39.7772 14.29 36.7436 11.2565C33.7101 8.22293 29.6928 6.3726 25.4157 6.03893C21.1386 5.70526 16.8829 6.91019 13.4156 9.43659C9.94834 11.963 7.49738 15.6447 6.50445 19.8183C5.51151 23.9919 6.04188 28.3829 8 32.2001L4 44.0001L15.8 40.0001Z"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="23.0079"
-          y1="5.98437"
-          x2="23.0079"
-          y2="44.0001"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#FF7FA8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#FF81BC" />
-          <stop offset="1" stopColor="#FF7FA8" />
-        </linearGradient>
-      </defs>
+          <path d="M3.5 6.5h6.5" />
+          <path d="M14.5 6.5h2" />
+          <circle cx="12.5" cy="6.5" r="2" />
+          <path d="M3.5 13.5h2" />
+          <path d="M10 13.5h6.5" />
+          <circle cx="7.8" cy="13.5" r="2" />
+        </g>
+        <g fill="#FF7FA8">
+          <circle cx="12.5" cy="6.5" r="2" />
+          <circle cx="7.8" cy="13.5" r="2" />
+        </g>
+      </g>
     </svg>
   );
 };

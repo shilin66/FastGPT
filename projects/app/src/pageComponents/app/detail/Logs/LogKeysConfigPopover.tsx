@@ -23,7 +23,7 @@ const LogKeysConfigPopover = ({
   return (
     <MyPopover
       placement="bottom-end"
-      w={'300px'}
+      w={'360px'}
       closeOnBlur={true}
       trigger="click"
       Trigger={
@@ -36,43 +36,73 @@ const LogKeysConfigPopover = ({
         </Button>
       }
     >
-      {({ onClose }) => {
+      {() => {
         return (
-          <Box p={4} overflowY={'auto'} maxH={['300px', '500px']}>
-            <DndDrag<AppLogKeysType>
-              onDragEndCb={setLogKeysList}
-              dataList={logKeysList}
-              renderClone={(provided, snapshot, rubric) => (
-                <DragItem
-                  item={logKeysList[rubric.source.index]}
-                  provided={provided}
-                  snapshot={snapshot}
-                  logKeys={logKeysList}
-                  setLogKeys={setLogKeysList}
-                />
-              )}
+          <Box p={0} overflow={'hidden'}>
+            <Flex
+              alignItems={'flex-start'}
+              gap={3}
+              px={4}
+              py={3.5}
+              bg={'linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%)'}
+              borderBottom={'1px solid rgba(148, 163, 184, 0.18)'}
             >
-              {({ provided }) => (
-                <Box {...provided.droppableProps} ref={provided.innerRef}>
-                  {logKeysList.map((item, index) => (
-                    <Draggable key={item.key} draggableId={item.key} index={index}>
-                      {(provided, snapshot) => (
-                        <>
-                          <DragItem
-                            item={item}
-                            provided={provided}
-                            snapshot={snapshot}
-                            logKeys={logKeysList}
-                            setLogKeys={setLogKeysList}
-                          />
-                          {index !== logKeysList.length - 1 && <Box h={'1px'} bg={'myGray.200'} />}
-                        </>
-                      )}
-                    </Draggable>
-                  ))}
+              <Flex
+                alignItems={'center'}
+                justifyContent={'center'}
+                w={'34px'}
+                h={'34px'}
+                flexShrink={0}
+                borderRadius={'10px'}
+                bg={'#2563EB'}
+                color={'white'}
+              >
+                <MyIcon name={'common/setting'} w={'17px'} />
+              </Flex>
+              <Box minW={0}>
+                <Box color={'#1E293B'} fontSize={'14px'} fontWeight={800}>
+                  {t('app:logs_key_config')}
                 </Box>
-              )}
-            </DndDrag>
+                <Box mt={1} color={'#64748B'} fontSize={'12px'} lineHeight={1.45}>
+                  拖动调整列顺序，点击可见状态控制日志列表字段。
+                </Box>
+              </Box>
+            </Flex>
+            <Box p={3} overflowY={'auto'} maxH={['320px', '520px']} bg={'#F8FAFC'}>
+              <DndDrag<AppLogKeysType>
+                onDragEndCb={setLogKeysList}
+                dataList={logKeysList}
+                renderClone={(provided, snapshot, rubric) => (
+                  <DragItem
+                    item={logKeysList[rubric.source.index]}
+                    provided={provided}
+                    snapshot={snapshot}
+                    logKeys={logKeysList}
+                    setLogKeys={setLogKeysList}
+                  />
+                )}
+              >
+                {({ provided }) => (
+                  <Box {...provided.droppableProps} ref={provided.innerRef}>
+                    {logKeysList.map((item, index) => (
+                      <Draggable key={item.key} draggableId={item.key} index={index}>
+                        {(provided, snapshot) => (
+                          <Box mb={index === logKeysList.length - 1 ? 0 : 2}>
+                            <DragItem
+                              item={item}
+                              provided={provided}
+                              snapshot={snapshot}
+                              logKeys={logKeysList}
+                              setLogKeys={setLogKeysList}
+                            />
+                          </Box>
+                        )}
+                      </Draggable>
+                    ))}
+                  </Box>
+                )}
+              </DndDrag>
+            </Box>
           </Box>
         );
       }}
@@ -106,31 +136,42 @@ const DragItem = ({
         opacity: snapshot.isDragging ? 0.8 : 1
       }}
       alignItems={'center'}
-      py={1}
+      gap={2.5}
+      px={3}
+      py={2.5}
+      border={'1px solid'}
+      borderColor={snapshot.isDragging ? 'rgba(37, 99, 235, 0.42)' : 'rgba(148, 163, 184, 0.18)'}
+      borderRadius={'12px'}
+      bg={snapshot.isDragging ? '#EFF6FF' : 'white'}
+      boxShadow={snapshot.isDragging ? '0 16px 34px rgba(37, 99, 235, 0.16)' : 'none'}
     >
-      <Box {...provided.dragHandleProps}>
-        <MyIcon
-          name={'drag'}
-          p={2}
-          borderRadius={'md'}
-          _hover={{ color: 'primary.600' }}
-          w={'12px'}
-          color={'myGray.600'}
-        />
-      </Box>
-      <Box fontSize={'14px'} color={'myGray.900'}>
+      <Flex
+        {...provided.dragHandleProps}
+        alignItems={'center'}
+        justifyContent={'center'}
+        w={'28px'}
+        h={'28px'}
+        flexShrink={0}
+        borderRadius={'9px'}
+        bg={'#F1F5F9'}
+      >
+        <MyIcon name={'drag'} w={'12px'} color={'#64748B'} _hover={{ color: '#2563EB' }} />
+      </Flex>
+      <Box fontSize={'14px'} color={'#1E293B'} fontWeight={700}>
         {t(AppLogKeysEnumMap[item.key])}
       </Box>
       <Box flex={1} />
       {item.enable ? (
         <MyIcon
           name={'visible'}
-          borderRadius={'md'}
-          w={4}
-          p={1}
+          borderRadius={'9px'}
+          w={'28px'}
+          h={'28px'}
+          p={1.5}
           cursor={'pointer'}
-          color={'primary.600'}
-          _hover={{ bg: 'myGray.50' }}
+          color={'#2563EB'}
+          bg={'rgba(37, 99, 235, 0.08)'}
+          _hover={{ bg: 'rgba(37, 99, 235, 0.14)' }}
           onClick={() => {
             setLogKeys(
               logKeys.map((key) => (key.key === item.key ? { ...key, enable: false } : key))
@@ -140,11 +181,14 @@ const DragItem = ({
       ) : (
         <MyIcon
           name={'invisible'}
-          borderRadius={'md'}
-          w={4}
-          p={1}
+          borderRadius={'9px'}
+          w={'28px'}
+          h={'28px'}
+          p={1.5}
           cursor={'pointer'}
-          _hover={{ bg: 'myGray.50' }}
+          color={'#94A3B8'}
+          bg={'#F1F5F9'}
+          _hover={{ bg: '#E2E8F0' }}
           onClick={() => {
             setLogKeys(
               logKeys.map((key) => (key.key === item.key ? { ...key, enable: true } : key))

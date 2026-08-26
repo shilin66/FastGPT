@@ -1,32 +1,23 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type ReplyLinearProps = React.SVGProps<SVGSVGElement>;
 
 const ReplyLinear: React.FC<ReplyLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" {...props}>
-      <path
-        d="M12 6V2H8M2 12H4M9 11V13M15 11V13M20 12H22M8 18L4 22V8C4 7.46957 4.21071 6.96086 4.58579 6.58579C4.96086 6.21071 5.46957 6 6 6H18C18.5304 6 19.0391 6.21071 19.4142 6.58579C19.7893 6.96086 20 7.46957 20 8V16C20 16.5304 19.7893 17.0391 19.4142 17.4142C19.0391 17.7893 18.5304 18 18 18H8Z"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="12"
-          y1="2"
-          x2="12"
-          y2="22"
-          gradientUnits="userSpaceOnUse"
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#4C9FFF"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#68BFFE" />
-          <stop offset="1" stopColor="#4FA2FF" />
-        </linearGradient>
-      </defs>
+          <path d="M9.3 5L4.8 9.5l4.5 4.5" />
+          <path d="M4.8 9.5h6.7a4 4 0 0 1 4 4V16" />
+        </g>
+        <path d="M9.3 5L4.8 9.5l4.5 4.5z" fill="#4C9FFF" />
+      </g>
     </svg>
   );
 };

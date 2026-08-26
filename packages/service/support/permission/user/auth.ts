@@ -8,6 +8,7 @@ import { authCert, parseHeaderCert } from '../auth/common';
 import { MongoUser } from '../../user/schema';
 import { ERROR_ENUM } from '@fastgpt/global/common/error/errorCode';
 import { type ApiRequestProps } from '../../../type/next';
+import { assertTeamWritable } from '../../user/team/status';
 
 /* auth user role  */
 export async function authUserPer(props: AuthModeType): Promise<
@@ -17,6 +18,8 @@ export async function authUserPer(props: AuthModeType): Promise<
 > {
   const result = await parseHeaderCert(props);
   const tmb = await getTmbInfoByTmbId({ tmbId: result.tmbId });
+  const requiredPermission = props.per ?? NullPermissionVal;
+  await assertTeamWritable(result.teamId, requiredPermission);
 
   if (result.isRoot) {
     return {
@@ -27,7 +30,7 @@ export async function authUserPer(props: AuthModeType): Promise<
       tmb
     };
   }
-  if (!tmb.permission.checkPer(props.per ?? NullPermissionVal)) {
+  if (!tmb.permission.checkPer(requiredPermission)) {
     return Promise.reject(TeamErrEnum.unAuthTeam);
   }
 

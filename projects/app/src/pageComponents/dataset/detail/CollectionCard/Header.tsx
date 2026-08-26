@@ -35,6 +35,7 @@ import MyBox from '@fastgpt/web/components/common/MyBox';
 import Icon from '@fastgpt/web/components/common/Icon';
 import MyTag from '@fastgpt/web/components/common/Tag/index';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const FileSourceSelector = dynamic(() => import('../Import/components/FileSourceSelector'));
 const BackupImportModal = dynamic(() => import('./BackupImportModal'));
@@ -120,8 +121,19 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
   const isWebSite = datasetDetail?.type === DatasetTypeEnum.websiteDataset;
 
   return (
-    <MyBox display={['block', 'flex']} alignItems={'center'} gap={2}>
-      <HStack flex={1}>
+    <MyBox
+      display={['block', 'flex']}
+      minH={['auto', '62px']}
+      px={[3, 5]}
+      py={[3, 0]}
+      alignItems={'center'}
+      gap={3}
+      borderBottom={'1px solid'}
+      borderColor={omniTheme.colors.border}
+      bg={omniTheme.colors.surface}
+      flexShrink={0}
+    >
+      <HStack flex={1} minW={0} spacing={3}>
         <Box flex={1} fontWeight={'500'} color={'myGray.900'} whiteSpace={'nowrap'}>
           <FolderPath
             paths={paths.map((path, i) => ({
@@ -133,13 +145,31 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
                 flexDir={'column'}
                 justify={'center'}
                 h={'100%'}
-                fontSize={isWebSite ? 'sm' : 'md'}
-                fontWeight={'500'}
-                color={'myGray.600'}
+                fontSize={isWebSite ? 'xs' : 'sm'}
+                fontWeight={700}
+                color={omniTheme.colors.text}
               >
                 <Flex align={'center'}>
-                  {!isWebSite && <MyIcon name="common/list" mr={2} w={'20px'} color={'black'} />}
-                  {t(DatasetTypeMap[datasetDetail?.type]?.collectionLabel as any)}({total})
+                  {!isWebSite && (
+                    <MyIcon
+                      name="common/list"
+                      mr={2}
+                      w={'17px'}
+                      color={omniTheme.colors.graphite}
+                    />
+                  )}
+                  {t(DatasetTypeMap[datasetDetail?.type]?.collectionLabel as any)}
+                  <Box
+                    ml={2}
+                    px={1.5}
+                    py={0.5}
+                    borderRadius={'4px'}
+                    bg={omniTheme.colors.sidebarBg}
+                    color={omniTheme.colors.muted}
+                    fontSize={'10px'}
+                  >
+                    {total}
+                  </Box>
                 </Flex>
                 {/* Website sync */}
                 {datasetDetail?.websiteConfig?.url && (
@@ -172,10 +202,11 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
         {/* search input */}
         {isPc && (
           <MyInput
-            maxW={'250px'}
-            flex={1}
+            w={'220px'}
+            flexShrink={0}
             size={'sm'}
-            h={'36px'}
+            h={'34px'}
+            borderRadius={omniTheme.radii.sm}
             placeholder={t('common:Search') || ''}
             value={searchText}
             leftIcon={
@@ -213,12 +244,14 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
                 >
                   <Flex
                     px={3.5}
-                    py={2}
-                    borderRadius={'sm'}
+                    h={'34px'}
+                    align={'center'}
+                    borderRadius={omniTheme.radii.sm}
                     cursor={'pointer'}
-                    bg={'primary.500'}
+                    bg={omniTheme.colors.graphite}
                     overflow={'hidden'}
                     color={'white'}
+                    _hover={{ bg: omniTheme.colors.graphiteHover }}
                   >
                     <Flex h={'20px'} alignItems={'center'}>
                       <MyIcon
@@ -403,12 +436,14 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
                 >
                   <Flex
                     px={3.5}
-                    py={2}
-                    borderRadius={'sm'}
+                    h={'34px'}
+                    align={'center'}
+                    borderRadius={omniTheme.radii.sm}
                     cursor={'pointer'}
-                    bg={'primary.500'}
+                    bg={omniTheme.colors.graphite}
                     overflow={'hidden'}
                     color={'white'}
+                    _hover={{ bg: omniTheme.colors.graphiteHover }}
                   >
                     <Flex h={'20px'} alignItems={'center'}>
                       <MyIcon
@@ -465,12 +500,14 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
                 <HStack gap={2}>
                   <Flex
                     px={3.5}
-                    py={2}
-                    borderRadius={'sm'}
+                    h={'34px'}
+                    align={'center'}
+                    borderRadius={omniTheme.radii.sm}
                     cursor={'pointer'}
-                    bg={'primary.500'}
+                    bg={omniTheme.colors.graphite}
                     overflow={'hidden'}
                     color={'white'}
+                    _hover={{ bg: omniTheme.colors.graphiteHover }}
                     onClick={() =>
                       router.replace({
                         query: {

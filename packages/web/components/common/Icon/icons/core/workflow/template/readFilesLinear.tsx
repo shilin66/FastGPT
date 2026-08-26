@@ -1,32 +1,25 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type ReadFilesLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const ReadFilesLinearLinear: React.FC<ReadFilesLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M8 44H36C37.0609 44 38.0783 43.5786 38.8284 42.8284C39.5786 42.0783 40 41.0609 40 40V14L30 4H12C10.9391 4 9.92172 4.42143 9.17157 5.17157C8.42143 5.92172 8 6.93913 8 8V16M28 4V12C28 13.0609 28.4214 14.0783 29.1716 14.8284C29.9217 15.5786 30.9391 16 32 16H40M4 26V24H16V26M10 24V36M8 36H12"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="22"
-          y1="4"
-          x2="22"
-          y2="44"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          transform="translate(1.6 1.6) scale(0.7)"
+          fill="none"
+          stroke="#13C7BC"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#5ED1C2" />
-          <stop offset="1" stopColor="#09C97C" />
-        </linearGradient>
-      </defs>
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" />
+          <path d="M14 2v6h6" />
+          <path d="M16 13H8M16 17H8M10 9H8" />
+        </g>
+        <path transform="translate(1.6 1.6) scale(0.7)" d="M14 2v6h6z" fill="#13C7BC" />
+      </g>
     </svg>
   );
 };

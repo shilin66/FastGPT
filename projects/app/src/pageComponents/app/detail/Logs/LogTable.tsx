@@ -56,6 +56,7 @@ import { batchDeleteChatHistories } from '@/web/core/chat/history/api';
 import { useTableMultipleSelect } from '@fastgpt/web/hooks/useTableMultipleSelect';
 import MyIconButton from '@fastgpt/web/components/common/Icon/button';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
+import { detailPanelStyles, detailToolbarStyles } from '../DetailVisual';
 
 const DetailLogsModal = dynamic(() => import('./DetailLogsModal'));
 
@@ -433,8 +434,8 @@ const LogTable = ({
   );
 
   return (
-    <MyBox isLoading={isLoading} display={'flex'} flexDir={'column'} h={'full'} px={px}>
-      <Flex alignItems={'center'} gap={3} flexWrap={'wrap'}>
+    <MyBox isLoading={isLoading} display={'flex'} flexDir={'column'} h={'full'} minH={0} px={px}>
+      <Flex alignItems={'center'} gap={2} flexWrap={'wrap'} p={2.5} {...detailToolbarStyles}>
         {showSourceSelector && (
           <Flex>
             <MultipleSelect<ChatSourceEnum>
@@ -443,7 +444,7 @@ const LogTable = ({
               onSelect={setChatSources}
               isSelectAll={isSelectAllSource}
               setIsSelectAll={setIsSelectAllSource}
-              h={10}
+              h={9}
               w={'200px'}
               rounded={'8px'}
               tagStyle={{
@@ -466,7 +467,7 @@ const LogTable = ({
               setDateRange(date);
             }}
             bg={'white'}
-            h={10}
+            h={9}
             flex={'0 1 250px'}
             rounded={'8px'}
             borderColor={'myGray.200'}
@@ -491,7 +492,7 @@ const LogTable = ({
         )}
         <Flex
           flex={'0 1 230px'}
-          h={10}
+          h={9}
           alignItems={'center'}
           rounded={'8px'}
           border={'1px solid'}
@@ -541,15 +542,53 @@ const LogTable = ({
         />
 
         <PopoverConfirm
-          Trigger={<Button size={'md'}>{t('common:Export')}</Button>}
+          Trigger={
+            <Button size={'sm'} variant={'primary'} leftIcon={<MyIcon name={'export'} w={4} />}>
+              {t('common:Export')}
+            </Button>
+          }
           showCancel
           content={t('app:logs_export_confirm_tip', { total })}
           onConfirm={exportLogs}
         />
       </Flex>
 
-      <TableContainer mt={[2, 4]} flex={'1 0 0'} overflowY={'auto'}>
-        <Table variant={'simple'} fontSize={'sm'}>
+      <TableContainer
+        mt={3}
+        flex={'1 0 0'}
+        overflowY={'auto'}
+        overflowX={'auto'}
+        {...detailPanelStyles}
+        borderRadius={'12px'}
+      >
+        <Table
+          variant={'simple'}
+          fontSize={'xs'}
+          minW={'920px'}
+          sx={{
+            th: {
+              position: 'sticky',
+              top: 0,
+              zIndex: 1,
+              bg: '#F8FAFC',
+              color: '#475569',
+              borderBottom: '1px solid rgba(148, 163, 184, 0.24)',
+              fontSize: '12px',
+              letterSpacing: 0,
+              whiteSpace: 'nowrap',
+              py: 3
+            },
+            td: {
+              borderBottom: '1px solid rgba(148, 163, 184, 0.16)',
+              color: '#334155',
+              whiteSpace: 'nowrap',
+              py: 2.5
+            },
+            'tbody tr:hover td': {
+              bg: 'rgba(37, 99, 235, 0.04)'
+            }
+          }}
+        >
           <Thead>
             <Tr>
               <Th>
@@ -565,12 +604,7 @@ const LogTable = ({
             {logs.map((item) => {
               const cellRenderMap = getCellRenderMap(item);
               return (
-                <Tr
-                  key={item._id}
-                  _hover={{ bg: 'myWhite.600' }}
-                  cursor={'pointer'}
-                  onClick={() => setDetailLogsId(item.chatId)}
-                >
+                <Tr key={item._id} cursor={'pointer'} onClick={() => setDetailLogsId(item.chatId)}>
                   <Td>
                     <HStack onClick={(e) => e.stopPropagation()}>
                       <Checkbox isChecked={isSelected(item)} onChange={() => toggleSelect(item)} />

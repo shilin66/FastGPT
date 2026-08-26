@@ -70,7 +70,19 @@ const MyPopover = ({
         </Portal>
       )}
       <Portal>
-        <PopoverContent zIndex={1001} {...props}>
+        <PopoverContent
+          zIndex={1001}
+          bg={'white'}
+          border={'1px solid'}
+          borderColor={'rgba(37, 99, 235, 0.16)'}
+          borderRadius={'14px'}
+          boxShadow={'0 18px 45px rgba(15, 23, 42, 0.14)'}
+          overflow={'hidden'}
+          _focusVisible={{
+            boxShadow: '0 18px 45px rgba(15, 23, 42, 0.14)'
+          }}
+          {...props}
+        >
           {hasArrow && <PopoverArrow />}
           {children({ onClose })}
         </PopoverContent>

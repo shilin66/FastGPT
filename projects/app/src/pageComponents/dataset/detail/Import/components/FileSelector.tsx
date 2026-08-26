@@ -1,7 +1,7 @@
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import { useSelectFile } from '@/web/common/file/hooks/useSelectFile';
 import { useToast } from '@fastgpt/web/hooks/useToast';
-import { Box, type FlexProps } from '@chakra-ui/react';
+import { Box, Button, Flex, type FlexProps } from '@chakra-ui/react';
 import { formatFileSize } from '@fastgpt/global/common/file/tools';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useTranslation } from 'next-i18next';
@@ -10,6 +10,7 @@ import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import type { ImportSourceItemType } from '@/web/core/dataset/type';
+import { omniTheme } from '@/web/common/brand/theme';
 
 export type SelectFileItemType = {
   fileId: string;
@@ -21,11 +22,13 @@ const FileSelector = ({
   fileType,
   selectFiles,
   onSelectFiles,
+  variant = 'default',
   ...props
 }: {
   fileType: string;
   selectFiles: ImportSourceItemType[];
   onSelectFiles: (e: SelectFileItemType[]) => any;
+  variant?: 'default' | 'workbench';
 } & FlexProps) => {
   const { t } = useTranslation();
 
@@ -204,26 +207,139 @@ const FileSelector = ({
     selectFileCallback(fileList.slice(0, maxCount));
   };
 
+  const fileInput = (
+    <File
+      onSelect={(files) =>
+        selectFileCallback(
+          files.map((file) => ({
+            fileId: getNanoid(),
+            folderPath: '',
+            file
+          }))
+        )
+      }
+    />
+  );
+
+  if (variant === 'workbench') {
+    const canSelectFile = !isMaxSelected && maxSize != null;
+
+    return (
+      <MyBox
+        minH={['168px', '132px']}
+        px={[5, 7]}
+        py={[5, 6]}
+        border={'1px solid'}
+        borderColor={isDragging ? omniTheme.colors.saturatedBlue : omniTheme.colors.border}
+        borderRadius={omniTheme.radii.md}
+        bg={isDragging ? omniTheme.colors.saturatedBlueSoft : omniTheme.colors.surface}
+        boxShadow={omniTheme.shadows.card}
+        transition={'background-color 160ms ease, border-color 160ms ease'}
+        {...(canSelectFile
+          ? {
+              cursor: 'pointer',
+              _hover: {
+                bg: omniTheme.colors.pageBg,
+                borderColor: omniTheme.colors.saturatedBlue
+              },
+              onDragEnter: handleDragEnter,
+              onDragOver: (e: DragEvent<HTMLDivElement>) => e.preventDefault(),
+              onDragLeave: handleDragLeave,
+              onDrop: handleDrop,
+              onClick: onOpen
+            }
+          : {})}
+        {...props}
+      >
+        <Flex
+          w={'100%'}
+          h={'100%'}
+          flexDirection={['column', 'row']}
+          alignItems={['flex-start', 'center']}
+          gap={[4, 5]}
+        >
+          <Flex
+            w={'52px'}
+            h={'52px'}
+            flexShrink={0}
+            alignItems={'center'}
+            justifyContent={'center'}
+            borderRadius={omniTheme.radii.md}
+            bg={omniTheme.colors.graphite}
+            boxShadow={omniTheme.shadows.active}
+          >
+            <MyIcon name={'common/uploadFileFill'} w={'25px'} color={'white'} />
+          </Flex>
+
+          <Box flex={1} minW={0}>
+            <Box color={omniTheme.colors.text} fontSize={'md'} fontWeight={700}>
+              {isMaxSelected
+                ? t('file:reached_max_file_count')
+                : maxSize == null
+                  ? t('common:Loading')
+                  : isDragging
+                    ? t('file:release_the_mouse_to_upload_the_file')
+                    : t('file:select_and_drag_file_tip')}
+            </Box>
+            <Box mt={1} color={omniTheme.colors.muted} fontSize={'xs'} lineHeight={1.7}>
+              {t('file:support_file_type', { fileType })}
+            </Box>
+            {maxSize != null && !isMaxSelected && (
+              <Box color={omniTheme.colors.muted} fontSize={'xs'} lineHeight={1.7}>
+                {t('common:n_max_upload_file_limit', {
+                  count: maxCount,
+                  size: formatFileSize(maxSize)
+                })}
+              </Box>
+            )}
+          </Box>
+
+          <Button
+            h={'38px'}
+            flexShrink={0}
+            alignSelf={['stretch', 'center']}
+            isDisabled={!canSelectFile}
+            leftIcon={<MyIcon name={'common/uploadFileFill'} w={'15px'} />}
+            bg={omniTheme.colors.saturatedBlue}
+            color={'white'}
+            _hover={{ bg: omniTheme.colors.saturatedBlueHover }}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpen();
+            }}
+          >
+            {selectFiles.length > 0
+              ? t('common:core.dataset.import.Continue upload')
+              : t('common:upload_file')}
+          </Button>
+        </Flex>
+        {canSelectFile && fileInput}
+      </MyBox>
+    );
+  }
+
   return (
     <MyBox
       display={'flex'}
       flexDirection={'column'}
       alignItems={'center'}
       justifyContent={'center'}
-      px={3}
-      py={[4, 7]}
+      minH={['150px', '176px']}
+      px={5}
+      py={[5, 7]}
       borderWidth={'1.5px'}
       borderStyle={'dashed'}
-      borderRadius={'md'}
+      borderRadius={omniTheme.radii.md}
+      bg={omniTheme.colors.pageBg}
       {...(isMaxSelected || maxSize == null
         ? {}
         : {
             cursor: 'pointer',
             _hover: {
-              bg: 'primary.50',
-              borderColor: 'primary.600'
+              bg: omniTheme.colors.saturatedBlueSoft,
+              borderColor: omniTheme.colors.saturatedBlue
             },
-            borderColor: isDragging ? 'primary.600' : 'borderColor.high',
+            borderColor: isDragging ? omniTheme.colors.saturatedBlue : omniTheme.colors.border,
             onDragEnter: handleDragEnter,
             onDragOver: (e) => e.preventDefault(),
             onDragLeave: handleDragLeave,
@@ -232,7 +348,18 @@ const FileSelector = ({
           })}
       {...props}
     >
-      <MyIcon name={'common/uploadFileFill'} w={'32px'} />
+      <Box
+        display={'flex'}
+        w={'44px'}
+        h={'44px'}
+        alignItems={'center'}
+        justifyContent={'center'}
+        mb={3}
+        borderRadius={omniTheme.radii.md}
+        bg={omniTheme.colors.graphite}
+      >
+        <MyIcon name={'common/uploadFileFill'} w={'24px'} color={'white'} />
+      </Box>
       {isMaxSelected ? (
         <>
           <Box color={'myGray.500'} fontSize={'xs'}>
@@ -241,14 +368,16 @@ const FileSelector = ({
         </>
       ) : maxSize == null ? (
         <>
-          <Box fontWeight={'bold'}>{t('common:Loading')}</Box>
+          <Box color={omniTheme.colors.text} fontWeight={700}>
+            {t('common:Loading')}
+          </Box>
           <Box color={'myGray.500'} fontSize={'xs'}>
             {t('file:support_file_type', { fileType })}
           </Box>
         </>
       ) : (
         <>
-          <Box fontWeight={'bold'}>
+          <Box color={omniTheme.colors.text} fontWeight={700}>
             {isDragging
               ? t('file:release_the_mouse_to_upload_the_file')
               : t('file:select_and_drag_file_tip')}
@@ -264,17 +393,7 @@ const FileSelector = ({
             })}
           </Box>
 
-          <File
-            onSelect={(files) =>
-              selectFileCallback(
-                files.map((file) => ({
-                  fileId: getNanoid(),
-                  folderPath: '',
-                  file
-                }))
-              )
-            }
-          />
+          {fileInput}
         </>
       )}
     </MyBox>

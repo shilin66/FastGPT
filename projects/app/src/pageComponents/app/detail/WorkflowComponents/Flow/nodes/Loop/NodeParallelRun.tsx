@@ -49,15 +49,16 @@ const NodeParallelRun = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
         </Box>
 
         <>
-          <FormLabel required fontWeight={'medium'} mb={3} color={'myGray.600'}>
+          <FormLabel required fontWeight={800} mb={3} color={'#1E293B'} fontSize={'13px'}>
             {t('workflow:parallel_run_execution_logic')}
           </FormLabel>
           <Box
             flex={1}
             position={'relative'}
-            border={'base'}
-            bg={'myGray.50'}
-            rounded={'8px'}
+            border={'1px dashed rgba(37, 99, 235, 0.34)'}
+            bg={'rgba(248, 251, 255, 0.88)'}
+            rounded={'16px'}
+            boxShadow={'inset 0 0 0 1px rgba(255, 255, 255, 0.65)'}
             {...(!isFolded && {
               minW: nodeWidth,
               minH: nodeHeight

@@ -70,5 +70,10 @@ export const TagsMap = {
   adminDashboard: '仪表盘',
   // Inform
   adminInform: '通知管理',
-  adminApps: '应用管理'
+  adminApps: '应用管理',
+  adminUsers: '用户管理',
+  adminTeams: '团队管理',
+  adminDatasets: '知识库管理',
+  adminTasks: '管理任务',
+  adminAudits: '管理审计'
 };

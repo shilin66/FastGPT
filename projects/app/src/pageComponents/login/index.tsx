@@ -20,6 +20,7 @@ import LoginForm from '@/pageComponents/login/LoginForm/LoginForm';
 import { GET } from '@/web/common/api/request';
 import { getDocPath } from '@/web/common/system/doc';
 import type { LoginSuccessResponseType } from '@fastgpt/global/openapi/support/user/account/login/api';
+import { useSystem } from '@fastgpt/web/hooks/useSystem';
 
 const RegisterForm = dynamic(() => import('@/pageComponents/login/RegisterForm'));
 const ForgetPasswordForm = dynamic(() => import('@/pageComponents/login/ForgetPasswordForm'));
@@ -187,6 +188,7 @@ export const LoginContainer = ({
   onSuccess: (res: LoginSuccessResponseType) => void;
 }) => {
   const { t } = useTranslation();
+  const { isPc } = useSystem();
   const { feConfigs } = useSystemStore();
   const { setLastChatAppId } = useChatStore();
 
@@ -236,12 +238,12 @@ export const LoginContainer = ({
       <Flex
         my={['', pageType === LoginPageTypeEnum.wechat ? '-15px' : '']}
         position="relative"
-        w="full"
-        flex={'1 0 0'}
+        w={isPc ? '330px' : '80%'}
+        flex={isPc ? 'none' : '1 0 0'}
         flexDirection={'column'}
       >
         {/* main content area */}
-        <Box w={['60%', '280px']} flex={['', '1 0 0']}>
+        <Box w="full" flex={isPc ? 'none' : '1 0 0'}>
           {pageType && DynamicComponent ? DynamicComponent : <Loading fixed={false} />}
         </Box>
 

@@ -162,12 +162,21 @@ const ToolSelectModal = ({ onClose, ...props }: Props & { onClose: () => void })
       title={t('app:tool_select')}
       iconSrc="core/app/toolCall"
       onClose={onClose}
-      maxW={['90vw', '700px']}
-      w={'700px'}
+      maxW={['92vw', '860px']}
+      w={'860px'}
       h={['90vh', '80vh']}
     >
-      {/* Header: row and search */}
-      <Box px={[3, 6]} pt={4} display={'flex'} justifyContent={'space-between'} w={'full'}>
+      <Flex
+        px={[4, 6]}
+        py={4}
+        gap={3}
+        alignItems={['stretch', 'center']}
+        justifyContent={'space-between'}
+        flexDirection={['column', 'row']}
+        bg={'#F8FAFC'}
+        borderBottom={'1px solid rgba(148, 163, 184, 0.18)'}
+        w={'full'}
+      >
         <FillRowTabs
           list={[
             {
@@ -196,7 +205,7 @@ const ToolSelectModal = ({ onClose, ...props }: Props & { onClose: () => void })
             })
           }
         />
-        <Box w={200}>
+        <Box w={['100%', '220px']}>
           <SearchInput
             value={searchKey}
             onChange={(e) => setSearchKey(e.target.value)}
@@ -207,9 +216,9 @@ const ToolSelectModal = ({ onClose, ...props }: Props & { onClose: () => void })
             }
           />
         </Box>
-      </Box>
+      </Flex>
       {templateType === TemplateTypeEnum.systemTools && allTags.length > 0 && (
-        <Box mt={3} px={[3, 6]}>
+        <Box px={[4, 6]} py={3} bg={'#F8FAFC'} borderBottom={'1px solid rgba(148, 163, 184, 0.14)'}>
           <ToolTagFilterBox
             tags={allTags}
             selectedTagIds={selectedTagIds}
@@ -220,11 +229,11 @@ const ToolSelectModal = ({ onClose, ...props }: Props & { onClose: () => void })
       )}
       {/* route components */}
       {!searchKey && parentId && (
-        <Flex mt={1} px={[3, 6]}>
+        <Flex px={[4, 6]} py={2} bg={'#F8FAFC'}>
           <FolderPath paths={paths} FirstPathDom={null} onClick={onUpdateParentId} />
         </Flex>
       )}
-      <MyBox isLoading={isLoading} mt={1} pb={3} flex={'1 0 0'} h={0}>
+      <MyBox isLoading={isLoading} pb={4} flex={'1 0 0'} h={0} bg={'#F8FAFC'}>
         <Box overflow={'overlay'} height={'100%'}>
           <RenderList
             templates={templates}
@@ -303,7 +312,7 @@ const RenderList = React.memo(function RenderList({
     return (
       <>
         {templates.length > 0 ? (
-          <Grid gridTemplateColumns={['1fr', '1fr 1fr']} gap={3} px={[3, 6]}>
+          <Grid gridTemplateColumns={['1fr', '1fr 1fr']} gap={3} px={[4, 6]} pt={4}>
             {templates.map((template) => {
               const selected = selectedTools.some((tool) => tool.pluginId === template.id);
               return (
@@ -350,8 +359,16 @@ const RenderList = React.memo(function RenderList({
                     alignItems={'center'}
                     py={3}
                     px={3}
-                    _hover={{ bg: 'myWhite.600' }}
-                    borderRadius={'sm'}
+                    bg={'white'}
+                    border={'1px solid rgba(148, 163, 184, 0.2)'}
+                    borderRadius={'12px'}
+                    boxShadow={'0 10px 24px rgba(15, 23, 42, 0.03)'}
+                    transition={'all 0.18s ease'}
+                    _hover={{
+                      borderColor: 'rgba(37, 99, 235, 0.45)',
+                      boxShadow: '0 16px 34px rgba(37, 99, 235, 0.1)',
+                      transform: 'translateY(-1px)'
+                    }}
                     h={'100%'}
                   >
                     <MyAvatar

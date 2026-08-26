@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Flex, Tab, TabIndicator, TabList, Tabs } from '@chakra-ui/react';
+import { Box, Flex, Tab, TabList, Tabs } from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
 import { useContextSelector } from 'use-context-selector';
-import AppListContextProvider, { AppListContext } from '@/pageComponents/dashboard/agent/context';
+import { AppListContext } from '@/pageComponents/dashboard/agent/context';
 import FolderPath from '@/components/common/folder/Path';
 import { useRouter } from 'next/router';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
@@ -54,7 +54,7 @@ const MyApps = () => {
   const tabs = ['all' as const, AppTypeEnum.simple, AppTypeEnum.workflow, AppTypeEnum.workflowTool];
 
   return (
-    <Flex flexDirection={'column'} h={'100%'}>
+    <Flex flexDirection={'column'} h={'100%'} bg={'myGray.25'}>
       <NextHead
         title={chatSettings?.homeTabTitle || feConfigs?.systemTitle}
         icon={getWebReqUrl(feConfigs?.favicon)}
@@ -112,46 +112,80 @@ const MyApps = () => {
         </Box>
       )}
 
-      <Flex gap={5} flex={'1 0 0'} h={0}>
-        <Flex
-          px={[3, 6]}
-          flex={'1 0 0'}
-          flexDirection={'column'}
-          h={'100%'}
-          overflowY={'auto'}
-          overflowX={'hidden'}
-        >
-          <Flex pt={paths.length > 0 ? 3 : [0, 6]} alignItems={'center'} gap={3}>
+      <Flex flex={'1 0 0'} h={0}>
+        <Flex flex={'1 0 0'} flexDirection={'column'} h={'100%'} overflowX={'hidden'}>
+          <Flex
+            minH={'56px'}
+            px={[3, 5]}
+            py={2}
+            alignItems={'center'}
+            gap={3}
+            bg={'white'}
+            borderBottom={'base'}
+          >
             {isPc && (
-              <Tabs variant="unstyled" onChange={(index) => setAppType(tabs[index])}>
-                <TabList gap={5}>
-                  {tabs.map((item, index) => (
-                    <Tab
-                      key={item}
-                      color={appType === item ? 'primary.700' : 'myGray.500'}
-                      fontWeight={500}
-                      px={0}
-                    >
-                      {map[item as keyof typeof map]}
-                    </Tab>
-                  ))}
-                </TabList>
-                <TabIndicator mt="-1.5px" height="2px" bg="primary.600" borderRadius="1px" />
-              </Tabs>
+              <Flex flex={1} minW={0} align={'center'} gap={4}>
+                <Box flexShrink={0} fontSize={'md'} fontWeight={650} color={'myGray.900'}>
+                  {t('chat:sidebar.team_apps')}
+                </Box>
+                <Tabs
+                  flex={1}
+                  minW={0}
+                  variant="unstyled"
+                  index={tabs.indexOf(appType as (typeof tabs)[number])}
+                  onChange={(index) => setAppType(tabs[index])}
+                >
+                  <TabList
+                    p={'3px'}
+                    gap={1}
+                    bg={'myGray.100'}
+                    borderRadius={'6px'}
+                    overflowX={'auto'}
+                    whiteSpace={'nowrap'}
+                    sx={{ scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}
+                  >
+                    {tabs.map((item, index) => (
+                      <Tab
+                        key={item}
+                        h={'32px'}
+                        px={3}
+                        flexShrink={0}
+                        borderRadius={'4px'}
+                        color={appType === item ? 'primary.700' : 'myGray.600'}
+                        bg={appType === item ? 'white' : 'transparent'}
+                        boxShadow={appType === item ? 'sm' : 'none'}
+                        fontSize={'xs'}
+                        fontWeight={appType === item ? 600 : 500}
+                        _hover={{ color: 'primary.700' }}
+                      >
+                        {map[item as keyof typeof map]}
+                      </Tab>
+                    ))}
+                  </TabList>
+                </Tabs>
+              </Flex>
             )}
-            <Box flex={1} />
 
             {isPc && (
-              <SearchInput
-                maxW={['auto', '250px']}
-                onChange={(e) => setSearchKey(e.target.value)}
-                placeholder={t('app:search_app')}
-                maxLength={30}
-              />
+              <Box w={'240px'} flexShrink={0}>
+                <SearchInput
+                  w={'100%'}
+                  onChange={(e) => setSearchKey(e.target.value)}
+                  placeholder={t('app:search_app')}
+                  maxLength={30}
+                />
+              </Box>
             )}
           </Flex>
 
-          <MyBox flex={'1 0 0'} isLoading={myApps.length === 0 && isFetchingApps}>
+          <MyBox
+            flex={'1 0 0'}
+            h={0}
+            px={[3, 6]}
+            py={[3, 4]}
+            overflow={'overlay'}
+            isLoading={myApps.length === 0 && isFetchingApps}
+          >
             <List appType={appType} />
           </MyBox>
         </Flex>
@@ -160,12 +194,4 @@ const MyApps = () => {
   );
 };
 
-function ContextRender() {
-  return (
-    <AppListContextProvider>
-      <MyApps />
-    </AppListContextProvider>
-  );
-}
-
-export default ContextRender;
+export default MyApps;

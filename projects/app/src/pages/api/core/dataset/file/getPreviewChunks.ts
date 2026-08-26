@@ -19,6 +19,7 @@ import { addDays } from 'date-fns';
 import {
   GetPreviewChunksBodySchema,
   GetPreviewChunksResponseSchema,
+  previewChunkDefaultLimit,
   type GetPreviewChunksBody,
   type GetPreviewChunksResponse
 } from '@fastgpt/global/openapi/core/dataset/file/api';
@@ -34,6 +35,7 @@ async function handler(
     selector,
     datasetId,
     externalFileId,
+    previewLimit = previewChunkDefaultLimit,
     ...chunkSettings
   } = GetPreviewChunksBodySchema.parse(req.body);
 
@@ -94,7 +96,7 @@ async function handler(
     customReg: formatChunkSettings.chunkSplitter ? [formatChunkSettings.chunkSplitter] : []
   });
 
-  const chunksWithJWT = chunks.slice(0, 10).map((chunk) => ({
+  const chunksWithJWT = chunks.slice(0, previewLimit).map((chunk) => ({
     q: replaceS3KeyToPreviewUrl(chunk.q, addDays(new Date(), 1)),
     a: replaceS3KeyToPreviewUrl(chunk.a, addDays(new Date(), 1))
   }));

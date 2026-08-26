@@ -138,7 +138,7 @@ const NodeDebugResponse = ({ nodeId, debugResult }: NodeDebugResponseProps) => {
   return !!debugResult && !!statusData ? (
     <>
       {/* Status header */}
-      <Flex px={3} bg={statusData.bg} borderTopRadius={'md'} py={3}>
+      <Flex px={3} bg={statusData.bg} borderTopRadius={'14px'} py={3}>
         <MyIcon name={statusData.icon as any} w={'16px'} mr={2} />
         <Box color={'myGray.900'} fontWeight={'bold'} flex={'1 0 0'}>
           {statusData.text}
@@ -177,10 +177,13 @@ const NodeDebugResponse = ({ nodeId, debugResult }: NodeDebugResponseProps) => {
           zIndex={10}
           w={'420px'}
           maxH={'max(100%,500px)'}
-          border={'base'}
+          border={'1px solid rgba(148, 163, 184, 0.22)'}
+          borderRadius={'16px'}
+          boxShadow={'0 24px 60px rgba(15, 23, 42, 0.14)'}
+          overflow={'hidden'}
         >
           {/* Status header */}
-          <Flex h={'54x'} px={3} py={3} alignItems={'center'}>
+          <Flex h={'54px'} px={3} py={3} alignItems={'center'} bg={'rgba(248, 250, 252, 0.9)'}>
             <MyIcon mr={1} name={'core/workflow/debugResult'} w={'20px'} color={'primary.600'} />
             <Box fontWeight={'bold'} flex={'1'}>
               {t('common:core.workflow.debug.Run result')}

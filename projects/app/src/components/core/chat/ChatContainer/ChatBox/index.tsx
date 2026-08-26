@@ -72,6 +72,8 @@ import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { useMemoEnhance } from '@fastgpt/web/hooks/useMemoEnhance';
 import { cloneDeep } from 'lodash';
 import { ChatGenerateStatusEnum } from '@fastgpt/global/core/chat/constants';
+import { ChatStartSurface } from './components/ChatStartSurface';
+import { ChatIdentityBackdrop } from './components/ChatIdentityBackdrop';
 
 const FeedbackModal = dynamic(() => import('./components/FeedbackModal'));
 const SelectMarkCollection = dynamic(() => import('./components/SelectMarkCollection'));
@@ -1705,7 +1707,7 @@ const ChatBox = ({
                       new Date(processedRecords[index - 1].time!).getTime() >
                       10 * 60 * 1000 && <TimeBox time={item.time} />}
 
-                  <Box py={item.hideInUI ? 0 : 6}>
+                  <Box py={item.hideInUI ? 0 : [3, 4]}>
                     {item.obj === ChatRoleEnum.Human && !item.hideInUI && (
                       <ChatItem
                         avatar={userAvatar}
@@ -1809,30 +1811,55 @@ const ChatBox = ({
   ]);
 
   // Child box
+  const showAppIdentityBackdrop =
+    !welcomeText && isChatRecordsLoaded && chatRecords.length === 0 && chatStarted;
   const AppChatRenderBox = useMemo(() => {
     return (
-      <ScrollData
-        ScrollContainerRef={ScrollContainerRef}
-        flex={'1 0 0'}
-        h={0}
-        w={'100%'}
-        overflow={'overlay'}
-        px={[4, 0]}
-        pb={6}
-      >
-        <Box maxW={['100%', '92%']} h={'100%'} mx={'auto'}>
-          {!!welcomeText && <WelcomeBox welcomeText={welcomeText} />}
-
-          {/* variable input */}
-          <Box id="variable-input">
-            <VariableInputForm chatStarted={chatStarted} chatForm={chatForm} chatType={chatType} />
+      <Flex flex={'1 0 0'} h={0} w={'100%'} minH={0} position={'relative'} overflow={'hidden'}>
+        {showAppIdentityBackdrop && (
+          <ChatIdentityBackdrop avatar={appAvatar} name={chatBoxData.app.name} />
+        )}
+        <ScrollData
+          ScrollContainerRef={ScrollContainerRef}
+          flex={'1 0 0'}
+          h={'100%'}
+          w={'100%'}
+          overflow={'overlay'}
+          position={'relative'}
+          zIndex={1}
+          px={[3, 6]}
+          pt={[2, 4]}
+          pb={5}
+        >
+          <Box maxW={'1120px'} minH={'100%'} mx={'auto'}>
+            <ChatStartSurface
+              variableEntry={
+                <Box id="variable-input">
+                  <VariableInputForm
+                    chatStarted={chatStarted}
+                    chatForm={chatForm}
+                    chatType={chatType}
+                  />
+                </Box>
+              }
+              welcome={!!welcomeText ? <WelcomeBox welcomeText={welcomeText} /> : undefined}
+              conversation={RecordsBox}
+            />
           </Box>
-
-          {RecordsBox}
-        </Box>
-      </ScrollData>
+        </ScrollData>
+      </Flex>
     );
-  }, [ScrollData, welcomeText, chatStarted, chatForm, chatType, RecordsBox]);
+  }, [
+    ScrollData,
+    welcomeText,
+    chatStarted,
+    appAvatar,
+    chatBoxData.app.name,
+    chatForm,
+    chatType,
+    showAppIdentityBackdrop,
+    RecordsBox
+  ]);
   const HomeChatRenderBox = useMemo(() => {
     return (
       <>
@@ -1844,6 +1871,7 @@ const ChatBox = ({
       </>
     );
   }, []);
+  const hasHomeVariables = variableList.some((item) => item.type !== VariableInputEnum.internal);
 
   return (
     <MyBox
@@ -1852,6 +1880,7 @@ const ChatBox = ({
       flexDirection={'column'}
       h={'100%'}
       position={'relative'}
+      bg={'myGray.25'}
     >
       <Script src={getWebReqUrl('/js/html2pdf.bundle.min.js')} strategy="lazyOnload"></Script>
       {/* chat box container */}
@@ -1862,36 +1891,38 @@ const ChatBox = ({
           h={0}
           px={[2, 4]}
           w="100%"
-          maxW={['auto', 'min(820px, 100%)']}
+          maxW={['auto', 'min(1120px, 100%)']}
           mx={'auto'}
         >
           <Flex h={'100%'} flexDir={'column'} justifyContent={'center'} w={'100%'}>
-            {HomeChatRenderBox}
-            {variableList.filter((item) => item.type !== VariableInputEnum.internal).length > 0 ? (
-              <Box w={'100%'}>
-                <ChatHomeVariablesForm chatForm={chatForm} />
-              </Box>
-            ) : (
-              <ChatInput
-                onSendMessage={sendPrompt}
-                onStop={() => abortRequest('stop')}
-                TextareaDom={TextareaDom}
-                resetInputVal={resetInputVal}
-                chatForm={chatForm}
-              />
-            )}
+            <ChatStartSurface
+              variableEntry={
+                hasHomeVariables ? (
+                  <Box w={'100%'}>
+                    <ChatHomeVariablesForm chatForm={chatForm} />
+                  </Box>
+                ) : undefined
+              }
+              welcome={HomeChatRenderBox}
+              conversation={
+                !hasHomeVariables ? (
+                  <ChatInput
+                    onSendMessage={sendPrompt}
+                    onStop={() => abortRequest('stop')}
+                    TextareaDom={TextareaDom}
+                    resetInputVal={resetInputVal}
+                    chatForm={chatForm}
+                  />
+                ) : undefined
+              }
+            />
           </Flex>
         </MyBox>
       ) : (
         <>
           {AppChatRenderBox}
           {canSendPrompt && (
-            <Box
-              px={[3, 5]}
-              m={['0 auto 10px', '10px auto']}
-              w={'100%'}
-              maxW={['auto', 'min(820px, 100%)']}
-            >
+            <Box px={[3, 6]} m={'0 auto 12px'} w={'100%'} maxW={['auto', 'min(1120px, 100%)']}>
               {showWorkorder && <WorkorderEntrance />}
 
               <ChatInput

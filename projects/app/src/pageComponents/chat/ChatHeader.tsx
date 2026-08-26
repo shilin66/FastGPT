@@ -67,9 +67,10 @@ const ChatHeader = ({
   return isPc && isPlugin ? null : (
     <Flex
       alignItems={'center'}
-      px={[3, 5]}
-      minH={['46px', '60px']}
-      borderBottom={'sm'}
+      px={[3, 4]}
+      minH={['48px', '56px']}
+      bg={'white'}
+      borderBottom={'base'}
       color={'myGray.900'}
       fontSize={'sm'}
     >
@@ -88,7 +89,7 @@ const ChatHeader = ({
           appId={chatData.appId}
           name={
             pane === ChatSidebarPaneEnum.HOME && !isShare
-              ? chatSettings?.homeTabTitle || feConfigs?.systemTitle || 'FastGPT'
+              ? chatSettings?.homeTabTitle || feConfigs?.systemTitle || 'OmniCockpit'
               : chatData.app.name
           }
           avatar={
@@ -302,9 +303,11 @@ export const PcHeader = ({
       <MyTooltip label={chatId ? t('common:chat_chatId', { chatId }) : ''}>
         <Box
           mr={3}
-          maxW={'200px'}
+          maxW={'360px'}
           className="textEllipsis"
           color={'myGray.1000'}
+          fontSize={'md'}
+          fontWeight={700}
           cursor={'pointer'}
           onClick={() => {
             copyData(chatId);
@@ -313,7 +316,7 @@ export const PcHeader = ({
           {title}
         </Box>
       </MyTooltip>
-      <MyTag>
+      <MyTag colorSchema={'gray'}>
         <MyIcon name={'history'} w={'14px'} />
         <Box ml={1}>
           {totalRecordsCount === 0
@@ -323,7 +326,7 @@ export const PcHeader = ({
       </MyTag>
       {!!chatModels && chatModels.length > 0 && (
         <MyTooltip label={chatModels.join(',')}>
-          <MyTag ml={2} colorSchema={'green'}>
+          <MyTag ml={2} colorSchema={'blue'}>
             <MyIcon name={'core/chat/chatModelTag'} w={'14px'} />
             <Box ml={1} maxW={'200px'} className="textEllipsis">
               {chatModels.join(',')}

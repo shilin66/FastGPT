@@ -99,13 +99,15 @@ const DetailLogsModal = ({
         zIndex={1000}
         position={['fixed', 'absolute']}
         top={[0, '2%']}
-        right={0}
+        right={[0, 4]}
         h={['100%', '96%']}
         w={'100%'}
         maxW={datasetCiteData ? ['100%', '1080px'] : ['100%', '600px']}
-        bg={'white'}
-        boxShadow={'3px 0 20px rgba(0,0,0,0.2)'}
-        borderRadius={'md'}
+        bg={'#F8FAFC'}
+        border={'1px solid'}
+        borderColor={'rgba(37, 99, 235, 0.16)'}
+        boxShadow={'0 28px 80px rgba(15, 23, 42, 0.22)'}
+        borderRadius={['0', '18px']}
         overflow={'hidden'}
         transition={'.2s ease'}
       >
@@ -114,10 +116,11 @@ const DetailLogsModal = ({
           <Flex
             alignItems={'flex-start'}
             justifyContent={'space-between'}
-            px={3}
-            pt={3}
-            bg={'myGray.25'}
-            borderBottom={'base'}
+            px={[4, 5]}
+            pt={4}
+            bg={'linear-gradient(90deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0))'}
+            borderBottom={'1px solid'}
+            borderBottomColor={'rgba(148, 163, 184, 0.22)'}
           >
             <LightRowTabs<PluginRunBoxTabEnum>
               list={[
@@ -148,11 +151,12 @@ const DetailLogsModal = ({
         ) : (
           <Flex
             alignItems={'center'}
-            px={[3, 5]}
-            h={['46px', '60px']}
-            borderBottom={'base'}
-            borderBottomColor={'gray.200'}
-            color={'myGray.900'}
+            px={[4, 5]}
+            h={['54px', '64px']}
+            bg={'linear-gradient(90deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0))'}
+            borderBottom={'1px solid'}
+            borderBottomColor={'rgba(148, 163, 184, 0.22)'}
+            color={'#1E293B'}
           >
             {isPc ? (
               <>
@@ -186,7 +190,7 @@ const DetailLogsModal = ({
         )}
 
         {/* Chat container */}
-        <Flex pt={2} flex={'1 0 0'} h={0} flexDirection={'column'}>
+        <Flex pt={2} flex={'1 0 0'} h={0} flexDirection={'column'} bg={'#F8FAFC'}>
           <Flex flex={'1 0 0'} h={0}>
             <Box flex={'1 0 0'} h={'100%'} overflow={'auto'}>
               {isPlugin ? (
@@ -215,10 +219,10 @@ const DetailLogsModal = ({
                 maxW={'460px'}
                 h={'98%'}
                 bg={'white'}
-                boxShadow={
-                  '0px 4px 10px 0px rgba(19, 51, 107, 0.10), 0px 0px 1px 0px rgba(19, 51, 107, 0.10)'
-                }
-                borderRadius={'md'}
+                border={'1px solid'}
+                borderColor={'rgba(37, 99, 235, 0.16)'}
+                boxShadow={'0 18px 45px rgba(15, 23, 42, 0.08)'}
+                borderRadius={'14px'}
               >
                 <ChatQuoteList
                   rawSearch={datasetCiteData.rawSearch}
@@ -230,7 +234,13 @@ const DetailLogsModal = ({
           </Flex>
 
           {/* Feedback filter bar - commented out, moved to Render component */}
-          <Flex bg="white" px={6} py={3} borderTop="1px solid" borderColor="gray.200">
+          <Flex
+            bg="white"
+            px={6}
+            py={3}
+            borderTop="1px solid"
+            borderColor="rgba(148, 163, 184, 0.22)"
+          >
             <DetailLogsModalFeedbackTypeFilter
               feedbackType={feedbackType}
               setFeedbackType={setFeedbackType}

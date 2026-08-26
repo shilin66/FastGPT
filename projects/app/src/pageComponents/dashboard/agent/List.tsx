@@ -38,10 +38,10 @@ import UserBox from '@fastgpt/web/components/common/UserBox';
 import { ChatSidebarPaneEnum } from '@/pageComponents/chat/constants';
 import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
 import { useToast } from '@fastgpt/web/hooks/useToast';
-import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 import { createAppTypeMap } from '@/pageComponents/app/constants';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const EditResourceModal = dynamic(() => import('@/components/common/Modal/EditResourceModal'));
 const ConfigPerModal = dynamic(() => import('@/components/support/permission/ConfigPerModal'));
@@ -165,10 +165,10 @@ const List = () => {
             py={4}
             gridTemplateColumns={
               folderDetail
-                ? ['1fr', 'repeat(2,1fr)', 'repeat(2,1fr)', 'repeat(3,1fr)']
-                : ['1fr', 'repeat(2,1fr)', 'repeat(2,1fr)', 'repeat(3,1fr)', 'repeat(4,1fr)']
+                ? ['1fr', 'repeat(2,1fr)', 'repeat(2,1fr)', 'repeat(3,1fr)', 'repeat(4,1fr)']
+                : ['1fr', 'repeat(2,1fr)', 'repeat(3,1fr)', 'repeat(4,1fr)', 'repeat(4,1fr)']
             }
-            gridGap={5}
+            gridGap={4}
             alignItems={'stretch'}
           >
             {hasCreatePer ? <ListCreateButton appType={appType} /> : <ForbiddenCreateButton />}
@@ -179,10 +179,10 @@ const List = () => {
           py={4}
           gridTemplateColumns={
             folderDetail
-              ? ['1fr', 'repeat(2,1fr)', 'repeat(2,1fr)', 'repeat(3,1fr)']
-              : ['1fr', 'repeat(2,1fr)', 'repeat(2,1fr)', 'repeat(3,1fr)', 'repeat(4,1fr)']
+              ? ['1fr', 'repeat(2,1fr)', 'repeat(2,1fr)', 'repeat(3,1fr)', 'repeat(4,1fr)']
+              : ['1fr', 'repeat(2,1fr)', 'repeat(3,1fr)', 'repeat(4,1fr)', 'repeat(4,1fr)']
           }
-          gridGap={5}
+          gridGap={4}
           alignItems={'stretch'}
         >
           {hasCreatePer ? <ListCreateButton appType={appType} /> : <ForbiddenCreateButton />}
@@ -202,18 +202,25 @@ const List = () => {
                 }
               >
                 <MyBox
-                  py={4}
-                  px={5}
+                  pt={3}
+                  pb={3}
+                  pl={5}
+                  pr={4}
                   cursor={'pointer'}
-                  border={'base'}
+                  border={'1px solid'}
+                  borderColor={omniTheme.colors.border}
                   bg={'white'}
-                  borderRadius={'10px'}
+                  borderRadius={'12px'}
                   position={'relative'}
+                  overflow={'hidden'}
+                  minH={'156px'}
                   display={'flex'}
                   flexDirection={'column'}
+                  transition={'all 0.18s ease'}
                   _hover={{
-                    borderColor: 'primary.300',
-                    boxShadow: '1.5',
+                    borderColor: omniTheme.colors.saturatedBlue,
+                    boxShadow: omniTheme.shadows.card,
+                    transform: 'translateY(-1px)',
                     '& .more': {
                       display: 'flex'
                     },
@@ -244,56 +251,117 @@ const List = () => {
                     isFolder: app.type === AppTypeEnum.folder || app.type === AppTypeEnum.toolFolder
                   })}
                 >
-                  <Grid templateColumns="auto 1fr auto" alignItems="center" width="100%" gap={2}>
-                    <Avatar src={app.avatar} borderRadius={'sm'} w={'1.5rem'} />
-                    <Box color={'myGray.900'} fontWeight={'medium'} minWidth={0} overflow="hidden">
-                      <Box className={'textEllipsis'}>{app.name}</Box>
+                  <Flex
+                    position={'relative'}
+                    zIndex={1}
+                    alignItems={'center'}
+                    gap={3}
+                    pb={2.5}
+                    borderBottom={'1px solid #EDF1F6'}
+                  >
+                    <Box minW={0} flex={1}>
+                      <Box
+                        color={omniTheme.colors.text}
+                        fontWeight={800}
+                        fontSize={'sm'}
+                        minWidth={0}
+                        overflow="hidden"
+                      >
+                        <Box className={'textEllipsis'}>{app.name}</Box>
+                      </Box>
+                      <Box mt={1}>
+                        <AppTypeTag type={app.type} />
+                      </Box>
                     </Box>
-                    <Box justifySelf="end" mr={-5}>
-                      <AppTypeTag type={app.type} />
-                    </Box>
-                  </Grid>
+                    <Avatar
+                      src={app.avatar}
+                      borderRadius={'8px'}
+                      w={'30px'}
+                      h={'30px'}
+                      flexShrink={0}
+                    />
+                  </Flex>
                   <Box
-                    flex={'1 0 56px'}
+                    position={'relative'}
+                    zIndex={1}
+                    flex={'0 0 38px'}
                     mt={3}
                     textAlign={'justify'}
                     wordBreak={'break-all'}
                     fontSize={'xs'}
-                    color={'myGray.500'}
+                    color={omniTheme.colors.muted}
                   >
-                    <Box className={'textEllipsis2'} whiteSpace={'pre-wrap'} lineHeight={1.3}>
+                    <Box className={'textEllipsis2'} whiteSpace={'pre-wrap'} lineHeight={1.45}>
                       {app.intro || t('common:no_intro')}
                     </Box>
                   </Box>
-                  <HStack h={'24px'} fontSize={'mini'} color={'myGray.500'} w="full">
-                    <HStack flex={'1 0 0'}>
+                  <Grid
+                    position={'relative'}
+                    zIndex={1}
+                    mt={'auto'}
+                    pt={2.5}
+                    borderTop={'1px solid #EDF1F6'}
+                    gridTemplateColumns={'repeat(3, minmax(0, 1fr))'}
+                    gap={2}
+                  >
+                    <Box minW={0} minH={'28px'} alignContent={'center'} px={0}>
                       <UserBox
                         sourceMember={app.sourceMember}
                         fontSize="xs"
                         avatarSize="1rem"
                         spacing={0.5}
                       />
+                    </Box>
+                    <Box minW={0} minH={'28px'} alignContent={'center'} px={0}>
                       <PermissionIconText
                         private={app.private}
                         color={'myGray.500'}
                         iconColor={'myGray.400'}
                         w={'0.875rem'}
                       />
-                    </HStack>
-                    <HStack>
+                    </Box>
+                    <HStack minW={0} minH={'28px'} px={0} justifyContent={'space-between'}>
                       {isPc && (
-                        <HStack spacing={0.5} className="time">
-                          <MyIcon name={'history'} w={'0.85rem'} color={'myGray.400'} />
-                          <Box color={'myGray.500'}>
-                            {t(formatTimeToChatTime(app.updateTime) as any).replace('#', ':')}
-                          </Box>
-                        </HStack>
+                        <Box minW={0}>
+                          <HStack spacing={0.5} className="time">
+                            <MyIcon name={'history'} w={'0.85rem'} color={'myGray.400'} />
+                            <Box color={'myGray.500'} fontSize={'xs'} className={'textEllipsis'}>
+                              {t(formatTimeToChatTime(app.updateTime) as any).replace('#', ':')}
+                            </Box>
+                          </HStack>
+                        </Box>
                       )}
                       {(AppFolderTypeList.includes(app.type)
                         ? app.permission.hasManagePer
                         : app.permission.hasWritePer || app.permission.hasReadChatLogPer) && (
                         <Box className="more" display={['', 'none']}>
                           <MyMenu
+                            trigger={'click'}
+                            placement={'bottom-end'}
+                            width={176}
+                            offset={[0, 8]}
+                            usePortal
+                            menuListStyles={{
+                              p: 2,
+                              border: '1px solid',
+                              borderColor: omniTheme.colors.border,
+                              borderRadius: '12px',
+                              boxShadow: '0 18px 44px -28px rgba(31, 41, 55, 0.26)',
+                              bg: 'white',
+                              zIndex: 1600
+                            }}
+                            menuItemStyles={{
+                              minH: '36px',
+                              borderRadius: '10px',
+                              px: 3,
+                              fontWeight: 700,
+                              _hover: {
+                                bg: '#EEF4FF'
+                              },
+                              _focus: {
+                                bg: '#EEF4FF'
+                              }
+                            }}
                             Button={
                               <IconButton
                                 size={'xsSquare'}
@@ -445,7 +513,7 @@ const List = () => {
                         </Box>
                       )}
                     </HStack>
-                  </HStack>
+                  </Grid>
                 </MyBox>
               </MyTooltip>
             );
@@ -512,7 +580,6 @@ const List = () => {
 
 const CreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
   const { t } = useTranslation();
-  const [isHoverCreateButton, setIsHoverCreateButton] = useState(false);
   const router = useRouter();
   const parentId = router.query.parentId;
   const createAppType =
@@ -527,46 +594,45 @@ const CreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
     <Box
       position="relative"
       width="100%"
-      minH={'150px'}
+      minH={'164px'}
       overflow="hidden"
-      rounded={'sm'}
+      rounded={'12px'}
       cursor={'pointer'}
+      border={'1px solid'}
+      borderColor={omniTheme.colors.border}
+      bg={'white'}
       onClick={() => {
         router.push(
           `/dashboard/create?appType=${createAppType}${parentId ? `&parentId=${parentId}` : ''}`
         );
       }}
-      onMouseEnter={() => setIsHoverCreateButton(true)}
-      onMouseLeave={() => setIsHoverCreateButton(false)}
-      boxShadow={
-        isHoverCreateButton
-          ? '0 4px 27.1px 0 rgba(199, 212, 233, 0.29)'
-          : '0 4px 27.1px 0 rgba(199, 212, 233, 0.29)'
-      }
+      transition={'all 0.18s ease'}
+      _hover={{
+        borderColor: omniTheme.colors.saturatedBlue,
+        boxShadow: omniTheme.shadows.card,
+        transform: 'translateY(-1px)'
+      }}
       userSelect={'none'}
       mt={4}
     >
       <Box
-        as="img"
-        src={getWebReqUrl('/imgs/app/createButton.jpg')}
-        alt="operational advertisement"
-        width="100%"
-        maxW="100%"
-        display="block"
-        transition="transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
-        transform={isHoverCreateButton ? 'scale(1.2) translateY(-12px)' : 'scale(1) translateY(0)'}
+        position={'absolute'}
+        inset={0}
+        bg={`linear-gradient(135deg, ${omniTheme.colors.saturatedBlueSoft} 0%, rgba(255,255,255,0) 42%), linear-gradient(180deg, #FFFFFF 0%, ${omniTheme.colors.pageBg} 100%)`}
       />
       <VStack
         position="absolute"
         top="50%"
         left="50%"
         transform="translate(-50%, -50%)"
-        color="#334155"
-        fontSize="32px"
-        fontWeight="medium"
+        color={omniTheme.colors.text}
+        fontSize="30px"
+        fontWeight={800}
+        w={'100%'}
+        px={6}
       >
         <Flex gap={2.5} alignItems={'center'}>
-          <MyIcon name={'core/app/create'} w={8} />
+          <MyIcon name={'core/app/create'} w={8} color={omniTheme.colors.saturatedBlue} />
           {isToolType ? t('app:create_your_first_tool') : t('app:create_your_first_agent')}
         </Flex>
         <Box
@@ -576,11 +642,12 @@ const CreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
           display={'flex'}
           alignItems={'center'}
           justifyContent={'center'}
-          sx={{
-            background: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='330' height='56'%3E%3Crect x='0.5' y='0.5' width='329' height='55' rx='12' fill='none' stroke='%237895FE' stroke-width='1' stroke-dasharray='6 6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center`
-          }}
+          border={'1px dashed'}
+          borderColor={omniTheme.colors.saturatedBlue}
+          borderRadius={'12px'}
+          bg={'rgba(255,255,255,0.72)'}
         >
-          <MyIcon name={'common/addLight'} w={8} color={'#7895FE'} />
+          <MyIcon name={'common/addLight'} w={8} color={omniTheme.colors.saturatedBlue} />
         </Box>
       </VStack>
     </Box>
@@ -599,16 +666,25 @@ const ListCreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
 
   return (
     <MyBox
-      py={4}
-      px={5}
+      pt={3}
+      pb={3}
+      pl={5}
+      pr={4}
       cursor={'pointer'}
-      border={'base'}
+      border={'1px solid'}
+      borderColor={omniTheme.colors.border}
       bg={'white'}
-      borderRadius={'10px'}
+      borderRadius={'12px'}
       position={'relative'}
+      overflow={'hidden'}
+      minH={'156px'}
       display={'flex'}
       flexDirection={'column'}
+      transition={'all 0.18s ease'}
       _hover={{
+        borderColor: omniTheme.colors.saturatedBlue,
+        boxShadow: omniTheme.shadows.card,
+        transform: 'translateY(-1px)',
         '& .create-box': {
           display: 'flex'
         }
@@ -619,11 +695,37 @@ const ListCreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
         );
       }}
     >
-      <Box color={'myGray.900'} fontWeight={'medium'}>
-        {t('common:new_create')}
-      </Box>
+      <Flex
+        position={'relative'}
+        zIndex={1}
+        alignItems={'center'}
+        justifyContent={'space-between'}
+        gap={3}
+        pb={2.5}
+        borderBottom={'1px solid #EDF1F6'}
+      >
+        <Box minW={0}>
+          <Box color={omniTheme.colors.text} fontSize={'sm'} fontWeight={800}>
+            {t('common:new_create')}
+          </Box>
+          <Box mt={1} color={omniTheme.colors.saturatedBlue} fontSize={'11px'} fontWeight={800}>
+            {router.pathname.includes('/agent') ? 'Agent' : 'Tool'}
+          </Box>
+        </Box>
+        <Flex
+          w={'34px'}
+          h={'34px'}
+          alignItems={'center'}
+          justifyContent={'center'}
+          flexShrink={0}
+          borderRadius={'10px'}
+          bg={omniTheme.colors.saturatedBlueSoft}
+        >
+          <MyIcon name={'common/addLight'} w={5} color={omniTheme.colors.saturatedBlue} />
+        </Flex>
+      </Flex>
       <Box
-        mt={4}
+        mt={3}
         mb={2}
         h={'100%'}
         w={'100%'}
@@ -641,7 +743,7 @@ const ListCreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
           left={'1px'}
           right={'1px'}
           bottom={'1px'}
-          bg={'primary.50'}
+          bg={omniTheme.colors.saturatedBlueSoft}
           borderRadius={'14px'}
         />
         <Box
@@ -650,12 +752,16 @@ const ListCreateButton = ({ appType }: { appType: AppTypeEnum | 'all' }) => {
           display={'flex'}
           alignItems={'center'}
           justifyContent={'center'}
-          sx={{
-            background: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 330 56' preserveAspectRatio='none'%3E%3Crect x='0.5' y='0.5' width='329' height='55' rx='12' fill='none' stroke='%237895FE' stroke-width='1' stroke-dasharray='6 6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center`,
-            backgroundSize: '100% 100%'
-          }}
+          border={'1px dashed'}
+          borderColor={omniTheme.colors.saturatedBlue}
+          borderRadius={'12px'}
         >
-          <MyIcon name={'common/addLight'} w={8} color={'#7895FE'} zIndex={1} />
+          <MyIcon
+            name={'common/addLight'}
+            w={8}
+            color={omniTheme.colors.saturatedBlue}
+            zIndex={1}
+          />
         </Box>
       </Box>
     </MyBox>
@@ -665,21 +771,52 @@ const ForbiddenCreateButton = () => {
   const { t } = useTranslation();
   return (
     <MyBox
-      py={4}
-      px={5}
+      pt={3}
+      pb={3}
+      pl={5}
+      pr={4}
       cursor={'not-allowed'}
-      border={'base'}
+      border={'1px solid'}
+      borderColor={omniTheme.colors.border}
       bg={'white'}
-      borderRadius={'10px'}
+      borderRadius={'12px'}
       position={'relative'}
+      overflow={'hidden'}
+      minH={'156px'}
       display={'flex'}
       flexDirection={'column'}
     >
-      <Box color={'myGray.900'} fontWeight={'medium'}>
-        {t('common:new_create')}
-      </Box>
+      <Flex
+        position={'relative'}
+        zIndex={1}
+        alignItems={'center'}
+        justifyContent={'space-between'}
+        gap={3}
+        pb={2.5}
+        borderBottom={'1px solid #EDF1F6'}
+      >
+        <Box minW={0}>
+          <Box color={omniTheme.colors.text} fontSize={'sm'} fontWeight={800}>
+            {t('common:new_create')}
+          </Box>
+          <Box mt={1} color={omniTheme.colors.muted} fontSize={'11px'} fontWeight={800}>
+            Disabled
+          </Box>
+        </Box>
+        <Flex
+          w={'34px'}
+          h={'34px'}
+          alignItems={'center'}
+          justifyContent={'center'}
+          flexShrink={0}
+          borderRadius={'10px'}
+          bg={'myGray.50'}
+        >
+          <MyIcon name={'common/disable'} w={5} color={'#DFE2EA'} />
+        </Flex>
+      </Flex>
       <Box
-        mt={4}
+        mt={3}
         mb={2}
         h={'100%'}
         w={'100%'}
@@ -705,10 +842,9 @@ const ForbiddenCreateButton = () => {
           flexDirection={'column'}
           alignItems={'center'}
           justifyContent={'center'}
-          sx={{
-            background: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 330 56' preserveAspectRatio='none'%3E%3Crect x='0.5' y='0.5' width='329' height='55' rx='12' fill='none' stroke='%23D7D7D7' stroke-width='1' stroke-dasharray='6 6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center`,
-            backgroundSize: '100% 100%'
-          }}
+          border={'1px dashed'}
+          borderColor={omniTheme.colors.border}
+          borderRadius={'12px'}
         >
           <MyIcon name={'common/disable'} w={'34px'} color={'#DFE2EA'} zIndex={1} />
           <Box color={'myGray.500'} fontSize={'11px'} fontWeight={'medium'} zIndex={1}>

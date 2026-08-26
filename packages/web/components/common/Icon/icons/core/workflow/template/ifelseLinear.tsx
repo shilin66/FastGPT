@@ -1,32 +1,25 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type IfelseLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const IfelseLinearLinear: React.FC<IfelseLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M35.8486 32.46V40.9453M35.8486 40.9453H27.3633M35.8486 40.9453L24.5349 29.6333M27.3536 8.28125H35.8389M35.8389 8.28125V16.7665M35.8389 8.28125L23.293 22.3911C22.5428 23.1412 21.5254 23.5627 20.4646 23.5627H8"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="21.9243"
-          y1="8.28125"
-          x2="21.9243"
-          y2="40.9453"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#43CA40"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#60D185" />
-          <stop offset="1" stopColor="#45CB47" />
-        </linearGradient>
-      </defs>
+          <path d="M10 2.8l2.9 2.9-2.9 2.9-2.9-2.9z" />
+          <path d="M10 8.6v2" />
+          <path d="M10 10.6c0 2-5 1.4-5 3.3v1.3" />
+          <path d="M10 10.6c0 2 5 1.4 5 3.3v1.3" />
+        </g>
+        <path d="M10 2.8l2.9 2.9-2.9 2.9-2.9-2.9z" fill="#43CA40" />
+      </g>
     </svg>
   );
 };

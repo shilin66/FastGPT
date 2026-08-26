@@ -23,6 +23,7 @@ import { parseI18nString } from '@fastgpt/global/common/i18n/utils';
 import { getTeamToolDetail } from '@/web/core/plugin/team/api';
 import DashboardContainer from '@/pageComponents/dashboard/Container';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
+import { omniTheme } from '@/web/common/brand/theme';
 
 type LoadingAction = { type: 'TRY_ADD'; pluginId: string } | { type: 'REMOVE'; pluginId: string };
 
@@ -146,32 +147,39 @@ const ToolKitProvider = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
   }, [tools, searchText, selectedTagIds, installedFilter, tags, i18n.language]);
 
   return (
-    <Box h={'full'}>
+    <Box h={'full'} px={[3, 6]} py={[4, 6]} overflow={'hidden'}>
       <MyBox
-        bg={'white'}
+        bg={'transparent'}
         h={'full'}
-        rounded={'8px'}
+        rounded={0}
+        boxShadow={'none'}
         position={'relative'}
         display={'flex'}
         flexDirection={'column'}
         isLoading={loadingTools && displayTools.length === 0}
       >
-        <Box px={8} flexShrink={0}>
+        <Box flexShrink={0}>
           {isPc && (
-            <Flex alignItems={'center'}>
-              <Box
-                mt={8}
-                mb={4}
-                fontSize={'20px'}
-                fontWeight={'medium'}
-                color={'myGray.900'}
-                flex={'1 0 0'}
-              >
-                {t('app:core.module.template.System Tools')}
+            <Flex alignItems={'center'} mb={5}>
+              <Box flex={'1 0 0'}>
+                <Box
+                  fontSize={'22px'}
+                  fontWeight={900}
+                  color={omniTheme.colors.text}
+                  lineHeight={1.2}
+                >
+                  {t('app:core.module.template.System Tools')}
+                </Box>
+                <Box mt={1} color={omniTheme.colors.muted} fontSize={'sm'}>
+                  管理团队可用的系统工具能力
+                </Box>
               </Box>
               {feConfigs?.docUrl && (
                 <Button
                   mr={4}
+                  bg={omniTheme.colors.graphite}
+                  color={'white'}
+                  _hover={{ bg: omniTheme.colors.graphiteHover }}
                   onClick={() =>
                     window.open(
                       getDocPath('/docs/introduction/guide/plugins/dev_system_tool'),
@@ -185,6 +193,7 @@ const ToolKitProvider = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
               {feConfigs?.submitPluginRequestUrl && (
                 <Button
                   variant={'whiteBase'}
+                  borderColor={omniTheme.colors.border}
                   onClick={() => {
                     window.open(feConfigs.submitPluginRequestUrl);
                   }}
@@ -195,7 +204,17 @@ const ToolKitProvider = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
             </Flex>
           )}
           {/* Tags */}
-          <Flex mt={2} mb={3} alignItems={'center'}>
+          <Flex
+            mt={2}
+            mb={4}
+            alignItems={'center'}
+            border={'1px solid'}
+            borderColor={omniTheme.colors.border}
+            bg={'rgba(255, 255, 255, 0.78)'}
+            borderRadius={'12px'}
+            px={3}
+            py={2}
+          >
             <Flex alignItems={'start'} flex={'1 0 0'} w={0} mr={[3, 10]}>
               {!isPc && (
                 <Box mr={2} mt={2}>
@@ -224,7 +243,8 @@ const ToolKitProvider = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
                       <Input
                         px={8}
                         h={'35px'}
-                        borderRadius={'md'}
+                        borderRadius={'8px'}
+                        borderColor={omniTheme.colors.border}
                         placeholder={t('common:search_tool')}
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
@@ -264,10 +284,16 @@ const ToolKitProvider = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
                       p={2}
                       h={'35px'}
                       border={'1px solid'}
-                      borderColor={'myGray.200'}
+                      borderColor={omniTheme.colors.border}
+                      bg={'white'}
                     >
-                      <MyIcon name={'common/searchLight'} w={5} color={'primary.600'} mr={2} />
-                      <Box fontSize={'sm'} fontWeight={'medium'} color={'myGray.500'}>
+                      <MyIcon
+                        name={'common/searchLight'}
+                        w={5}
+                        color={omniTheme.colors.saturatedBlue}
+                        mr={2}
+                      />
+                      <Box fontSize={'sm'} fontWeight={700} color={omniTheme.colors.muted}>
                         {t('common:Search')}
                       </Box>
                     </Flex>
@@ -288,7 +314,7 @@ const ToolKitProvider = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
               Button={
                 <Flex alignItems={'center'} cursor={'pointer'} pl={1}>
                   <MyIcon name="core/chat/chevronDown" w={4} mr={1} />
-                  <Box fontSize={'12px'}>
+                  <Box fontSize={'12px'} fontWeight={800} color={omniTheme.colors.graphite}>
                     {installedFilter === 'installed'
                       ? t('app:toolkit_installed')
                       : installedFilter === 'uninstalled'
@@ -322,17 +348,17 @@ const ToolKitProvider = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
           </Flex>
         </Box>
 
-        <Box flex={1} overflowY={'auto'} px={8} pb={6}>
+        <Box flex={1} overflowY={'auto'} pb={6}>
           {displayTools.length > 0 ? (
             <Grid
               gridTemplateColumns={[
                 '1fr',
                 'repeat(2,1fr)',
-                'repeat(2,1fr)',
                 'repeat(3,1fr)',
+                'repeat(4,1fr)',
                 'repeat(4,1fr)'
               ]}
-              gridGap={5}
+              gridGap={4}
               alignItems={'stretch'}
             >
               {displayTools.map((tool) => {
@@ -342,6 +368,7 @@ const ToolKitProvider = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
                     item={tool}
                     systemTitle={feConfigs?.systemTitle}
                     mode="team"
+                    variant="omniRail"
                     onInstall={() => toggleInstall({ pluginId: tool.id, installed: true })}
                     onDelete={() => toggleInstall({ pluginId: tool.id, installed: false })}
                     onClickCard={() => setSelectedTool(tool)}

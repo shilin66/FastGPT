@@ -3,6 +3,7 @@ import { teamDeleteProcessor } from './processor';
 
 export type TeamDeleteJobData = {
   teamId: string;
+  adminTaskId?: string;
 };
 
 // 创建工作进程
@@ -31,7 +32,9 @@ export const addTeamDeleteJob = (data: TeamDeleteJobData) => {
     }
   });
 
-  const jobId = `${String(data.teamId)}`;
+  const jobId = data.adminTaskId
+    ? `${String(data.teamId)}-${data.adminTaskId}-${Date.now()}`
+    : `${String(data.teamId)}`;
 
   // Use jobId to automatically prevent duplicate deletion tasks (BullMQ feature)
   return teamDeleteQueue.add('delete_team', data, {

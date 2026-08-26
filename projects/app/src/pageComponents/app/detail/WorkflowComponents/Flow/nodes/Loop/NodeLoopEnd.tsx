@@ -114,7 +114,16 @@ const NodeLoopEnd = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
         debug: true
       }}
     >
-      <Box px={4} pb={4} pt={2}>
+      <Box
+        mx={4}
+        mb={4}
+        mt={2}
+        p={3}
+        bg={'white'}
+        border={'1px solid rgba(148, 163, 184, 0.22)'}
+        borderRadius={'14px'}
+        boxShadow={'0 12px 28px rgba(15, 23, 42, 0.04)'}
+      >
         {inputItem && <Reference item={inputItem} nodeId={nodeId} />}
       </Box>
     </NodeCard>

@@ -1,6 +1,6 @@
 import { type FlowNodeItemType } from '@fastgpt/global/core/workflow/type/node';
 import React, { useMemo, useState } from 'react';
-import { type NodeProps, useViewport } from 'reactflow';
+import { type NodeProps } from 'reactflow';
 import NodeCard from '../render/NodeCard';
 import Container from '../../components/Container';
 import RenderInput from '../render/RenderInput';
@@ -48,7 +48,6 @@ const NodeFormInput = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
   const { nodeId, inputs, outputs } = data;
   const { t } = useTranslation();
   const onChangeNode = useContextSelector(WorkflowActionsContext, (v) => v.onChangeNode);
-  const { zoom } = useViewport();
 
   const [editField, setEditField] = useState<UserInputFormItemType>();
 
@@ -209,7 +208,7 @@ const NodeFormInput = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
                       />
                     );
                   }}
-                  zoom={zoom}
+                  zoom={1}
                 >
                   {({ provided }) => (
                     <Tbody {...provided.droppableProps} ref={provided.innerRef}>
@@ -240,7 +239,7 @@ const NodeFormInput = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
         );
       }
     }),
-    [t, editField, zoom, onChangeNode, nodeId, outputs]
+    [t, editField, onChangeNode, nodeId, outputs]
   );
 
   return (

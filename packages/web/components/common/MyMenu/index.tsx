@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Menu,
   MenuList,
@@ -10,7 +10,9 @@ import {
   type PlacementWithLogical,
   type AvatarProps,
   type BoxProps,
-  type DividerProps
+  type DividerProps,
+  Portal,
+  type MenuListProps
 } from '@chakra-ui/react';
 import MyDivider from '../MyDivider';
 import type { IconNameType } from '../Icon/type';
@@ -44,6 +46,9 @@ export type Props = {
 
   placement?: PlacementWithLogical;
   menuList: MenuItemData[];
+  menuListStyles?: MenuListProps;
+  menuItemStyles?: MenuItemProps;
+  usePortal?: boolean;
 };
 
 const typeMapStyle: Record<MenuItemType, { styles: MenuItemProps; iconColor?: string }> = {
@@ -199,10 +204,14 @@ const MyMenu = ({
   offset,
   Button,
   menuList,
-  placement = 'bottom-start'
+  placement = 'bottom-start',
+  menuListStyles,
+  menuItemStyles,
+  usePortal = false
 }: Props) => {
   const { isPc } = useSystem();
   const ref = useRef<HTMLDivElement>(null);
+  const menuListRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<any>();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -210,7 +219,8 @@ const MyMenu = ({
 
   useOutsideClick({
     ref: ref,
-    handler: () => {
+    handler: (event) => {
+      if (menuListRef.current?.contains(event.target as Node)) return;
       setIsOpen(false);
     }
   });
@@ -220,6 +230,100 @@ const MyMenu = ({
     if (typeof width === 'number') return [-width / 2, 5];
     return [0, 5];
   }, [offset, width]);
+
+  const menuMinWidth = useMemo(() => {
+    if (!isOpen) return '80px';
+    return typeof width === 'number' ? `${width}px !important` : width;
+  }, [isOpen, width]);
+
+  const menuListNode = (
+    <MenuList
+      ref={menuListRef}
+      minW={menuMinWidth}
+      zIndex={100}
+      maxW={'300px'}
+      p={'6px'}
+      border={'1px solid #fff'}
+      boxShadow={'3'}
+      {...menuListStyles}
+    >
+      {menuList.map((item, i) => {
+        return (
+          <Box key={i}>
+            {item.label && <Box fontSize={'sm'}>{item.label}</Box>}
+            {i !== 0 && <MyDivider h={'1.5px'} {...sizeMapStyle[size].dividerStyle} />}
+            {item.children.map((child, index) => {
+              const menuItem = (
+                <MenuItem
+                  key={index}
+                  borderRadius={'sm'}
+                  isDisabled={child.disabled}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (child.disabled) {
+                      return;
+                    }
+                    if (child.onClick) {
+                      setIsOpen(false);
+                      child.onClick();
+                    }
+                  }}
+                  alignItems={'center'}
+                  fontSize={'sm'}
+                  color={child.isActive ? 'primary.700' : 'myGray.600'}
+                  whiteSpace={'pre-wrap'}
+                  {...typeMapStyle[child.type || 'primary'].styles}
+                  {...sizeMapStyle[size].menuItemStyle}
+                  {...menuItemStyles}
+                  {...child.menuItemStyles}
+                >
+                  {!!child.icon && (
+                    <Avatar
+                      src={child.icon as any}
+                      mr={2}
+                      {...sizeMapStyle[size].iconStyle}
+                      color={
+                        child.isActive ? 'inherit' : typeMapStyle[child.type || 'primary'].iconColor
+                      }
+                      sx={{
+                        '[role="menuitem"]:hover &': {
+                          color: 'inherit'
+                        }
+                      }}
+                    />
+                  )}
+                  <Box w={'100%'}>
+                    <Box
+                      w={'100%'}
+                      color={child.description ? 'myGray.900' : 'inherit'}
+                      pr={child.icon ? 4 : 0}
+                      {...sizeMapStyle[size].labelStyle}
+                    >
+                      {child.label}
+                    </Box>
+                    {child.description && !child.disabled && (
+                      <Box color={'myGray.500'} fontSize={'mini'} w={'100%'}>
+                        {child.description}
+                      </Box>
+                    )}
+                  </Box>
+                </MenuItem>
+              );
+
+              if (child.disabled && child.disabledTip) {
+                return (
+                  <MyTooltip shouldWrapChildren={false} key={index} label={child.disabledTip}>
+                    {menuItem}
+                  </MyTooltip>
+                );
+              }
+              return menuItem;
+            })}
+          </Box>
+        );
+      })}
+    </MenuList>
+  );
 
   return (
     <Menu
@@ -276,91 +380,7 @@ const MyMenu = ({
             {Button}
           </Box>
         </Box>
-        <MenuList
-          minW={isOpen ? `${width}px !important` : '80px'}
-          zIndex={100}
-          maxW={'300px'}
-          p={'6px'}
-          border={'1px solid #fff'}
-          boxShadow={'3'}
-        >
-          {menuList.map((item, i) => {
-            return (
-              <Box key={i}>
-                {item.label && <Box fontSize={'sm'}>{item.label}</Box>}
-                {i !== 0 && <MyDivider h={'1.5px'} {...sizeMapStyle[size].dividerStyle} />}
-                {item.children.map((child, index) => {
-                  const menuItem = (
-                    <MenuItem
-                      key={index}
-                      borderRadius={'sm'}
-                      isDisabled={child.disabled}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (child.disabled) {
-                          return;
-                        }
-                        if (child.onClick) {
-                          setIsOpen(false);
-                          child.onClick();
-                        }
-                      }}
-                      alignItems={'center'}
-                      fontSize={'sm'}
-                      color={child.isActive ? 'primary.700' : 'myGray.600'}
-                      whiteSpace={'pre-wrap'}
-                      {...typeMapStyle[child.type || 'primary'].styles}
-                      {...sizeMapStyle[size].menuItemStyle}
-                      {...child.menuItemStyles}
-                    >
-                      {!!child.icon && (
-                        <Avatar
-                          src={child.icon as any}
-                          mr={2}
-                          {...sizeMapStyle[size].iconStyle}
-                          color={
-                            child.isActive
-                              ? 'inherit'
-                              : typeMapStyle[child.type || 'primary'].iconColor
-                          }
-                          sx={{
-                            '[role="menuitem"]:hover &': {
-                              color: 'inherit'
-                            }
-                          }}
-                        />
-                      )}
-                      <Box w={'100%'}>
-                        <Box
-                          w={'100%'}
-                          color={child.description ? 'myGray.900' : 'inherit'}
-                          pr={child.icon ? 4 : 0}
-                          {...sizeMapStyle[size].labelStyle}
-                        >
-                          {child.label}
-                        </Box>
-                        {child.description && !child.disabled && (
-                          <Box color={'myGray.500'} fontSize={'mini'} w={'100%'}>
-                            {child.description}
-                          </Box>
-                        )}
-                      </Box>
-                    </MenuItem>
-                  );
-
-                  if (child.disabled && child.disabledTip) {
-                    return (
-                      <MyTooltip shouldWrapChildren={false} key={index} label={child.disabledTip}>
-                        {menuItem}
-                      </MyTooltip>
-                    );
-                  }
-                  return menuItem;
-                })}
-              </Box>
-            );
-          })}
-        </MenuList>
+        {usePortal ? <Portal>{menuListNode}</Portal> : menuListNode}
       </Box>
     </Menu>
   );

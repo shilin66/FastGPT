@@ -96,8 +96,14 @@ const NodeLoopStart = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
           debug: true
         }}
       >
-        <Box px={4} pt={2} w={'420px'}>
-          <Box bg={'white'} borderRadius={'md'} overflow={'hidden'} border={'base'}>
+        <Box px={4} pt={2} pb={4} w={'420px'}>
+          <Box
+            bg={'white'}
+            borderRadius={'14px'}
+            overflow={'hidden'}
+            border={'1px solid rgba(148, 163, 184, 0.22)'}
+            boxShadow={'0 12px 28px rgba(15, 23, 42, 0.04)'}
+          >
             <TableContainer>
               <Table bg={'white'} variant={'workflow'}>
                 <Thead>

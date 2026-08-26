@@ -7,13 +7,12 @@ import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useRouter } from 'next/router';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import MyBox from '@fastgpt/web/components/common/MyBox';
-import { navbarWidth } from '@/components/Layout';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { getTemplateMarketItemList, getTemplateTagList } from '@/web/core/app/api/template';
 import type { AppTemplateSchemaType, TemplateTypeSchemaType } from '@fastgpt/global/core/app/type';
-import TeamPlanStatusCard from './TeamPlanStatusCard';
 import { useUserStore } from '@/web/support/user/useUserStore';
+import { omniTheme } from '@/web/common/brand/theme';
 
 export enum TabEnum {
   agent = 'agent',
@@ -86,7 +85,7 @@ const DashboardContainer = ({
       refreshDeps: [currentTab, appType]
     }
   );
-  const templateList = templateData?.list || [];
+  const templateList = useMemo(() => templateData?.list || [], [templateData?.list]);
 
   const groupList = useMemo<
     {
@@ -221,7 +220,6 @@ const DashboardContainer = ({
   }, [
     currentType,
     feConfigs.appTemplateCourse,
-    feConfigs?.isPlus,
     feConfigs?.show_skill,
     t,
     templateList,
@@ -250,22 +248,23 @@ const DashboardContainer = ({
   );
 
   const isLoading = isLoadingTemplatesTags || isLoadingTemplates;
+  const shouldShowSidebar = !isPc && isOpenSidebar;
 
   return (
     <Box h={'100%'}>
       {/* Side bar */}
-      {(isPc || isOpenSidebar) && (
+      {shouldShowSidebar && (
         <MyBox
           isLoading={isLoading}
           position={'fixed'}
-          left={isPc ? navbarWidth : 0}
+          left={0}
           top={0}
-          bg={'white'}
+          bg={omniTheme.colors.sidebarBg}
           w={`220px`}
           h={'full'}
           borderLeft={'1px solid'}
           borderRight={'1px solid'}
-          borderColor={'myGray.200'}
+          borderColor={omniTheme.colors.border}
           pt={4}
           pb={2.5}
           zIndex={100}
@@ -292,7 +291,8 @@ const DashboardContainer = ({
                     color={'myGray.700'}
                     cursor={'pointer'}
                     _hover={{
-                      bg: 'primary.50'
+                      bg: omniTheme.colors.activeBg,
+                      color: omniTheme.colors.saturatedBlue
                     }}
                     mb={0.5}
                     onClick={() => {
@@ -300,7 +300,10 @@ const DashboardContainer = ({
                       onCloseSidebar();
                     }}
                     {...(group.children.length === 0 &&
-                      selected && { bg: 'primary.100', color: 'primary.600' })}
+                      selected && {
+                        bg: omniTheme.colors.activeBg,
+                        color: omniTheme.colors.saturatedBlue
+                      })}
                   >
                     <Avatar src={group.groupAvatar} w={'1rem'} mr={1.5} />
                     <Box fontWeight={'medium'}>{group.groupName}</Box>
@@ -327,11 +330,14 @@ const DashboardContainer = ({
                             pl={'30px'}
                             cursor={'pointer'}
                             mb={0.5}
-                            _hover={{ bg: 'primary.50' }}
+                            _hover={{
+                              bg: omniTheme.colors.activeBg,
+                              color: omniTheme.colors.saturatedBlue
+                            }}
                             {...(isActive
                               ? {
-                                  bg: 'primary.50',
-                                  color: 'primary.600'
+                                  bg: omniTheme.colors.activeBg,
+                                  color: omniTheme.colors.saturatedBlue
                                 }
                               : {
                                   bg: 'transparent',
@@ -361,19 +367,16 @@ const DashboardContainer = ({
                     </Box>
                   )}
                   {group.groupId === TabEnum.system_tool && (
-                    <Divider my={1} borderColor={'myGray.200'} />
+                    <Divider my={1} borderColor={omniTheme.colors.border} />
                   )}
                 </Box>
               );
             })}
           </Box>
-          <Box px={2.5}>
-            <TeamPlanStatusCard />
-          </Box>
         </MyBox>
       )}
 
-      <Box h={'100%'} pl={isPc ? `220px` : 0} position={'relative'} bg={'white'}>
+      <Box h={'100%'} position={'relative'} bg={omniTheme.colors.pageBg}>
         {children({
           templateTags,
           templateList,

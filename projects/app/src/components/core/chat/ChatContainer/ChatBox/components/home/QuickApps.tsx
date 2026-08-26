@@ -10,18 +10,19 @@ const QuickApps = () => {
   const onSwitchQuickApp = useContextSelector(ChatBoxContext, (v) => v.onSwitchQuickApp);
 
   return quickAppList && quickAppList.length > 0 ? (
-    <Flex mb="2" alignItems="center" gap={2} flexWrap="wrap">
+    <Flex mb={2} alignItems="center" justifyContent={'center'} gap={2} flexWrap="wrap">
       {quickAppList.map((q) => (
         <Flex
           key={q._id}
           alignItems="center"
-          gap={1}
-          border="sm"
-          borderRadius="md"
-          px={2}
-          py={1}
+          gap={2}
+          h={'36px'}
+          border={'1px solid'}
+          borderRadius={'6px'}
+          px={3}
           cursor="pointer"
-          _hover={{ bg: 'myGray.50' }}
+          transition={'background 0.15s ease, border-color 0.15s ease'}
+          _hover={{ bg: 'myGray.50', borderColor: 'myGray.300' }}
           {...(currentQuickAppId === q._id
             ? {
                 bg: 'primary.50',
@@ -35,8 +36,8 @@ const QuickApps = () => {
               })}
           onClick={() => onSwitchQuickApp?.(q._id)}
         >
-          <Avatar src={q.avatar} w={4} borderRadius="xs" />
-          <Box fontSize="xs" fontWeight="500" userSelect="none">
+          <Avatar src={q.avatar} w={'20px'} borderRadius={'5px'} />
+          <Box maxW={'180px'} fontSize="sm" fontWeight={600} userSelect="none" noOfLines={1}>
             {q.name}
           </Box>
         </Flex>

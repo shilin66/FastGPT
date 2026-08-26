@@ -1,32 +1,25 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type FormInputLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const FormInputLinearLinear: React.FC<FormInputLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M18 6H10C8.93913 6 7.92172 6.42143 7.17157 7.17157C6.42143 7.92172 6 8.93913 6 10V18M18 6H38C39.0609 6 40.0783 6.42143 40.8284 7.17157C41.5786 7.92172 42 8.93913 42 10V18M18 6V42M6 18V38C6 39.0609 6.42143 40.0783 7.17157 40.8284C7.92172 41.5786 8.93913 42 10 42H18M6 18H42M42 18V38C42 39.0609 41.5786 40.0783 40.8284 40.8284C40.0783 41.5786 39.0609 42 38 42H18"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="24"
-          y1="6"
-          x2="24"
-          y2="42"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#B275FF"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#E585FF" />
-          <stop offset="1" stopColor="#B275FF" />
-        </linearGradient>
-      </defs>
+          <rect x="3.5" y="4" width="13" height="12" rx="2" />
+          <path d="M6.5 8.2h7" />
+          <path d="M6.5 12h3.2" />
+          <path d="M12.6 11.2v1.6" />
+        </g>
+        <path d="M12.6 11.2v1.6" stroke="#B275FF" strokeWidth="2.2" strokeLinecap="round" />
+      </g>
     </svg>
   );
 };

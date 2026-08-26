@@ -3,7 +3,6 @@ import ChatBox from '@/components/core/chat/ChatContainer/ChatBox';
 import { Flex, Box } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
-import SideBar from '@/components/SideBar';
 import { ChatContext } from '@/web/core/chat/context/chatContext';
 import { useContextSelector } from 'use-context-selector';
 import { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
@@ -21,7 +20,6 @@ import { useUserStore } from '@/web/support/user/useUserStore';
 import NextHead from '@/components/common/NextHead';
 import { ChatPageContext } from '@/web/core/chat/context/chatPageContext';
 import { ChatSidebarPaneEnum } from '../constants';
-import ChatHistorySidebar from '@/pageComponents/chat/slider/ChatSliderSidebar';
 import ChatSliderMobileDrawer from '@/pageComponents/chat/slider/ChatSliderMobileDrawer';
 import dynamic from 'next/dynamic';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
@@ -45,7 +43,6 @@ const AppChatWindow = () => {
   const showSkillReferences = useContextSelector(ChatItemContext, (v) => v.showSkillReferences);
   const onChangeChatId = useContextSelector(ChatContext, (v) => v.onChangeChatId);
   const chatBoxData = useContextSelector(ChatItemContext, (v) => v.chatBoxData);
-  const datasetCiteData = useContextSelector(ChatItemContext, (v) => v.datasetCiteData);
   const setChatBoxData = useContextSelector(ChatItemContext, (v) => v.setChatBoxData);
   const resetVariables = useContextSelector(ChatItemContext, (v) => v.resetVariables);
 
@@ -149,14 +146,7 @@ const AppChatWindow = () => {
       {/* set window title and icon */}
       <NextHead title={chatBoxData.app.name} icon={chatBoxData.app.avatar} />
 
-      {/* show history slider */}
-      {isPc ? (
-        <SideBar externalTrigger={Boolean(datasetCiteData)}>
-          <ChatHistorySidebar
-            menuConfirmButtonText={t('common:core.chat.Confirm to clear history')}
-          />
-        </SideBar>
-      ) : (
+      {!isPc && (
         <ChatSliderMobileDrawer
           banner={chatSettings?.wideLogoUrl}
           menuConfirmButtonText={t('common:core.chat.Confirm to clear history')}
@@ -179,7 +169,7 @@ const AppChatWindow = () => {
           totalRecordsCount={totalRecordsCount}
         />
 
-        <Box flex={'1 0 0'} bg={'white'}>
+        <Box flex={'1 0 0'} bg={'myGray.25'}>
           {isPlugin ? (
             <CustomPluginRunBox
               appId={appId}

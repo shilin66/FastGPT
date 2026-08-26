@@ -31,10 +31,42 @@ import SearchInput from '@fastgpt/web/components/common/Input/SearchInput';
 import { useUserStore } from '@/web/support/user/useUserStore';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
+import { omniTheme } from '@/web/common/brand/theme';
+import ResourceTypeTabs, {
+  type ResourceTypeTabItem,
+  type ResourceTypeTabValue
+} from '@/pageComponents/dashboard/ResourceTypeTabs';
 
 const EditFolderModal = dynamic(
   () => import('@fastgpt/web/components/common/MyModal/EditFolderModal')
 );
+
+const toolTypeTabs: ResourceTypeTabItem[] = [
+  {
+    label: '全部',
+    value: 'all',
+    icon: 'core/app/type/plugin',
+    activeIcon: 'core/app/type/pluginFill'
+  },
+  {
+    label: 'HTTP 工具',
+    value: AppTypeEnum.httpToolSet,
+    icon: 'core/app/type/httpPlugin',
+    activeIcon: 'core/app/type/httpPluginFill'
+  },
+  {
+    label: '工作流工具',
+    value: AppTypeEnum.workflowTool,
+    icon: 'core/app/type/plugin',
+    activeIcon: 'core/app/type/pluginFill'
+  },
+  {
+    label: 'MCP 工具',
+    value: AppTypeEnum.mcpToolSet,
+    icon: 'core/app/type/mcpTools',
+    activeIcon: 'core/app/type/mcpToolsFill'
+  }
+];
 
 const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
   const { t } = useTranslation();
@@ -44,6 +76,7 @@ const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
     paths,
     parentId,
     myApps,
+    appType,
     loadMyApps,
     onUpdateApp,
     setMoveAppId,
@@ -61,6 +94,22 @@ const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
     onOpen: onOpenJsonImportModal,
     onClose: onCloseJsonImportModal
   } = useDisclosure();
+
+  const onChangeAppType = (type: ResourceTypeTabValue) => {
+    if (appType === type) return;
+
+    const nextQuery = { ...router.query };
+    delete nextQuery.type;
+    if (type !== 'all') {
+      nextQuery.type = type;
+    }
+
+    router.push({
+      pathname: router.pathname,
+      query: nextQuery
+    });
+  };
+
   //if there is a workflow url in the session storage, open the json import modal and import the workflow
   useMount(() => {
     if (getUtmWorkflow()) {
@@ -90,7 +139,7 @@ const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
   });
 
   return (
-    <Flex flexDirection={'column'} h={'100%'} pt={5}>
+    <Flex flexDirection={'column'} h={'100%'} pt={6}>
       <Flex gap={5} flex={'1 0 0'} h={0}>
         <Flex
           flex={'1 0 0'}
@@ -101,7 +150,7 @@ const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
           overflowY={'auto'}
           overflowX={'hidden'}
         >
-          <Flex alignItems={'center'}>
+          <Flex alignItems={'center'} flexShrink={0}>
             {!isPc ? (
               MenuIcon
             ) : paths.length > 0 ? (
@@ -121,8 +170,13 @@ const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
                 />
               </Box>
             ) : (
-              <Box color={'myGray.900'} fontSize={'20px'} fontWeight={'medium'}>
-                {t('common:navbar.Tools')}
+              <Box>
+                <Box color={omniTheme.colors.text} fontSize={'22px'} fontWeight={900}>
+                  集成管理
+                </Box>
+                <Box mt={1} color={omniTheme.colors.muted} fontSize={'sm'}>
+                  管理 OmniCockpit 中可复用的 HTTP、工作流与 MCP 工具
+                </Box>
               </Box>
             )}
             <Flex flex={1} />
@@ -144,7 +198,9 @@ const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
                 : userInfo?.team.permission.hasAppCreatePer) && (
                 <>
                   <Button
-                    variant={'grayBase'}
+                    bg={omniTheme.colors.graphite}
+                    color={'white'}
+                    _hover={{ bg: omniTheme.colors.graphiteHover }}
                     leftIcon={<MyIcon name={'common/addLight'} w={'18px'} mr={-1} />}
                     onClick={() => setEditFolder({})}
                     px={5}
@@ -152,7 +208,8 @@ const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
                     {t('common:Folder')}
                   </Button>
                   <Button
-                    variant={'grayBase'}
+                    variant={'whiteBase'}
+                    borderColor={omniTheme.colors.border}
                     leftIcon={<MyIcon name={'common/importLight'} w={'14px'} />}
                     onClick={onOpenJsonImportModal}
                     px={5}
@@ -165,7 +222,7 @@ const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
           </Flex>
 
           {!isPc && (
-            <Box mt={2}>
+            <Box mt={2} flexShrink={0}>
               {
                 <SearchInput
                   maxW={['auto', '250px']}
@@ -178,7 +235,13 @@ const MyTools = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
             </Box>
           )}
 
-          <MyBox flex={'1 0 0'} isLoading={myApps.length === 0 && isFetchingApps}>
+          <ResourceTypeTabs
+            items={toolTypeTabs}
+            value={appType || 'all'}
+            onChange={onChangeAppType}
+          />
+
+          <MyBox flex={'1 1 0'} minH={0} isLoading={myApps.length === 0 && isFetchingApps}>
             <List />
           </MyBox>
         </Flex>

@@ -1,32 +1,23 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type LoopStartLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const LoopStartLinearLinear: React.FC<LoopStartLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M42 14V26M42 26H30M42 26L36 20.6C32.7023 17.6423 28.4298 16.0045 24 16C19.2261 16 14.6477 17.8964 11.2721 21.2721C7.89642 24.6477 6 29.2261 6 34"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="24"
-          y1="14"
-          x2="24"
-          y2="34"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#7394FF"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#FFB1FE" />
-          <stop offset="1" stopColor="#7B93FF" />
-        </linearGradient>
-      </defs>
+          <path d="M10 3.2a6.8 6.8 0 1 1-6.5 4.9" />
+          <path d="M8.7 7.6l3.9 2.4-3.9 2.4z" />
+        </g>
+        <path d="M8.7 7.6l3.9 2.4-3.9 2.4z" fill="#7394FF" />
+      </g>
     </svg>
   );
 };

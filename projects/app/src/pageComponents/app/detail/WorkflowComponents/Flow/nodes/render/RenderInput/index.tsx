@@ -104,7 +104,7 @@ type Props = {
   CustomComponent?: Record<string, (e: FlowNodeInputItemType) => React.ReactNode>;
   mb?: number;
 };
-const RenderInput = ({ flowInputList, nodeId, CustomComponent, mb = 5 }: Props) => {
+const RenderInput = ({ flowInputList, nodeId, CustomComponent, mb = 2 }: Props) => {
   const { feConfigs } = useSystemStore();
   const { teamPlanStatus } = useUserStore();
   const enableSandbox = !teamPlanStatus?.standard || !!teamPlanStatus?.standard?.enableSandbox;
@@ -128,8 +128,12 @@ const RenderInput = ({ flowInputList, nodeId, CustomComponent, mb = 5 }: Props) 
     });
   }, [filterProInputs]);
 
+  if (filterInputs.length === 0) {
+    return null;
+  }
+
   return (
-    <>
+    <Box>
       {filterInputs.map((input) => {
         const renderType = input.renderTypeList?.[input.selectedTypeIndex || 0];
 
@@ -163,11 +167,24 @@ const RenderInput = ({ flowInputList, nodeId, CustomComponent, mb = 5 }: Props) 
         return (
           <Box
             key={input.key}
-            _notLast={{ mb }}
+            _notLast={{
+              mb: 0,
+              borderBottom: '1px solid rgba(223, 229, 238, 0.72)'
+            }}
             position={'relative'}
             display={isRowUI ? 'flex' : 'block'}
             alignItems={'center'}
             justifyContent={'space-between'}
+            px={2.5}
+            py={2}
+            bg={'transparent'}
+            border={'0'}
+            borderRadius={0}
+            boxShadow={'none'}
+            transition={'border-color 0.16s ease, background 0.16s ease'}
+            _hover={{
+              bg: 'rgba(37, 99, 235, 0.035)'
+            }}
           >
             {!!input.label && !hideLabelTypeList.includes(renderType) && (
               <InputLabel
@@ -203,7 +220,7 @@ const RenderInput = ({ flowInputList, nodeId, CustomComponent, mb = 5 }: Props) 
           </Box>
         );
       })}
-    </>
+    </Box>
   );
 };
 

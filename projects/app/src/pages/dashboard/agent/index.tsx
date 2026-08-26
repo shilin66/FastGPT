@@ -32,10 +32,42 @@ import { useUserStore } from '@/web/support/user/useUserStore';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
 import TemplateCreatePanel from '@/pageComponents/dashboard/agent/TemplateCreatePanel';
+import { omniTheme } from '@/web/common/brand/theme';
+import ResourceTypeTabs, {
+  type ResourceTypeTabItem,
+  type ResourceTypeTabValue
+} from '@/pageComponents/dashboard/ResourceTypeTabs';
 
 const EditFolderModal = dynamic(
   () => import('@fastgpt/web/components/common/MyModal/EditFolderModal')
 );
+
+const agentTypeTabs: ResourceTypeTabItem[] = [
+  {
+    label: '全部',
+    value: 'all',
+    icon: 'navbar/dashboardLight',
+    activeIcon: 'navbar/dashboardFill'
+  },
+  {
+    label: '工作流',
+    value: AppTypeEnum.workflow,
+    icon: 'core/app/type/workflow',
+    activeIcon: 'core/app/type/workflowFill'
+  },
+  {
+    label: '对话 Agent',
+    value: AppTypeEnum.simple,
+    icon: 'core/app/type/simple',
+    activeIcon: 'core/app/type/simpleFill'
+  },
+  {
+    label: '对话 Agent V2',
+    value: AppTypeEnum.chatAgent,
+    icon: 'core/app/type/agentFill',
+    activeIcon: 'core/app/type/agentFill'
+  }
+];
 
 const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
   const { t } = useTranslation();
@@ -57,6 +89,21 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
   } = useContextSelector(AppListContext, (v) => v);
   const [editFolder, setEditFolder] = useState<EditFolderFormType>();
   const { userInfo } = useUserStore();
+
+  const onChangeAppType = (type: ResourceTypeTabValue) => {
+    if (appType === type) return;
+
+    const nextQuery = { ...router.query };
+    delete nextQuery.type;
+    if (type !== 'all') {
+      nextQuery.type = type;
+    }
+
+    router.push({
+      pathname: router.pathname,
+      query: nextQuery
+    });
+  };
 
   const {
     isOpen: isOpenJsonImportModal,
@@ -106,7 +153,7 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
         >
           {/* Only shown on pc root page */}
           {/*{!folderDetail && isPc && <TemplateCreatePanel type={appType} />}*/}
-          <Flex alignItems={'center'}>
+          <Flex alignItems={'center'} flexShrink={0}>
             {!isPc ? (
               MenuIcon
             ) : paths.length > 0 ? (
@@ -126,8 +173,13 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
                 />
               </Box>
             ) : (
-              <Box color={'myGray.900'} fontSize={'20px'} fontWeight={'medium'}>
-                Agent
+              <Box>
+                <Box color={omniTheme.colors.text} fontSize={'22px'} fontWeight={900}>
+                  Agent 开发
+                </Box>
+                <Box mt={1} color={omniTheme.colors.muted} fontSize={'sm'}>
+                  管理 OmniCockpit 中的 AI Agent 与知识工作流
+                </Box>
               </Box>
             )}
             <Flex flex={1} />
@@ -149,7 +201,9 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
                 : userInfo?.team.permission.hasAppCreatePer) && (
                 <>
                   <Button
-                    variant={'grayBase'}
+                    bg={omniTheme.colors.graphite}
+                    color={'white'}
+                    _hover={{ bg: omniTheme.colors.graphiteHover }}
                     leftIcon={<MyIcon name={'common/addLight'} w={'18px'} mr={-1} />}
                     onClick={() => setEditFolder({})}
                     px={5}
@@ -157,7 +211,8 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
                     {t('common:Folder')}
                   </Button>
                   <Button
-                    variant={'grayBase'}
+                    variant={'whiteBase'}
+                    borderColor={omniTheme.colors.border}
                     leftIcon={<MyIcon name={'common/importLight'} w={'14px'} />}
                     onClick={onOpenJsonImportModal}
                     px={5}
@@ -169,7 +224,7 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
             </Flex>
           </Flex>
           {!isPc && (
-            <Box mt={2}>
+            <Box mt={2} flexShrink={0}>
               {
                 <SearchInput
                   maxW={['auto', '250px']}
@@ -182,7 +237,13 @@ const MyApps = ({ MenuIcon }: { MenuIcon: JSX.Element }) => {
             </Box>
           )}
 
-          <MyBox flex={'1 0 0'} isLoading={myApps.length === 0 && isFetchingApps}>
+          <ResourceTypeTabs
+            items={agentTypeTabs}
+            value={appType || 'all'}
+            onChange={onChangeAppType}
+          />
+
+          <MyBox flex={'1 1 0'} minH={0} isLoading={myApps.length === 0 && isFetchingApps}>
             <List />
           </MyBox>
         </Flex>

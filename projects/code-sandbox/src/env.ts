@@ -44,7 +44,9 @@ const envSchema = z.object({
 
   // ===== 模块控制 =====
   /** JS 可用模块白名单，逗号分隔 */
-  SANDBOX_JS_ALLOWED_MODULES: str('lodash,dayjs,moment,uuid,crypto-js,qs,url,querystring'),
+  SANDBOX_JS_ALLOWED_MODULES: str(
+    'lodash,dayjs,moment,uuid,crypto-js,qs,url,querystring,sm-crypto'
+  ),
   /** Python 可用模块白名单，逗号分隔 */
   SANDBOX_PYTHON_ALLOWED_MODULES: str(
     'math,cmath,decimal,fractions,random,statistics,' +

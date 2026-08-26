@@ -48,15 +48,29 @@ const IOTitle = ({
   };
 
   return (
-    <HStack fontSize={'md'} alignItems={'center'} fontWeight={'medium'} mb={4} {...props}>
-      <Box w={'3px'} h={'14px'} borderRadius={'13px'} bg={'primary.600'} />
-      <Box color={'myGray.900'}>{text}</Box>
+    <HStack
+      minH={'30px'}
+      px={2.5}
+      py={1}
+      fontSize={'12px'}
+      alignItems={'center'}
+      fontWeight={800}
+      mx={0}
+      mt={0}
+      mb={1}
+      border={'1px solid rgba(223, 229, 238, 0.72)'}
+      borderRadius={'10px'}
+      bg={'rgba(241, 245, 249, 0.78)'}
+      {...props}
+    >
+      <Box w={'8px'} h={'8px'} borderRadius={'3px'} bg={'#2563EB'} />
+      <Box color={'#27364A'}>{text}</Box>
       <Box flex={1} />
 
       {/* Error catch switch for output */}
       {catchError !== undefined && (
         <HStack spacing={2} className="nodrag">
-          <Text fontSize={'sm'} color={'myGray.600'}>
+          <Text fontSize={'12px'} color={'#64748B'} fontWeight={700}>
             {t('workflow:error_catch')}
           </Text>
           <Switch

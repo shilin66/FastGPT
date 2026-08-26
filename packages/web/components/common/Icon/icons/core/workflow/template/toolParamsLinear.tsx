@@ -1,32 +1,31 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type ToolParamsLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const ToolParamsLinearLinear: React.FC<ToolParamsLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M42 8H28M20 8H6M42 24H24M16 24H6M42 40H32M24 40H6M28 4V12M16 20V28M32 36V44"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="24"
-          y1="4"
-          x2="24"
-          y2="44"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#B276FF"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#91A8FE" />
-          <stop offset="1" stopColor="#B786FE" />
-        </linearGradient>
-      </defs>
+          <path d="M3.5 5.5h13" />
+          <circle cx="8" cy="5.5" r="1.8" />
+          <path d="M3.5 10h13" />
+          <circle cx="12.8" cy="10" r="1.8" />
+          <path d="M3.5 14.5h13" />
+          <circle cx="6.6" cy="14.5" r="1.8" />
+        </g>
+        <g fill="#B276FF">
+          <circle cx="8" cy="5.5" r="1.8" />
+          <circle cx="12.8" cy="10" r="1.8" />
+          <circle cx="6.6" cy="14.5" r="1.8" />
+        </g>
+      </g>
     </svg>
   );
 };

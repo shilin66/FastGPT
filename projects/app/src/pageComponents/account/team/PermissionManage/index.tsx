@@ -11,7 +11,6 @@ import {
   Thead,
   Text,
   Tr,
-  Flex,
   Button
 } from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
@@ -56,14 +55,10 @@ import { type PermissionValueType } from '@fastgpt/global/support/permission/typ
 import { type CollaboratorItemType } from '@fastgpt/global/support/permission/collaborator';
 import type { Permission } from '@fastgpt/global/support/permission/controller';
 import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
+import { TeamSectionLayout } from '../TeamSectionLayout';
+import { omniTheme } from '@/web/common/brand/theme';
 
-function PermissionManage({
-  Tabs,
-  onOpenAddMember
-}: {
-  Tabs: React.ReactNode;
-  onOpenAddMember: () => void;
-}) {
+function PermissionManage({ onOpenAddMember }: { onOpenAddMember: () => void }) {
   const { t } = useTranslation();
   const { userInfo } = useUserStore();
   const { feConfigs } = useSystemStore();
@@ -156,6 +151,7 @@ function PermissionManage({
   );
 
   const userManage = userInfo?.permission.hasManagePer;
+  const permissionColumnCount = showSkill ? 7 : 6;
   const hasDeletePer = (per: Permission) => {
     if (userInfo?.permission.isOwner) return true;
     if (userManage && !per.hasManagePer) return true;
@@ -199,71 +195,142 @@ function PermissionManage({
   }
 
   return (
-    <>
-      <Flex justify={'space-between'} align={'center'} pb={'1rem'}>
-        {Tabs}
-        <Box ml="auto">
+    <TeamSectionLayout
+      title={t('account_team:permission')}
+      description={t('account_team:permission_manage_desc')}
+      actions={
+        <HStack justify="flex-end" flexWrap={{ base: 'wrap', md: 'nowrap' }} gap={2}>
           <SearchInput
             placeholder={t('user:search_group_org_user')}
-            w="200px"
+            w={{ base: '200px', md: '240px' }}
+            flexShrink={0}
             value={searchKey}
             onChange={(e) => setSearchKey(e.target.value)}
           />
-        </Box>
-        {userInfo?.team.permission.hasManagePer && (
-          <Button
-            variant={'primary'}
-            size="md"
-            borderRadius={'md'}
-            ml={3}
-            onClick={onOpenAddMember}
-          >
-            {t('account_team:manage_per')}
-          </Button>
-        )}
-      </Flex>
-      <MyBox isLoading={addLoading || deleteLoading}>
-        <TableContainer fontSize={'sm'}>
-          <Table>
+          {userInfo?.team.permission.hasManagePer && (
+            <Button
+              variant="primary"
+              size="md"
+              flexShrink={0}
+              borderRadius={omniTheme.radii.sm}
+              leftIcon={<MyIcon name="support/permission/collaborator" w="15px" />}
+              onClick={onOpenAddMember}
+            >
+              {t('account_team:manage_per')}
+            </Button>
+          )}
+        </HStack>
+      }
+    >
+      <MyBox
+        isLoading={addLoading || deleteLoading}
+        flex={1}
+        minH={0}
+        overflow="hidden"
+        p={0}
+        border="none"
+        borderRadius={0}
+        boxShadow="none"
+      >
+        <TableContainer h="100%" overflowY="auto" fontSize="sm">
+          <Table minW="900px">
             <Thead>
-              <Tr bg={'white !important'}>
-                <Th bg="myGray.100" borderLeftRadius="md" maxW={'150px'}>
+              <Tr>
+                <Th
+                  position="sticky"
+                  top={0}
+                  left={0}
+                  zIndex={4}
+                  bg={omniTheme.colors.sidebarBg}
+                  borderBottom="1px solid"
+                  borderColor={omniTheme.colors.border}
+                  minW="220px"
+                >
                   {`${t('user:team.group.members')} / ${t('user:team.org.org')} / ${t('user:team.group.group')}`}
                   <QuestionTip ml="1" label={t('user:team.group.permission_tip')} />
                 </Th>
-                <Th bg="myGray.100">
+                <Th
+                  position="sticky"
+                  top={0}
+                  zIndex={3}
+                  minW="132px"
+                  bg={omniTheme.colors.sidebarBg}
+                  borderBottom="1px solid"
+                  borderColor={omniTheme.colors.border}
+                >
                   <Box mx="auto" w="fit-content">
                     {t('account_team:permission_appCreate')}
                     <QuestionTip ml="1" label={t('account_team:permission_appCreate_tip')} />
                   </Box>
                 </Th>
                 {showSkill && (
-                  <Th bg="myGray.100">
+                  <Th
+                    position="sticky"
+                    top={0}
+                    zIndex={3}
+                    minW="132px"
+                    bg={omniTheme.colors.sidebarBg}
+                    borderBottom="1px solid"
+                    borderColor={omniTheme.colors.border}
+                  >
                     <Box mx="auto" w="fit-content">
                       {t('account_team:permission_skillCreate')}
                       <QuestionTip ml="1" label={t('account_team:permission_skillCreate_Tip')} />
                     </Box>
                   </Th>
                 )}
-                <Th bg="myGray.100">
+                <Th
+                  position="sticky"
+                  top={0}
+                  zIndex={3}
+                  minW="132px"
+                  bg={omniTheme.colors.sidebarBg}
+                  borderBottom="1px solid"
+                  borderColor={omniTheme.colors.border}
+                >
                   <Box mx="auto" w="fit-content">
                     {t('account_team:permission_datasetCreate')}
                     <QuestionTip ml="1" label={t('account_team:permission_datasetCreate_Tip')} />
                   </Box>
                 </Th>
-                <Th bg="myGray.100">
+                <Th
+                  position="sticky"
+                  top={0}
+                  zIndex={3}
+                  minW="132px"
+                  bg={omniTheme.colors.sidebarBg}
+                  borderBottom="1px solid"
+                  borderColor={omniTheme.colors.border}
+                >
                   <Box mx="auto" w="fit-content">
                     {t('account_team:permission_apikeyCreate')}
                     <QuestionTip ml="1" label={t('account_team:permission_apikeyCreate_Tip')} />
                   </Box>
                 </Th>
-                <Th bg="myGray.100">
+                <Th
+                  position="sticky"
+                  top={0}
+                  zIndex={3}
+                  minW="132px"
+                  bg={omniTheme.colors.sidebarBg}
+                  borderBottom="1px solid"
+                  borderColor={omniTheme.colors.border}
+                >
                   <Box mx="auto" w="fit-content">
                     {t('account_team:permission_manage')}
                     <QuestionTip ml="1" label={t('account_team:permission_manage_tip')} />
                   </Box>
                 </Th>
-                <Th bg="myGray.100" borderRightRadius="md">
+                <Th
+                  position="sticky"
+                  top={0}
+                  zIndex={3}
+                  w="72px"
+                  minW="72px"
+                  bg={omniTheme.colors.sidebarBg}
+                  borderBottom="1px solid"
+                  borderColor={omniTheme.colors.border}
+                >
                   <Box mx="auto" w="fit-content">
                     {t('common:Action')}
                   </Box>
@@ -272,19 +339,30 @@ function PermissionManage({
             </Thead>
             <Tbody>
               <>
-                <Tr userSelect={'none'}>
-                  <HStack pl={3} pt={3} pb={isExpandMember && !!tmbList.length ? 0 : 3}>
-                    <MyIconButton
-                      icon={isExpandMember ? 'common/downArrowFill' : 'common/rightArrowFill'}
-                      onClick={setExpandMember.toggle}
-                    />
-                    <Box color={'myGray.900'}>{t('user:team.group.members')}</Box>
-                  </HStack>
+                <Tr userSelect="none">
+                  <Td colSpan={permissionColumnCount} p={0} bg={omniTheme.colors.pageBg}>
+                    <HStack px={3} py={2.5}>
+                      <MyIconButton
+                        icon={isExpandMember ? 'common/downArrowFill' : 'common/rightArrowFill'}
+                        onClick={setExpandMember.toggle}
+                      />
+                      <Box color={omniTheme.colors.graphite} fontWeight={700}>
+                        {t('user:team.group.members')}
+                      </Box>
+                      <Box color={omniTheme.colors.muted} fontSize="xs">
+                        {tmbList.length}
+                      </Box>
+                    </HStack>
+                  </Td>
                 </Tr>
                 {isExpandMember &&
                   tmbList.map((member) => (
-                    <Tr key={member.tmbId}>
-                      <Td pl={10}>
+                    <Tr
+                      key={member.tmbId}
+                      transition="background-color 0.15s ease"
+                      _hover={{ bg: omniTheme.colors.pageBg }}
+                    >
+                      <Td position="sticky" left={0} zIndex={1} pl={10} bg="white">
                         <HStack>
                           <Avatar src={member.avatar} w="1.5rem" borderRadius={'50%'} />
                           <Box>{member.name}</Box>
@@ -324,7 +402,7 @@ function PermissionManage({
                         clbPer={member.permission}
                         id={member.tmbId!}
                       />
-                      <Td>
+                      <Td w="72px" minW="72px" textAlign="center">
                         {hasDeletePer(member.permission) &&
                           userInfo?.team.tmbId !== member.tmbId && (
                             <Box mx="auto" w="fit-content">
@@ -341,20 +419,30 @@ function PermissionManage({
                   ))}
               </>
               <>
-                <Tr borderBottom={'1px solid'} borderColor={'myGray.200'} />
-                <Tr userSelect={'none'}>
-                  <HStack pl={3} pt={3} pb={isExpandOrg && !!orgList.length ? 0 : 3}>
-                    <MyIconButton
-                      icon={isExpandOrg ? 'common/downArrowFill' : 'common/rightArrowFill'}
-                      onClick={setExpandOrg.toggle}
-                    />
-                    <Text>{t('user:team.org.org')}</Text>
-                  </HStack>
+                <Tr userSelect="none">
+                  <Td colSpan={permissionColumnCount} p={0} bg={omniTheme.colors.pageBg}>
+                    <HStack px={3} py={2.5}>
+                      <MyIconButton
+                        icon={isExpandOrg ? 'common/downArrowFill' : 'common/rightArrowFill'}
+                        onClick={setExpandOrg.toggle}
+                      />
+                      <Text color={omniTheme.colors.graphite} fontWeight={700}>
+                        {t('user:team.org.org')}
+                      </Text>
+                      <Box color={omniTheme.colors.muted} fontSize="xs">
+                        {orgList.length}
+                      </Box>
+                    </HStack>
+                  </Td>
                 </Tr>
                 {isExpandOrg &&
                   orgList.map((org) => (
-                    <Tr key={org.orgId}>
-                      <Td pl={10}>
+                    <Tr
+                      key={org.orgId}
+                      transition="background-color 0.15s ease"
+                      _hover={{ bg: omniTheme.colors.pageBg }}
+                    >
+                      <Td position="sticky" left={0} zIndex={1} pl={10} bg="white">
                         <MemberTag name={org.name} avatar={org.avatar} />
                       </Td>
                       <PermissionCheckBox
@@ -389,7 +477,7 @@ function PermissionManage({
                         clbPer={org.permission}
                         id={org.orgId!}
                       />
-                      <Td>
+                      <Td w="72px" minW="72px" textAlign="center">
                         {hasDeletePer(org.permission) && (
                           <Box mx="auto" w="fit-content">
                             <MyIconButton
@@ -404,20 +492,30 @@ function PermissionManage({
               </>
 
               <>
-                <Tr borderBottom={'1px solid'} borderColor={'myGray.200'} />
-                <Tr userSelect={'none'}>
-                  <HStack pl={3} pt={3} pb={isExpandGroup && !!groupList.length ? 0 : 3}>
-                    <MyIconButton
-                      icon={isExpandGroup ? 'common/downArrowFill' : 'common/rightArrowFill'}
-                      onClick={setExpandGroup.toggle}
-                    />
-                    <Text>{t('user:team.group.group')}</Text>
-                  </HStack>
+                <Tr userSelect="none">
+                  <Td colSpan={permissionColumnCount} p={0} bg={omniTheme.colors.pageBg}>
+                    <HStack px={3} py={2.5}>
+                      <MyIconButton
+                        icon={isExpandGroup ? 'common/downArrowFill' : 'common/rightArrowFill'}
+                        onClick={setExpandGroup.toggle}
+                      />
+                      <Text color={omniTheme.colors.graphite} fontWeight={700}>
+                        {t('user:team.group.group')}
+                      </Text>
+                      <Box color={omniTheme.colors.muted} fontSize="xs">
+                        {groupList.length}
+                      </Box>
+                    </HStack>
+                  </Td>
                 </Tr>
                 {isExpandGroup &&
                   groupList.map((group) => (
-                    <Tr key={group.groupId}>
-                      <Td pl={10}>
+                    <Tr
+                      key={group.groupId}
+                      transition="background-color 0.15s ease"
+                      _hover={{ bg: omniTheme.colors.pageBg }}
+                    >
+                      <Td position="sticky" left={0} zIndex={1} pl={10} bg="white">
                         <MemberTag
                           name={
                             group.name === DefaultGroupName
@@ -459,7 +557,7 @@ function PermissionManage({
                         clbPer={group.permission}
                         id={group.groupId!}
                       />
-                      <Td>
+                      <Td w="72px" minW="72px" textAlign="center">
                         {hasDeletePer(group.permission) && (
                           <Box mx="auto" w="fit-content">
                             <MyIconButton
@@ -476,11 +574,11 @@ function PermissionManage({
           </Table>
         </TableContainer>
       </MyBox>
-    </>
+    </TeamSectionLayout>
   );
 }
 
-export const Render = ({ Tabs }: { Tabs: React.ReactNode }) => {
+export const Render = () => {
   const { userInfo } = useUserStore();
 
   return userInfo?.team ? (
@@ -494,9 +592,7 @@ export const Render = ({ Tabs }: { Tabs: React.ReactNode }) => {
       refreshDeps={[userInfo?.team.teamId]}
       addPermissionOnly={true}
     >
-      {({ onOpenManageModal }) => (
-        <PermissionManage Tabs={Tabs} onOpenAddMember={onOpenManageModal} />
-      )}
+      {({ onOpenManageModal }) => <PermissionManage onOpenAddMember={onOpenManageModal} />}
     </CollaboratorContextProvider>
   ) : null;
 };

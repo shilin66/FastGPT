@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  Flex,
-  Box,
-  Button,
-  ModalBody,
-  Input,
-  Link,
-  RadioGroup,
-  HStack,
-  Radio
-} from '@chakra-ui/react';
+import { Flex, Button, Input, Link, RadioGroup, HStack, Radio } from '@chakra-ui/react';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import type { OutLinkEditType, TeamsAppType } from '@fastgpt/global/support/outLink/type';
@@ -22,6 +12,13 @@ import { getDocPath } from '@/web/common/system/doc';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
+import {
+  OmniFieldCard,
+  OmniFormGrid,
+  OmniModalBody,
+  OmniModalFooter,
+  OmniModalSection
+} from '../../components/OmniModalLayout';
 
 const TeamsEditModal = ({
   appId,
@@ -106,14 +103,35 @@ const TeamsEditModal = ({
       }
       minW={['auto', '60rem']}
     >
-      <ModalBody display={'grid'} gridTemplateColumns={['1fr', '1fr 1fr']} fontSize={'14px'} p={0}>
-        <Box p={8} h={['auto', '400px']} borderRight={'base'}>
+      <OmniModalBody
+        icon="common/teamsFill"
+        title={
+          isEdit
+            ? t('publish:teams.bot.edit_modal_title')
+            : t('publish:teams.bot.create_modal_title')
+        }
+        desc={t('publish:teams.api')}
+        asideItems={[
+          {
+            label: t('publish:basic_info'),
+            desc: t('common:Name'),
+            icon: 'common/setting'
+          },
+          {
+            label: t('publish:teams.api'),
+            desc: 'Microsoft App',
+            icon: 'common/teamsFill'
+          }
+        ]}
+      >
+        <OmniModalSection title={t('publish:basic_info')} desc={t('publish:publish_name')}>
           <BasicInfo register={register} setValue={setValue} defaultData={defaultData} />
-        </Box>
-        <Flex p={8} h={['auto', '400px']} flexDirection="column" gap={6}>
-          <Flex alignItems="center">
-            <Box color="myGray.600">{t('publish:teams.api')}</Box>
-            {feConfigs?.docUrl && (
+        </OmniModalSection>
+        <OmniModalSection
+          title={t('publish:teams.api')}
+          desc={'用于连接 Microsoft Teams 机器人并配置租户范围。'}
+          action={
+            feConfigs?.docUrl && (
               <Link
                 href={getDocPath('/docs/use-cases/external-integration/teams/')}
                 target={'_blank'}
@@ -126,83 +144,88 @@ const TeamsEditModal = ({
                   {t('common:read_doc')}
                 </Flex>
               </Link>
-            )}
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              App Type
-            </FormLabel>
-            <RadioGroup
-              onChange={(value: 'SingleTenant' | 'MultiTenant') =>
-                setValue('app.MicrosoftAppType', value)
-              }
-              value={appType}
-            >
-              <HStack spacing={4}>
-                <Radio value={'SingleTenant'}>SingleTenant</Radio>
-                <Radio value={'MultiTenant'}>MultiTenant</Radio>
-              </HStack>
-            </RadioGroup>
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              App Id
-            </FormLabel>
-            <Input
-              placeholder={'MicrosoftAppId'}
-              {...register('app.MicrosoftAppId', {
-                required: true
-              })}
-            />
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              App Password
-            </FormLabel>
-            <Input
-              placeholder={'MicrosoftAppPassword'}
-              {...register('app.MicrosoftAppPassword', {
-                required: true
-              })}
-            />
-          </Flex>
-          {appType === 'SingleTenant' && (
-            <Flex alignItems={'center'}>
-              <FormLabel flex={'0 0 6.25rem'} required>
-                App TenantId
+            )
+          }
+        >
+          <OmniFormGrid>
+            <OmniFieldCard gridColumn={['auto', '1 / -1']}>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                App Type
+              </FormLabel>
+              <RadioGroup
+                mt={3}
+                onChange={(value: 'SingleTenant' | 'MultiTenant') =>
+                  setValue('app.MicrosoftAppType', value)
+                }
+                value={appType}
+              >
+                <HStack spacing={4}>
+                  <Radio value={'SingleTenant'}>SingleTenant</Radio>
+                  <Radio value={'MultiTenant'}>MultiTenant</Radio>
+                </HStack>
+              </RadioGroup>
+            </OmniFieldCard>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                App Id
               </FormLabel>
               <Input
-                placeholder={'MicrosoftAppTenantId'}
-                {...register('app.MicrosoftAppTenantId', {
-                  required: appType === 'SingleTenant'
+                mt={2}
+                placeholder={'MicrosoftAppId'}
+                {...register('app.MicrosoftAppId', {
+                  required: true
                 })}
               />
-            </Flex>
-          )}
-          <Box flex={1}></Box>
-
-          <Flex justifyContent={'end'}>
-            <Button variant={'whiteBase'} mr={3} onClick={onClose}>
-              {t('common:Close')}
-            </Button>
-            <Button
-              isLoading={creating || updating}
-              onClick={submitShareChat((data) => {
-                if (isEdit) {
-                  if (data.app?.MicrosoftAppType === 'MultiTenant') {
-                    data.app.MicrosoftAppTenantId = '';
-                  }
-                  return onclickUpdate(data);
-                } else {
-                  return onclickCreate(data);
-                }
-              })}
-            >
-              {t('common:Confirm')}
-            </Button>
-          </Flex>
-        </Flex>
-      </ModalBody>
+            </OmniFieldCard>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                App Password
+              </FormLabel>
+              <Input
+                mt={2}
+                placeholder={'MicrosoftAppPassword'}
+                {...register('app.MicrosoftAppPassword', {
+                  required: true
+                })}
+              />
+            </OmniFieldCard>
+            {appType === 'SingleTenant' && (
+              <OmniFieldCard gridColumn={['auto', '1 / -1']}>
+                <FormLabel required color={'#1E293B'} fontWeight={700}>
+                  App TenantId
+                </FormLabel>
+                <Input
+                  mt={2}
+                  placeholder={'MicrosoftAppTenantId'}
+                  {...register('app.MicrosoftAppTenantId', {
+                    required: appType === 'SingleTenant'
+                  })}
+                />
+              </OmniFieldCard>
+            )}
+          </OmniFormGrid>
+        </OmniModalSection>
+      </OmniModalBody>
+      <OmniModalFooter>
+        <Button variant={'whiteBase'} onClick={onClose}>
+          {t('common:Close')}
+        </Button>
+        <Button
+          isLoading={creating || updating}
+          onClick={submitShareChat((data) => {
+            if (isEdit) {
+              if (data.app?.MicrosoftAppType === 'MultiTenant') {
+                data.app.MicrosoftAppTenantId = '';
+              }
+              return onclickUpdate(data);
+            } else {
+              return onclickCreate(data);
+            }
+          })}
+        >
+          {t('common:Confirm')}
+        </Button>
+      </OmniModalFooter>
     </MyModal>
   );
 };

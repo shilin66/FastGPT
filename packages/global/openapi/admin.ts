@@ -2,6 +2,7 @@ import { createDocument } from 'zod-openapi';
 import { AdminCorePath } from './admin/core';
 import { TagsMap } from './tag';
 import { AdminSupportPath } from './admin/support';
+import { AdminManagePath } from './admin/manage';
 
 export const adminOpenAPIDocument = createDocument({
   openapi: '3.1.0',
@@ -12,7 +13,8 @@ export const adminOpenAPIDocument = createDocument({
   },
   paths: {
     ...AdminCorePath,
-    ...AdminSupportPath
+    ...AdminSupportPath,
+    ...AdminManagePath
   },
   servers: [{ url: '/api' }],
   'x-tagGroups': [
@@ -22,7 +24,11 @@ export const adminOpenAPIDocument = createDocument({
     },
     {
       name: '核心资源管理',
-      tags: [TagsMap.adminApps]
+      tags: [TagsMap.adminUsers, TagsMap.adminTeams, TagsMap.adminApps, TagsMap.adminDatasets]
+    },
+    {
+      name: '系统记录',
+      tags: [TagsMap.adminTasks, TagsMap.adminAudits]
     },
     {
       name: '系统配置',

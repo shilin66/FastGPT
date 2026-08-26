@@ -4,7 +4,7 @@ import {
   Box,
   Button,
   Flex,
-  HStack,
+  Grid,
   Input,
   ModalBody,
   ModalFooter,
@@ -76,6 +76,7 @@ const WorkflowToolConfigModal = ({
   const currentCost = watch('currentCost');
   const status = watch('status');
   const defaultInstalled = watch('defaultInstalled');
+  const hasTokenFee = watch('hasTokenFee');
 
   React.useEffect(() => {
     setValue('tagIds', selectedTags);
@@ -205,143 +206,170 @@ const WorkflowToolConfigModal = ({
       isCentered
       isOpen
       title={t('app:custom_plugin_config_title', { name: name || t('app:custom_plugin') })}
-      maxW={['90vw', '900px']}
+      maxW={['94vw', '980px']}
       w={'100%'}
       iconSrc={avatar}
       position={'relative'}
       onClose={onClose}
       isLoading={loadingPlugins || loadingTags}
     >
-      <ModalBody flex={1} w={'full'}>
-        <Flex w={'full'} gap={5}>
-          <Box w={'full'}>
-            <Box color={'myGray.900'} fontWeight={'medium'} fontSize={'sm'}>
-              {t('app:custom_plugin_name_label')}
-            </Box>
-            <Flex mt={2} alignItems={'center'}>
-              <MyTooltip
-                label={
-                  isUploadingAvatar
-                    ? t('app:custom_plugin_uploading')
-                    : t('app:custom_plugin_click_upload_avatar')
-                }
-              >
-                <Avatar
-                  flexShrink={0}
-                  src={avatar}
-                  w={['28px', '36px']}
-                  h={['28px', '36px']}
-                  cursor={isUploadingAvatar ? 'not-allowed' : 'pointer'}
-                  borderRadius={'md'}
-                  onClick={isUploadingAvatar ? undefined : handleAvatarSelectorOpen}
-                  opacity={isUploadingAvatar ? 0.6 : 1}
-                />
-              </MyTooltip>
+      <ModalBody flex={1} w={'full'} maxH={'72vh'} p={0} overflowY={'auto'}>
+        <Flex
+          px={6}
+          py={5}
+          gap={5}
+          alignItems={'flex-start'}
+          borderBottom={'1px solid'}
+          borderColor={'myGray.200'}
+        >
+          <MyTooltip
+            label={
+              isUploadingAvatar
+                ? t('app:custom_plugin_uploading')
+                : t('app:custom_plugin_click_upload_avatar')
+            }
+          >
+            <Avatar
+              flexShrink={0}
+              src={avatar}
+              w={'52px'}
+              h={'52px'}
+              cursor={isUploadingAvatar ? 'not-allowed' : 'pointer'}
+              borderRadius={'md'}
+              onClick={isUploadingAvatar ? undefined : handleAvatarSelectorOpen}
+              opacity={isUploadingAvatar ? 0.6 : 1}
+            />
+          </MyTooltip>
+          <Grid
+            flex={1}
+            minW={0}
+            gridTemplateColumns={{ base: '1fr', md: 'minmax(220px, 0.8fr) minmax(320px, 1.2fr)' }}
+            gap={4}
+          >
+            <Box>
+              <Box mb={2} color={'myGray.900'} fontSize={'sm'} fontWeight={700}>
+                {t('app:custom_plugin_name_label')}
+              </Box>
               <Input
-                flex={1}
-                ml={3}
                 autoFocus
-                bg={'myWhite.600'}
                 {...register('name', {
                   required: t('app:custom_plugin_name_required')
                 })}
               />
-            </Flex>
-            <Box mt={6}>
-              <Box color={'myGray.900'} fontWeight={'medium'} fontSize={'sm'} mb={2}>
+            </Box>
+            <Box>
+              <Box mb={2} color={'myGray.900'} fontSize={'sm'} fontWeight={700}>
                 {t('app:custom_plugin_intro_label')}
               </Box>
               <Textarea
                 {...register('intro')}
-                bg={'myGray.50'}
+                minH={'76px'}
+                resize={'vertical'}
                 placeholder={t('app:custom_plugin_intro_placeholder')}
               />
             </Box>
-            <HStack mt={6}>
-              <Box flex={'0 0 160px'} color={'myGray.900'} fontWeight={'medium'} fontSize={'sm'}>
+          </Grid>
+        </Flex>
+
+        <Flex
+          px={6}
+          py={5}
+          gap={6}
+          alignItems={'flex-start'}
+          borderBottom={'1px solid'}
+          borderColor={'myGray.200'}
+        >
+          <Box w={'170px'} flexShrink={0}>
+            <Box color={'myGray.900'} fontSize={'sm'} fontWeight={800}>
+              {t('app:toolkit_plugin_classification')}
+            </Box>
+            <Box mt={1} color={'myGray.500'} fontSize={'xs'} lineHeight={1.6}>
+              {t('app:custom_plugin_associated_plugin_label')} / {t('app:custom_plugin_tags_label')}
+            </Box>
+          </Box>
+
+          <Grid
+            flex={1}
+            minW={0}
+            gridTemplateColumns={{ base: '1fr', md: 'repeat(2, minmax(0, 1fr))' }}
+            gap={4}
+          >
+            <Box position={'relative'}>
+              <Box mb={2} color={'myGray.700'} fontSize={'xs'} fontWeight={700}>
                 {t('app:custom_plugin_associated_plugin_label')}
               </Box>
-              <Flex flex={'1 0 0'} flexDirection={'column'}>
-                {associatedPluginId && (
-                  <Avatar
-                    src={currentApp?.avatar}
-                    mt={2}
-                    ml={4}
-                    w={'20px'}
-                    borderRadius={'2px'}
-                    position="absolute"
-                    zIndex={1}
-                  />
-                )}
-                <Input
-                  pl={associatedPluginId ? 10 : 4}
-                  fontSize={'14px'}
-                  placeholder={t('app:custom_plugin_associated_plugin_placeholder')}
-                  value={currentApp?.name}
-                  onChange={(e) => {
-                    setSearchKey(e.target.value);
-                  }}
-                  onFocus={() => {
-                    onOpenAppListMenu();
-                    setLastPluginId(associatedPluginId);
-                    setValue('associatedPluginId', undefined);
-                  }}
-                  onBlur={() => {
-                    onCloseAppListMenu();
-                    if (associatedPluginId) return;
-                    setValue('associatedPluginId', lastPluginId);
-                  }}
-                  bg={'myGray.50'}
+              {associatedPluginId && currentApp && (
+                <Avatar
+                  src={currentApp.avatar}
+                  w={'20px'}
+                  h={'20px'}
+                  borderRadius={'sm'}
+                  position={'absolute'}
+                  left={3}
+                  bottom={'10px'}
+                  zIndex={1}
                 />
-                {isOpenAppListMenu && apps.length > 0 && (
-                  <Flex
-                    position={'absolute'}
-                    mt={9}
-                    w={'100%'}
-                    flexDirection={'column'}
-                    gap={2}
-                    p={1}
-                    boxShadow="lg"
-                    bg="white"
-                    borderRadius="md"
-                    zIndex={10}
-                    maxH={'200px'}
-                    maxW={'260px'}
-                    overflow={'auto'}
-                  >
-                    {apps.map((item) => (
-                      <Flex
-                        key={item._id}
-                        p="2"
-                        alignItems={'center'}
-                        _hover={{ bg: 'myGray.100' }}
-                        mx="1"
-                        borderRadius="sm"
-                        cursor={'pointer'}
-                        onMouseDown={() => {
-                          setSearchKey(item.name);
-                          setValue('associatedPluginId', item._id);
-                          onCloseAppListMenu();
-                        }}
-                      >
-                        <Avatar src={item.avatar} w="1.25rem" rounded={'2px'} />
-                        <Box ml="2" fontSize={'14px'}>
-                          {item.name}
-                        </Box>
-                      </Flex>
-                    ))}
-                  </Flex>
-                )}
-              </Flex>
-            </HStack>
-            <HStack mt={6}>
-              <Box
-                flex={'0 0 160px'}
-                color={'myGray.900'}
-                fontWeight={'medium'}
-                fontSize={'sm'}
-                mb={2}
-              >
+              )}
+              <Input
+                pl={associatedPluginId && currentApp ? 10 : 3}
+                placeholder={t('app:custom_plugin_associated_plugin_placeholder')}
+                value={associatedPluginId ? currentApp?.name || searchKey : searchKey}
+                onChange={(event) => setSearchKey(event.target.value)}
+                onFocus={() => {
+                  onOpenAppListMenu();
+                  setLastPluginId(associatedPluginId);
+                  setValue('associatedPluginId', undefined);
+                }}
+                onBlur={() => {
+                  onCloseAppListMenu();
+                  if (associatedPluginId) return;
+                  setValue('associatedPluginId', lastPluginId);
+                }}
+              />
+              {isOpenAppListMenu && apps.length > 0 && (
+                <Flex
+                  position={'absolute'}
+                  top={'68px'}
+                  left={0}
+                  right={0}
+                  maxH={'220px'}
+                  p={1}
+                  flexDirection={'column'}
+                  overflow={'auto'}
+                  border={'1px solid'}
+                  borderColor={'myGray.200'}
+                  borderRadius={'md'}
+                  boxShadow={'lg'}
+                  bg={'white'}
+                  zIndex={10}
+                >
+                  {apps.map((item) => (
+                    <Flex
+                      key={item._id}
+                      px={3}
+                      py={2}
+                      alignItems={'center'}
+                      borderRadius={'sm'}
+                      cursor={'pointer'}
+                      _hover={{ bg: 'myGray.100' }}
+                      onMouseDown={() => {
+                        setSearchKey(item.name);
+                        setValue('associatedPluginId', item._id);
+                        onCloseAppListMenu();
+                      }}
+                    >
+                      <Avatar src={item.avatar} w={'22px'} h={'22px'} borderRadius={'sm'} />
+                      <Box ml={2} minW={0} fontSize={'sm'} noOfLines={1}>
+                        {item.name}
+                      </Box>
+                    </Flex>
+                  ))}
+                </Flex>
+              )}
+            </Box>
+
+            <Box>
+              <Box mb={2} color={'myGray.700'} fontSize={'xs'} fontWeight={700}>
                 {t('app:custom_plugin_tags_label')}
               </Box>
               <MultipleSelect
@@ -358,105 +386,153 @@ const WorkflowToolConfigModal = ({
                   setSelectedTags(newTags);
                 }}
                 placeholder={t('app:custom_plugin_tags_label')}
-                maxW={270}
-                h={9}
-                borderRadius={'sm'}
-                bg={'myGray.50'}
+                w={'full'}
+                h={10}
+                borderRadius={'md'}
               />
-            </HStack>
-            <HStack mt={6}>
-              <Box flex={'0 0 160px'} color={'myGray.900'} fontWeight={'medium'} fontSize={'sm'}>
+            </Box>
+
+            <Box>
+              <Box mb={2} color={'myGray.700'} fontSize={'xs'} fontWeight={700}>
                 {t('app:custom_plugin_author_label')}
               </Box>
-              <Box flex={1}>
-                <Input
-                  placeholder={t('app:custom_plugin_author_placeholder')}
-                  h={9}
-                  bg={'myGray.50'}
-                  {...register('author')}
-                />
-              </Box>
-            </HStack>
-            <HStack mt={6}>
-              <Box flex={'0 0 160px'} color={'myGray.900'} fontWeight={'medium'} fontSize={'sm'}>
+              <Input
+                placeholder={t('app:custom_plugin_author_placeholder')}
+                {...register('author')}
+              />
+            </Box>
+
+            <Box>
+              <Box mb={2} color={'myGray.700'} fontSize={'xs'} fontWeight={700}>
                 {t('app:custom_plugin_plugin_status_label')}
               </Box>
-              <Box flex={'1 0 0'}>
-                <MySelect<PluginStatusEnum>
-                  value={status}
-                  w={'full'}
-                  bg={'myGray.50'}
-                  list={[
-                    { label: t('app:toolkit_status_normal'), value: PluginStatusEnum.Normal },
-                    {
-                      label: t('app:toolkit_status_soon_offline'),
-                      value: PluginStatusEnum.SoonOffline
-                    },
-                    { label: t('app:toolkit_status_offline'), value: PluginStatusEnum.Offline }
-                  ]}
-                  onChange={(e) => {
-                    setValue('status', e);
-                    if (e !== PluginStatusEnum.Normal) {
-                      setValue('defaultInstalled', false);
-                    }
-                  }}
-                  fontWeight={'normal'}
-                />
-              </Box>
-            </HStack>
-            <HStack mt={6}>
-              <Box flex={1} color={'myGray.900'} fontWeight={'medium'} fontSize={'sm'}>
+              <MySelect<PluginStatusEnum>
+                value={status}
+                w={'full'}
+                list={[
+                  { label: t('app:toolkit_status_normal'), value: PluginStatusEnum.Normal },
+                  {
+                    label: t('app:toolkit_status_soon_offline'),
+                    value: PluginStatusEnum.SoonOffline
+                  },
+                  { label: t('app:toolkit_status_offline'), value: PluginStatusEnum.Offline }
+                ]}
+                onChange={(value) => {
+                  setValue('status', value);
+                  if (value !== PluginStatusEnum.Normal) {
+                    setValue('defaultInstalled', false);
+                  }
+                }}
+                fontWeight={'normal'}
+              />
+            </Box>
+          </Grid>
+        </Flex>
+
+        <Flex
+          px={6}
+          py={5}
+          gap={6}
+          alignItems={'stretch'}
+          borderBottom={'1px solid'}
+          borderColor={'myGray.200'}
+          bg={'myGray.25'}
+        >
+          <Box w={'170px'} flexShrink={0}>
+            <Box color={'myGray.900'} fontSize={'sm'} fontWeight={800}>
+              {t('app:toolkit_runtime_policy')}
+            </Box>
+            <Box mt={1} color={'myGray.500'} fontSize={'xs'} lineHeight={1.6}>
+              {t('app:custom_plugin_plugin_status_label')}
+            </Box>
+          </Box>
+
+          <Grid
+            flex={1}
+            minW={0}
+            gridTemplateColumns={{ base: '1fr', md: 'repeat(3, minmax(0, 1fr))' }}
+            gap={0}
+            bg={'white'}
+            border={'1px solid'}
+            borderColor={'myGray.200'}
+            borderRadius={'md'}
+          >
+            <Flex px={4} py={3} alignItems={'center'} justifyContent={'space-between'} gap={3}>
+              <Box color={'myGray.800'} fontSize={'sm'} fontWeight={600}>
                 {t('app:custom_plugin_default_installed_label')}
               </Box>
               <Switch
                 isChecked={defaultInstalled}
-                onChange={(e) => {
-                  const newDefaultInstalled = e.target.checked;
+                onChange={(event) => {
+                  const newDefaultInstalled = event.target.checked;
                   setValue('defaultInstalled', newDefaultInstalled);
                   if (newDefaultInstalled && status !== PluginStatusEnum.Normal) {
                     setValue('status', PluginStatusEnum.Normal);
                   }
                 }}
               />
-            </HStack>
-            <HStack mt={6}>
-              <Box flex={1} color={'myGray.900'} fontWeight={'medium'} fontSize={'sm'}>
+            </Flex>
+            <Flex
+              px={4}
+              py={3}
+              alignItems={'center'}
+              justifyContent={'space-between'}
+              gap={3}
+              borderLeft={{ base: 'none', md: '1px solid' }}
+              borderTop={{ base: '1px solid', md: 'none' }}
+              borderColor={'myGray.200'}
+            >
+              <Box color={'myGray.800'} fontSize={'sm'} fontWeight={600}>
                 {t('app:custom_plugin_has_token_fee_label')}
               </Box>
-              <Switch {...register('hasTokenFee')} />
-            </HStack>
-            <HStack mt={6}>
-              <Box flex={'0 0 160px'} color={'myGray.900'} fontWeight={'medium'} fontSize={'sm'}>
+              <Switch
+                isChecked={hasTokenFee}
+                onChange={(event) => setValue('hasTokenFee', event.target.checked)}
+              />
+            </Flex>
+            <Box
+              px={4}
+              py={3}
+              borderLeft={{ base: 'none', md: '1px solid' }}
+              borderTop={{ base: '1px solid', md: 'none' }}
+              borderColor={'myGray.200'}
+            >
+              <Box mb={2} color={'myGray.700'} fontSize={'xs'} fontWeight={700}>
                 {t('app:custom_plugin_call_price_label')}
               </Box>
-              <Box flex={'1 0 0'}>
-                <MyNumberInput
-                  value={currentCost ?? 0}
-                  onChange={(e) => setValue('currentCost', e ?? 0)}
-                  max={1000}
-                  min={0}
-                  step={0.1}
-                  w={'full'}
-                  h={9}
-                />
-              </Box>
-            </HStack>
-          </Box>
-          <Box w={'full'}>
-            <Box mb={'9px'} color={'myGray.900'} fontWeight={'medium'} fontSize={'sm'}>
+              <MyNumberInput
+                value={currentCost ?? 0}
+                onChange={(value) => setValue('currentCost', value ?? 0)}
+                max={1000}
+                min={0}
+                step={0.1}
+                w={'full'}
+                h={9}
+              />
+            </Box>
+          </Grid>
+        </Flex>
+
+        <Flex px={6} py={5} gap={6} alignItems={'flex-start'}>
+          <Box w={'170px'} flexShrink={0}>
+            <Box color={'myGray.900'} fontSize={'sm'} fontWeight={800}>
               {t('app:custom_plugin_user_guide_label')}
             </Box>
-            <Textarea
-              {...register('userGuide')}
-              placeholder={t('app:custom_plugin_user_guide_placeholder')}
-              bg={'myGray.50'}
-              minH={'562px'}
-              maxH={'562px'}
-            />
+            <Box mt={1} color={'myGray.500'} fontSize={'xs'} lineHeight={1.6}>
+              Markdown
+            </Box>
           </Box>
+          <Textarea
+            flex={1}
+            {...register('userGuide')}
+            placeholder={t('app:custom_plugin_user_guide_placeholder')}
+            minH={'170px'}
+            maxH={'260px'}
+            resize={'vertical'}
+          />
         </Flex>
       </ModalBody>
-      <ModalFooter justifyContent={'space-between'}>
+      <ModalFooter px={6} py={4} justifyContent={'space-between'}>
         {toolId ? (
           <PopoverConfirm
             type="delete"
@@ -472,7 +548,7 @@ const WorkflowToolConfigModal = ({
           <Box />
         )}
 
-        <Flex gap={4}>
+        <Flex gap={2}>
           <Button variant={'whiteBase'} onClick={onClose}>
             {t('common:Close')}
           </Button>

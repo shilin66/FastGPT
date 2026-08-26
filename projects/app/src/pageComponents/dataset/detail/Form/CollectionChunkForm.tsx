@@ -44,6 +44,7 @@ import {
   minChunkSize
 } from '@fastgpt/global/core/dataset/training/utils';
 import RadioGroup from '@fastgpt/web/components/common/Radio/RadioGroup';
+import ImportWorkbenchSection from '../Import/components/ImportWorkbenchSection';
 
 const PromptTextarea = ({
   defaultValue = '',
@@ -115,7 +116,13 @@ export type CollectionChunkFormType = {
   qaPrompt?: string;
 };
 
-const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkFormType> }) => {
+const CollectionChunkForm = ({
+  form,
+  variant = 'default'
+}: {
+  form: UseFormReturn<CollectionChunkFormType>;
+  variant?: 'default' | 'importWorkbench';
+}) => {
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
 
@@ -215,6 +222,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
   } = useDisclosure();
 
   const showQAPromptInput = trainingType === DatasetCollectionDataProcessModeEnum.qa;
+  const isImportWorkbench = variant === 'importWorkbench';
 
   // Adapt 4.9.0- auto training
   useEffect(() => {
@@ -226,68 +234,156 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
 
   return (
     <>
-      <Box>
-        <Box fontSize={'sm'} mb={2} color={'myGray.600'}>
-          {t('dataset:training_mode')}
-        </Box>
-        <LeftRadio<DatasetCollectionDataProcessModeEnum>
-          list={trainingModeList}
-          px={3}
-          py={2.5}
-          value={trainingType}
-          onChange={(e) => {
-            setValue('trainingType', e);
-            if (e === DatasetCollectionDataProcessModeEnum.qa) {
-              setValue('chunkSize', getLLMDefaultChunkSize(agentModel));
-            } else {
-              setValue('chunkSize', chunkAutoChunkSize);
-            }
-          }}
-          defaultBg="white"
-          activeBg="white"
-          gridTemplateColumns={'repeat(2, 1fr)'}
-        />
-      </Box>
-
-      {trainingType === DatasetCollectionDataProcessModeEnum.chunk && (
-        <Box mt={6}>
-          <HStack fontSize={'sm'} mb={2} color={'myGray.600'} spacing={1}>
-            <Box>{t('dataset:chunk_trigger')}</Box>
-            <QuestionTip label={t('dataset:chunk_trigger_tips')} />
-          </HStack>
-          <HStack>
-            <Box flex={'1 0 0'} h={'34px'}>
-              <MySelect
-                borderRadius={'md'}
-                list={chunkTriggerSelectList}
-                value={chunkTriggerType}
-                onChange={(e) => {
-                  setValue('chunkTriggerType', e);
-                }}
-              />
-            </Box>
-            {chunkTriggerType === ChunkTriggerConfigTypeEnum.minSize && (
-              <Box flex={'1 0 0'}>
-                <MyNumberInput
-                  h={'34px'}
-                  inputFieldProps={{ bg: 'white' }}
-                  min={100}
-                  max={100000}
-                  register={register}
-                  name={'chunkTriggerMinSize'}
-                  step={100}
-                />
-              </Box>
-            )}
-          </HStack>
+      {isImportWorkbench ? (
+        <ImportWorkbenchSection
+          isFirst
+          title={t('dataset:training_mode')}
+          description={t('dataset:import_training_mode_desc')}
+        >
+          <LeftRadio<DatasetCollectionDataProcessModeEnum>
+            list={trainingModeList}
+            px={3}
+            py={2.5}
+            gridGap={0}
+            borderBottom={'1px solid'}
+            borderColor={'borderColor.base'}
+            value={trainingType}
+            onChange={(e) => {
+              setValue('trainingType', e);
+              if (e === DatasetCollectionDataProcessModeEnum.qa) {
+                setValue('chunkSize', getLLMDefaultChunkSize(agentModel));
+              } else {
+                setValue('chunkSize', chunkAutoChunkSize);
+              }
+            }}
+            variant={'underline'}
+            gridTemplateColumns={'repeat(2, minmax(0, 1fr))'}
+          />
+        </ImportWorkbenchSection>
+      ) : (
+        <Box>
+          <Box fontSize={'sm'} mb={2} color={'myGray.600'}>
+            {t('dataset:training_mode')}
+          </Box>
+          <LeftRadio<DatasetCollectionDataProcessModeEnum>
+            list={trainingModeList}
+            px={3}
+            py={2.5}
+            value={trainingType}
+            onChange={(e) => {
+              setValue('trainingType', e);
+              if (e === DatasetCollectionDataProcessModeEnum.qa) {
+                setValue('chunkSize', getLLMDefaultChunkSize(agentModel));
+              } else {
+                setValue('chunkSize', chunkAutoChunkSize);
+              }
+            }}
+            defaultBg="white"
+            activeBg={'white'}
+            variant={'card'}
+            gridTemplateColumns={'repeat(2, 1fr)'}
+          />
         </Box>
       )}
 
-      <Box mt={6}>
-        <Box fontSize={'sm'} mb={2} color={'myGray.600'}>
-          {t('dataset:enhanced_indexes')}
+      {trainingType === DatasetCollectionDataProcessModeEnum.chunk && (
+        <>
+          {isImportWorkbench ? (
+            <ImportWorkbenchSection
+              title={t('dataset:chunk_trigger')}
+              description={t('dataset:import_chunk_trigger_desc')}
+            >
+              <HStack alignItems={'stretch'} spacing={3}>
+                <Box flex={'1 0 0'} minW={0} h={'36px'}>
+                  <MySelect
+                    borderRadius={'md'}
+                    list={chunkTriggerSelectList}
+                    value={chunkTriggerType}
+                    onChange={(e) => {
+                      setValue('chunkTriggerType', e);
+                    }}
+                  />
+                </Box>
+                {chunkTriggerType === ChunkTriggerConfigTypeEnum.minSize && (
+                  <Box flex={'0 1 220px'} minW={'140px'}>
+                    <MyNumberInput
+                      h={'36px'}
+                      inputFieldProps={{ bg: 'white' }}
+                      min={100}
+                      max={100000}
+                      register={register}
+                      name={'chunkTriggerMinSize'}
+                      step={100}
+                    />
+                  </Box>
+                )}
+              </HStack>
+            </ImportWorkbenchSection>
+          ) : (
+            <Box mt={6}>
+              <HStack fontSize={'sm'} mb={2} color={'myGray.600'} spacing={1}>
+                <Box>{t('dataset:chunk_trigger')}</Box>
+                <QuestionTip label={t('dataset:chunk_trigger_tips')} />
+              </HStack>
+              <HStack>
+                <Box flex={'1 0 0'} h={'34px'}>
+                  <MySelect
+                    borderRadius={'md'}
+                    list={chunkTriggerSelectList}
+                    value={chunkTriggerType}
+                    onChange={(e) => {
+                      setValue('chunkTriggerType', e);
+                    }}
+                  />
+                </Box>
+                {chunkTriggerType === ChunkTriggerConfigTypeEnum.minSize && (
+                  <Box flex={'1 0 0'}>
+                    <MyNumberInput
+                      h={'34px'}
+                      inputFieldProps={{ bg: 'white' }}
+                      min={100}
+                      max={100000}
+                      register={register}
+                      name={'chunkTriggerMinSize'}
+                      step={100}
+                    />
+                  </Box>
+                )}
+              </HStack>
+            </Box>
+          )}
+        </>
+      )}
+
+      <Grid
+        mt={isImportWorkbench ? 0 : 6}
+        gridTemplateColumns={
+          isImportWorkbench ? ['minmax(0, 1fr)', '220px minmax(0, 1fr)'] : 'minmax(0, 1fr)'
+        }
+        gap={isImportWorkbench ? [3, 8] : 0}
+        pt={isImportWorkbench ? 6 : 0}
+        pb={isImportWorkbench ? 6 : 0}
+        borderBottom={isImportWorkbench ? '1px solid' : 'none'}
+        borderColor={'borderColor.base'}
+      >
+        <Box minW={0} mb={isImportWorkbench ? 0 : 2}>
+          <Box fontSize={'sm'} fontWeight={isImportWorkbench ? 700 : 400} color={'myGray.800'}>
+            {t('dataset:enhanced_indexes')}
+          </Box>
+          {isImportWorkbench && (
+            <Box mt={1} color={'myGray.600'} fontSize={'xs'} lineHeight={1.6}>
+              {t('dataset:import_enhanced_indexes_desc')}
+            </Box>
+          )}
         </Box>
-        <Grid gridTemplateColumns={'1fr 1fr'} rowGap={[2, 4]} columnGap={[3, 7]}>
+        <Grid
+          gridTemplateColumns={
+            isImportWorkbench ? ['minmax(0, 1fr)', 'repeat(2, minmax(0, 1fr))'] : '1fr 1fr'
+          }
+          rowGap={isImportWorkbench ? 3 : [2, 4]}
+          columnGap={isImportWorkbench ? 4 : [3, 7]}
+          py={isImportWorkbench ? 1 : 0}
+        >
           <HStack flex={'1'} spacing={1}>
             <Checkbox isChecked={indexPrefixTitle} {...register('indexPrefixTitle')}>
               <FormLabel>{t('dataset:index_prefix_title')}</FormLabel>
@@ -332,10 +428,24 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
               </>
             )}
         </Grid>
-      </Box>
-      <Box mt={6}>
-        <Box fontSize={'sm'} mb={2} color={'myGray.600'}>
-          {t('dataset:chunk_process_params')}
+      </Grid>
+      <Grid
+        mt={isImportWorkbench ? 0 : 6}
+        gridTemplateColumns={
+          isImportWorkbench ? ['minmax(0, 1fr)', '220px minmax(0, 1fr)'] : 'minmax(0, 1fr)'
+        }
+        gap={isImportWorkbench ? [3, 8] : 0}
+        pt={isImportWorkbench ? 6 : 0}
+      >
+        <Box minW={0} mb={isImportWorkbench ? 0 : 2}>
+          <Box fontSize={'sm'} fontWeight={isImportWorkbench ? 700 : 400} color={'myGray.800'}>
+            {t('dataset:chunk_process_params')}
+          </Box>
+          {isImportWorkbench && (
+            <Box mt={1} color={'myGray.600'} fontSize={'xs'} lineHeight={1.6}>
+              {t('dataset:import_chunk_params_desc')}
+            </Box>
+          )}
         </Box>
         <LeftRadio<ChunkSettingModeEnum>
           list={[
@@ -376,12 +486,20 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                     />
 
                     {chunkSplitMode === DataChunkSplitModeEnum.paragraph && (
-                      <>
-                        <Box mt={3} fontSize={'sm'}>
+                      <Grid
+                        mt={4}
+                        gridTemplateColumns={
+                          isImportWorkbench
+                            ? ['minmax(0, 1fr)', 'repeat(3, minmax(0, 1fr))']
+                            : 'minmax(0, 1fr)'
+                        }
+                        gap={3}
+                      >
+                        <Box fontSize={'sm'}>
                           <Box mb={1}>{t('dataset:llm_paragraph_mode')}</Box>
                           <MySelect<ParagraphChunkAIModeEnum>
                             size={'sm'}
-                            bg={'myGray.50'}
+                            bg={isImportWorkbench ? 'white' : 'myGray.50'}
                             value={paragraphChunkAIMode}
                             onChange={(e) => {
                               setValue('paragraphChunkAIMode', e);
@@ -405,11 +523,12 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                             ]}
                           />
                         </Box>
-                        <Box mt={2} fontSize={'sm'}>
+                        <Box fontSize={'sm'}>
                           <Box mb={1}>{t('dataset:paragraph_max_deep')}</Box>
                           <MyNumberInput
                             size={'sm'}
-                            bg={'myGray.50'}
+                            bg={isImportWorkbench ? 'white' : 'myGray.50'}
+                            inputFieldProps={isImportWorkbench ? { bg: 'white' } : undefined}
                             register={register}
                             name={'paragraphChunkDeep'}
                             min={1}
@@ -418,7 +537,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                             h={'32px'}
                           />
                         </Box>
-                        <Box mt={2} fontSize={'sm'}>
+                        <Box fontSize={'sm'}>
                           <Box mb={1}>{t('dataset:max_chunk_size')}</Box>
                           <Box
                             css={{
@@ -440,15 +559,16 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                                 max={maxChunkSize}
                                 size={'sm'}
                                 step={100}
+                                inputFieldProps={isImportWorkbench ? { bg: 'white' } : undefined}
                               />
                             </MyTooltip>
                           </Box>
                         </Box>
-                      </>
+                      </Grid>
                     )}
 
                     {chunkSplitMode === DataChunkSplitModeEnum.size && (
-                      <Box mt={3} fontSize={'sm'}>
+                      <Box mt={4} maxW={isImportWorkbench ? '320px' : undefined} fontSize={'sm'}>
                         <Box>{t('dataset:chunk_size')}</Box>
                         <Box
                           css={{
@@ -470,6 +590,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                               max={maxChunkSize}
                               size={'sm'}
                               step={100}
+                              inputFieldProps={isImportWorkbench ? { bg: 'white' } : undefined}
                             />
                           </MyTooltip>
                         </Box>
@@ -484,7 +605,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                             <MySelect<string>
                               list={customSplitList}
                               size={'sm'}
-                              bg={'myGray.50'}
+                              bg={isImportWorkbench ? 'white' : 'myGray.50'}
                               value={customListSelectValue}
                               h={'32px'}
                               onChange={(val) => {
@@ -502,7 +623,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                               flex={'1 0 0'}
                               h={'32px'}
                               size={'sm'}
-                              bg={'myGray.50'}
+                              bg={isImportWorkbench ? 'white' : 'myGray.50'}
                               placeholder="\n;======;==SPLIT=="
                               {...register('chunkSplitter')}
                             />
@@ -513,14 +634,20 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                   </Box>
 
                   {trainingType === DatasetCollectionDataProcessModeEnum.chunk && (
-                    <Box fontSize={'sm'} mt={2}>
+                    <Box
+                      fontSize={'sm'}
+                      mt={4}
+                      pt={4}
+                      borderTop={'1px solid'}
+                      borderColor={'borderColor.base'}
+                    >
                       <Flex alignItems={'center'}>
                         <Box>{t('dataset:index_size')}</Box>
                         <QuestionTip label={t('dataset:index_size_tips')} />
                       </Flex>
-                      <Box>
+                      <Box maxW={isImportWorkbench ? '320px' : undefined} mt={1}>
                         <MySelect<number>
-                          bg={'myGray.50'}
+                          bg={isImportWorkbench ? 'white' : 'myGray.50'}
                           list={indexSizeSeletorList}
                           value={indexSize}
                           onChange={(val) => {
@@ -538,7 +665,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                         position={'relative'}
                         py={2}
                         px={3}
-                        bg={'myGray.50'}
+                        bg={isImportWorkbench ? 'white' : 'myGray.50'}
                         fontSize={'xs'}
                         whiteSpace={'pre-wrap'}
                         border={'1px'}
@@ -586,18 +713,22 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
               )
             }
           ]}
-          gridGap={3}
+          gridGap={isImportWorkbench ? 0 : 3}
+          gridTemplateColumns={isImportWorkbench ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)'}
           px={3}
           py={3}
+          borderBottom={isImportWorkbench ? '1px solid' : 'none'}
+          borderColor={'borderColor.base'}
           defaultBg="white"
-          activeBg="white"
+          activeBg={'white'}
+          variant={isImportWorkbench ? 'underline' : 'card'}
           value={chunkSettingMode}
           w={'100%'}
           onChange={(e) => {
             setValue('chunkSettingMode', e);
           }}
         />
-      </Box>
+      </Grid>
       {isOpenCustomPrompt && (
         <PromptTextarea
           defaultValue={qaPrompt}

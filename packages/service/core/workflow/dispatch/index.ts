@@ -67,6 +67,7 @@ import { observeWorkflowRun, observeWorkflowStep } from '../metrics';
 import { withActiveSpan } from '../../../common/tracing';
 import { delAgentRuntimeStopSign, shouldWorkflowStop } from './workflowStatus';
 import { runWithContext } from '../utils/context';
+import { assertTeamActive } from '../../../support/user/team/status';
 
 const logger = getLogger(LogCategories.MODULE.WORKFLOW.DISPATCH);
 
@@ -1521,6 +1522,7 @@ export const runWorkflow = async (data: RunWorkflowProps): Promise<DispatchFlowR
   // Over max depth
   data.workflowDispatchDeep++;
   const isRootRuntime = data.workflowDispatchDeep === 1;
+  if (isRootRuntime) await assertTeamActive(data.runningAppInfo.teamId);
   if (data.workflowDispatchDeep > 20) {
     return {
       flowResponses: [],

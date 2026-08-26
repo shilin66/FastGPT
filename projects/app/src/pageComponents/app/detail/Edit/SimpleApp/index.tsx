@@ -13,6 +13,7 @@ import { form2AppWorkflow, appWorkflow2Form } from './utils';
 import PublishChannel from '../../Publish';
 import Logs from '../../Logs';
 import Edit from './Edit';
+import { detailPageBg } from '../../DetailVisual';
 
 const SimpleEdit = () => {
   const { t } = useTranslation();
@@ -70,7 +71,7 @@ const SimpleEdit = () => {
   );
 
   return (
-    <Flex h={'100%'} flexDirection={'column'} px={[3, 0]} pr={[3, 3]}>
+    <Flex h={'100%'} flexDirection={'column'} px={[3, 4]} bg={detailPageBg}>
       <Header
         appForm={appForm}
         forbiddenSaveSnapshot={forbiddenSaveSnapshot}
@@ -84,7 +85,7 @@ const SimpleEdit = () => {
       {currentTab === TabEnum.appEdit ? (
         <Edit appForm={appForm} setAppForm={setAppForm} setPast={setPast} />
       ) : (
-        <Box flex={'1 0 0'} h={0} mt={[4, 0]} mb={[2, 4]} bg={'white'} borderRadius={'lg'}>
+        <Box flex={'1 0 0'} h={0} mt={[4, 0]} mb={[2, 4]}>
           {currentTab === TabEnum.publish && <PublishChannel />}
           {currentTab === TabEnum.logs && <Logs />}
         </Box>

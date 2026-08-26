@@ -48,11 +48,29 @@ const RenderToolInput = ({
 
   return (
     <>
-      <HStack mb={2} justifyContent={'space-between'}>
-        <IOTitle text={t('workflow:tool_input')} mb={0} />
+      <HStack
+        mb={3}
+        justifyContent={'space-between'}
+        px={3}
+        py={2}
+        bg={'rgba(248, 250, 252, 0.92)'}
+        border={'1px solid rgba(148, 163, 184, 0.18)'}
+        borderRadius={'12px'}
+      >
+        <IOTitle
+          text={t('workflow:tool_input')}
+          mb={0}
+          mx={0}
+          mt={0}
+          px={0}
+          py={0}
+          minH={'auto'}
+          bg={'transparent'}
+          borderBottom={'0'}
+        />
         {dynamicInput && (
           <Button
-            variant={'whiteBase'}
+            variant={'whitePrimary'}
             leftIcon={<SmallAddIcon />}
             iconSpacing={1}
             size={'sm'}
@@ -63,7 +81,12 @@ const RenderToolInput = ({
         )}
       </HStack>
 
-      <Box borderRadius={'md'} overflow={'hidden'} border={'base'}>
+      <Box
+        borderRadius={'14px'}
+        overflow={'hidden'}
+        border={'1px solid rgba(148, 163, 184, 0.22)'}
+        boxShadow={'0 12px 28px rgba(15, 23, 42, 0.04)'}
+      >
         <TableContainer>
           <Table bg={'white'}>
             <Thead>

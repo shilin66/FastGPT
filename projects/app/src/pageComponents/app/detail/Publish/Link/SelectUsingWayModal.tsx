@@ -2,7 +2,7 @@ import { type OutLinkSchemaType } from '@fastgpt/global/support/outLink/type';
 import React, { useCallback, useState } from 'react';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import { useTranslation } from 'next-i18next';
-import { Box, Flex, type FlexProps, Grid, ModalBody, Switch, useTheme } from '@chakra-ui/react';
+import { Box, Flex, type FlexProps, Grid, Switch } from '@chakra-ui/react';
 import MyRadio from '@/components/common/MyRadio';
 import { useForm } from 'react-hook-form';
 import MyIcon from '@fastgpt/web/components/common/Icon';
@@ -12,6 +12,7 @@ import { fileToBase64 } from '@/web/common/file/utils';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import MyImage from '@fastgpt/web/components/common/Image/MyImage';
 import { subRoute } from '@fastgpt/web/common/system/utils';
+import { OmniModalBody, OmniModalSection } from '../../components/OmniModalLayout';
 
 enum UsingWayEnum {
   link = 'link',
@@ -27,7 +28,6 @@ const SelectUsingWayModal = ({
   onClose: () => void;
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
   const { copyData } = useCopyData();
   const { File, onOpen } = useSelectFile({
     multiple: false,
@@ -117,10 +117,11 @@ const SelectUsingWayModal = ({
 
   const gridItemStyle: FlexProps = {
     alignItems: 'center',
-    bg: 'myWhite.600',
-    p: 2,
-    borderRadius: 'md',
-    border: theme.borders.sm
+    bg: 'white',
+    p: 3,
+    borderRadius: '12px',
+    border: '1px solid rgba(148, 163, 184, 0.2)',
+    minH: '44px'
   };
 
   return (
@@ -130,94 +131,140 @@ const SelectUsingWayModal = ({
       iconSrc="/imgs/modal/usingWay.svg"
       title={t('common:core.app.outLink.Select Using Way')}
       onClose={onClose}
-      maxW={['90vw', '700px']}
+      maxW={['92vw', '860px']}
     >
-      <ModalBody py={4}>
-        <MyRadio
-          gridGap={2}
-          gridTemplateColumns={['repeat(1,1fr)', 'repeat(3,1fr)']}
-          value={getValues('usingWay')}
-          list={VariableTypeList}
-          hiddenCircle
-          p={0}
-          onChange={(e) => {
-            setValue('usingWay', e);
-          }}
-        />
-
-        {/* config */}
-        <Grid
-          gridTemplateColumns={['repeat(2,1fr)', 'repeat(3,1fr)']}
-          gridGap={4}
-          my={5}
-          fontSize={'sm'}
+      <OmniModalBody
+        icon="common/link"
+        title={t('common:core.app.outLink.Select Using Way')}
+        desc={wayMap[getValues('usingWay')].blockTitle}
+        asideItems={[
+          {
+            label: t('common:core.app.outLink.Select Using Way'),
+            desc: wayMap[getValues('usingWay')].blockTitle,
+            icon: 'common/link'
+          },
+          {
+            label: t('common:core.app.outLink.Show History'),
+            desc: linkUrl,
+            icon: 'common/setting'
+          }
+        ]}
+        minH={['auto', '560px']}
+      >
+        <OmniModalSection
+          title={t('common:core.app.outLink.Select Using Way')}
+          desc={wayMap[getValues('usingWay')].blockTitle}
         >
-          <Flex {...gridItemStyle}>
-            <Box flex={1}>{t('common:core.app.outLink.Show History')}</Box>
-            <Switch {...register('showHistory')} />
-          </Flex>
-          {getValues('usingWay') === UsingWayEnum.script && (
-            <>
-              <Flex {...gridItemStyle}>
-                <Box flex={1}>{t('common:core.app.outLink.Can Drag')}</Box>
-                <Switch {...register('scriptIconCanDrag')} />
-              </Flex>
-              <Flex {...gridItemStyle}>
-                <Box flex={1}>{t('common:core.app.outLink.Default open')}</Box>
-                <Switch {...register('scriptDefaultOpen')} />
-              </Flex>
-              <Flex {...gridItemStyle}>
-                <Box flex={1}>{t('common:core.app.outLink.Script Open Icon')}</Box>
-                <MyImage
-                  src={getValues('scriptOpenIcon')}
-                  alt={''}
-                  w={'20px'}
-                  h={'20px'}
-                  cursor={'pointer'}
-                  onClick={() => onOpen('scriptOpenIcon')}
-                />
-              </Flex>
-              <Flex {...gridItemStyle}>
-                <Box flex={1}>{t('common:core.app.outLink.Script Close Icon')}</Box>
-                <MyImage
-                  src={getValues('scriptCloseIcon')}
-                  alt={''}
-                  w={'20px'}
-                  h={'20px'}
-                  cursor={'pointer'}
-                  onClick={() => onOpen('scriptCloseIcon')}
-                />
-              </Flex>
-            </>
-          )}
-        </Grid>
+          <MyRadio
+            gridGap={3}
+            gridTemplateColumns={['repeat(1,1fr)', 'repeat(3,1fr)']}
+            value={getValues('usingWay')}
+            list={VariableTypeList}
+            hiddenCircle
+            p={0}
+            onChange={(e) => {
+              setValue('usingWay', e);
+            }}
+          />
+        </OmniModalSection>
 
-        {/* code */}
-        <Box borderRadius={'md'} bg={'myGray.100'} overflow={'hidden'} fontSize={'sm'}>
-          <Flex
-            p={3}
-            bg={'myWhite.500'}
-            border={theme.borders.base}
-            borderTopLeftRadius={'md'}
-            borderTopRightRadius={'md'}
+        <OmniModalSection title={t('common:Setting')} desc={linkUrl}>
+          <Grid
+            gridTemplateColumns={['1fr', 'repeat(3, minmax(0, 1fr))']}
+            gridGap={3}
+            fontSize={'sm'}
           >
-            <Box flex={1}>{wayMap[getValues('usingWay')].blockTitle}</Box>
-            <MyIcon
-              name={'copy'}
-              w={'16px'}
-              color={'myGray.600'}
-              cursor={'pointer'}
-              _hover={{ color: 'primary.500' }}
-              onClick={() => {
-                copyData(wayMap[getValues('usingWay')].code);
-              }}
-            />
-          </Flex>
-          <Box whiteSpace={'pre'} p={3} overflowX={'auto'}>
-            {wayMap[getValues('usingWay')].code}
+            <Flex {...gridItemStyle}>
+              <Box flex={1} color={'#1E293B'} fontWeight={700}>
+                {t('common:core.app.outLink.Show History')}
+              </Box>
+              <Switch {...register('showHistory')} />
+            </Flex>
+            {getValues('usingWay') === UsingWayEnum.script && (
+              <>
+                <Flex {...gridItemStyle}>
+                  <Box flex={1} color={'#1E293B'} fontWeight={700}>
+                    {t('common:core.app.outLink.Can Drag')}
+                  </Box>
+                  <Switch {...register('scriptIconCanDrag')} />
+                </Flex>
+                <Flex {...gridItemStyle}>
+                  <Box flex={1} color={'#1E293B'} fontWeight={700}>
+                    {t('common:core.app.outLink.Default open')}
+                  </Box>
+                  <Switch {...register('scriptDefaultOpen')} />
+                </Flex>
+                <Flex {...gridItemStyle}>
+                  <Box flex={1} color={'#1E293B'} fontWeight={700}>
+                    {t('common:core.app.outLink.Script Open Icon')}
+                  </Box>
+                  <MyImage
+                    src={getValues('scriptOpenIcon')}
+                    alt={''}
+                    w={'22px'}
+                    h={'22px'}
+                    cursor={'pointer'}
+                    onClick={() => onOpen('scriptOpenIcon')}
+                  />
+                </Flex>
+                <Flex {...gridItemStyle}>
+                  <Box flex={1} color={'#1E293B'} fontWeight={700}>
+                    {t('common:core.app.outLink.Script Close Icon')}
+                  </Box>
+                  <MyImage
+                    src={getValues('scriptCloseIcon')}
+                    alt={''}
+                    w={'22px'}
+                    h={'22px'}
+                    cursor={'pointer'}
+                    onClick={() => onOpen('scriptCloseIcon')}
+                  />
+                </Flex>
+              </>
+            )}
+          </Grid>
+        </OmniModalSection>
+
+        <OmniModalSection title={wayMap[getValues('usingWay')].blockTitle} desc={linkUrl}>
+          <Box
+            border={'1px solid rgba(37, 99, 235, 0.16)'}
+            borderRadius={'14px'}
+            bg={'white'}
+            overflow={'hidden'}
+            fontSize={'sm'}
+          >
+            <Flex
+              alignItems={'center'}
+              gap={3}
+              px={4}
+              py={3}
+              bg={'#F8FAFC'}
+              borderBottom={'1px solid rgba(148, 163, 184, 0.18)'}
+            >
+              <Box flex={1} color={'#1E293B'} fontWeight={800}>
+                {wayMap[getValues('usingWay')].blockTitle}
+              </Box>
+              <MyIcon
+                name={'copy'}
+                w={'30px'}
+                h={'30px'}
+                p={2}
+                borderRadius={'10px'}
+                bg={'rgba(37, 99, 235, 0.08)'}
+                color={'#2563EB'}
+                cursor={'pointer'}
+                _hover={{ bg: 'rgba(37, 99, 235, 0.14)' }}
+                onClick={() => {
+                  copyData(wayMap[getValues('usingWay')].code);
+                }}
+              />
+            </Flex>
+            <Box whiteSpace={'pre'} p={4} overflowX={'auto'} color={'#334155'}>
+              {wayMap[getValues('usingWay')].code}
+            </Box>
           </Box>
-        </Box>
-      </ModalBody>
+        </OmniModalSection>
+      </OmniModalBody>
 
       <File onSelect={selectFile} />
     </MyModal>

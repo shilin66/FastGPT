@@ -25,10 +25,11 @@ import { useSystemStore } from '@/web/common/system/useSystemStore';
 import dayjs from 'dayjs';
 import dynamic from 'next/dynamic';
 import MyMenu from '@fastgpt/web/components/common/MyMenu';
-import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { getDocPath } from '@/web/common/system/doc';
 import { listCustomDomain } from '@/web/support/customDomain/api';
+import PublishCreateButton from '../components/PublishCreateButton';
+import PublishEmptyState from '../components/PublishEmptyState';
 
 const WecomEditModal = dynamic(() => import('./WecomEditModal'));
 const ShowShareLinkModal = dynamic(() => import('../components/showShareLinkModal'));
@@ -67,7 +68,7 @@ const Wecom = ({ appId }: { appId: string }) => {
   // });
 
   return (
-    <Box position={'relative'} pt={3} px={5} minH={'50vh'}>
+    <Box position={'relative'} minH={0}>
       <Flex justifyContent={'space-between'} flexDirection="row">
         <Flex alignItems={'center'}>
           <Box fontWeight={'bold'} fontSize={['md', 'lg']}>
@@ -100,11 +101,7 @@ const Wecom = ({ appId }: { appId: string }) => {
           {/*    {t('publish:custom_domain_management')}*/}
           {/*  </Button>*/}
           {/*)}*/}
-          <Button
-            variant={'primary'}
-            colorScheme={'blue'}
-            size={['sm', 'md']}
-            leftIcon={<MyIcon name={'common/addLight'} w="1.25rem" color="white" />}
+          <PublishCreateButton
             {...(shareChatList.length >= 10
               ? {
                   isDisabled: true,
@@ -116,8 +113,8 @@ const Wecom = ({ appId }: { appId: string }) => {
               setIsEdit(false);
             }}
           >
-            {t('common:add_new')}
-          </Button>
+            {t('common:new_create')}
+          </PublishCreateButton>
         </Flex>
       </Flex>
       <TableContainer mt={3}>
@@ -270,6 +267,9 @@ const Wecom = ({ appId }: { appId: string }) => {
       {/*        })}*/}
       {/*  />*/}
       {/*)}*/}
+      {shareChatList.length === 0 && !isFetching && (
+        <PublishEmptyState text={t('common:core.app.share.Not share link')} />
+      )}
       <Loading loading={isFetching} fixed={false} />
       {showShareLinkModalOpen && (
         <ShowShareLinkModal

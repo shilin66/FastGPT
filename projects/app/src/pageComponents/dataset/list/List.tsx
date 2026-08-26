@@ -31,6 +31,7 @@ import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import SideTag from './SideTag';
 import UserBox from '@fastgpt/web/components/common/UserBox';
 import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const EditResourceModal = dynamic(() => import('@/components/common/Modal/EditResourceModal'));
 
@@ -138,10 +139,10 @@ function List() {
           py={4}
           gridTemplateColumns={
             folderDetail
-              ? ['1fr', 'repeat(2,1fr)', 'repeat(2,1fr)', 'repeat(3,1fr)']
-              : ['1fr', 'repeat(2,1fr)', 'repeat(3,1fr)', 'repeat(3,1fr)', 'repeat(4,1fr)']
+              ? ['1fr', 'repeat(2,1fr)', 'repeat(2,1fr)', 'repeat(3,1fr)', 'repeat(4,1fr)']
+              : ['1fr', 'repeat(2,1fr)', 'repeat(3,1fr)', 'repeat(4,1fr)', 'repeat(4,1fr)']
           }
-          gridGap={5}
+          gridGap={4}
           alignItems={'stretch'}
         >
           {formatDatasets.map((dataset, index) => {
@@ -165,24 +166,27 @@ function List() {
                   flexDirection={'column'}
                   lineHeight={1.5}
                   h="100%"
-                  pt={5}
+                  pt={3}
                   pb={3}
-                  px={5}
+                  pl={5}
+                  pr={4}
                   cursor={'pointer'}
-                  borderWidth={1.5}
-                  border={'base'}
-                  boxShadow={'2'}
+                  border={'1px solid'}
+                  borderColor={omniTheme.colors.border}
                   bg={'white'}
-                  borderRadius={'lg'}
+                  borderRadius={'12px'}
                   position={'relative'}
-                  minH={'150px'}
+                  overflow={'hidden'}
+                  minH={'156px'}
+                  transition={'all 0.18s ease'}
                   {...getBoxProps({
                     dataId: dataset._id,
                     isFolder: dataset.type === DatasetTypeEnum.folder
                   })}
                   _hover={{
-                    borderColor: 'primary.300',
-                    boxShadow: '1.5',
+                    borderColor: omniTheme.colors.saturatedBlue,
+                    boxShadow: omniTheme.shadows.card,
+                    transform: 'translateY(-1px)',
                     '& .delete': {
                       display: 'block'
                     },
@@ -212,32 +216,49 @@ function List() {
                     }
                   }}
                 >
-                  <Flex w="100%">
-                    <Avatar src={dataset.avatar} borderRadius={6} w={'28px'} flexShrink={0} />
-                    <Box width="0" flex="1" className="textEllipsis" color={'myGray.900'} ml={2}>
-                      {dataset.name}
-                    </Box>
-
-                    {dataset.type !== DatasetTypeEnum.folder && (
-                      <Box flexShrink={0} mr={-5}>
-                        <SideTag
-                          type={dataset.type}
-                          py={0.5}
-                          px={2}
-                          borderLeftRadius={'sm'}
-                          borderRightRadius={0}
-                        />
+                  <Flex
+                    position={'relative'}
+                    zIndex={1}
+                    alignItems={'center'}
+                    gap={3}
+                    pb={2.5}
+                    borderBottom={'1px solid #EDF1F6'}
+                  >
+                    <Box minW={0} flex={1}>
+                      <Box
+                        width="100%"
+                        className="textEllipsis"
+                        color={omniTheme.colors.text}
+                        fontSize={'sm'}
+                        fontWeight={800}
+                      >
+                        {dataset.name}
                       </Box>
-                    )}
+                      {dataset.type !== DatasetTypeEnum.folder && (
+                        <Box mt={1} display={'inline-flex'}>
+                          <SideTag type={dataset.type} py={0.5} px={2} borderRadius={'7px'} />
+                        </Box>
+                      )}
+                    </Box>
+                    <Avatar
+                      src={dataset.avatar}
+                      borderRadius={'8px'}
+                      w={'30px'}
+                      h={'30px'}
+                      flexShrink={0}
+                    />
                   </Flex>
 
                   <Box
-                    flex={1}
-                    className={'textEllipsis3'}
+                    position={'relative'}
+                    zIndex={1}
+                    flex={'0 0 38px'}
+                    className={'textEllipsis2'}
                     whiteSpace={'pre-wrap'}
-                    py={3}
+                    mt={3}
                     fontSize={'xs'}
-                    color={'myGray.500'}
+                    lineHeight={1.45}
+                    color={omniTheme.colors.muted}
                   >
                     {dataset.intro ||
                       (dataset.type === DatasetTypeEnum.folder
@@ -245,37 +266,41 @@ function List() {
                         : t('common:core.dataset.Intro Placeholder'))}
                   </Box>
 
-                  <Flex
-                    h={'24px'}
-                    alignItems={'center'}
-                    justifyContent={'space-between'}
-                    fontSize={'sm'}
-                    fontWeight={500}
-                    color={'myGray.500'}
+                  <Grid
+                    position={'relative'}
+                    zIndex={1}
+                    mt={'auto'}
+                    pt={2.5}
+                    borderTop={'1px solid #EDF1F6'}
+                    gridTemplateColumns={'repeat(3, minmax(0, 1fr))'}
+                    gap={2}
                   >
-                    <HStack spacing={3.5}>
+                    <Box minW={0} minH={'28px'} alignContent={'center'} px={0}>
                       <UserBox
                         sourceMember={dataset.sourceMember}
                         fontSize="xs"
                         avatarSize="1rem"
                         spacing={0.5}
                       />
+                    </Box>
+                    <Box minW={0} minH={'28px'} alignContent={'center'} px={0}>
                       <PermissionIconText
                         flexShrink={0}
                         private={dataset.private}
                         iconColor="myGray.400"
                         color={'myGray.500'}
                       />
-                    </HStack>
-
-                    <HStack>
+                    </Box>
+                    <HStack minW={0} minH={'28px'} px={0} justifyContent={'space-between'}>
                       {isPc && dataset.type !== DatasetTypeEnum.folder && (
-                        <HStack spacing={1} className="time">
-                          <Avatar src={vectorModelAvatar} w={'0.85rem'} />
-                          <Box color={'myGray.500'} fontSize={'mini'}>
-                            {dataset.vectorModel.name}
-                          </Box>
-                        </HStack>
+                        <Box minW={0}>
+                          <HStack spacing={1} className="time">
+                            <Avatar src={vectorModelAvatar} w={'0.85rem'} />
+                            <Box color={'myGray.500'} fontSize={'xs'} className={'textEllipsis'}>
+                              {dataset.vectorModel.name}
+                            </Box>
+                          </HStack>
+                        </Box>
                       )}
                       {(dataset.type === DatasetTypeEnum.folder
                         ? dataset.permission.hasManagePer
@@ -294,6 +319,32 @@ function List() {
                           }}
                         >
                           <MyMenu
+                            trigger={'click'}
+                            placement={'bottom-end'}
+                            width={176}
+                            offset={[0, 8]}
+                            usePortal
+                            menuListStyles={{
+                              p: 2,
+                              border: '1px solid',
+                              borderColor: omniTheme.colors.border,
+                              borderRadius: '12px',
+                              boxShadow: '0 18px 44px -28px rgba(31, 41, 55, 0.26)',
+                              bg: 'white',
+                              zIndex: 1600
+                            }}
+                            menuItemStyles={{
+                              minH: '36px',
+                              borderRadius: '10px',
+                              px: 3,
+                              fontWeight: 700,
+                              _hover: {
+                                bg: '#EEF4FF'
+                              },
+                              _focus: {
+                                bg: '#EEF4FF'
+                              }
+                            }}
                             Button={
                               <Box w={'22px'} h={'22px'}>
                                 <MyIcon
@@ -389,7 +440,7 @@ function List() {
                         </Box>
                       )}
                     </HStack>
-                  </Flex>
+                  </Grid>
                 </MyBox>
               </MyTooltip>
             );

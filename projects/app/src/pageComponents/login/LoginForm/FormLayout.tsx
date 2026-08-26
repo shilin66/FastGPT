@@ -1,6 +1,6 @@
 import { LoginPageTypeEnum } from '@/web/support/user/login/constants';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
-import { AbsoluteCenter, Box, Flex, Grid, IconButton, GridItem, Button } from '@chakra-ui/react';
+import { Box, Flex, IconButton } from '@chakra-ui/react';
 import { LOGO_ICON } from '@fastgpt/global/common/system/constants';
 import { OAuthEnum } from '@fastgpt/global/support/user/constant';
 import { useRouter } from 'next/router';
@@ -15,6 +15,8 @@ import Avatar from '@fastgpt/web/components/common/Avatar';
 import dynamic from 'next/dynamic';
 import { POST } from '@/web/common/api/request';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
+import { OMNICOCKPIT_NAME } from '@/web/common/brand/constants';
+import { omniTheme } from '@/web/common/brand/theme';
 
 type Props = {
   children: React.ReactNode;
@@ -198,74 +200,71 @@ const FormLayout = ({ children, setPageType, pageType }: Props) => {
   ]);
 
   return (
-    <Flex flexDirection={'column'} h={'100%'}>
-      <Flex alignItems={'center'} justifyContent={['space-between', 'center']}>
-        <Flex alignItems={'center'} pr="4">
+    <Flex flexDirection="column" h={isPc ? 'auto' : '100%'}>
+      <Flex alignItems="center" justifyContent={isPc ? 'flex-start' : 'space-between'}>
+        <Flex alignItems="center" gap={isPc ? '10px' : 0} pr="4">
           <Flex
-            w={['42px', '56px']}
-            h={['42px', '56px']}
-            bg={'myGray.25'}
-            borderRadius={['semilg', 'lg']}
-            borderWidth={['1px', '1.5px']}
-            borderColor={'myGray.200'}
-            alignItems={'center'}
-            justifyContent={'center'}
+            w="42px"
+            h="42px"
+            bg={omniTheme.colors.pageBg}
+            borderRadius={isPc ? '11px' : 'semilg'}
+            borderWidth="1px"
+            borderColor={omniTheme.colors.border}
+            alignItems="center"
+            justifyContent="center"
+            boxShadow={`inset 0 0 0 1px ${omniTheme.colors.surface}`}
           >
-            <MyImage src={LOGO_ICON} w={['22.5px', '36px']} alt={'icon'} />
+            <MyImage src={LOGO_ICON} w={isPc ? '24px' : '22.5px'} alt="icon" />
           </Flex>
-          <Box ml={[3, 5]} fontSize={['lg', 'xl']} fontWeight={'bold'} color={'myGray.900'}>
-            {feConfigs?.systemTitle}
+          <Box
+            ml={isPc ? 0 : 3}
+            fontSize={isPc ? '15px' : 'lg'}
+            fontWeight={isPc ? 750 : 'bold'}
+            color={omniTheme.colors.text}
+          >
+            {feConfigs?.systemTitle || OMNICOCKPIT_NAME}
           </Box>
         </Flex>
         {!isPc && <I18nLngSelector />}
       </Flex>
       {children}
       {show_oauth && (
-        <Box mt={['80px', 9]}>
-          <Box flex={1} />
-
-          <Flex position={'relative'} mb={5} alignItems={'center'}>
-            <Box h={'1px'} flex={'1'} bg={'myGray.250'} />
-            <Box px={3} color={'myGray.500'} fontSize={'mini'}>
-              or
+        <Box mt={isPc ? '22px' : '80px'}>
+          <Flex
+            position="relative"
+            mb={isPc ? '15px' : 5}
+            alignItems="center"
+            gap={isPc ? '10px' : 0}
+          >
+            <Box h="1px" flex="1" bg={omniTheme.colors.border} />
+            <Box px={isPc ? 0 : 3} color="myGray.500" fontSize={isPc ? '10px' : 'mini'}>
+              {isPc ? t('login:other_login_methods') : 'or'}
             </Box>
-            <Box h={'1px'} flex={'1'} bg={'myGray.250'} />
+            <Box h="1px" flex="1" bg={omniTheme.colors.border} />
           </Flex>
 
-          {oAuthList.length > 2 ? (
-            <Flex gap={4} alignItems={'center'} justifyContent={'center'}>
-              {oAuthList.map((item) => (
-                <MyTooltip key={item.provider}>
-                  <IconButton
-                    size={'lgSquare'}
-                    borderRadius={'50%'}
-                    aria-label={item.label}
-                    variant={'whitePrimary'}
-                    icon={<Avatar src={item.icon as any} w={'20px'} />}
-                    onClick={() => onClickOauth(item)}
-                  />
-                </MyTooltip>
-              ))}
-            </Flex>
-          ) : (
-            <Flex gap={4} alignItems={'center'} justifyContent={'center'}>
-              {oAuthList.map((item) => (
-                <Box key={item.provider} flex={1}>
-                  <Button
-                    variant={'whitePrimary'}
-                    w={'100%'}
-                    h={'40px'}
-                    borderRadius={'sm'}
-                    fontWeight={'medium'}
-                    leftIcon={<Avatar src={item.icon as any} w={'20px'} />}
-                    onClick={() => onClickOauth(item)}
-                  >
-                    {item.label}
-                  </Button>
-                </Box>
-              ))}
-            </Flex>
-          )}
+          <Flex gap={isPc ? '10px' : 4} alignItems="center" justifyContent="center">
+            {oAuthList.map((item) => (
+              <MyTooltip key={item.provider} label={item.label}>
+                <IconButton
+                  minW={isPc ? '38px' : undefined}
+                  size={isPc ? undefined : 'lgSquare'}
+                  w={isPc ? '38px' : 'clamp(40px, 2.8vw, 52px)'}
+                  h={isPc ? '38px' : 'clamp(40px, 2.8vw, 52px)'}
+                  borderRadius="50%"
+                  aria-label={item.label}
+                  variant={'whitePrimary'}
+                  border="1px solid"
+                  borderColor={omniTheme.colors.border}
+                  bg={omniTheme.colors.surface}
+                  _hover={{ bg: omniTheme.colors.pageBg, borderColor: omniTheme.login.blueLight }}
+                  _focusVisible={{ boxShadow: omniTheme.login.focusRing }}
+                  icon={<Avatar src={item.icon as any} w={isPc ? '18px' : '20px'} />}
+                  onClick={() => onClickOauth(item)}
+                />
+              </MyTooltip>
+            ))}
+          </Flex>
         </Box>
       )}
     </Flex>

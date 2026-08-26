@@ -76,17 +76,47 @@ const MyModal = ({
       closeOnOverlayClick={closeOnOverlayClick}
       returnFocusOnClose={false}
     >
-      <ModalOverlay zIndex={props.zIndex} />
+      <ModalOverlay
+        zIndex={props.zIndex}
+        bg={'rgba(15, 23, 42, 0.42)'}
+        backdropFilter={'blur(4px)'}
+      />
       <ModalContent
         w={sizeData.w}
         maxW={'90vw'}
         position={'relative'}
         maxH={'80vh'}
-        boxShadow={'3.5'}
+        bg={'white'}
+        border={'1px solid'}
+        borderColor={'rgba(37, 99, 235, 0.16)'}
+        borderRadius={'18px'}
+        boxShadow={'0 28px 80px rgba(15, 23, 42, 0.22)'}
+        overflow={'hidden'}
         px={contentPx}
         py={contentPy}
         containerProps={{
           zIndex: props.zIndex
+        }}
+        sx={{
+          '.chakra-modal__body': {
+            bg: '#F8FAFC'
+          },
+          '.chakra-modal__footer': {
+            bg: 'white',
+            borderTop: '1px solid rgba(148, 163, 184, 0.22)',
+            px: 0,
+            pt: 4,
+            pb: 0
+          },
+          '.chakra-modal__close-btn': {
+            borderRadius: '10px',
+            color: '#64748B',
+            transition: 'all .18s ease',
+            _hover: {
+              bg: 'rgba(37, 99, 235, 0.08)',
+              color: '#2563EB'
+            }
+          }
         }}
         {...props}
       >
@@ -109,12 +139,12 @@ const MyModal = ({
                   objectFit={'contain'}
                   alt=""
                   src={iconSrc}
-                  w={'20px'}
-                  borderRadius={'sm'}
+                  w={'24px'}
+                  borderRadius={'8px'}
                 />
               </>
             )}
-            <Box color="black" fontWeight={'500'}>
+            <Box color={'#1E293B'} fontWeight={800}>
               {title}
             </Box>
             <Box flex={1} />

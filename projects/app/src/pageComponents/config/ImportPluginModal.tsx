@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Box, Button, Flex, HStack, VStack } from '@chakra-ui/react';
+import { Box, Button, Center, Flex, Grid, IconButton } from '@chakra-ui/react';
 import MyRightDrawer from '@fastgpt/web/components/common/MyDrawer/MyRightDrawer';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useTranslation } from 'react-i18next';
@@ -151,7 +151,7 @@ const ImportPluginModal = ({
         handleBatchUpload(filteredFiles);
       }
     },
-    [handleBatchUpload, t, toast, uploadedFiles]
+    [handleBatchUpload, selectFiles, t, toast, uploadedFiles]
   );
 
   const handleRetry = async (file: UploadedPluginFile) => {
@@ -185,199 +185,255 @@ const ImportPluginModal = ({
     <MyRightDrawer
       onClose={onClose}
       title={t('app:toolkit_import_resource')}
-      maxW={['90vw', '900px']}
-      h={'98%'}
-      mt={'0.5%'}
+      maxW={['94vw', '960px']}
+      h={'100%'}
+      mt={0}
       px={0}
     >
-      <Flex justify={'flex-end'} px={8} pt={4} pb={3}>
-        <Button
-          variant={'link'}
-          size={'sm'}
-          leftIcon={<MyIcon name={'book'} w={'14px'} />}
-          color={'primary.600'}
-          onClick={() => {
-            window.open(
-              getDocPath('/docs/introduction/guide/plugins/upload_system_tool'),
-              '_blank'
-            );
-          }}
-        >
-          {t('common:Instructions')}
-        </Button>
-      </Flex>
-
-      <Box flex={1} px={8} overflow={'auto'}>
+      <Box px={6} py={4} borderBottom={'1px solid'} borderColor={'myGray.200'}>
+        <Flex mb={3} alignItems={'center'} justifyContent={'space-between'} gap={4}>
+          <Box>
+            <Box color={'myGray.900'} fontSize={'sm'} fontWeight={700}>
+              {t('app:toolkit_import_resource')}
+            </Box>
+            <Box mt={0.5} color={'myGray.500'} fontSize={'xs'}>
+              {t('app:toolkit_upload_tip')}
+            </Box>
+          </Box>
+          <Button
+            variant={'whiteBase'}
+            size={'sm'}
+            leftIcon={<MyIcon name={'book'} w={'14px'} />}
+            onClick={() => {
+              window.open(
+                getDocPath('/docs/introduction/guide/plugins/upload_system_tool'),
+                '_blank'
+              );
+            }}
+          >
+            {t('common:Instructions')}
+          </Button>
+        </Flex>
         <FileSelectorBox
           maxCount={100}
           fileType=".pkg"
           selectFiles={selectFiles}
           setSelectFiles={onSelectFiles}
-          h={120}
+          h={96}
         />
+      </Box>
 
-        <Flex
-          w={'full'}
-          fontSize={'12px'}
-          fontWeight={'medium'}
-          borderBottom={'1px solid'}
-          borderColor={'myGray.200'}
-          mt={4}
-        >
-          <Box w={'20%'} px={1} py={'15px'}>
-            {t('common:name')}
+      <Box flex={1} minH={0} px={6} py={5} overflow={'auto'}>
+        <Flex mb={3} alignItems={'center'} justifyContent={'space-between'}>
+          <Box color={'myGray.900'} fontSize={'sm'} fontWeight={700}>
+            {t('app:toolkit_import_queue')}
           </Box>
-          <Box w={'20%'} px={1} py={'15px'}>
-            {t('app:toolkit_tags')}
-          </Box>
-          <Box w={'40%'} px={1} py={'15px'}>
-            {t('common:Intro')}
-          </Box>
-          <Box w={'10%'} px={1} py={'15px'}>
-            {t('common:Status')}
-          </Box>
-          <Box w={'10%'} px={1} py={'15px'}>
-            {t('common:Action')}
+          <Box color={'myGray.500'} fontSize={'xs'}>
+            {uploadedFiles.length}
           </Box>
         </Flex>
 
-        {uploadedFiles.length > 0 && (
-          <VStack mt={1} gap={1}>
-            {uploadedFiles.map((item, index) => (
-              <Flex key={index} w={'full'} fontSize={'12px'}>
-                <Flex w={'20%'} px={1} py={'15px'} align={'center'} gap={2}>
-                  <Avatar src={item.icon} borderRadius={'xs'} w={'20px'} />
-                  <Box
-                    color={'myGray.900'}
-                    overflow={'hidden'}
-                    textOverflow={'ellipsis'}
-                    whiteSpace={'nowrap'}
-                  >
-                    {(item.status === 'success' || item.status === 'duplicate') && item.toolName
-                      ? item.toolName
-                      : item.name}
+        <Box
+          border={'1px solid'}
+          borderColor={'myGray.200'}
+          borderRadius={'md'}
+          overflow={'hidden'}
+        >
+          <Grid
+            gridTemplateColumns={'minmax(280px, 2fr) minmax(150px, 1fr) 130px 84px'}
+            minH={'40px'}
+            px={4}
+            alignItems={'center'}
+            bg={'myGray.50'}
+            borderBottom={uploadedFiles.length > 0 ? '1px solid' : undefined}
+            borderColor={'myGray.200'}
+            color={'myGray.600'}
+            fontSize={'xs'}
+            fontWeight={700}
+          >
+            <Box>{t('common:name')}</Box>
+            <Box>{t('app:toolkit_tags')}</Box>
+            <Box>{t('common:Status')}</Box>
+            <Box textAlign={'center'}>{t('common:Action')}</Box>
+          </Grid>
+
+          {uploadedFiles.length === 0 ? (
+            <Center minH={'180px'} flexDirection={'column'} bg={'white'}>
+              <Flex
+                w={10}
+                h={10}
+                alignItems={'center'}
+                justifyContent={'center'}
+                borderRadius={'md'}
+                bg={'myGray.100'}
+                color={'myGray.600'}
+              >
+                <MyIcon name={'common/uploadFileFill'} w={'20px'} />
+              </Flex>
+              <Box mt={3} color={'myGray.700'} fontSize={'sm'} fontWeight={600}>
+                {t('app:toolkit_import_queue')}
+              </Box>
+              <Box mt={1} color={'myGray.500'} fontSize={'xs'}>
+                {t('app:toolkit_import_resource')}
+              </Box>
+            </Center>
+          ) : (
+            uploadedFiles.map((item) => (
+              <Grid
+                key={item.name}
+                gridTemplateColumns={'minmax(280px, 2fr) minmax(150px, 1fr) 130px 84px'}
+                minH={'68px'}
+                px={4}
+                alignItems={'center'}
+                borderBottom={'1px solid'}
+                borderColor={'myGray.150'}
+                _last={{ borderBottom: 'none' }}
+                bg={'white'}
+              >
+                <Flex minW={0} alignItems={'center'} gap={3} pr={5}>
+                  <Avatar
+                    src={item.icon || 'core/app/type/pluginFill'}
+                    borderRadius={'md'}
+                    w={'34px'}
+                    h={'34px'}
+                    flexShrink={0}
+                  />
+                  <Box minW={0}>
+                    <Box
+                      color={'myGray.900'}
+                      fontSize={'sm'}
+                      fontWeight={700}
+                      overflow={'hidden'}
+                      textOverflow={'ellipsis'}
+                      whiteSpace={'nowrap'}
+                    >
+                      {(item.status === 'success' || item.status === 'duplicate') && item.toolName
+                        ? item.toolName
+                        : item.name}
+                    </Box>
+                    <Box
+                      mt={0.5}
+                      color={'myGray.500'}
+                      fontSize={'xs'}
+                      overflow={'hidden'}
+                      textOverflow={'ellipsis'}
+                      whiteSpace={'nowrap'}
+                    >
+                      {(item.status === 'success' || item.status === 'duplicate') && item.toolIntro
+                        ? item.toolIntro
+                        : item.name}
+                    </Box>
                   </Box>
                 </Flex>
-                <Flex w={'20%'} px={1} py={'15px'} align={'center'} gap={1} flexWrap={'wrap'}>
+
+                <Flex minW={0} gap={1} overflow={'hidden'} pr={3}>
                   {(item.status === 'success' || item.status === 'duplicate') &&
                   item.toolTags &&
                   item.toolTags.length > 0 ? (
-                    item.toolTags.map((tag, tagIndex) => (
-                      <Box
-                        key={tagIndex}
-                        as={'span'}
-                        bg={'myGray.100'}
-                        px={2}
-                        py={1}
-                        color={'myGray.700'}
-                        borderRadius={'8px'}
-                        fontSize={'xs'}
-                        flexShrink={0}
-                        data-tag-item
-                      >
-                        {tag}
-                      </Box>
-                    ))
+                    <>
+                      {item.toolTags.slice(0, 2).map((tag) => (
+                        <Box
+                          key={tag}
+                          px={1.5}
+                          py={0.5}
+                          borderRadius={'sm'}
+                          bg={'myGray.100'}
+                          color={'myGray.700'}
+                          fontSize={'xs'}
+                          whiteSpace={'nowrap'}
+                        >
+                          {tag}
+                        </Box>
+                      ))}
+                      {item.toolTags.length > 2 && (
+                        <Box color={'myGray.500'} fontSize={'xs'}>
+                          +{item.toolTags.length - 2}
+                        </Box>
+                      )}
+                    </>
                   ) : (
-                    <Box color={'myGray.400'}>-</Box>
-                  )}
-                </Flex>
-                <Flex
-                  w={'40%'}
-                  px={1}
-                  color={'myGray.600'}
-                  overflow={'hidden'}
-                  textOverflow={'ellipsis'}
-                  whiteSpace={'nowrap'}
-                  alignItems={'center'}
-                >
-                  {(item.status === 'success' || item.status === 'duplicate') && item.toolIntro
-                    ? item.toolIntro
-                    : '-'}
-                </Flex>
-                <Flex w={'10%'} px={1} py={'15px'}>
-                  {(item.status === 'uploading' || item.status === 'parsing') && (
-                    <Flex
-                      alignItems={'center'}
-                      fontSize={'xs'}
-                      fontWeight={'medium'}
-                      color={'blue.500'}
-                    >
-                      {item.status === 'uploading'
-                        ? t('app:custom_plugin_uploading')
-                        : t('app:custom_plugin_parsing')}
-                    </Flex>
-                  )}
-                  {item.status === 'duplicate' && (
-                    <Flex
-                      alignItems={'center'}
-                      fontSize={'xs'}
-                      fontWeight={'medium'}
-                      color={'yellow.500'}
-                      gap={1}
-                    >
-                      {t('app:custom_plugin_duplicate')}
-                      <QuestionTip label={t('app:custom_plugin_duplicate_tip')} />
-                    </Flex>
-                  )}
-                  {item.status === 'success' && (
-                    <Flex
-                      alignItems={'center'}
-                      fontSize={'xs'}
-                      fontWeight={'medium'}
-                      color={'green.500'}
-                    >
-                      {t('app:custom_plugin_uploaded')}
-                    </Flex>
-                  )}
-                  {item.status === 'error' && (
-                    <Flex
-                      alignItems={'center'}
-                      fontSize={'xs'}
-                      fontWeight={'medium'}
-                      color={'red.500'}
-                      gap={1}
-                    >
-                      {t('app:custom_plugin_upload_failed')}
-                      <QuestionTip label={item.errorMsg} />
-                    </Flex>
-                  )}
-                </Flex>
-                <Flex w={'10%'} px={1} py={'15px'} align={'center'} gap={2}>
-                  {item.status === 'error' && (
-                    <Box
-                      p={2}
-                      onClick={() => handleRetry(item)}
-                      cursor={'pointer'}
-                      _hover={{
-                        bg: 'myGray.100',
-                        rounded: 'md',
-                        color: 'primary.600'
-                      }}
-                    >
-                      <MyIcon name={'common/confirm/restoreTip'} w={4} />
+                    <Box color={'myGray.400'} fontSize={'xs'}>
+                      -
                     </Box>
                   )}
-                  <Box
-                    p={2}
-                    onClick={() => handleDelete(item)}
-                    cursor={'pointer'}
-                    _hover={{
-                      bg: 'myGray.100',
-                      rounded: 'md',
-                      color: 'red.600'
-                    }}
-                  >
-                    <MyIcon name={'delete'} w={4} />
-                  </Box>
                 </Flex>
-              </Flex>
-            ))}
-          </VStack>
-        )}
+
+                <Flex alignItems={'center'} gap={1.5} fontSize={'xs'} fontWeight={600}>
+                  <Box
+                    w={2}
+                    h={2}
+                    borderRadius={'full'}
+                    bg={
+                      item.status === 'error'
+                        ? 'red.500'
+                        : item.status === 'duplicate'
+                          ? 'yellow.400'
+                          : item.status === 'success'
+                            ? 'green.500'
+                            : 'primary.500'
+                    }
+                  />
+                  <Box
+                    color={
+                      item.status === 'error'
+                        ? 'red.600'
+                        : item.status === 'duplicate'
+                          ? 'yellow.600'
+                          : item.status === 'success'
+                            ? 'green.600'
+                            : 'primary.600'
+                    }
+                  >
+                    {item.status === 'uploading'
+                      ? t('app:custom_plugin_uploading')
+                      : item.status === 'parsing'
+                        ? t('app:custom_plugin_parsing')
+                        : item.status === 'duplicate'
+                          ? t('app:custom_plugin_duplicate')
+                          : item.status === 'success'
+                            ? t('app:custom_plugin_uploaded')
+                            : t('app:custom_plugin_upload_failed')}
+                  </Box>
+                  {item.status === 'duplicate' && (
+                    <QuestionTip label={t('app:custom_plugin_duplicate_tip')} />
+                  )}
+                  {item.status === 'error' && <QuestionTip label={item.errorMsg} />}
+                </Flex>
+
+                <Flex justifyContent={'center'} gap={1}>
+                  {item.status === 'error' && (
+                    <IconButton
+                      aria-label={t('common:Restart')}
+                      variant={'ghost'}
+                      size={'sm'}
+                      icon={<MyIcon name={'common/confirm/restoreTip'} w={'15px'} />}
+                      onClick={() => handleRetry(item)}
+                    />
+                  )}
+                  <IconButton
+                    aria-label={t('common:Delete')}
+                    variant={'ghost'}
+                    size={'sm'}
+                    color={'myGray.500'}
+                    icon={<MyIcon name={'delete'} w={'15px'} />}
+                    _hover={{ color: 'red.600', bg: 'red.50' }}
+                    onClick={() => handleDelete(item)}
+                  />
+                </Flex>
+              </Grid>
+            ))
+          )}
+        </Box>
       </Box>
 
-      <Flex justify={'flex-end'} gap={2} p={4}>
+      <Flex
+        justify={'flex-end'}
+        gap={2}
+        px={6}
+        py={4}
+        borderTop={'1px solid'}
+        borderColor={'myGray.200'}
+      >
         <Button variant="whiteBase" onClick={onClose}>
           {t('common:Cancel')}
         </Button>

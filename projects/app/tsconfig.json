@@ -18,6 +18,7 @@
   "exclude": [
     "**/*.test.ts",
     "**/*.test.tsx",
+    "../../packages/service/admin/**",
     "../../packages/**/vitest.config.ts",
     "../../packages/**/vitest.integration.config.ts",
     "../../packages/**/test/**",

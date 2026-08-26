@@ -1,32 +1,23 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type DatasetConcatLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const DatasetConcatLinearLinear: React.FC<DatasetConcatLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M36.0507 14.2098L44 22.6096M44 22.6096L36.0507 31.0094M44 22.6096L28.1029 22.6112L17.2489 38H4M4.00004 10H17.2489L22.5485 18.3998"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="14.0905"
-          y1="0.0953063"
-          x2="14.0905"
-          y2="18.4001"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#52A2FF"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#68C0FF" />
-          <stop offset="1" stopColor="#53A3FF" />
-        </linearGradient>
-      </defs>
+          <path d="M6.5 8.1V5.5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4.4a2 2 0 0 1-2 2h-1" />
+          <rect x="3.5" y="8.1" width="10" height="8.4" rx="2" />
+        </g>
+        <rect x="3.5" y="8.1" width="10" height="8.4" rx="2" fill="#52A2FF" opacity="0.16" />
+      </g>
     </svg>
   );
 };

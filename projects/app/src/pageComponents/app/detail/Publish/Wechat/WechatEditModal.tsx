@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, Flex, Grid, Input, ModalBody, ModalFooter } from '@chakra-ui/react';
+import { Button, Flex, Input } from '@chakra-ui/react';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import type { WechatAppType, OutLinkEditType } from '@fastgpt/global/support/outLink/type';
@@ -9,6 +9,13 @@ import { createShareChat, updateShareChat } from '@/web/support/outLink/api';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
+import {
+  OmniFieldCard,
+  OmniFormGrid,
+  OmniModalBody,
+  OmniModalFooter,
+  OmniModalSection
+} from '../../components/OmniModalLayout';
 
 const WechatEditModal = ({
   appId,
@@ -64,34 +71,61 @@ const WechatEditModal = ({
       minW={['auto', '500px']}
       onClose={onClose}
     >
-      <ModalBody fontSize={'14px'} p={8}>
-        <Grid gridTemplateColumns={'1fr'} gap={4}>
-          <Flex flexDir={'column'} gap={2}>
-            <FormLabel required>{t('common:Name')}</FormLabel>
-            <Input
-              placeholder={t('publish:wechat.name_placeholder')}
-              maxLength={100}
-              {...register('name', { required: t('common:name_is_empty') })}
-            />
-          </Flex>
-
-          <Flex flexDir={'column'} gap={2}>
-            <FormLabel>
-              {t('common:support.outlink.Max usage points')}
-              <QuestionTip ml={1} label={t('common:support.outlink.Max usage points tip')} />
-            </FormLabel>
-            <Input
-              {...register('limit.maxUsagePoints', {
-                min: -1,
-                max: 10000000,
-                valueAsNumber: true
-              })}
-            />
-          </Flex>
-        </Grid>
-      </ModalBody>
-      <ModalFooter>
-        <Button variant={'whiteBase'} mr={3} onClick={onClose}>
+      <OmniModalBody
+        icon="core/app/publish/wechat"
+        title={isEdit ? t('publish:wechat.edit') : t('publish:wechat.create')}
+        desc={t('publish:wechat.name_placeholder')}
+        asideItems={[
+          {
+            label: t('publish:basic_info'),
+            desc: t('common:Name'),
+            icon: 'common/setting'
+          },
+          {
+            label: t('common:support.outlink.Max usage points'),
+            desc: t('common:support.outlink.Max usage points tip'),
+            icon: 'common/setting'
+          }
+        ]}
+        minH={['auto', '360px']}
+      >
+        <OmniModalSection
+          title={t('publish:basic_info')}
+          desc={t('publish:wechat.name_placeholder')}
+        >
+          <OmniFormGrid gridTemplateColumns={'1fr'}>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                {t('common:Name')}
+              </FormLabel>
+              <Input
+                mt={2}
+                placeholder={t('publish:wechat.name_placeholder')}
+                maxLength={100}
+                {...register('name', { required: t('common:name_is_empty') })}
+              />
+            </OmniFieldCard>
+            <OmniFieldCard>
+              <Flex alignItems={'center'}>
+                <FormLabel color={'#1E293B'} fontWeight={700}>
+                  {t('common:support.outlink.Max usage points')}
+                </FormLabel>
+                <QuestionTip ml={1} label={t('common:support.outlink.Max usage points tip')} />
+              </Flex>
+              <Input
+                mt={2}
+                {...register('limit.maxUsagePoints', {
+                  min: -1,
+                  max: 10000000,
+                  valueAsNumber: true
+                })}
+              />
+            </OmniFieldCard>
+          </OmniFormGrid>
+        </OmniModalSection>
+      </OmniModalBody>
+      <OmniModalFooter>
+        <Button variant={'whiteBase'} onClick={onClose}>
           {t('common:Close')}
         </Button>
         <Button
@@ -100,7 +134,7 @@ const WechatEditModal = ({
         >
           {t('common:Confirm')}
         </Button>
-      </ModalFooter>
+      </OmniModalFooter>
     </MyModal>
   );
 };

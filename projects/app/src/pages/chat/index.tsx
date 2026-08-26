@@ -26,6 +26,7 @@ import { MongoOutLink } from '@fastgpt/service/support/outLink/schema';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import type { LoginSuccessResponseType } from '@fastgpt/global/openapi/support/user/account/login/api';
+import AppListContextProvider from '@/pageComponents/dashboard/agent/context';
 
 const logger = getLogger(LogCategories.MODULE.CHAT.ITEM);
 
@@ -47,16 +48,29 @@ const Chat = () => {
         <Box
           flexGrow={0}
           flexShrink={0}
-          w={collapse ? '72px' : '220px'}
+          w={collapse ? '64px' : '268px'}
           overflow={'hidden'}
-          transition={'width 0.1s ease-in-out'}
+          bg={'myGray.25'}
+          borderRight={'base'}
+          transition={'width 0.16s ease-in-out'}
         >
           <ChatSlider activeAppId={appId} />
         </Box>
       )}
 
       {(!datasetCiteData || isPc) && (
-        <PageContainer flex="1 0 0" w={0} position="relative">
+        <PageContainer
+          flex="1 0 0"
+          w={0}
+          position="relative"
+          py={0}
+          pr={0}
+          insertProps={{
+            borderWidth: 0,
+            borderRadius: 0,
+            boxShadow: 'none'
+          }}
+        >
           {/* home chat window */}
           {pane === ChatSidebarPaneEnum.HOME && <HomeChatWindow />}
 
@@ -75,7 +89,19 @@ const Chat = () => {
       )}
 
       {datasetCiteData && (
-        <PageContainer flex="1 0 0" w={0} maxW="560px">
+        <PageContainer
+          flex="1 0 0"
+          w={0}
+          maxW="560px"
+          py={0}
+          pr={0}
+          insertProps={{
+            borderWidth: 0,
+            borderLeftWidth: 1,
+            borderRadius: 0,
+            boxShadow: 'none'
+          }}
+        >
           <ChatQuoteList
             metadata={datasetCiteData.metadata}
             rawSearch={datasetCiteData.rawSearch}
@@ -160,7 +186,9 @@ const ChatContent = (props: ChatPageProps) => {
         showWholeResponse={props.showWholeResponse}
       >
         <ChatRecordContextProvider params={chatRecordProviderParams}>
-          <Chat />
+          <AppListContextProvider>
+            <Chat />
+          </AppListContextProvider>
         </ChatRecordContextProvider>
       </ChatItemContextProvider>
     </ChatContextProvider>

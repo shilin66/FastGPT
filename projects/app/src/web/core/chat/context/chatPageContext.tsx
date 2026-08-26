@@ -10,7 +10,7 @@ import { useChatStore } from '@/web/core/chat/context/useChatStore';
 import type { ChatSettingType } from '@fastgpt/global/core/chat/setting/type';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { useRouter } from 'next/router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createContext } from 'use-context-selector';
 import { useMemoEnhance } from '@fastgpt/web/hooks/useMemoEnhance';
 import { getRecentlyUsedApps } from '@/web/core/chat/api';
@@ -18,6 +18,7 @@ import { useUserStore } from '@/web/support/user/useUserStore';
 import { useLatest, useMount } from 'ahooks';
 import type { GetRecentlyUsedAppsResponseType } from '@fastgpt/global/openapi/core/chat/api';
 import type { UserType } from '@fastgpt/global/support/user/type';
+import { getPortalStartupDecision } from '@/pageComponents/chat/utils/portalStartup';
 
 export type ChatPageContextValue = {
   // Pane & collapse
@@ -38,6 +39,7 @@ export type ChatPageContextValue = {
   isInitedUser: boolean;
   userInfo: UserType | null;
   myApps: GetRecentlyUsedAppsResponseType;
+  isRecentlyUsedReady: boolean;
   refreshRecentlyUsed: () => void;
 };
 
@@ -54,6 +56,7 @@ export const ChatPageContext = createContext<ChatPageContextValue>({
   isInitedUser: false,
   userInfo: null,
   myApps: [],
+  isRecentlyUsedReady: false,
   refreshRecentlyUsed: () => {}
 });
 
@@ -75,18 +78,24 @@ export const ChatPageContextProvider = ({
 
   const [collapse, setCollapse] = useState<CollapseStatusType>(defaultCollapseStatus);
   const [isInitedUser, setIsInitedUser] = useState(false);
+  const teamMemberId = userInfo?.team?.tmbId;
 
   // Get recently used apps
-  const { data: myApps = [], refresh: refreshRecentlyUsed } = useRequest(
-    () => getRecentlyUsedApps(),
-    {
-      manual: false,
-      errorToast: '',
-      refreshDeps: [userInfo?.team?.tmbId],
-      pollingInterval: 30000,
-      throttleWait: 500 // 500ms throttle
-    }
-  );
+  const {
+    data: recentlyUsedApps,
+    loading: isRecentlyUsedLoading,
+    refresh: refreshRecentlyUsed
+  } = useRequest(() => (teamMemberId ? getRecentlyUsedApps() : Promise.resolve([])), {
+    manual: false,
+    ready: !!teamMemberId,
+    errorToast: '',
+    refreshDeps: [teamMemberId],
+    pollingInterval: 30000,
+    throttleWait: 500 // 500ms throttle
+  });
+  const myApps = recentlyUsedApps ?? [];
+  const isRecentlyUsedReady =
+    !!teamMemberId && recentlyUsedApps !== undefined && !isRecentlyUsedLoading;
 
   // Initialize user info
   useMount(async () => {
@@ -167,11 +176,28 @@ export const ChatPageContextProvider = ({
     [lastestPane, router, setLastPane, setLastChatAppId, chatSettings?.appId]
   );
 
+  const hasHandledPortalStartup = useRef(false);
+  useEffect(() => {
+    if (hasHandledPortalStartup.current || !router.isReady || !isInitedUser) return;
+
+    const decision = getPortalStartupDecision({
+      routeAppId,
+      isRecentlyUsedReady,
+      recentlyUsedApps: myApps
+    });
+    if (!decision) return;
+
+    hasHandledPortalStartup.current = true;
+    if (decision.appIdToRestore) {
+      void handlePaneChange(ChatSidebarPaneEnum.RECENTLY_USED_APPS, decision.appIdToRestore);
+    }
+  }, [handlePaneChange, isInitedUser, isRecentlyUsedReady, myApps, routeAppId, router.isReady]);
+
   useEffect(() => {
     if (!Object.values(ChatSidebarPaneEnum).includes(pane)) {
       handlePaneChange(ChatSidebarPaneEnum.HOME);
     }
-  }, [pane]);
+  }, [handlePaneChange, pane]);
 
   const logos: Pick<ChatSettingType, 'wideLogoUrl' | 'squareLogoUrl'> = useMemo(
     () => ({
@@ -197,6 +223,7 @@ export const ChatPageContextProvider = ({
       isInitedUser,
       userInfo,
       myApps,
+      isRecentlyUsedReady,
       refreshRecentlyUsed
     }),
     [
@@ -210,6 +237,7 @@ export const ChatPageContextProvider = ({
       isInitedUser,
       userInfo,
       myApps,
+      isRecentlyUsedReady,
       refreshRecentlyUsed
     ]
   );

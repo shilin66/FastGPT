@@ -1,6 +1,5 @@
-import { Box, Card } from '@chakra-ui/react';
+import { Box, Flex } from '@chakra-ui/react';
 import React from 'react';
-import { MessageCardStyle } from '../constants';
 import Markdown from '@/components/Markdown';
 import ChatAvatar from './ChatAvatar';
 import { useContextSelector } from 'use-context-selector';
@@ -10,22 +9,20 @@ const WelcomeBox = ({ welcomeText }: { welcomeText: string }) => {
   const appAvatar = useContextSelector(ChatItemContext, (v) => v.chatBoxData?.app?.avatar);
 
   return (
-    <Box py={3}>
-      {/* avatar */}
+    <Flex py={[4, 6]} alignItems={'flex-start'} gap={3}>
       <ChatAvatar src={appAvatar} type={'AI'} />
-      {/* message */}
-      <Box textAlign={'left'}>
-        <Card
-          order={2}
-          mt={2}
-          {...MessageCardStyle}
-          bg={'white'}
-          boxShadow={'0 0 8px rgba(0,0,0,0.15)'}
-        >
-          <Markdown source={`~~~guide \n${welcomeText}`} forbidZhFormat />
-        </Card>
+      <Box
+        flex={'1 0 0'}
+        maxW={'760px'}
+        px={[3, 4]}
+        py={3}
+        bg={'white'}
+        border={'base'}
+        borderRadius={'8px'}
+      >
+        <Markdown source={`~~~guide \n${welcomeText}`} forbidZhFormat />
       </Box>
-    </Box>
+    </Flex>
   );
 };
 

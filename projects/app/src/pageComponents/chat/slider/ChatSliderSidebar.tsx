@@ -1,4 +1,3 @@
-import { useTheme } from '@chakra-ui/react';
 import React from 'react';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import ChatSliderHeader from '@/pageComponents/chat/slider/ChatSliderHeader';
@@ -12,16 +11,14 @@ type Props = {
 };
 
 const ChatHistorySidebar = ({ title, banner, menuConfirmButtonText }: Props) => {
-  const theme = useTheme();
-
   return (
     <MyBox
       display={'flex'}
       flexDirection={'column'}
       w={'100%'}
       h={'100%'}
-      bg={'white'}
-      borderRight={['', theme.borders.base]}
+      bg={'myGray.25'}
+      borderRight={['', 'base']}
       whiteSpace={'nowrap'}
     >
       <ChatSliderHeader title={title} banner={banner} />

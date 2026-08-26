@@ -39,6 +39,8 @@ export type TeamSchema = {
   notificationAccount?: string;
   meta?: TeamMetaType;
   deleteTime?: Date;
+  status?: 'active' | 'frozen';
+  statusChangedAt?: Date;
 } & ThirdPartyAccountType;
 
 export type tagsType = {

@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { ImportDataSourceEnum } from '@fastgpt/global/core/dataset/constants';
 import { useContextSelector } from 'use-context-selector';
 import DatasetImportContextProvider, { DatasetImportContext } from './Context';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const FileLocal = dynamic(() => import('./diffSource/FileLocal'));
 const FileLink = dynamic(() => import('./diffSource/FileLink'));
@@ -28,7 +29,7 @@ const ImportDataset = () => {
   }, [importSource]);
 
   return ImportComponent ? (
-    <Box flex={'1 0 0'} overflow={'auto'}>
+    <Box h={'100%'} minH={0} overflow={'hidden'}>
       <ImportComponent />
     </Box>
   ) : null;
@@ -36,14 +37,7 @@ const ImportDataset = () => {
 
 const Render = () => {
   return (
-    <Flex
-      flexDirection={'column'}
-      bg={'white'}
-      h={'100%'}
-      px={[2, 9]}
-      py={[2, 5]}
-      borderRadius={'md'}
-    >
+    <Flex flexDirection={'column'} h={'100%'} minH={0} p={[2, 3]} bg={omniTheme.colors.pageBg}>
       <DatasetImportContextProvider>
         <ImportDataset />
       </DatasetImportContextProvider>

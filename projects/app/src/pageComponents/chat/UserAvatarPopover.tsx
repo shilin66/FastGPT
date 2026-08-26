@@ -62,7 +62,7 @@ const UserAvatarPopover = ({
                   fontSize="14px"
                   gap={2}
                 >
-                  <Avatar src={userInfo?.avatar} bg="myGray.200" borderRadius="50%" w={5} h={5} />
+                  <Avatar src={userInfo?.avatar} borderRadius="50%" w={5} h={5} />
                   <Box flex="1 1 0" minW="0" whiteSpace="pre-wrap">
                     {userInfo?.team.memberName ?? '-'}
                   </Box>

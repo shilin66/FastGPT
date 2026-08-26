@@ -11,6 +11,7 @@ import { useTranslation } from 'next-i18next';
 import { useSimpleAppSnapshots } from '../FormComponent/useSnapshots';
 import { useDebounceEffect, useMount } from 'ahooks';
 import { defaultAppSelectFileConfig } from '@fastgpt/global/core/app/constants';
+import { detailPageBg } from '../../DetailVisual';
 
 const Edit = dynamic(() => import('./Edit'));
 const Logs = dynamic(() => import('../../Logs/index'));
@@ -64,7 +65,7 @@ const AgentEdit = () => {
   );
 
   return (
-    <Flex h={'100%'} flexDirection={'column'} px={[3, 0]} pr={[3, 3]}>
+    <Flex h={'100%'} flexDirection={'column'} px={[3, 4]} bg={detailPageBg}>
       <Header
         appForm={appForm}
         forbiddenSaveSnapshot={forbiddenSaveSnapshot}

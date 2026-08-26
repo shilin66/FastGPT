@@ -5,6 +5,7 @@ import { initAppDeleteWorker } from '@fastgpt/service/core/app/delete';
 import { initTeamDeleteWorker } from '@fastgpt/service/support/user/team/delete';
 import { initCollectionUpdateWorker } from '@fastgpt/service/core/dataset/collection/mq';
 import { initWechatPollWorker } from '@fastgpt/service/support/outLink/wechat/mq';
+import { initAdminOperationWorker } from '@fastgpt/service/admin/operation/queue';
 
 const logger = getLogger(LogCategories.INFRA.QUEUE);
 
@@ -16,6 +17,7 @@ export const initBullMQWorkers = () => {
     initAppDeleteWorker(),
     initTeamDeleteWorker(),
     initCollectionUpdateWorker(),
-    initWechatPollWorker()
+    initWechatPollWorker(),
+    initAdminOperationWorker()
   ]);
 };

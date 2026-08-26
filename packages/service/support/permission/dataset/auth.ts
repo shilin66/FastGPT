@@ -21,6 +21,7 @@ import { DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
 import { type ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { i18nT } from '../../../../web/i18n/utils';
 import { parseHeaderCert } from '../auth/common';
+import { assertTeamWritable } from '../../user/team/status';
 import { sumPer } from '@fastgpt/global/support/permission/utils';
 import { getS3DatasetSource } from '../../../common/s3/sources/dataset';
 import { isS3ObjectKey } from '../../../common/s3/utils';
@@ -115,6 +116,7 @@ export const authDataset = async ({
 > => {
   const result = await parseHeaderCert(props);
   const { tmbId } = result;
+  await assertTeamWritable(result.teamId, per);
 
   if (!datasetId) {
     return Promise.reject(DatasetErrEnum.unExist);
@@ -149,6 +151,7 @@ export async function authDatasetCollection({
   }
 > {
   const { teamId, tmbId, userId, isRoot: isRootFromHeader } = await parseHeaderCert(props);
+  await assertTeamWritable(teamId, per);
   const collection = await getCollectionWithDataset(collectionId);
 
   if (!collection) {

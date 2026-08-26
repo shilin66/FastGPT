@@ -190,7 +190,14 @@ const Header = ({
   });
 
   return (
-    <Box h={14}>
+    <Box
+      h={14}
+      bg={'white'}
+      borderBottom={'1px solid'}
+      borderColor={'#DFE5EE'}
+      position={'relative'}
+      zIndex={2}
+    >
       {!isPc && (
         <Flex justifyContent={'center'}>
           <RouteTab />
@@ -207,7 +214,19 @@ const Header = ({
           />
         </Box>
         {isPc && (
-          <Box position={'absolute'} left={'50%'} transform={'translateX(-50%)'}>
+          <Box
+            position={'absolute'}
+            left={'50%'}
+            top={0}
+            bottom={0}
+            transform={'translateX(-50%)'}
+            maxW={'42vw'}
+            overflowX={'auto'}
+            sx={{
+              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar': { display: 'none' }
+            }}
+          >
             <RouteTab />
           </Box>
         )}

@@ -1,8 +1,6 @@
-import { Button, Flex, HStack, ModalBody, ModalFooter } from '@chakra-ui/react';
+import { Button, Flex } from '@chakra-ui/react';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import React from 'react';
-import { useTranslation } from 'next-i18next';
-import MyIcon from '@fastgpt/web/components/common/Icon';
 import { Box } from '@chakra-ui/react';
 import { childAppSystemKey } from '../FormComponent/ToolSelector/ToolSelectModal';
 import { Controller, useForm } from 'react-hook-form';
@@ -21,6 +19,12 @@ import { SystemToolSecretInputTypeMap } from '@fastgpt/global/core/app/tool/syst
 import { useBoolean } from 'ahooks';
 import { useSafeTranslation } from '@fastgpt/web/hooks/useSafeTranslation';
 import type { FlowNodeTemplateType } from '@fastgpt/global/core/workflow/type/node';
+import {
+  OmniInfoCallout,
+  OmniModalBody,
+  OmniModalFooter,
+  OmniModalSection
+} from '../../components/OmniModalLayout';
 
 const ConfigToolModal = ({
   configTool,
@@ -54,134 +58,155 @@ const ConfigToolModal = ({
       title={t('app:tool_param_config')}
       iconSrc="core/app/toolCall"
       overflow={'auto'}
+      maxW={['92vw', '820px']}
+      w={'100%'}
     >
-      <ModalBody>
-        <HStack mb={4} spacing={1} fontSize={'sm'}>
-          <MyIcon name={'common/info'} color={'primary.600'} w={'1.25rem'} />
-          <Box flex={1}>{t('app:tool_input_param_tip')}</Box>
-          {!!(configTool?.courseUrl || configTool?.userGuide) && (
-            <UseGuideModal
-              title={configTool?.name}
-              iconSrc={configTool?.avatar}
-              text={configTool?.userGuide}
-              link={configTool?.courseUrl}
-            >
-              {({ onClick }) => (
-                <Box cursor={'pointer'} color={'primary.500'} onClick={onClick}>
-                  {t('app:workflow.Input guide')}
-                </Box>
-              )}
-            </UseGuideModal>
-          )}
-        </HStack>
-        {configTool.inputs
-          .filter(
-            (input) =>
-              !input.toolDescription &&
-              !childAppSystemKey.includes(input.key) &&
-              !input.renderTypeList.includes(FlowNodeInputTypeEnum.selectLLMModel) &&
-              !input.renderTypeList.includes(FlowNodeInputTypeEnum.fileSelect)
-          )
-          .map((input) => {
-            return (
-              <Box key={input.key} _notLast={{ mb: 4 }}>
-                <Flex alignItems={'center'} mb={1}>
-                  {input.required && <Box color={'red.500'}>*</Box>}
-                  <FormLabel>{t(input.label)}</FormLabel>
-                  {input.description && <QuestionTip ml={1} label={t(input.description)} />}
-                </Flex>
-
-                {input.key === NodeInputKeyEnum.systemInputConfig && input.inputList ? (
-                  <Controller
-                    control={control}
-                    name={input.key}
-                    rules={{
-                      required: true
-                    }}
-                    render={({ field: { onChange, value }, fieldState: { error } }) => (
-                      <Box>
-                        <FormLabel mb={1} required>
-                          {t('common:secret_key')}
-                        </FormLabel>
-                        <Button
-                          variant={'whiteBase'}
-                          border={'base'}
-                          borderRadius={'md'}
-                          borderColor={error ? 'red.500' : 'borderColor.low'}
-                          leftIcon={
-                            <Box w={'6px'} h={'6px'} bg={'primary.600'} borderRadius={'md'} />
-                          }
-                          onClick={setTrueSecretModal}
-                        >
-                          {(() => {
-                            const val = value as ToolParamsFormType;
-                            if (!val) {
-                              return t('workflow:tool_active_config');
-                            }
-
-                            return t('workflow:tool_active_config_type', {
-                              type: t(SystemToolSecretInputTypeMap[val.type]?.text as any)
-                            });
-                          })()}
-                        </Button>
-
-                        {isOpenSecretModal && (
-                          <SecretInputModal
-                            isFolder={configTool?.isFolder}
-                            inputConfig={{
-                              ...input,
-                              value: value as ToolParamsFormType
-                            }}
-                            hasSystemSecret={configTool?.hasSystemSecret}
-                            secretCost={configTool?.systemKeyCost}
-                            courseUrl={configTool?.courseUrl}
-                            parentId={configTool?.pluginId}
-                            onClose={setFalseSecretModal}
-                            onSubmit={(data) => {
-                              onChange(data);
-                              setFalseSecretModal();
-                            }}
-                          />
-                        )}
-                      </Box>
-                    )}
-                  />
-                ) : (
-                  <Controller
-                    control={control}
-                    name={input.key}
-                    rules={{
-                      validate: (value) => {
-                        if (
-                          input.valueType === WorkflowIOValueTypeEnum.boolean ||
-                          input.valueType === WorkflowIOValueTypeEnum.number
-                        ) {
-                          return true;
-                        }
-                        if (!input.required) return true;
-
-                        return !!value;
-                      }
-                    }}
-                    render={({ field: { onChange, value }, fieldState: { error } }) => {
-                      return (
-                        <InputRender
-                          {...input}
-                          isRichText={false}
-                          isInvalid={!!error}
-                          inputType={nodeInputTypeToInputType(input.renderTypeList)}
-                          value={value}
-                          onChange={onChange}
-                        />
-                      );
-                    }}
-                  />
+      <OmniModalBody
+        icon="core/app/toolCall"
+        title={configTool?.name || t('app:tool_param_config')}
+        desc={t('app:tool_input_param_tip')}
+        asideItems={[
+          {
+            label: t('app:tool_param_config'),
+            desc: t('app:tool_input_param_tip'),
+            icon: 'common/setting'
+          },
+          {
+            label: t('common:Confirm'),
+            desc: t('common:Confirm'),
+            icon: 'common/check'
+          }
+        ]}
+      >
+        <OmniModalSection
+          title={t('app:tool_param_config')}
+          desc={configTool?.name}
+          action={
+            !!(configTool?.courseUrl || configTool?.userGuide) && (
+              <UseGuideModal
+                title={configTool?.name}
+                iconSrc={configTool?.avatar}
+                text={configTool?.userGuide}
+                link={configTool?.courseUrl}
+              >
+                {({ onClick }) => (
+                  <Button size={'sm'} variant={'whiteBase'} onClick={onClick}>
+                    {t('app:workflow.Input guide')}
+                  </Button>
                 )}
-              </Box>
-            );
-          })}
-      </ModalBody>
-      <ModalFooter gap={3}>
+              </UseGuideModal>
+            )
+          }
+        >
+          <OmniInfoCallout>{t('app:tool_input_param_tip')}</OmniInfoCallout>
+          {configTool.inputs
+            .filter(
+              (input) =>
+                !input.toolDescription &&
+                !childAppSystemKey.includes(input.key) &&
+                !input.renderTypeList.includes(FlowNodeInputTypeEnum.selectLLMModel) &&
+                !input.renderTypeList.includes(FlowNodeInputTypeEnum.fileSelect)
+            )
+            .map((input) => {
+              return (
+                <Box key={input.key} _notLast={{ mb: 4 }}>
+                  <Flex alignItems={'center'} mb={1.5}>
+                    {input.required && <Box color={'red.500'}>*</Box>}
+                    <FormLabel color={'#1E293B'} fontWeight={700}>
+                      {t(input.label)}
+                    </FormLabel>
+                    {input.description && <QuestionTip ml={1} label={t(input.description)} />}
+                  </Flex>
+
+                  {input.key === NodeInputKeyEnum.systemInputConfig && input.inputList ? (
+                    <Controller
+                      control={control}
+                      name={input.key}
+                      rules={{
+                        required: true
+                      }}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <Box>
+                          <Button
+                            variant={'whiteBase'}
+                            border={'1px solid'}
+                            borderColor={error ? 'red.500' : 'rgba(37, 99, 235, 0.16)'}
+                            borderRadius={'10px'}
+                            leftIcon={
+                              <Box w={'6px'} h={'6px'} bg={'#2563EB'} borderRadius={'md'} />
+                            }
+                            onClick={setTrueSecretModal}
+                          >
+                            {(() => {
+                              const val = value as ToolParamsFormType;
+                              if (!val) {
+                                return t('workflow:tool_active_config');
+                              }
+
+                              return t('workflow:tool_active_config_type', {
+                                type: t(SystemToolSecretInputTypeMap[val.type]?.text as any)
+                              });
+                            })()}
+                          </Button>
+
+                          {isOpenSecretModal && (
+                            <SecretInputModal
+                              isFolder={configTool?.isFolder}
+                              inputConfig={{
+                                ...input,
+                                value: value as ToolParamsFormType
+                              }}
+                              hasSystemSecret={configTool?.hasSystemSecret}
+                              secretCost={configTool?.systemKeyCost}
+                              courseUrl={configTool?.courseUrl}
+                              parentId={configTool?.pluginId}
+                              onClose={setFalseSecretModal}
+                              onSubmit={(data) => {
+                                onChange(data);
+                                setFalseSecretModal();
+                              }}
+                            />
+                          )}
+                        </Box>
+                      )}
+                    />
+                  ) : (
+                    <Controller
+                      control={control}
+                      name={input.key}
+                      rules={{
+                        validate: (value) => {
+                          if (
+                            input.valueType === WorkflowIOValueTypeEnum.boolean ||
+                            input.valueType === WorkflowIOValueTypeEnum.number
+                          ) {
+                            return true;
+                          }
+                          if (!input.required) return true;
+
+                          return !!value;
+                        }
+                      }}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => {
+                        return (
+                          <InputRender
+                            {...input}
+                            isRichText={false}
+                            isInvalid={!!error}
+                            inputType={nodeInputTypeToInputType(input.renderTypeList)}
+                            value={value}
+                            onChange={onChange}
+                          />
+                        );
+                      }}
+                    />
+                  )}
+                </Box>
+              );
+            })}
+        </OmniModalSection>
+      </OmniModalBody>
+      <OmniModalFooter>
         <Button onClick={onCloseConfigTool} variant={'whiteBase'}>
           {t('common:Cancel')}
         </Button>
@@ -200,7 +225,7 @@ const ConfigToolModal = ({
         >
           {t('common:Confirm')}
         </Button>
-      </ModalFooter>
+      </OmniModalFooter>
     </MyModal>
   );
 };

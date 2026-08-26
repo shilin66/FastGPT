@@ -7,6 +7,7 @@ import { useContextSelector } from 'use-context-selector';
 import { WorkflowBufferDataContext } from '../../../../context/workflowInitContext';
 import { WorkflowActionsContext } from '../../../../context/workflowActionsContext';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
+import { nodeCanvasGeometry } from '../nodeCanvasGeometry';
 
 export const ConnectionSourceHandle = ({
   nodeId,
@@ -57,7 +58,7 @@ export const ConnectionSourceHandle = ({
               nodeId={nodeId}
               handleId={firstHandleId}
               position={Position.Right}
-              translate={[4, 0]}
+              translate={nodeCanvasGeometry.nodeEdgeSourceHandleTranslate}
             />
           );
         }
@@ -77,7 +78,7 @@ export const ConnectionSourceHandle = ({
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Right}
-          translate={[4, 0]}
+          translate={nodeCanvasGeometry.nodeEdgeSourceHandleTranslate}
         />
       );
     })();
@@ -150,7 +151,7 @@ export const ConnectionTargetHandle = React.memo(function ConnectionTargetHandle
           nodeId={nodeId}
           handleId={handleId}
           position={Position.Left}
-          translate={[-4, 0]}
+          translate={[-14, 0]}
           showHandle={showHandle}
         />
       );

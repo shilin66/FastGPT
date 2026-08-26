@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Flex, type BoxProps, useDisclosure, HStack, Grid } from '@chakra-ui/react';
 import type { ChatHistoryItemResType } from '@fastgpt/global/core/chat/type';
 import { moduleTemplatesFlat } from '@fastgpt/global/core/workflow/template/constants';
-import MyModal from '@fastgpt/web/components/v2/common/MyModal';
 import Markdown from '@/components/Markdown';
 import QuoteList from '../ChatContainer/ChatBox/components/QuoteList';
 import { DatasetSearchModeMap } from '@fastgpt/global/core/dataset/constants';
@@ -19,6 +18,7 @@ import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import { completionFinishReasonMap } from '@fastgpt/global/core/ai/constants';
 import { useSafeTranslation } from '@fastgpt/web/hooks/useSafeTranslation';
 import dynamic from 'next/dynamic';
+import { ResizableRightPanel } from '@/components/common/ResizableRightPanel';
 
 const RequestIdDetailModal = dynamic(() => import('@/components/core/ai/requestId'), {
   ssr: false
@@ -64,16 +64,24 @@ export const WholeResponseContent = ({
       return (
         <Box>
           <Box
-            fontSize={'12px'}
-            lineHeight={'18px'}
-            mb={2}
-            color={'myGray.900'}
-            fontWeight={500}
-            letterSpacing={'0.5px'}
+            fontSize={'11px'}
+            lineHeight={'16px'}
+            mb={1.5}
+            color={'#475569'}
+            fontWeight={800}
+            letterSpacing={0}
           >
             {label}
           </Box>
-          <Box borderRadius={'6px'} fontSize={'12px'} bg={'myGray.50'} {...props}>
+          <Box
+            borderRadius={'10px'}
+            fontSize={'12px'}
+            bg={'white'}
+            border={'1px solid'}
+            borderColor={'rgba(148, 163, 184, 0.22)'}
+            overflow={'hidden'}
+            {...props}
+          >
             {children}
           </Box>
         </Box>
@@ -106,7 +114,7 @@ export const WholeResponseContent = ({
 
       if (rawDom) {
         return (
-          <RowRender label={label} bg={'transparent'}>
+          <RowRender label={label} bg={'transparent'} border={'0'} borderRadius={0}>
             {rawDom}
           </RowRender>
         );
@@ -122,12 +130,11 @@ export const WholeResponseContent = ({
             : {
                 minH: '32px',
                 px: 3,
+                py: 2,
                 display: 'flex',
                 alignItems: 'center',
-                border: '1px solid',
-                borderColor: 'myGray.200',
-                color: 'myGray.900',
-                bg: '#F7F8FA'
+                color: '#1E293B',
+                bg: '#FFFFFF'
               })}
         >
           <Box
@@ -148,8 +155,8 @@ export const WholeResponseContent = ({
     <Box
       h={'100%'}
       ref={ContentRef}
-      py={3}
-      px={hideTabs ? 4 : 3}
+      py={4}
+      px={hideTabs ? 4 : 4}
       display={'flex'}
       flexDirection={'column'}
       gap={3}
@@ -645,22 +652,31 @@ const SideTabItem = ({
       children?: React.ReactNode;
     }) => {
       const leftIndex = index > 3 ? 3 : index;
-      const leftPad = leftIndex === 0 ? '8px' : `${8 + leftIndex * 32}px`;
+      const leftPad = leftIndex === 0 ? '10px' : `${10 + leftIndex * 24}px`;
+      const isActive = value === sideBarItem.id;
       return (
         <Flex
+          role={'group'}
           alignItems={'center'}
           onClick={() => {
             onChange(sideBarItem.id);
           }}
-          background={value === sideBarItem.id ? 'myGray.100' : ''}
-          _hover={{ background: 'myGray.100' }}
-          py={'6px'}
+          bg={isActive ? 'rgba(37, 99, 235, 0.1)' : 'transparent'}
+          border={'1px solid'}
+          borderColor={isActive ? 'rgba(37, 99, 235, 0.24)' : 'transparent'}
+          boxShadow={isActive ? 'inset 3px 0 0 #2563EB' : 'none'}
+          _hover={{
+            bg: isActive ? 'rgba(37, 99, 235, 0.12)' : 'rgba(37, 99, 235, 0.06)',
+            borderColor: 'rgba(37, 99, 235, 0.2)'
+          }}
+          py={'8px'}
           pl={leftPad}
-          pr={'4px'}
+          pr={'30px'}
           width={'100%'}
           cursor={'pointer'}
-          borderRadius={'6px'}
+          borderRadius={'10px'}
           position={'relative'}
+          transition={'all .16s ease'}
         >
           <Avatar
             src={
@@ -670,26 +686,27 @@ const SideTabItem = ({
               )?.avatar
             }
             alt={''}
-            w={'24px'}
-            h={'24px'}
-            borderRadius={'4px'}
+            w={'26px'}
+            h={'26px'}
+            borderRadius={'8px'}
           />
-          <Box ml={2}>
+          <Box ml={2} minW={0}>
             <Box
               fontSize={'12px'}
               lineHeight={'16px'}
-              fontWeight={500}
-              color={'myGray.900'}
-              letterSpacing={'0.5px'}
+              fontWeight={800}
+              color={'#1E293B'}
+              letterSpacing={0}
+              className={'textEllipsis'}
             >
               {t(sideBarItem.moduleName as any, sideBarItem.moduleNameArgs)}
             </Box>
             <Box
               fontSize={'11px'}
               lineHeight={'16px'}
-              fontWeight={500}
-              color={'myGray.500'}
-              letterSpacing={'0.5px'}
+              fontWeight={700}
+              color={isActive ? '#2563EB' : '#64748B'}
+              letterSpacing={0}
             >
               {t(sideBarItem.runningTime as any) + 's'}
             </Box>
@@ -873,18 +890,20 @@ export const ResponseBox = React.memo(function ResponseBox({
         <Flex
           overflow={'hidden'}
           height={'100%'}
-          mx={'32px'}
-          bg={'myGray.25'}
+          mx={[3, 4]}
+          bg={'white'}
           border={'1px solid'}
-          borderColor={'myGray.200'}
-          borderRadius={'12px'}
+          borderColor={'rgba(37, 99, 235, 0.16)'}
+          borderRadius={'16px'}
+          boxShadow={'0 14px 34px rgba(15, 23, 42, 0.05)'}
         >
           <Box
-            w={'204px'}
+            w={'190px'}
             flexShrink={0}
             borderRight={'1px solid'}
-            borderColor={'myGray.200'}
-            p={3}
+            borderColor={'rgba(148, 163, 184, 0.22)'}
+            bg={'#F8FAFC'}
+            p={2.5}
             overflowY={'auto'}
             overflowX={'hidden'}
           >
@@ -894,7 +913,7 @@ export const ResponseBox = React.memo(function ResponseBox({
               onChange={setCurrentNodeId}
             />
           </Box>
-          <Box flex={'1 0 0'} w={0} height={'100%'}>
+          <Box flex={'1 0 0'} w={0} height={'100%'} bg={'white'}>
             <WholeResponseContent
               dataId={dataId}
               activeModule={activeModule}
@@ -1002,21 +1021,16 @@ const WholeResponseModal = ({
   );
 
   return (
-    <MyModal
-      isCentered
-      isOpen={true}
+    <ResizableRightPanel
       onClose={onClose}
       isLoading={isLoading}
-      w={['90vw', '880px']}
-      maxW={['90vw', '880px']}
-      h={['90vh', '80vh']}
-      maxH={['90vh', '700px']}
-      px={0}
-      py={8}
-      headerPx={'32px'}
+      initialWidth={920}
+      minWidth={680}
+      maxWidth={1180}
+      bodyProps={{ py: 4 }}
       title={
         <Flex alignItems={'center'} gap={2}>
-          <Box fontSize={'20px'} lineHeight={'26px'} letterSpacing={'0.15px'} fontWeight={500}>
+          <Box fontSize={'20px'} lineHeight={'26px'} letterSpacing={'0.15px'} fontWeight={800}>
             {t('common:core.chat.response.Complete Response')}
           </Box>
           <QuestionTip label={t('chat:question_tip')} />
@@ -1029,7 +1043,7 @@ const WholeResponseModal = ({
         ) : (
           <EmptyTip text={t('chat:no_workflow_response')} />
         ))}
-    </MyModal>
+    </ResizableRightPanel>
   );
 };
 

@@ -64,6 +64,14 @@ const TeamSchema = new Schema({
   },
   deleteTime: {
     type: Date
+  },
+  status: {
+    type: String,
+    enum: ['active', 'frozen'],
+    default: 'active'
+  },
+  statusChangedAt: {
+    type: Date
   }
 });
 

@@ -1,4 +1,4 @@
-import { Box, Flex, Switch, Checkbox } from '@chakra-ui/react';
+import { Box, Flex, IconButton, Switch } from '@chakra-ui/react';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import type {
   DraggableProvided,
@@ -9,7 +9,7 @@ import MyBox from '@fastgpt/web/components/common/MyBox';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { useTranslation } from 'next-i18next';
 import { putAdminUpdateTool } from '@/web/core/plugin/admin/tool/api';
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
 import { PluginStatusEnum } from '@fastgpt/global/core/plugin/type';
 import type { AdminSystemToolListItemType } from '@fastgpt/global/core/plugin/admin/tool/type';
 import type { GetAdminSystemToolsResponseType } from '@fastgpt/global/openapi/core/plugin/admin/tool/api';
@@ -27,7 +27,7 @@ const ToolRow = ({
   provided: DraggableProvided;
   snapshot: DraggableStateSnapshot;
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   const { runAsync: updateSystemTool, loading } = useRequest(
     async (updateFields: {
@@ -56,7 +56,8 @@ const ToolRow = ({
   return (
     <MyBox
       isLoading={loading}
-      display={'flex'}
+      display={'grid'}
+      gridTemplateColumns={'minmax(300px, 2.4fr) minmax(130px, 1fr) 110px 120px 112px 140px 48px'}
       ref={provided.innerRef}
       {...provided.draggableProps}
       style={{
@@ -65,68 +66,82 @@ const ToolRow = ({
       }}
       cursor={'pointer'}
       bg={'white'}
-      borderRadius={'md'}
-      h={12}
+      minH={'68px'}
       w={'full'}
-      border={'1px solid transparent'}
+      px={4}
+      borderBottom={'1px solid'}
+      borderColor={'myGray.150'}
       _hover={{
-        borderColor: 'rgba(51, 112, 255, 0.10)',
-        bg: 'primary.50'
+        bg: 'myGray.25'
       }}
-      fontSize={'mini'}
+      fontSize={'xs'}
       alignItems={'center'}
       onClick={() => {
         setEditingToolId(tool.id);
       }}
     >
-      <Box display={'flex'} w={2 / 10} pl={2}>
+      <Flex minW={0} alignItems={'center'} pr={5}>
         <Flex
-          h={'full'}
-          rounded={'xs'}
-          mr={2.5}
+          w={7}
+          h={8}
+          alignItems={'center'}
+          justifyContent={'center'}
+          borderRadius={'sm'}
+          mr={2}
           onClick={(e) => {
             e.stopPropagation();
           }}
-          _hover={{ bg: 'myGray.05' }}
+          _hover={{ bg: 'myGray.100' }}
           {...provided.dragHandleProps}
         >
           <MyIcon name="drag" w={'14px'} color={'myGray.500'} cursor={'grab'} />
         </Flex>
-        <Avatar src={tool?.avatar} borderRadius={'xs'} w={'20px'} />
-        <Box
-          pl={1.5}
-          fontWeight={'medium'}
-          whiteSpace={'nowrap'}
-          overflow={'hidden'}
-          textOverflow={'ellipsis'}
-        >
-          {tool?.name}
-        </Box>
-        {/* {tool?.isOfficial && (
-          <Box color={'myGray.500'} ml={3} whiteSpace={'nowrap'}>
-            {t('app:toolkit_official')}
+        <Avatar src={tool.avatar} borderRadius={'md'} w={'32px'} h={'32px'} flexShrink={0} />
+        <Box pl={3} minW={0}>
+          <Box
+            color={'myGray.900'}
+            fontSize={'sm'}
+            fontWeight={700}
+            whiteSpace={'nowrap'}
+            overflow={'hidden'}
+            textOverflow={'ellipsis'}
+          >
+            {tool.name}
           </Box>
-        )} */}
-      </Box>
-      <Box w={1.5 / 10}>
+          <Box
+            mt={0.5}
+            color={'myGray.500'}
+            whiteSpace={'nowrap'}
+            overflow={'hidden'}
+            textOverflow={'ellipsis'}
+          >
+            {tool.intro || '-'}
+          </Box>
+        </Box>
+      </Flex>
+      <Box minW={0} pr={3}>
         {tool.tags && tool.tags.length > 0 ? (
-          <Flex gap={1} overflow={'hidden'} whiteSpace={'nowrap'}>
-            {tool.tags.map((tag, index) => (
+          <Flex gap={1} overflow={'hidden'} whiteSpace={'nowrap'} alignItems={'center'}>
+            {tool.tags.slice(0, 2).map((tag, index) => (
               <Box
                 key={index}
                 as={'span'}
                 bg={'myGray.100'}
-                px={2}
-                py={1}
+                px={1.5}
+                py={0.5}
                 color={'myGray.700'}
-                borderRadius={'8px'}
+                borderRadius={'sm'}
                 fontSize={'xs'}
                 flexShrink={0}
-                data-tag-item
               >
                 {tag}
               </Box>
             ))}
+            {tool.tags.length > 2 && (
+              <Box color={'myGray.500'} flexShrink={0}>
+                +{tool.tags.length - 2}
+              </Box>
+            )}
           </Flex>
         ) : (
           <Box as={'span'} color={'myGray.500'} fontSize={'xs'}>
@@ -134,37 +149,37 @@ const ToolRow = ({
           </Box>
         )}
       </Box>
-      <Box w={2.5 / 10} overflow={'hidden'} textOverflow={'ellipsis'} whiteSpace={'nowrap'}>
-        {tool?.intro || '-'}
-      </Box>
-      <Box w={1 / 10} pl={6}>
+      <Flex alignItems={'center'} gap={2}>
         <Box
-          as={'span'}
-          color={
+          w={2}
+          h={2}
+          borderRadius={'full'}
+          bg={
             tool.status === PluginStatusEnum.Offline
-              ? 'red.600'
+              ? 'red.500'
               : tool.status === PluginStatusEnum.SoonOffline
-                ? 'yellow.500'
-                : 'myGray.600'
+                ? 'yellow.400'
+                : 'green.500'
           }
-        >
+          flexShrink={0}
+        />
+        <Box color={'myGray.700'} whiteSpace={'nowrap'}>
           {tool.status === PluginStatusEnum.Offline
             ? t('app:toolkit_status_offline')
             : tool.status === PluginStatusEnum.SoonOffline
               ? t('app:toolkit_status_soon_offline')
               : t('app:toolkit_status_normal')}
         </Box>
-      </Box>
-      <Box w={1 / 10} pl={4}>
-        <Box
-          as={'span'}
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation();
-            e.preventDefault();
-            const newDefaultInstalled = !tool?.defaultInstalled;
+      </Flex>
+      <Box onClick={(event) => event.stopPropagation()}>
+        <Switch
+          isChecked={tool.defaultInstalled}
+          size={'sm'}
+          onChange={(event) => {
+            const newDefaultInstalled = event.target.checked;
             const updateFields: {
               defaultInstalled: boolean;
-              status?: number;
+              status?: PluginStatusEnum;
             } = {
               defaultInstalled: newDefaultInstalled
             };
@@ -173,40 +188,37 @@ const ToolRow = ({
             }
             updateSystemTool(updateFields);
           }}
-        >
-          <Checkbox isChecked={tool.defaultInstalled} colorScheme="primary" />
-        </Box>
+        />
       </Box>
-      <Box w={1 / 10}>
-        {tool?.associatedPluginId ? (
-          <Box
-            as={'span'}
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              e.preventDefault();
-              updateSystemTool({
-                hasTokenFee: !tool?.hasTokenFee
-              });
-            }}
-            pl={2}
-          >
-            <Switch isChecked={tool?.hasTokenFee} size={'sm'} />
-          </Box>
+      <Box onClick={(event) => event.stopPropagation()}>
+        {tool.associatedPluginId ? (
+          <Switch
+            isChecked={tool.hasTokenFee}
+            size={'sm'}
+            onChange={(event) => updateSystemTool({ hasTokenFee: event.target.checked })}
+          />
         ) : (
-          <Box pl={4}>-</Box>
+          <Box color={'myGray.400'}>-</Box>
         )}
       </Box>
-      <Box w={1 / 10}>
-        {!!tool?.hasSecretInput ? (
-          <Box color={tool?.hasSystemSecret ? 'green.600' : 'myGray.500'}>
-            {tool?.hasSystemSecret
+      <Box>
+        {tool.hasSecretInput ? (
+          <Box color={tool.hasSystemSecret ? 'green.600' : 'myGray.500'} fontWeight={600}>
+            {tool.hasSystemSecret
               ? t('app:toolkit_system_key_configured')
               : t('app:toolkit_system_key_not_configured')}
           </Box>
         ) : (
-          <Box pl={4}>-</Box>
+          <Box color={'myGray.400'}>-</Box>
         )}
       </Box>
+      <IconButton
+        aria-label={t('common:Edit')}
+        size={'sm'}
+        variant={'ghost'}
+        color={'myGray.500'}
+        icon={<MyIcon name={'common/arrowRight'} w={'14px'} />}
+      />
     </MyBox>
   );
 };

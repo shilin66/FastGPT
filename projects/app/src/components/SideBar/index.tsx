@@ -4,28 +4,22 @@ import type { BoxProps } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 
 interface Props extends BoxProps {
-  externalTrigger?: Boolean;
+  externalTrigger?: boolean;
 }
 
 const SideBar = (e?: Props) => {
-  const {
-    w = ['100%', '0 0 250px', '0 0 250px', '0 0 270px', '0 0 290px'],
-    children,
-    externalTrigger,
-    ...props
-  } = e || {};
+  const { w = ['100%', '0 0 268px'], children, externalTrigger, ...props } = e || {};
 
   const [isFolded, setIsFolded] = useState(false);
 
   // 保存上一次折叠状态
-  const preFoledStatus = useRef<Boolean>(false);
+  const preFoledStatus = useRef(false);
 
   useEffect(() => {
     if (externalTrigger) {
       setIsFolded(true);
       preFoledStatus.current = isFolded;
     } else {
-      // @ts-ignore
       setIsFolded(preFoledStatus.current);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -38,7 +32,7 @@ const SideBar = (e?: Props) => {
       w={['100%', 0]}
       h={'100%'}
       zIndex={1}
-      transition={'0.2s'}
+      transition={'flex-basis 0.16s ease'}
       _hover={{
         '& > div': { visibility: 'visible', opacity: 1 }
       }}
@@ -46,21 +40,22 @@ const SideBar = (e?: Props) => {
     >
       <Flex
         position={'absolute'}
-        right={0}
+        right={'1px'}
         top={'50%'}
         transform={'translate(50%,-50%)'}
         alignItems={'center'}
-        justifyContent={'flex-end'}
-        pr={1}
-        w={'36px'}
-        h={'50px'}
-        borderRadius={'10px'}
-        bg={'rgba(0,0,0,0.5)'}
+        justifyContent={'center'}
+        w={'28px'}
+        h={'44px'}
+        borderRadius={'6px'}
+        border={'base'}
+        bg={'white'}
+        boxShadow={'0 6px 16px rgba(15, 23, 42, 0.08)'}
         cursor={'pointer'}
         transition={'0.2s'}
         {...(isFolded
           ? {
-              opacity: 0.6
+              opacity: 1
             }
           : {
               visibility: 'hidden',
@@ -72,7 +67,7 @@ const SideBar = (e?: Props) => {
           name={'common/backLight'}
           transform={isFolded ? 'rotate(180deg)' : ''}
           w={'14px'}
-          color={'white'}
+          color={'myGray.600'}
         />
       </Flex>
       <Box position={'relative'} h={'100%'} overflow={isFolded ? 'hidden' : 'visible'}>

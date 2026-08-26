@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box } from '@chakra-ui/react';
 
 import AppCard from '../FormComponent/AppCard';
 import EditForm from './EditForm';
 import type { AppFormEditFormType } from '@fastgpt/global/core/app/formEdit/type';
-import { cardStyles } from '../../constants';
 
-import styles from '../FormComponent/styles.module.scss';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import { type SimpleAppSnapshotType } from '../FormComponent/useSnapshots';
 import ChatTest from './ChatTest';
 import { form2AppWorkflow } from './utils';
+import { useTranslation } from 'next-i18next';
+import { simpleConfigSectionIds, type SimpleConfigSectionKey } from './configSections';
+import ResizableAgentSplit from '../FormComponent/ResizableAgentSplit';
+import AgentConfigWorkspace, { type AgentConfigTask } from '../FormComponent/AgentConfigWorkspace';
 
 const Edit = ({
   appForm,
@@ -21,38 +23,33 @@ const Edit = ({
   setAppForm: React.Dispatch<React.SetStateAction<AppFormEditFormType>>;
   setPast: (value: React.SetStateAction<SimpleAppSnapshotType[]>) => void;
 }) => {
+  const { t } = useTranslation();
   const { isPc } = useSystem();
   const [renderEdit, setRenderEdit] = useState(true);
 
+  const configSteps = useMemo<AgentConfigTask<SimpleConfigSectionKey>[]>(
+    () => [
+      { key: 'overview', label: String(t('app:agent_config_identity')) },
+      { key: 'dataset', label: String(t('app:agent_config_knowledge')) },
+      { key: 'tools', label: String(t('app:agent_config_tools')) },
+      { key: 'interaction', label: String(t('app:agent_config_interaction')) },
+      { key: 'runtime', label: String(t('app:agent_config_runtime')) }
+    ],
+    [t]
+  );
+
   return (
-    <Box
-      display={['block', 'flex']}
-      flex={'1 0 0'}
-      h={0}
-      mt={[4, 0]}
-      gap={1}
-      borderRadius={'lg'}
-      overflowY={['auto', 'unset']}
-    >
+    <ResizableAgentSplit showConfig={renderEdit}>
       {renderEdit && (
-        <Box
-          className={styles.EditAppBox}
-          pr={[0, 1]}
-          overflowY={'auto'}
-          minW={['auto', '580px']}
-          flex={'1'}
-        >
-          <Box {...cardStyles} boxShadow={'2'}>
+        <AgentConfigWorkspace tasks={configSteps} sectionIds={simpleConfigSectionIds}>
+          <Box id={simpleConfigSectionIds.overview} scrollMarginTop={'12px'}>
             <AppCard appForm={appForm} setPast={setPast} form2WorkflowFn={form2AppWorkflow} />
           </Box>
-
-          <Box mt={4} {...cardStyles} boxShadow={'3.5'}>
-            <EditForm appForm={appForm} setAppForm={setAppForm} />
-          </Box>
-        </Box>
+          <EditForm appForm={appForm} setAppForm={setAppForm} />
+        </AgentConfigWorkspace>
       )}
       {isPc && (
-        <Box flex={'2 0 0'} w={0} mb={3}>
+        <Box h={'full'} minW={0}>
           <ChatTest
             appForm={appForm}
             setRenderEdit={setRenderEdit}
@@ -60,7 +57,7 @@ const Edit = ({
           />
         </Box>
       )}
-    </Box>
+    </ResizableAgentSplit>
   );
 };
 

@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Box, Button, Flex, useDisclosure, type FlexProps } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import type { FlowNodeItemType, StoreNodeItemType } from '@fastgpt/global/core/workflow/type/node';
 import { useTranslation } from 'next-i18next';
-import { useEditTitle } from '@/web/common/hooks/useEditTitle';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import type { NodeGradients } from '@fastgpt/global/core/workflow/node/constant';
 import {
@@ -20,7 +20,6 @@ import {
 import { useReactFlow } from 'reactflow';
 import { LOGO_ICON } from '@fastgpt/global/common/system/constants';
 import { ToolSourceHandle, ToolTargetHandle } from './Handle/ToolHandle';
-import { useEditTextarea } from '@fastgpt/web/hooks/useEditTextarea';
 import { ConnectionSourceHandle, ConnectionTargetHandle } from './Handle/ConnectionHandle';
 import { useDebug } from '../../hooks/useDebug';
 import { getToolPreviewNode, getToolVersionList } from '@/web/core/app/api/tool';
@@ -45,7 +44,6 @@ import HighlightText from '@fastgpt/web/components/common/String/HighlightText';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import SecretInputModal from '@/pageComponents/app/tool/SecretInputModal';
 import type { FlowNodeInputItemType } from '@fastgpt/global/core/workflow/type/io';
-import { WorkflowUtilsContext } from '../../../context/workflowUtilsContext';
 import { WorkflowActionsContext } from '../../../context/workflowActionsContext';
 import { WorkflowUIContext } from '../../../context/workflowUIContext';
 import {
@@ -56,6 +54,8 @@ import {
 import { splitCombineToolId, getToolRawId } from '@fastgpt/global/core/app/tool/utils';
 import { getAppPermission } from '@/web/core/app/api';
 import { ObjectIdSchema } from '@fastgpt/global/common/type/mongo';
+import NodeCanvasSummary from './NodeCanvasSummary';
+import { useNodeConfiguration } from '../../context/NodeConfigurationContext';
 
 type Props = FlowNodeItemType & {
   children?: React.ReactNode | React.ReactNode[] | string;
@@ -115,7 +115,10 @@ const NodeCard = (props: Props) => {
   const setHoverNodeId = useContextSelector(WorkflowUIContext, (v) => v.setHoverNodeId);
   const presentationMode = useContextSelector(WorkflowUIContext, (v) => v.presentationMode);
   const setPresentationMode = useContextSelector(WorkflowUIContext, (v) => v.setPresentationMode);
+  const { activeNodeId, host } = useNodeConfiguration();
   const { fitView } = useReactFlow();
+  const isStructuralNode =
+    isNestedParentNodeType(props.flowNodeType) || props.flowNodeType === FlowNodeTypeEnum.comment;
 
   const inputConfig = useMemo(
     () => inputs?.find((item) => item.key === NodeInputKeyEnum.systemInputConfig),
@@ -152,38 +155,32 @@ const NodeCard = (props: Props) => {
 
     return (
       <Flex
-        position={'absolute'}
-        top={0}
-        left={0}
-        right={0}
-        bottom={0}
         alignItems={'center'}
-        justifyContent={'center'}
-        flexDirection={'column'}
+        w={'full'}
+        h={'full'}
+        px={3}
         zIndex={1}
         onDoubleClick={handleDoubleClick}
         cursor={'pointer'}
-        bg={'rgba(255, 255, 255, 0.80)'}
-        backdropFilter={'blur(10px)'}
-        borderRadius={26}
+        bg={'white'}
+        borderRadius={'9px'}
       >
         <Avatar
           src={avatarLinear || avatar}
           fill={'none'}
-          borderRadius={16}
-          w={'100px'}
-          h={'100px'}
+          borderRadius={'8px'}
+          w={'34px'}
+          h={'34px'}
         />
         <Box
-          mt={3}
-          color={'myGray.700'}
-          fontSize={'26px'}
-          fontWeight={'500'}
-          textAlign={'center'}
+          ml={2.5}
+          minW={0}
+          color={'#1F2937'}
+          fontSize={'13px'}
+          fontWeight={900}
           overflow={'hidden'}
           textOverflow={'ellipsis'}
           whiteSpace={'nowrap'}
-          maxW={'80%'}
         >
           {t(name as any)}
         </Box>
@@ -193,11 +190,12 @@ const NodeCard = (props: Props) => {
 
   const { outlineColor, outlineWidth } = useMemo(() => {
     // error mode
-    if (isError) return { outlineColor: '#F97066', outlineWidth: '4px solid' };
+    if (isError) return { outlineColor: '#EF4444', outlineWidth: '2px solid' };
     // common mode
     if (!presentationMode && !isFolded) {
-      const outlineColor = selected ? 'primary.600' : 'myGray.250';
-      const outlineWidth = selected ? '4px solid' : '1px solid';
+      if (!selected) return { outlineColor: undefined, outlineWidth: undefined };
+      const outlineColor = '#2563EB';
+      const outlineWidth = '2px solid';
       return { outlineColor, outlineWidth };
     }
     // presentation & fold mode
@@ -206,7 +204,7 @@ const NodeCard = (props: Props) => {
     if (!outlineColor) return { outlineColor: undefined, outlineWidth: undefined };
     return {
       outlineColor,
-      outlineWidth: '4px solid'
+      outlineWidth: '2px solid'
     };
   }, [presentationMode, isFolded, colorSchema, selected, isError, pluginId]);
 
@@ -270,7 +268,7 @@ const NodeCard = (props: Props) => {
 
   /* Node header - 重构后的版本,依赖项大幅减少 */
   const error = useMemo(() => formatToolError(node?.pluginData?.error), [node?.pluginData?.error]);
-  const showHeader = node?.flowNodeType !== FlowNodeTypeEnum.comment;
+  const showHeader = props.flowNodeType !== FlowNodeTypeEnum.comment;
 
   const RenderToolHandle = useMemo(
     () =>
@@ -280,12 +278,56 @@ const NodeCard = (props: Props) => {
     [node?.flowNodeType, nodeId]
   );
 
+  const configurationContent =
+    inputConfig && !inputConfig?.value ? (
+      <NodeSecret
+        nodeId={nodeId}
+        isFolder={node?.isFolder}
+        courseUrl={node?.courseUrl}
+        hasSystemSecret={node?.hasSystemSecret}
+        pluginId={node?.pluginId}
+        systemKeyCost={node?.systemKeyCost}
+        inputConfig={inputConfig}
+      />
+    ) : (
+      children
+    );
+
+  const configurationPortal =
+    !isStructuralNode && host && activeNodeId === nodeId
+      ? createPortal(
+          <Flex
+            w={'full'}
+            minW={0}
+            flexDirection={'column'}
+            gap={3}
+            sx={{
+              '& .react-flow__handle': {
+                display: 'none !important'
+              },
+              '& > *': {
+                width: '100% !important',
+                maxWidth: 'none !important',
+                minWidth: '0 !important',
+                marginLeft: '0 !important',
+                marginRight: '0 !important'
+              }
+            }}
+          >
+            {configurationContent}
+          </Flex>,
+          host
+        )
+      : null;
+
   return (
     <Flex
-      outline={selected && (presentationMode || isFolded) ? '16px solid' : undefined}
-      outlineColor={'rgba(17, 24, 36, 0.05)'}
-      borderRadius={isFolded ? 26 : 'lg'}
-      boxShadow={'0 24px 40px 0 rgba(0, 0, 0, 0.05)'}
+      outline={selected && (presentationMode || isFolded) ? '10px solid' : undefined}
+      outlineColor={'rgba(37, 99, 235, 0.08)'}
+      borderRadius={'8px'}
+      boxShadow={
+        selected ? '0 16px 38px rgba(37, 99, 235, 0.16)' : '0 10px 28px rgba(15, 23, 42, 0.08)'
+      }
       {...customStyle}
     >
       <Flex
@@ -293,21 +335,36 @@ const NodeCard = (props: Props) => {
         flexDirection={'column'}
         {...(isFolded
           ? {
-              w: '240px',
-              h: '240px'
+              w: '196px',
+              h: '58px'
             }
-          : {
-              minW,
-              maxW,
-              minH,
-              w,
-              h
-            })}
+          : isStructuralNode
+            ? {
+                minW,
+                maxW,
+                minH,
+                w,
+                h
+              }
+            : {
+                minW: '304px',
+                maxW: '304px',
+                w: '304px',
+                minH: 0,
+                h: 'auto'
+              })}
         outline={outlineWidth}
         outlineColor={outlineColor}
-        borderRadius={isFolded ? 26 : 'lg'}
+        borderRadius={'8px'}
+        bg={'#FFFFFF'}
+        border={'1px solid'}
+        borderColor={isError ? '#FCA5A5' : selected ? '#93B4FF' : '#D7DEE8'}
+        overflow={'visible'}
+        transition={'box-shadow 0.18s ease, outline-color 0.18s ease, transform 0.18s ease'}
         _hover={{
-          boxShadow: '0 24px 40px 0 rgba(0, 0, 0, 0.08)',
+          boxShadow: selected
+            ? '0 16px 38px rgba(37, 99, 235, 0.18)'
+            : '0 14px 34px rgba(15, 23, 42, 0.11)',
           '& .controller-menu': {
             display: 'flex'
           },
@@ -324,37 +381,43 @@ const NodeCard = (props: Props) => {
       >
         {debugResult && <NodeDebugResponse nodeId={nodeId} debugResult={debugResult} />}
 
-        {foldedOverlay}
-
-        {!isFolded && (
-          <Box bg={'white'} borderRadius={'lg'}>
+        {isFolded ? (
+          foldedOverlay
+        ) : (
+          <Box bg={'#FFFFFF'} borderRadius={'7px'} overflow={'visible'} position={'relative'}>
             {/* Header */}
-            <Box position={'relative'}>
+            <Box position={'relative'} borderTopRadius={'7px'} overflow={'hidden'}>
               {gradient && (
                 <Box
                   position={'absolute'}
                   top={0}
                   left={0}
                   right={0}
-                  height={'60px'}
+                  height={'100%'}
                   background={gradient}
-                  borderRadius={'lg'}
-                  zIndex={20}
+                  opacity={isStructuralNode ? 0.08 : 0.045}
+                  zIndex={0}
                   pointerEvents={'none'}
                 />
               )}
               {showHeader && (
-                <Box px={4} pt={4} position={'relative'}>
-                  <Flex alignItems={'center'} mb={1}>
+                <Box
+                  px={3}
+                  py={2.5}
+                  position={'relative'}
+                  zIndex={1}
+                  bg={'white'}
+                  borderBottom={'1px solid #E8EDF3'}
+                >
+                  <Flex alignItems={'center'} mb={1.5} minW={0}>
                     <NodeTitleSection
-                      nodeId={nodeId}
-                      avatar={avatar}
+                      avatar={avatarLinear || avatar}
                       name={name}
                       searchedText={searchedText}
                       appId={pluginId}
                     />
 
-                    <Box flex={1} mr={1} />
+                    <Box mr={1} />
 
                     {showVersion && <NodeVersion node={node!} />}
 
@@ -367,7 +430,7 @@ const NodeCard = (props: Props) => {
                     <NodeStatusBadge status={nodeTemplate?.status} error={error} />
                   </Flex>
 
-                  <NodeIntro nodeId={nodeId} intro={intro} />
+                  <NodeIntro intro={intro} />
                 </Box>
               )}
             </Box>
@@ -375,29 +438,14 @@ const NodeCard = (props: Props) => {
             <Flex
               flexDirection={'column'}
               flex={1}
-              pb={showHeader ? 4 : 0}
-              gap={2}
+              py={isStructuralNode && showHeader ? 2.5 : 0}
+              gap={isStructuralNode ? 2 : 0}
               position={'relative'}
+              bg={'white'}
+              borderTopRadius={showHeader ? 0 : '7px'}
+              borderBottomRadius={'7px'}
             >
-              {!isFolded ? (
-                <>
-                  {inputConfig && !inputConfig?.value ? (
-                    <NodeSecret
-                      nodeId={nodeId}
-                      isFolder={node?.isFolder}
-                      courseUrl={node?.courseUrl}
-                      hasSystemSecret={node?.hasSystemSecret}
-                      pluginId={node?.pluginId}
-                      systemKeyCost={node?.systemKeyCost}
-                      inputConfig={inputConfig}
-                    />
-                  ) : (
-                    children
-                  )}
-                </>
-              ) : (
-                <Box h={4} />
-              )}
+              {isStructuralNode ? configurationContent : <NodeCanvasSummary node={props} />}
             </Flex>
           </Box>
         )}
@@ -422,6 +470,7 @@ const NodeCard = (props: Props) => {
           />
         )}
       </Flex>
+      {configurationPortal}
     </Flex>
   );
 };
@@ -430,15 +479,13 @@ export default React.memo(NodeCard);
 
 // 节点标题区域组件
 const NodeTitleSection = React.memo<{
-  nodeId: string;
   avatar: string;
   name: string;
   searchedText?: string;
   appId?: string;
-}>(({ nodeId, avatar, name, searchedText, appId }) => {
+}>(({ avatar, name, searchedText, appId }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const onChangeNode = useContextSelector(WorkflowActionsContext, (v) => v.onChangeNode);
 
   const childAppId = useMemo(() => {
     if (!appId) return;
@@ -449,32 +496,6 @@ const NodeTitleSection = React.memo<{
     }
     return undefined;
   }, [appId]);
-
-  // custom title edit
-  const { onOpenModal: onOpenCustomTitleModal, EditModal: EditTitleModal } = useEditTitle({
-    title: t('common:custom_title'),
-    placeholder: t('app:module.Custom Title Tip') || ''
-  });
-
-  const handleRenameClick = useCallback(() => {
-    onOpenCustomTitleModal({
-      defaultVal: name,
-      onSuccess: (newName) => {
-        if (!newName) {
-          return toast({
-            title: t('app:modules.Title is required'),
-            status: 'warning'
-          });
-        }
-        onChangeNode({
-          nodeId,
-          type: 'attr',
-          key: 'name',
-          value: newName
-        });
-      }
-    });
-  }, [onOpenCustomTitleModal, name, onChangeNode, nodeId, toast, t]);
 
   const { runAsync: onGetPermission } = useRequest(getAppPermission, {
     onSuccess(permission) {
@@ -490,98 +511,51 @@ const NodeTitleSection = React.memo<{
   });
 
   return (
-    <Flex alignItems={'center'}>
-      <Avatar src={avatar} borderRadius={'sm'} objectFit={'contain'} w={'24px'} h={'24px'} />
-      <Box ml={2} fontSize={'18px'} fontWeight={'medium'} color={'myGray.900'}>
+    <Flex alignItems={'center'} minW={0} flex={1}>
+      <Avatar src={avatar} borderRadius={'8px'} objectFit={'contain'} w={'32px'} h={'32px'} />
+      <Box
+        ml={2}
+        fontSize={'14px'}
+        fontWeight={800}
+        color={'#1F2937'}
+        minW={0}
+        overflow={'hidden'}
+        textOverflow={'ellipsis'}
+        whiteSpace={'nowrap'}
+      >
         <HighlightText
           rawText={t(name as any)}
           matchText={searchedText ?? ''}
           mode={'bg'}
-          color={'#ffe82d'}
+          color={'#2563EB'}
         />
       </Box>
-      <Box ml={1} visibility={'hidden'}>
-        <MyIconButton className="node-hover-controller" icon="edit" onClick={handleRenameClick} />
-      </Box>
       {childAppId && (
-        <Box ml={1} visibility={'hidden'}>
+        <Box ml={1} visibility={'hidden'} color={'#667085'}>
           <MyIconButton
             className="node-hover-controller"
             icon="common/link"
             tip={t('workflow:to_app_detail')}
+            hoverBg={'rgba(37, 99, 235, 0.08)'}
+            hoverColor={'#2563EB'}
             onClick={() => onGetPermission(childAppId)}
           />
         </Box>
       )}
-
-      <EditTitleModal maxLength={100} />
     </Flex>
   );
 });
 NodeTitleSection.displayName = 'NodeTitleSection';
 
 // 节点介绍组件
-const NodeIntro = React.memo(function NodeIntro({
-  nodeId,
-  intro = ''
-}: {
-  nodeId: string;
-  intro?: string;
-}) {
+const NodeIntro = React.memo(function NodeIntro({ intro = '' }: { intro?: string }) {
   const { t } = useTranslation();
-  const nodeIsTool = useContextSelector(
-    WorkflowUtilsContext,
-    (ctx) => ctx.splitToolInputs([], nodeId)?.isTool
+
+  return (
+    <Box fontSize={'12px'} color={'#667085'} fontWeight={600} whiteSpace={'pre-line'} noOfLines={2}>
+      {t(intro as any) || t('app:node_not_intro')}
+    </Box>
   );
-  const onChangeNode = useContextSelector(WorkflowActionsContext, (v) => v.onChangeNode);
-
-  // edit intro
-  const { onOpenModal: onOpenIntroModal, EditModal: EditIntroModal } = useEditTextarea({
-    title: t('common:core.module.Edit intro'),
-    tip: t('common:info.node_info'),
-    canEmpty: false
-  });
-
-  const Render = useMemo(() => {
-    return (
-      <>
-        <Flex alignItems={'center'}>
-          <Box fontSize={'sm'} color={'myGray.500'} flex={'1 0 0'} whiteSpace={'pre-line'}>
-            {t(intro as any) || t('app:node_not_intro')}
-          </Box>
-          <Flex
-            className="node-hover-controller"
-            visibility={nodeIsTool ? 'visible' : 'hidden'}
-            p={'7px'}
-            rounded={'sm'}
-            alignItems={'center'}
-            _hover={{
-              bg: 'myGray.100'
-            }}
-            cursor={'pointer'}
-            onClick={() => {
-              onOpenIntroModal({
-                defaultVal: intro,
-                onSuccess(e) {
-                  onChangeNode({
-                    nodeId,
-                    type: 'attr',
-                    key: 'intro',
-                    value: e
-                  });
-                }
-              });
-            }}
-          >
-            <MyIcon name={'edit'} w={'18px'} />
-          </Flex>
-        </Flex>
-        <EditIntroModal maxLength={500} />
-      </>
-    );
-  }, [EditIntroModal, intro, nodeIsTool, nodeId, onChangeNode, onOpenIntroModal, t]);
-
-  return Render;
 });
 
 const NodeVersion = React.memo(function NodeVersion({ node }: { node: FlowNodeItemType }) {
@@ -858,23 +832,29 @@ const MenuRender = React.memo(function MenuRender({
           className="nodrag controller-menu"
           display={'none'}
           flexDirection={'column'}
-          gap={2}
+          gap={1.5}
           position={'absolute'}
           top={'-20px'}
-          right={0}
-          transform={'translateX(90%)'}
+          left={'100%'}
           pl={'20px'}
-          pr={'10px'}
-          pb={'20px'}
-          pt={'20px'}
+          pr={'12px'}
+          pb={'12px'}
+          pt={'12px'}
+          bg={'rgba(255, 255, 255, 0.96)'}
+          border={'1px solid rgba(148, 163, 184, 0.22)'}
+          borderRadius={'14px'}
+          boxShadow={'0 24px 52px rgba(15, 23, 42, 0.14)'}
+          backdropFilter={'blur(12px)'}
         >
           {menuList.map((item) => (
             <Button
               key={item.icon}
-              h={8}
-              fontSize={'sm'}
+              h={9}
+              fontSize={'12px'}
+              fontWeight={800}
               pl={2}
-              pr={6}
+              pr={4}
+              borderRadius={'10px'}
               variant={item.variant}
               leftIcon={<MyIcon name={item.icon as any} w={'16px'} mr={-1} />}
               onClick={item.onClick}
@@ -1055,11 +1035,12 @@ const NodeSecret = React.memo(function NodeSecret({
         alignItems={'center'}
         flexDirection={'column'}
         justifyContent={'center'}
-        borderRadius={'lg'}
+        borderRadius={'8px'}
         h={'200px'}
-        bg={'myGray.25'}
-        border={'base'}
-        mx={4}
+        bg={'white'}
+        border={'1px dashed rgba(37, 99, 235, 0.28)'}
+        mx={3}
+        boxShadow={'0 12px 28px rgba(15, 23, 42, 0.04)'}
       >
         <Box>{t('app:tool_not_active')}</Box>
         <Button w={'83px'} mt={2} size={'lg'} onClick={onOpenToolParamConfigModal}>
@@ -1109,27 +1090,16 @@ const PresentationModeOverlay = React.memo(function PresentationModeOverlay({
   onDoubleClick: () => void;
 }) {
   const { t } = useTranslation();
-  const [presentationHeight, setPresentationHeight] = useState<number>(0);
-
-  const presentationOverlayRef = useCallback((node: HTMLDivElement | null) => {
-    if (node) {
-      setPresentationHeight(node.offsetHeight);
-    }
-  }, []);
-
   return (
     <Flex
-      ref={presentationOverlayRef}
       position={'absolute'}
       top={0}
       left={0}
       right={0}
       bottom={0}
-      bg={'rgba(255, 255, 255, 0.80)'}
-      backdropFilter={'blur(10px)'}
-      flexDirection={'column'}
+      bg={'rgba(255, 255, 255, 0.94)'}
       zIndex={10}
-      borderRadius={'lg'}
+      borderRadius={'7px'}
       {...(isLoopNode
         ? {
             alignItems: 'flex-start',
@@ -1139,57 +1109,47 @@ const PresentationModeOverlay = React.memo(function PresentationModeOverlay({
           }
         : {
             alignItems: 'center',
-            justifyContent: 'center',
             px: 3,
-            py: 0
+            py: 2.5
           })}
       cursor={'pointer'}
       onDoubleClick={onDoubleClick}
     >
       <Flex
-        flexDirection={'column'}
+        alignItems={isLoopNode ? 'flex-start' : 'center'}
+        flexDirection={isLoopNode ? 'column' : 'row'}
         {...(isLoopNode
           ? {
               ml: 4,
-              mt: 4,
-              alignItems: 'flex-start'
+              mt: 4
             }
-          : {
-              ml: 0,
-              mt: 0,
-              alignItems: 'center'
-            })}
+          : {})}
         w={'full'}
         color={'black'}
       >
-        <Avatar src={avatar} fill={'none'} borderRadius={24} w={'160px'} h={'160px'} />
-        {name && presentationHeight > 280 && (
+        <Avatar
+          src={avatar}
+          fill={'none'}
+          borderRadius={'8px'}
+          w={isLoopNode ? '64px' : '36px'}
+          h={isLoopNode ? '64px' : '36px'}
+        />
+        <Box ml={isLoopNode ? 0 : 2.5} mt={isLoopNode ? 2 : 0} minW={0}>
           <Box
-            mt={2}
-            fontSize={'36px'}
-            fontWeight={'medium'}
-            textAlign={isLoopNode ? 'left' : 'center'}
+            fontSize={isLoopNode ? '18px' : '13px'}
+            fontWeight={900}
             overflow={'hidden'}
             textOverflow={'ellipsis'}
             whiteSpace={'nowrap'}
-            maxW={'80%'}
           >
             {t(name as any)}
           </Box>
-        )}
-        {intro && presentationHeight > 320 && (
-          <Box
-            mt={1}
-            fontSize={'28px'}
-            textAlign={isLoopNode ? 'left' : 'center'}
-            overflow={'hidden'}
-            textOverflow={'ellipsis'}
-            whiteSpace={'nowrap'}
-            maxW={'80%'}
-          >
-            {t(intro as any)}
-          </Box>
-        )}
+          {intro && (
+            <Box mt={0.5} color={'#667085'} fontSize={isLoopNode ? '13px' : '11px'} noOfLines={1}>
+              {t(intro as any)}
+            </Box>
+          )}
+        </Box>
       </Flex>
     </Flex>
   );

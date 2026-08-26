@@ -17,6 +17,7 @@ import { type ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { type AuthModeType, type AuthResponseType } from '../type';
 import { AppReadChatLogPerVal } from '@fastgpt/global/support/permission/app/constant';
 import { parseHeaderCert } from '../auth/common';
+import { assertTeamWritable } from '../../user/team/status';
 import { sumPer } from '@fastgpt/global/support/permission/utils';
 
 export const authWorkflowToolByTmbId = async ({
@@ -139,6 +140,7 @@ export const authApp = async ({
 > => {
   const result = await parseHeaderCert(props);
   const { tmbId } = result;
+  await assertTeamWritable(result.teamId, per);
 
   if (!appId) {
     return Promise.reject(AppErrEnum.unExist);

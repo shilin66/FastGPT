@@ -2,7 +2,7 @@ import { Box, type BoxProps, Card, Flex, Button } from '@chakra-ui/react';
 import React, { useMemo, useState, useRef } from 'react';
 import ChatController, { type ChatControllerProps } from './ChatController';
 import ChatAvatar from './ChatAvatar';
-import { MessageCardStyle } from '../constants';
+import { ChatTypeEnum, MessageCardStyle } from '../constants';
 import { formatChatValue2InputType } from '../utils';
 import Markdown from '@/components/Markdown';
 import styles from '../index.module.scss';
@@ -13,9 +13,7 @@ import { ChatBoxContext } from '../Provider';
 import { useContextSelector } from 'use-context-selector';
 import { WorkflowRuntimeContext } from '../../context/workflowRuntimeContext';
 import AIResponseBox from '../../../components/AIResponseBox';
-import { useCopyData } from '@fastgpt/web/hooks/useCopyData';
 import MyIcon from '@fastgpt/web/components/common/Icon';
-import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { useTranslation } from 'next-i18next';
 import type { UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
 import { type AIChatItemValueItemType } from '@fastgpt/global/core/chat/type';
@@ -182,18 +180,14 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
     () => ({
       ...(chat.obj === ChatRoleEnum.Human
         ? {
-            order: 0,
-            borderRadius: '8px 0 8px 8px',
-            justifyContent: 'flex-end',
+            borderRadius: '8px 3px 8px 8px',
             textAlign: 'right',
-            bg: 'primary.100'
+            bg: 'primary.600'
           }
         : {
-            order: 1,
-            borderRadius: '0 8px 8px 8px',
-            justifyContent: 'flex-start',
+            borderRadius: 0,
             textAlign: 'left',
-            bg: 'myGray.50'
+            bg: 'transparent'
           }),
       fontSize: 'mini',
       fontWeight: '400',
@@ -206,6 +200,9 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
   const chatType = useContextSelector(ChatBoxContext, (v) => v.chatType);
   const showRunningStatus = useContextSelector(ChatItemContext, (v) => v.showRunningStatus);
   const showAvatar = useContextSelector(ChatItemContext, (v) => v.showAvatar);
+  const assistantName = useContextSelector(ChatItemContext, (v) => v.chatBoxData.app.name);
+  const showAiIdentity = chat.obj === ChatRoleEnum.AI && showAvatar !== false;
+  const showHumanIdentity = chat.obj === ChatRoleEnum.Human && showAvatar !== false;
 
   const appId = useContextSelector(WorkflowRuntimeContext, (v) => v.appId);
   const chatId = useContextSelector(WorkflowRuntimeContext, (v) => v.chatId);
@@ -218,13 +215,39 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
   );
 
   const isChatLog = chatType === 'log';
-
-  const { copyData } = useCopyData();
+  const isPortalMessage = chatType === ChatTypeEnum.chat || chatType === ChatTypeEnum.home;
 
   const chatStatusMap = useMemoEnhance(() => {
     if (!statusBoxData?.status) return;
     return colorMap[statusBoxData.status];
   }, [statusBoxData?.status]);
+
+  const showController = !(isChatting && chat.obj === ChatRoleEnum.AI && isLastChild);
+
+  const timeLabel =
+    chat.time && (isPc || isChatLog || isPortalMessage) ? (
+      <Box
+        className={'time-label'}
+        fontSize={isPortalMessage ? '10px' : styleMap.fontSize}
+        color={isPortalMessage ? 'myGray.500' : styleMap.color}
+        fontWeight={styleMap.fontWeight}
+        w={isChatLog ? 'auto' : isPortalMessage ? '42px' : '36px'}
+        flexShrink={0}
+        textAlign={'center'}
+        whiteSpace={'nowrap'}
+        opacity={isChatLog || isPortalMessage ? 1 : 0}
+        visibility={isChatLog || isPortalMessage ? 'visible' : 'hidden'}
+        pointerEvents={'none'}
+        transition={'opacity 0.15s ease'}
+        fontFamily={isPortalMessage ? 'mono' : undefined}
+      >
+        {isChatLog
+          ? t(formatTimeToChatItemTime(chat.time) as any, {
+              time: dayjs(chat.time).format('HH:mm')
+            }).replace('#', ':')
+          : dayjs(chat.time).format('HH:mm')}
+      </Box>
+    ) : null;
 
   /*
     1. The interactive node is divided into n dialog boxes.
@@ -346,61 +369,99 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
       data-chat-id={chat.dataId}
       _hover={{
         '& .time-label': {
-          display: 'block'
+          opacity: 1,
+          visibility: 'visible'
+        }
+      }}
+      _focusWithin={{
+        '& .time-label': {
+          opacity: 1,
+          visibility: 'visible'
         }
       }}
     >
-      {/* control icon */}
-      <Flex w={'100%'} alignItems={'center'} gap={2} justifyContent={styleMap.justifyContent}>
-        {isChatting && chat.obj === ChatRoleEnum.AI && isLastChild ? null : (
-          <Flex order={styleMap.order} ml={styleMap.ml} align={'center'} gap={'0.62rem'}>
-            {chat.time && (isPc || isChatLog) && (
-              <Box
-                order={chat.obj === ChatRoleEnum.AI ? 2 : 0}
-                className={'time-label'}
-                fontSize={styleMap.fontSize}
-                color={styleMap.color}
-                fontWeight={styleMap.fontWeight}
-                display={isChatLog ? 'block' : 'none'}
-              >
-                {t(formatTimeToChatItemTime(chat.time) as any, {
-                  time: dayjs(chat.time).format('HH:mm')
-                }).replace('#', ':')}
-              </Box>
-            )}
+      <Flex
+        w={'100%'}
+        maxW={isPortalMessage ? '820px' : '100%'}
+        ml={isPortalMessage && chat.obj === ChatRoleEnum.Human ? 'auto' : 0}
+        minH={isPortalMessage ? '30px' : undefined}
+        alignItems={'center'}
+        justifyContent={chat.obj === ChatRoleEnum.Human ? 'flex-end' : 'flex-start'}
+        gap={isPortalMessage ? 1 : 1.5}
+        mb={1.5}
+      >
+        {showAiIdentity && <ChatAvatar src={avatar} type={chat.obj} />}
+
+        {isPortalMessage && chat.obj === ChatRoleEnum.AI && (
+          <Box
+            mx={0.75}
+            maxW={'180px'}
+            overflow={'hidden'}
+            color={'myGray.700'}
+            fontSize={'11px'}
+            fontWeight={'800'}
+            textOverflow={'ellipsis'}
+            whiteSpace={'nowrap'}
+          >
+            {assistantName}
+          </Box>
+        )}
+
+        {chat.obj === ChatRoleEnum.Human && timeLabel}
+
+        {showController && (
+          <Box
+            flexShrink={0}
+            opacity={isPortalMessage ? 0.72 : 1}
+            transition={'opacity 0.15s ease'}
+            _hover={{ opacity: 1 }}
+            _focusWithin={{ opacity: 1 }}
+          >
             <ChatController
               {...props}
               isLastChild={isLastChild}
               showFeedbackContent={showFeedbackContent}
               onToggleFeedbackContent={() => setShowFeedbackContent(!showFeedbackContent)}
             />
-          </Flex>
+          </Box>
         )}
-        {showAvatar !== false && <ChatAvatar src={avatar} type={chat.obj} />}
+
+        {chat.obj === ChatRoleEnum.AI && timeLabel}
 
         {/* Workflow status */}
-        {!!chatStatusMap && statusBoxData && isLastChild && showRunningStatus && (
-          <Flex
-            alignItems={'center'}
-            px={3}
-            py={'1.5px'}
-            borderRadius="md"
-            bg={chatStatusMap.bg}
-            fontSize={'sm'}
-          >
-            <Box
-              className={styles.statusAnimation}
-              bg={chatStatusMap.color}
-              w="8px"
-              h="8px"
-              borderRadius={'50%'}
-              mt={'1px'}
-            />
-            <Box ml={2} color={'myGray.600'}>
-              {statusBoxData.name}
-            </Box>
-          </Flex>
+        {chat.obj === ChatRoleEnum.AI &&
+          !!chatStatusMap &&
+          statusBoxData &&
+          isLastChild &&
+          showRunningStatus && (
+            <Flex
+              alignItems={'center'}
+              px={2.5}
+              py={1}
+              borderRadius={'6px'}
+              bg={chatStatusMap.bg}
+              fontSize={'xs'}
+            >
+              <Box
+                className={styles.statusAnimation}
+                bg={chatStatusMap.color}
+                w={'7px'}
+                h={'7px'}
+                borderRadius={'50%'}
+              />
+              <Box ml={2} color={'myGray.600'}>
+                {statusBoxData.name}
+              </Box>
+            </Flex>
+          )}
+
+        {isPortalMessage && chat.obj === ChatRoleEnum.Human && (
+          <Box mx={0.75} color={'myGray.700'} fontSize={'11px'} fontWeight={'800'}>
+            {t('common:core.chat.You')}
+          </Box>
         )}
+
+        {showHumanIdentity && <ChatAvatar src={avatar} type={chat.obj} />}
       </Flex>
 
       {/* User Feedback Content: Admin log show */}
@@ -410,10 +471,11 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
         (chat.userGoodFeedback || chat.userBadFeedback) && (
           <Box
             mt={2}
+            ml={showAiIdentity ? [0, '44px'] : 0}
             maxW={'250'}
             border={'1px solid'}
             borderColor={'myGray.250'}
-            borderRadius={'md'}
+            borderRadius={'8px'}
             p={3}
           >
             <Box fontSize={'sm'} color={'myGray.900'} whiteSpace={'pre-wrap'}>
@@ -438,19 +500,66 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
         return (
           <Box
             key={i}
-            mt={['6px', 2]}
+            mt={i === 0 ? 0 : 2}
+            w={'100%'}
+            maxW={isPortalMessage ? '820px' : '100%'}
+            ml={isPortalMessage && chat.obj === ChatRoleEnum.Human ? 'auto' : 0}
+            pl={isPortalMessage ? 0 : showAiIdentity ? [0, '36px'] : 0}
+            pr={isPortalMessage ? 0 : showHumanIdentity ? [0, '36px'] : 0}
             className="chat-box-card"
-            textAlign={styleMap.textAlign}
-            _hover={{
-              '& .footer-copy': {
-                display: 'block'
-              }
-            }}
+            display={'flex'}
+            justifyContent={chat.obj === ChatRoleEnum.Human ? 'flex-end' : 'flex-start'}
           >
             <Card
               {...MessageCardStyle}
               bg={styleMap.bg}
-              borderRadius={styleMap.borderRadius}
+              borderRadius={
+                isPortalMessage && chat.obj === ChatRoleEnum.Human
+                  ? '7px 2px 7px 7px'
+                  : styleMap.borderRadius
+              }
+              border={'none'}
+              borderLeft={isPortalMessage && chat.obj === ChatRoleEnum.AI ? '3px solid' : undefined}
+              borderLeftColor={
+                isPortalMessage && chat.obj === ChatRoleEnum.AI ? 'primary.600' : undefined
+              }
+              color={chat.obj === ChatRoleEnum.Human ? 'white' : 'myGray.900'}
+              w={chat.obj === ChatRoleEnum.Human ? 'auto' : '100%'}
+              maxW={
+                isPortalMessage
+                  ? chat.obj === ChatRoleEnum.Human
+                    ? ['90%', '640px']
+                    : '820px'
+                  : chat.obj === ChatRoleEnum.Human
+                    ? 'min(82%, 760px)'
+                    : '960px'
+              }
+              px={
+                isPortalMessage
+                  ? chat.obj === ChatRoleEnum.Human
+                    ? '15px'
+                    : 0
+                  : chat.obj === ChatRoleEnum.Human
+                    ? [3, 4]
+                    : 0
+              }
+              pl={isPortalMessage && chat.obj === ChatRoleEnum.AI ? '17px' : undefined}
+              py={
+                isPortalMessage
+                  ? chat.obj === ChatRoleEnum.Human
+                    ? '12px'
+                    : '1px'
+                  : chat.obj === ChatRoleEnum.Human
+                    ? 3
+                    : 0
+              }
+              boxShadow={
+                isPortalMessage && chat.obj === ChatRoleEnum.Human
+                  ? '0 8px 20px rgba(37, 99, 235, 0.16)'
+                  : 'none'
+              }
+              fontSize={isPortalMessage ? '14px' : undefined}
+              lineHeight={isPortalMessage ? 1.65 : undefined}
               textAlign={'left'}
             >
               {chat.obj === ChatRoleEnum.Human && (
@@ -490,39 +599,13 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
                   {children}
                 </>
               )}
-              {/* 对话框底部的复制按钮 */}
-              {chat.obj == ChatRoleEnum.AI &&
-                !('interactive' in value[0]) &&
-                (!isChatting || (isChatting && !isLastChild)) && (
-                  <Box
-                    className="footer-copy"
-                    display={['block', 'none']}
-                    position={'absolute'}
-                    bottom={0}
-                    right={0}
-                    transform={'translateX(100%)'}
-                  >
-                    <MyTooltip label={t('common:Copy')}>
-                      <MyIcon
-                        w={'1rem'}
-                        cursor="pointer"
-                        p="5px"
-                        bg="white"
-                        name={'copy'}
-                        color={'myGray.500'}
-                        _hover={{ color: 'primary.600' }}
-                        onClick={() => copyData(formatChatValue2InputType(value).text ?? '')}
-                      />
-                    </MyTooltip>
-                  </Box>
-                )}
             </Card>
           </Box>
         );
       })}
 
       {hasPlanCheck && isLastChild && (
-        <Flex mt={3}>
+        <Flex mt={3} pl={showAiIdentity ? [0, '44px'] : 0}>
           <Button
             leftIcon={<MyIcon name={'common/check'} w={'16px'} />}
             variant={'primaryOutline'}
@@ -541,6 +624,7 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
       {isChatLog && chat.obj === ChatRoleEnum.AI && errorText && (
         <Box
           mt={2}
+          ml={showAiIdentity ? [0, '44px'] : 0}
           maxW={'500px'}
           border={'1px solid'}
           borderColor={'myGray.200'}

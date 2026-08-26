@@ -191,20 +191,25 @@ const RenderHttpMethodAndUrl = React.memo(function RenderHttpMethodAndUrl({
 
   return (
     <Box>
-      <Box mb={2} display={'flex'} justifyContent={'space-between'}>
-        <Box fontWeight={'medium'} color={'myGray.600'}>
+      <Flex mb={1.5} alignItems={'center'} justifyContent={'space-between'}>
+        <Box fontSize={'12px'} fontWeight={900} color={'#27364A'}>
           {t('common:core.module.Http request settings')}
         </Box>
-        <Button variant={'link'} onClick={onOpenCurl}>
+        <Button
+          variant={'link'}
+          fontSize={'12px'}
+          fontWeight={900}
+          color={'#64748B'}
+          onClick={onOpenCurl}
+        >
           {t('common:core.module.http.curl import')}
         </Button>
-      </Box>
+      </Flex>
       <Flex alignItems={'center'} className="nodrag">
         <MySelect
-          h={'40px'}
-          w={'88px'}
-          bg={'white'}
-          width={'100%'}
+          h={'34px'}
+          w={'82px'}
+          bg={'rgba(37, 99, 235, 0.08)'}
           value={requestMethods?.value}
           list={HTTP_METHODS.map((method) => ({ label: method, value: method }))}
           onChange={(e) => {
@@ -222,10 +227,11 @@ const RenderHttpMethodAndUrl = React.memo(function RenderHttpMethodAndUrl({
         <Box
           w={'full'}
           border={'1px solid'}
-          borderColor={'myGray.200'}
-          rounded={'md'}
-          bg={'white'}
+          borderColor={'rgba(223, 229, 238, 0.74)'}
+          rounded={'8px'}
+          bg={'rgba(255, 255, 255, 0.68)'}
           ml={2}
+          overflow={'hidden'}
         >
           <PromptEditor
             placeholder={
@@ -238,7 +244,7 @@ const RenderHttpMethodAndUrl = React.memo(function RenderHttpMethodAndUrl({
             variables={externalProviderWorkflowVariables}
             onBlur={onBlurUrl}
             onChange={onChangeUrl}
-            minH={40}
+            minH={34}
             showOpenModal={false}
           />
         </Box>
@@ -322,8 +328,10 @@ export function RenderHttpProps({
       JSON.parse(stringifyVariables);
     return (
       <Box>
-        <Flex alignItems={'center'} mb={2} fontWeight={'medium'} color={'myGray.600'}>
-          {t('common:core.module.Http request props')}
+        <Flex alignItems={'center'} mb={1.5} color={'#27364A'}>
+          <Box fontSize={'12px'} fontWeight={900}>
+            {t('common:core.module.Http request props')}
+          </Box>
           <QuestionTip
             ml={1}
             label={t('common:core.module.http.Props tip', { variable: variableText })}
@@ -346,8 +354,8 @@ export function RenderHttpProps({
         </Flex>
         <LightRowTabs<TabEnum>
           width={'100%'}
-          mb={2}
-          defaultColor={'myGray.250'}
+          mb={1.5}
+          defaultColor={'rgba(223, 229, 238, 0.96)'}
           list={[
             { label: <RenderPropsItem text="Params" num={paramsLength} />, value: TabEnum.params },
             ...(!['GET', 'DELETE'].includes(requestMethods)
@@ -357,7 +365,20 @@ export function RenderHttpProps({
                       <Flex alignItems={'center'}>
                         Body
                         {(jsonBody?.value || !!formBody?.value?.length) &&
-                          contentType?.value !== ContentTypes.none && <Box ml={1}>✅</Box>}
+                          contentType?.value !== ContentTypes.none && (
+                            <Box
+                              ml={1}
+                              px={1.5}
+                              py={'1px'}
+                              borderRadius={'7px'}
+                              bg={'rgba(37, 99, 235, 0.08)'}
+                              color={'#2563EB'}
+                              fontSize={'10px'}
+                              fontWeight={900}
+                            >
+                              set
+                            </Box>
+                          )}
                       </Flex>
                     ),
                     value: TabEnum.body
@@ -438,7 +459,7 @@ const RenderHttpTimeout = ({
 
   return (
     <Flex alignItems={'center'} justifyContent={'space-between'}>
-      <Box fontWeight={'medium'} color={'myGray.600'}>
+      <Box fontSize={'12px'} fontWeight={900} color={'#27364A'}>
         {t('common:core.module.Http timeout')}
       </Box>
       <Box>
@@ -447,7 +468,7 @@ const RenderHttpTimeout = ({
             defaultValue={timeout.value}
             min={timeout.min}
             max={timeout.max}
-            bg={'white'}
+            bg={'rgba(255, 255, 255, 0.96)'}
             onBlur={() => setIsEditTimeout(false)}
             onChange={(e) => {
               onChangeNode({
@@ -461,7 +482,7 @@ const RenderHttpTimeout = ({
               });
             }}
           >
-            <NumberInputField autoFocus bg={'white'} px={3} borderRadius={'sm'} />
+            <NumberInputField autoFocus bg={'white'} px={3} borderRadius={'9px'} />
             <NumberInputStepper>
               <NumberIncrementStepper />
               <NumberDecrementStepper />
@@ -470,7 +491,14 @@ const RenderHttpTimeout = ({
         ) : (
           <Button
             variant={'whiteBase'}
-            color={'myGray.600'}
+            h={'32px'}
+            px={3}
+            borderRadius={'9px'}
+            color={'#27364A'}
+            fontSize={'12px'}
+            fontWeight={900}
+            bg={'rgba(248, 250, 252, 0.96)'}
+            border={'1px solid rgba(223, 229, 238, 0.96)'}
             onClick={() => setIsEditTimeout(true)}
           >{`${timeout?.value} s`}</Button>
         )}
@@ -571,20 +599,37 @@ const RenderForm = ({
   const Render = useMemo(() => {
     return (
       <Box
-        borderRadius={'md'}
+        borderRadius={'8px'}
         overflow={'hidden'}
-        borderWidth={'1px'}
-        borderBottom={'none'}
-        bg={'white'}
+        border={'1px solid rgba(223, 229, 238, 0.74)'}
+        bg={'rgba(255, 255, 255, 0.68)'}
       >
         <TableContainer overflowY={'visible'} overflowX={'unset'}>
-          <Table>
+          <Table size={'sm'}>
             <Thead>
               <Tr>
-                <Th px={2} borderBottomLeftRadius={'none !important'}>
+                <Th
+                  px={2.5}
+                  h={'32px'}
+                  bg={'rgba(248, 250, 252, 0.74)'}
+                  color={'#64748B'}
+                  fontSize={'11px'}
+                  fontWeight={900}
+                  borderColor={'rgba(223, 229, 238, 0.74)'}
+                  borderBottomLeftRadius={'none !important'}
+                >
                   {t('common:core.module.http.Props name')}
                 </Th>
-                <Th px={2} borderBottomRadius={'none !important'}>
+                <Th
+                  px={2.5}
+                  h={'32px'}
+                  bg={'rgba(248, 250, 252, 0.96)'}
+                  color={'#64748B'}
+                  fontSize={'11px'}
+                  fontWeight={900}
+                  borderColor={'rgba(223, 229, 238, 0.96)'}
+                  borderBottomRadius={'none !important'}
+                >
                   {t('common:core.module.http.Props value')}
                 </Th>
               </Tr>
@@ -592,7 +637,12 @@ const RenderForm = ({
             <Tbody>
               {[...list, { key: '', value: '', label: '' }].map((item, index) => (
                 <Tr key={`${input.key}${index}`}>
-                  <Td p={0} w={'50%'} borderRight={'1px solid'} borderColor={'myGray.200'}>
+                  <Td
+                    p={0}
+                    w={'50%'}
+                    borderRight={'1px solid'}
+                    borderColor={'rgba(223, 229, 238, 0.96)'}
+                  >
                     <HttpInput
                       placeholder={t('common:textarea_variable_picker_tip')}
                       value={item.key}
@@ -702,28 +752,34 @@ const RenderBody = ({
   const Render = useMemo(() => {
     return (
       <Box>
-        <Flex bg={'myGray.50'}>
+        <Flex
+          gap={1}
+          mb={2}
+          p={1}
+          borderRadius={'10px'}
+          bg={'rgba(248, 250, 252, 0.96)'}
+          border={'1px solid rgba(223, 229, 238, 0.96)'}
+        >
           {Object.values(ContentTypes).map((item) => (
             <Box
               key={item}
               as={'span'}
-              px={3}
-              py={1.5}
-              mb={2}
-              borderRadius={'6px'}
+              px={2.5}
+              py={1}
+              borderRadius={'8px'}
               border={'1px solid'}
               {...(typeInput?.value === item
                 ? {
                     bg: 'white',
-                    borderColor: 'myGray.200',
-                    color: 'primary.700'
+                    borderColor: 'rgba(37, 99, 235, 0.22)',
+                    color: '#2563EB'
                   }
                 : {
-                    bg: 'myGray.50',
+                    bg: 'transparent',
                     borderColor: 'transparent',
-                    color: 'myGray.500'
+                    color: '#64748B'
                   })}
-              _hover={{ bg: 'white', borderColor: 'myGray.200', color: 'primary.700' }}
+              _hover={{ bg: 'white', borderColor: 'rgba(37, 99, 235, 0.18)', color: '#2563EB' }}
               onClick={() => {
                 onChangeNode({
                   nodeId,
@@ -741,6 +797,8 @@ const RenderBody = ({
               }}
               cursor={'pointer'}
               whiteSpace={'nowrap'}
+              fontSize={'12px'}
+              fontWeight={900}
             >
               {item}
             </Box>
@@ -757,10 +815,10 @@ const RenderBody = ({
         )}
         {typeInput?.value === ContentTypes.json && (
           <PromptEditor
-            bg={'white'}
+            bg={'rgba(255, 255, 255, 0.96)'}
             showOpenModal={false}
             variableLabels={variables}
-            minH={200}
+            minH={140}
             value={jsonBody.value}
             placeholder={t('workflow:http_body_placeholder')}
             onChange={(e) => {
@@ -793,7 +851,7 @@ const RenderBody = ({
             }}
             showOpenModal={false}
             variableLabels={variables}
-            minH={200}
+            minH={140}
           />
         )}
       </Box>
@@ -816,7 +874,16 @@ const RenderPropsItem = ({ text, num }: { text: string; num: number }) => {
     <Flex alignItems={'center'}>
       <Box>{text}</Box>
       {num > 0 && (
-        <Box ml={1} borderRadius={'50%'} bg={'myGray.200'} px={2} py={'1px'}>
+        <Box
+          ml={1}
+          borderRadius={'7px'}
+          bg={'rgba(37, 99, 235, 0.08)'}
+          color={'#2563EB'}
+          px={1.5}
+          py={'1px'}
+          fontSize={'10px'}
+          fontWeight={900}
+        >
           {num}
         </Box>
       )}
@@ -853,13 +920,11 @@ const NodeHttp = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
 
   // console.log(inputs);
   return (
-    <NodeCard minW={'350px'} selected={selected} {...data}>
+    <NodeCard selected={selected} {...data}>
       {isTool && (
-        <>
-          <Container>
-            <RenderToolInput nodeId={nodeId} inputs={inputs} />
-          </Container>
-        </>
+        <Container>
+          <RenderToolInput nodeId={nodeId} inputs={inputs} />
+        </Container>
       )}
       <Container>
         <IOTitle text={t('common:Input')} />

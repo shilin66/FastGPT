@@ -19,6 +19,7 @@ import { getUploadFileType } from '@fastgpt/global/core/app/constants';
 import { putFileToS3 } from '@fastgpt/web/common/file/utils';
 import { WorkflowRuntimeContext } from '../../context/workflowRuntimeContext';
 import { useContextSelector } from 'use-context-selector';
+import type { IconNameType } from '@fastgpt/web/components/common/Icon/type';
 
 type UseFileUploadOptions = {
   fileSelectConfig: AppFileSelectConfigType;
@@ -73,7 +74,10 @@ export const useFileUpload = (props: UseFileUploadOptions) => {
     1024;
   const canSelectFileAmount = maxSelectFiles - fileList.length;
 
-  const { icon: selectFileIcon, label: selectFileLabel } = useMemo(() => {
+  const { icon: selectFileIcon, label: selectFileLabel } = useMemo<{
+    icon?: IconNameType;
+    label?: string;
+  }>(() => {
     if (canUploadFile) {
       return {
         icon: 'core/chat/fileSelect',

@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
+import type { TFunction } from 'i18next';
 import React from 'react';
-import { Box, Flex, IconButton, Input, InputGroup, InputLeftElement } from '@chakra-ui/react';
-import FillRowTabs from '@fastgpt/web/components/common/Tabs/FillRowTabs';
+import { Box, Flex, Input, InputGroup, InputLeftElement, SimpleGrid } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useTranslation } from 'next-i18next';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
@@ -21,8 +21,31 @@ export enum TemplateTypeEnum {
   'agent' = 'agent'
 }
 
+export const getNodeTemplateTabs = (t: TFunction) =>
+  [
+    {
+      icon: 'core/modules/basicNode',
+      label: t('common:core.module.template.Basic Node'),
+      value: TemplateTypeEnum.basic
+    },
+    {
+      icon: 'common/app',
+      label: t('app:core.module.template.System Tools'),
+      value: TemplateTypeEnum.systemTools
+    },
+    {
+      icon: 'core/app/type/plugin',
+      label: t('common:navbar.Tools'),
+      value: TemplateTypeEnum.myTools
+    },
+    {
+      icon: 'core/chat/sidebar/star',
+      label: t('workflow:template.agent_module'),
+      value: TemplateTypeEnum.agent
+    }
+  ] as const;
+
 export type NodeTemplateListHeaderProps = {
-  onClose?: () => void;
   isPopover?: boolean;
   templateType: TemplateTypeEnum;
   parentId: ParentIdType;
@@ -37,7 +60,6 @@ export type NodeTemplateListHeaderProps = {
 };
 
 const NodeTemplateListHeader = ({
-  onClose,
   isPopover = false,
   templateType,
   parentId,
@@ -71,78 +93,78 @@ const NodeTemplateListHeader = ({
     selectedTagIds !== undefined &&
     setSelectedTagIds;
 
+  const tabList = getNodeTemplateTabs(t);
+  const activeTab = tabList.find((tab) => tab.value === templateType);
+
   return (
-    <Box px={'5'} mb={showToolTag ? 0.5 : 2} whiteSpace={'nowrap'} overflow={'hidden'}>
+    <Box px={3} mb={showToolTag ? 0.5 : 2} whiteSpace={'nowrap'} overflow={'hidden'}>
       {/* Tabs */}
-      <Flex flex={'1 0 0'} alignItems={'center'} gap={2}>
-        <Box flex={'1 0 0'}>
-          <FillRowTabs<TemplateTypeEnum>
-            list={[
-              {
-                icon: 'core/modules/basicNode',
-                label: t('common:core.module.template.Basic Node'),
-                value: TemplateTypeEnum.basic
-              },
-              {
-                icon: 'common/app',
-                label: t('app:core.module.template.System Tools'),
-                value: TemplateTypeEnum.systemTools
-              },
-              {
-                icon: 'core/app/type/plugin',
-                label: t('common:navbar.Tools'),
-                value: TemplateTypeEnum.myTools
-              },
-              {
-                icon: 'core/chat/sidebar/star',
-                label: 'Agent',
-                value: TemplateTypeEnum.agent
-              }
-            ]}
-            width={'100%'}
-            px={1}
-            py={isPopover ? '3px' : '5px'}
-            iconGap={1}
-            {...(isPopover
-              ? {
-                  iconSize: '14px',
-                  labelSize: '12.8px'
-                }
-              : {})}
-            value={templateType}
-            onChange={(e) => {
-              onUpdateTemplateType(e);
-            }}
-          />
-        </Box>
-        {/* close icon */}
-        {!isPopover && (
-          <IconButton
-            size={'sm'}
-            icon={<MyIcon name={'common/backFill'} w={'14px'} color={'myGray.600'} />}
-            bg={'myGray.100'}
-            _hover={{
-              bg: 'myGray.200',
-              '& svg': {
-                color: 'primary.600'
-              }
-            }}
-            variant={'grayBase'}
-            aria-label={''}
-            onClick={onClose}
-          />
-        )}
-      </Flex>
+      {isPopover ? (
+        <SimpleGrid columns={2} spacing={1.5}>
+          {tabList.map((tab) => {
+            const isActive = tab.value === templateType;
+            return (
+              <Flex
+                as={'button'}
+                key={tab.value}
+                type={'button'}
+                alignItems={'center'}
+                justifyContent={'center'}
+                h={'30px'}
+                px={2}
+                gap={1.5}
+                borderRadius={'7px'}
+                border={'1px solid'}
+                borderColor={isActive ? '#9DB9FA' : '#DFE5EE'}
+                bg={isActive ? '#EFF6FF' : '#F8FAFC'}
+                color={isActive ? '#2563EB' : '#667085'}
+                fontSize={'12px'}
+                fontWeight={800}
+                cursor={'pointer'}
+                _hover={{ borderColor: '#9DB9FA', color: '#2563EB' }}
+                onClick={() => onUpdateTemplateType(tab.value)}
+              >
+                <MyIcon name={tab.icon} w={'13px'} />
+                <Box minW={0} className={'textEllipsis'}>
+                  {tab.label}
+                </Box>
+              </Flex>
+            );
+          })}
+        </SimpleGrid>
+      ) : (
+        <Flex minH={'46px'} alignItems={'center'}>
+          <Box minW={0}>
+            <Box color={'#27364A'} fontSize={'13px'} fontWeight={900}>
+              {t('workflow:node_templates.title')}
+            </Box>
+            <Box
+              mt={0.5}
+              color={'#7A8699'}
+              fontSize={'9px'}
+              fontWeight={650}
+              className={'textEllipsis'}
+            >
+              {t('workflow:node_templates.drag_tip')}
+            </Box>
+          </Box>
+          <Box ml={'auto'} pl={2} color={'#667085'} fontSize={'10px'} fontWeight={800}>
+            {activeTab?.label}
+          </Box>
+        </Flex>
+      )}
       {/* Search */}
       {templateType !== TemplateTypeEnum.basic && (
-        <Flex mt={2} alignItems={'center'} h={isPopover ? 8 : 10}>
+        <Flex mt={2} alignItems={'center'} gap={2} h={isPopover ? 8 : 10}>
           <InputGroup h={'full'}>
             <InputLeftElement h={'full'} alignItems={'center'} display={'flex'}>
               <MyIcon name={'common/searchLight'} w={'16px'} color={'myGray.500'} ml={3} />
             </InputLeftElement>
             <Input
               h={'full'}
-              bg={'myGray.50'}
+              bg={'#F8FAFC'}
+              border={'1px solid rgba(148, 163, 184, 0.22)'}
+              borderRadius={'7px'}
               placeholder={
                 templateType === TemplateTypeEnum.systemTools
                   ? t('common:search_tool')
@@ -171,7 +193,7 @@ const NodeTemplateListHeader = ({
                   }
                 }}
                 gap={1}
-                ml={4}
+                flexShrink={0}
               >
                 <Box>{t('common:create')}</Box>
                 <MyIcon name={'common/rightArrowLight'} w={'0.8rem'} />
@@ -186,7 +208,7 @@ const NodeTemplateListHeader = ({
               }}
               onClick={() => router.push('/dashboard/systemTool')}
               gap={1}
-              ml={4}
+              flexShrink={0}
             >
               <Box fontSize={'sm'}>{t('app:find_more_tools')}</Box>
               <MyIcon name={'common/rightArrowLight'} w={'0.9rem'} />
@@ -204,6 +226,7 @@ const NodeTemplateListHeader = ({
               selectedTagIds={selectedTagIds}
               onTagSelect={setSelectedTagIds}
               size={isPopover ? 'sm' : 'base'}
+              variant={isPopover ? 'inline' : 'compactMenu'}
             />
           </Box>
         )}

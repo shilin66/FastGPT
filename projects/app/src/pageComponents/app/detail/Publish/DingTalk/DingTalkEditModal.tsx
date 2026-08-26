@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Box, Button, ModalBody, Input, Link } from '@chakra-ui/react';
+import { Flex, Button, Input, Link } from '@chakra-ui/react';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import type { DingtalkAppType, OutLinkEditType } from '@fastgpt/global/support/outLink/type';
@@ -12,6 +12,13 @@ import { getDocPath } from '@/web/common/system/doc';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
+import {
+  OmniFieldCard,
+  OmniFormGrid,
+  OmniModalBody,
+  OmniModalFooter,
+  OmniModalSection
+} from '../../components/OmniModalLayout';
 
 const DingTalkEditModal = ({
   appId,
@@ -81,19 +88,38 @@ const DingTalkEditModal = ({
       }
       minW={['auto', '60rem']}
     >
-      <ModalBody display={'grid'} gridTemplateColumns={['1fr', '1fr 1fr']} fontSize={'14px'} p={0}>
-        <Box p={8} h={['auto', '400px']} borderRight={'base'}>
+      <OmniModalBody
+        icon="common/dingtalkFill"
+        title={
+          isEdit ? t('publish:dingtalk.edit_modal_title') : t('publish:dingtalk.create_modal_title')
+        }
+        desc={t('publish:dingtalk.api')}
+        asideItems={[
+          {
+            label: t('publish:basic_info'),
+            desc: t('common:Name'),
+            icon: 'common/setting'
+          },
+          {
+            label: t('publish:dingtalk.api'),
+            desc: 'Client ID / Client Secret',
+            icon: 'common/dingtalkFill'
+          }
+        ]}
+      >
+        <OmniModalSection title={t('publish:basic_info')} desc={t('publish:publish_name')}>
           <BasicInfo
             register={register}
             setValue={setValue}
             defaultData={defaultData}
             showResponseConfig={false}
           />
-        </Box>
-        <Flex p={8} h={['auto', '400px']} flexDirection="column" gap={6}>
-          <Flex alignItems="center">
-            <Box color="myGray.600">{t('publish:dingtalk.api')}</Box>
-            {feConfigs?.docUrl && (
+        </OmniModalSection>
+        <OmniModalSection
+          title={t('publish:dingtalk.api')}
+          desc={'用于连接钉钉应用并完成消息回调校验。'}
+          action={
+            feConfigs?.docUrl && (
               <Link
                 href={getDocPath('/docs/use-cases/external-integration/dingtalk/')}
                 target={'_blank'}
@@ -106,47 +132,48 @@ const DingTalkEditModal = ({
                   {t('common:read_doc')}
                 </Flex>
               </Link>
-            )}
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              Client ID
-            </FormLabel>
-            <Input
-              placeholder={'Client ID'}
-              {...register('app.clientId', {
-                required: true
-              })}
-            />
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              Client Secret
-            </FormLabel>
-            <Input
-              placeholder={'Client Secret'}
-              {...register('app.clientSecret', {
-                required: true
-              })}
-            />
-          </Flex>
-          <Box flex={1}></Box>
-
-          <Flex justifyContent={'end'}>
-            <Button variant={'whiteBase'} mr={3} onClick={onClose}>
-              {t('common:Close')}
-            </Button>
-            <Button
-              isLoading={creating || updating}
-              onClick={submitShareChat((data) =>
-                isEdit ? onclickUpdate(data) : onclickCreate(data)
-              )}
-            >
-              {t('common:Confirm')}
-            </Button>
-          </Flex>
-        </Flex>
-      </ModalBody>
+            )
+          }
+        >
+          <OmniFormGrid>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                Client ID
+              </FormLabel>
+              <Input
+                mt={2}
+                placeholder={'Client ID'}
+                {...register('app.clientId', {
+                  required: true
+                })}
+              />
+            </OmniFieldCard>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                Client Secret
+              </FormLabel>
+              <Input
+                mt={2}
+                placeholder={'Client Secret'}
+                {...register('app.clientSecret', {
+                  required: true
+                })}
+              />
+            </OmniFieldCard>
+          </OmniFormGrid>
+        </OmniModalSection>
+      </OmniModalBody>
+      <OmniModalFooter>
+        <Button variant={'whiteBase'} onClick={onClose}>
+          {t('common:Close')}
+        </Button>
+        <Button
+          isLoading={creating || updating}
+          onClick={submitShareChat((data) => (isEdit ? onclickUpdate(data) : onclickCreate(data)))}
+        >
+          {t('common:Confirm')}
+        </Button>
+      </OmniModalFooter>
     </MyModal>
   );
 };

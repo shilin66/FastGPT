@@ -29,16 +29,23 @@ export type ChatControllerProps = {
 };
 
 const controlIconStyle = {
-  w: '14px',
+  w: '18px',
+  h: '18px',
+  minW: '18px',
+  minH: '18px',
+  flexShrink: 0,
   cursor: 'pointer',
-  p: '5px',
-  bg: 'white',
-  borderRight: 'base'
+  p: '3px',
+  bg: 'transparent',
+  borderRadius: '4px',
+  color: 'myGray.500',
+  transition: 'background-color 0.15s ease, color 0.15s ease'
 };
 const controlContainerStyle = {
   className: 'control',
-  color: 'myGray.400',
-  display: 'flex'
+  color: 'myGray.500',
+  display: 'flex',
+  gap: '2px'
 };
 
 const ChatController = ({
@@ -84,24 +91,8 @@ const ChatController = ({
 
   return (
     <>
-      <Flex alignItems={'center'} gap={2}>
-        <Flex
-          {...controlContainerStyle}
-          borderRadius={'sm'}
-          border={'base'}
-          alignItems={'center'}
-          sx={{
-            '& > :first-child svg': {
-              borderTopLeftRadius: 'sm',
-              borderBottomLeftRadius: 'sm'
-            },
-            '& > :last-child svg': {
-              borderRight: 'none',
-              borderTopRightRadius: 'sm',
-              borderBottomRightRadius: 'sm'
-            }
-          }}
-        >
+      <Flex alignItems={'center'} gap={1.5}>
+        <Flex {...controlContainerStyle} alignItems={'center'}>
           <MyTooltip label={t('common:Copy')}>
             <MyIcon
               {...controlIconStyle}
@@ -142,13 +133,18 @@ const ChatController = ({
                     <MyTooltip label={t('common:core.chat.tts.Stop Speech')}>
                       <MyIcon
                         {...controlIconStyle}
-                        borderRight={'none'}
                         name={'core/chat/stopSpeech'}
                         color={'#E74694'}
                         onClick={cancelAudio}
                       />
                     </MyTooltip>
-                    <MyImage src="/icon/speaking.gif" w={'23px'} alt={''} borderRight={'base'} />
+                    <MyImage
+                      src="/icon/speaking.gif"
+                      w={'18px'}
+                      h={'18px'}
+                      alt={''}
+                      borderRadius={'4px'}
+                    />
                   </Flex>
                 );
               }
@@ -256,14 +252,12 @@ const ChatController = ({
                       {...controlIconStyle}
                       {...(!!chat.userGoodFeedback
                         ? {
-                            color: 'white',
-                            bg: 'green.500'
+                            color: 'green.700',
+                            bg: 'green.50'
                           }
                         : {
-                            _hover: { color: 'green.600' }
+                            _hover: { color: 'green.700', bg: 'green.50' }
                           })}
-                      borderRight={!onAddUserDislike ? 'none' : 'base'}
-                      borderRightRadius={!onAddUserDislike ? 'sm' : 'none'}
                       name={'core/chat/feedback/goodLight'}
                       onClick={onAddUserLike}
                     />
@@ -273,14 +267,12 @@ const ChatController = ({
                       {...controlIconStyle}
                       {...(!!chat.userBadFeedback
                         ? {
-                            color: 'white',
-                            bg: 'yellow.500'
+                            color: 'yellow.700',
+                            bg: 'yellow.50'
                           }
                         : {
-                            _hover: { color: 'yellow.500' }
+                            _hover: { color: 'yellow.700', bg: 'yellow.50' }
                           })}
-                      borderRight={'none'}
-                      borderRightRadius={'sm'}
                       name={'core/chat/feedback/badLight'}
                       onClick={onAddUserDislike}
                     />

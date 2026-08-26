@@ -28,7 +28,7 @@ import MySelect from '@fastgpt/web/components/common/MySelect';
 import MyInput from '@/components/MyInput';
 import { getElseIFLabel, getHandleId } from '@fastgpt/global/core/workflow/utils';
 import { MySourceHandle } from '../render/Handle';
-import { Position, useReactFlow } from 'reactflow';
+import { Position } from 'reactflow';
 import { getRefData, getWorkflowGlobalVariables } from '@/web/core/workflow/utils';
 import DragIcon from '@fastgpt/web/components/common/DndDrag/DragIcon';
 import { AppContext } from '@/pageComponents/app/detail/context';
@@ -56,18 +56,12 @@ const ListItem = ({
   nodeId: string;
 }) => {
   const { t } = useTranslation();
-  const { getZoom } = useReactFlow();
   const onDelEdge = useContextSelector(WorkflowActionsContext, (v) => v.onDelEdge);
   const handleId = getHandleId(nodeId, 'source', getElseIFLabel(conditionIndex));
 
   const Render = useMemo(() => {
     return (
-      <Flex
-        position={'relative'}
-        transform={snapshot.isDragging ? `scale(${getZoom()})` : ''}
-        transformOrigin={'top left'}
-        mb={2}
-      >
+      <Flex position={'relative'} mb={2}>
         <Container w={snapshot.isDragging ? '' : 'full'} className="nodrag">
           <Flex mb={4} alignItems={'center'}>
             {ifElseList.length > 1 && <DragIcon provided={provided} />}
@@ -270,7 +264,7 @@ const ListItem = ({
             nodeId={nodeId}
             handleId={handleId}
             position={Position.Right}
-            translate={[5, 0]}
+            translate={[18, 0]}
           />
         )}
       </Flex>
@@ -279,7 +273,6 @@ const ListItem = ({
     conditionIndex,
     conditionItem.condition,
     conditionItem.list,
-    getZoom,
     handleId,
     ifElseList,
     nodeId,

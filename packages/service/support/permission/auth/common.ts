@@ -8,6 +8,7 @@ import { ERROR_ENUM } from '@fastgpt/global/common/error/errorCode';
 import { authUserSession } from '../../../support/user/session';
 import { authOpenApiKey } from '../../../support/openapi/auth';
 import { AuthUserTypeEnum } from '@fastgpt/global/support/permission/constant';
+import { assertTeamActive } from '../../../support/user/team/status';
 
 export const authCert = async (props: AuthModeType) => {
   const result = await parseHeaderCert(props);
@@ -146,6 +147,7 @@ export async function parseHeaderCert({
   if (!authRoot && (!teamId || !tmbId)) {
     return Promise.reject(ERROR_ENUM.unAuthorization);
   }
+  if (teamId && authType === AuthUserTypeEnum.apikey) await assertTeamActive(String(teamId));
 
   return {
     userId: String(uid),

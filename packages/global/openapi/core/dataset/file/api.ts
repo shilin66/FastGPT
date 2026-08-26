@@ -4,6 +4,9 @@ import { DatasetSourceReadTypeEnum } from '../../../../core/dataset/constants';
 import { ChunkSettingsSchema } from '../../../../core/dataset/type';
 import { CreatePostPresignedUrlResponseSchema } from '../../../../common/file/s3/type';
 
+export const previewChunkDefaultLimit = 10;
+export const previewChunkMaxLimit = 50;
+
 /* ============================================================================
  * API: 预览文件分块
  * Route: POST /api/core/dataset/file/getPreviewChunks
@@ -34,7 +37,17 @@ export const GetPreviewChunksBodySchema = ChunkSettingsSchema.extend({
   }),
   externalFileId: z.string().optional().meta({
     description: '外部文件标识'
-  })
+  }),
+  previewLimit: z
+    .number()
+    .int()
+    .min(previewChunkDefaultLimit)
+    .max(previewChunkMaxLimit)
+    .optional()
+    .meta({
+      example: previewChunkDefaultLimit,
+      description: `预览分块数量，默认 ${previewChunkDefaultLimit}，最多 ${previewChunkMaxLimit}`
+    })
 });
 export type GetPreviewChunksBody = z.infer<typeof GetPreviewChunksBodySchema>;
 
@@ -45,7 +58,7 @@ const PreviewChunkItemSchema = z.object({
 
 export const GetPreviewChunksResponseSchema = z.object({
   chunks: z.array(PreviewChunkItemSchema).meta({
-    description: '预览分块列表（最多 10 条）'
+    description: `预览分块列表（默认 ${previewChunkDefaultLimit} 条，最多 ${previewChunkMaxLimit} 条）`
   }),
   total: z.number().meta({
     example: 42,

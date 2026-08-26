@@ -18,6 +18,7 @@ import {
 } from '@/web/support/marketing/utils';
 import { checkPasswordRule } from '@fastgpt/global/common/string/password';
 import type { LoginSuccessResponseType } from '@fastgpt/global/openapi/support/user/account/login/api';
+import { omniTheme } from '@/web/common/brand/theme';
 
 interface Props {
   loginSuccess: (e: LoginSuccessResponseType) => void;
@@ -104,7 +105,7 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
 
   return (
     <>
-      <Box fontWeight={'medium'} fontSize={'lg'} textAlign={'center'} color={'myGray.900'}>
+      <Box fontWeight={600} fontSize={'clamp(18px, 1.3vw, 22px)'} color={omniTheme.colors.text}>
         {t('user:register.register_account', { account: feConfigs?.systemTitle })}
       </Box>
       <Box
@@ -117,8 +118,12 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
       >
         <FormControl isInvalid={!!errors.username}>
           <Input
-            bg={'myGray.50'}
-            size={'lg'}
+            bg={'white'}
+            borderWidth={'1px'}
+            borderColor={omniTheme.colors.border}
+            borderRadius={'clamp(10px, 0.7vw, 13px)'}
+            h={'clamp(48px, 4.2vh, 58px)'}
+            fontSize={'clamp(13px, 0.9vw, 15px)'}
             placeholder={placeholder}
             {...register('username', {
               required: t('user:password.email_phone_void'),
@@ -151,8 +156,12 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
         {/*</FormControl>*/}
         <FormControl mt={6} isInvalid={!!errors.password}>
           <Input
-            bg={'myGray.50'}
-            size={'lg'}
+            bg={'white'}
+            borderWidth={'1px'}
+            borderColor={omniTheme.colors.border}
+            borderRadius={'clamp(10px, 0.7vw, 13px)'}
+            h={'clamp(48px, 4.2vh, 58px)'}
+            fontSize={'clamp(13px, 0.9vw, 15px)'}
             type={'password'}
             placeholder={t('login:password_tip')}
             {...register('password', {
@@ -168,8 +177,12 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
         </FormControl>
         <FormControl mt={6} isInvalid={!!errors.password2}>
           <Input
-            bg={'myGray.50'}
-            size={'lg'}
+            bg={'white'}
+            borderWidth={'1px'}
+            borderColor={omniTheme.colors.border}
+            borderRadius={'clamp(10px, 0.7vw, 13px)'}
+            h={'clamp(48px, 4.2vh, 58px)'}
+            fontSize={'clamp(13px, 0.9vw, 15px)'}
             type={'password'}
             placeholder={t('user:password.confirm')}
             {...register('password2', {
@@ -180,13 +193,16 @@ const RegisterForm = ({ setPageType, loginSuccess }: Props) => {
         </FormControl>
         <Button
           type="submit"
-          mt={12}
+          mt={10}
           w={'100%'}
-          size={['md', 'md']}
-          rounded={['md', 'md']}
-          h={[10, 10]}
-          fontWeight={['medium', 'medium']}
-          colorScheme="blue"
+          h={'clamp(48px, 4.2vh, 58px)'}
+          borderRadius={'clamp(10px, 0.7vw, 13px)'}
+          fontSize={'clamp(14px, 0.95vw, 16px)'}
+          bg={omniTheme.colors.graphite}
+          color={'white'}
+          _hover={{ bg: omniTheme.colors.graphiteHover }}
+          _active={{ bg: omniTheme.colors.graphiteHover }}
+          fontWeight={'medium'}
           isLoading={requesting}
           onClick={handleSubmit(onclickRegister, onSubmitErr)}
         >

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Flex, Switch, Input } from '@chakra-ui/react';
+import { Box, Button, Flex, Grid, IconButton, Input } from '@chakra-ui/react';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
 import { useForm } from 'react-hook-form';
 import type { DatasetItemType } from '@fastgpt/global/core/dataset/type';
@@ -12,10 +12,8 @@ import { postRebuildEmbedding } from '@/web/core/dataset/api/training';
 import type { EmbeddingModelItemType } from '@fastgpt/global/core/ai/model.schema';
 import { useContextSelector } from 'use-context-selector';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
-import MyDivider from '@fastgpt/web/components/common/MyDivider/index';
 import { DatasetTypeEnum, DatasetTypeMap } from '@fastgpt/global/core/dataset/constants';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
-import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { DatasetRoleList } from '@fastgpt/global/support/permission/dataset/constant';
 import MemberManager from '../../MemberManager';
@@ -30,18 +28,27 @@ import type { EditAPIDatasetInfoFormType } from './components/EditApiServiceModa
 import { type EditResourceInfoFormType } from '@/components/common/Modal/EditResourceModal';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const EditResourceModal = dynamic(() => import('@/components/common/Modal/EditResourceModal'));
 const EditAPIDatasetInfoModal = dynamic(() => import('./components/EditApiServiceModal'));
 
-const Info = ({ datasetId }: { datasetId: string }) => {
+type Props = {
+  datasetId: string;
+  onClose?: () => void;
+};
+
+type InspectorTab = 'models' | 'access' | 'source';
+
+const Info = ({ datasetId, onClose }: Props) => {
   const { t } = useTranslation();
   const { datasetDetail, loadDatasetDetail, updateDataset, rebuildingCount, trainingCount } =
     useContextSelector(DatasetPageContext, (v) => v);
-  const { feConfigs, llmModelList, embeddingModelList, getVlmModelList } = useSystemStore();
+  const { llmModelList, embeddingModelList, getVlmModelList, feConfigs } = useSystemStore();
 
   const [editedDataset, setEditedDataset] = useState<EditResourceInfoFormType>();
   const [editedAPIDataset, setEditedAPIDataset] = useState<EditAPIDatasetInfoFormType>();
+  const [activeTab, setActiveTab] = useState<InspectorTab>('models');
   const refetchDatasetTraining = useContextSelector(
     DatasetPageContext,
     (v) => v.refetchDatasetTraining
@@ -61,10 +68,9 @@ const Info = ({ datasetId }: { datasetId: string }) => {
     content: t('dataset:confirm_to_rebuild_embedding_tip'),
     type: 'delete'
   });
-  const { openConfirm: onOpenConfirmSyncSchedule, ConfirmModal: ConfirmSyncScheduleModal } =
-    useConfirm({
-      title: t('common:action_confirm')
-    });
+  const { ConfirmModal: ConfirmSyncScheduleModal } = useConfirm({
+    title: t('common:action_confirm')
+  });
 
   const { runAsync: onSave } = useRequest(
     (data: DatasetItemType) => {
@@ -111,23 +117,150 @@ const Info = ({ datasetId }: { datasetId: string }) => {
   }, [datasetDetail, datasetDetail._id, reset]);
 
   const isTraining = rebuildingCount > 0 || trainingCount > 0;
+  const hasSourceConfig = new Set<DatasetTypeEnum>([
+    DatasetTypeEnum.externalFile,
+    DatasetTypeEnum.apiDataset,
+    DatasetTypeEnum.yuque,
+    DatasetTypeEnum.feishu,
+    DatasetTypeEnum.confluence
+  ]).has(datasetDetail.type);
+
+  useEffect(() => {
+    if (activeTab === 'access' && !datasetDetail.permission.hasManagePer) {
+      setActiveTab('models');
+    }
+    if (activeTab === 'source' && !hasSourceConfig) {
+      setActiveTab('models');
+    }
+  }, [activeTab, datasetDetail.permission.hasManagePer, hasSourceConfig]);
+
+  const sourceConfig = useMemo(() => {
+    if (datasetDetail.type === DatasetTypeEnum.apiDataset) {
+      return {
+        label: t('dataset:api_url'),
+        value: datasetDetail.apiDatasetServer?.apiServer?.baseUrl
+      };
+    }
+    if (datasetDetail.type === DatasetTypeEnum.yuque) {
+      return {
+        label: t('dataset:yuque_dataset_config'),
+        value: datasetDetail.apiDatasetServer?.yuqueServer?.userId
+      };
+    }
+    if (datasetDetail.type === DatasetTypeEnum.feishu) {
+      return {
+        label: t('dataset:feishu_dataset_config'),
+        value: datasetDetail.apiDatasetServer?.feishuServer?.folderToken
+      };
+    }
+    if (datasetDetail.type === DatasetTypeEnum.confluence) {
+      return {
+        label: t('dataset:confluence_dataset_config'),
+        value:
+          datasetDetail.apiDatasetServer?.confluenceServer?.pageId ||
+          datasetDetail.apiDatasetServer?.confluenceServer?.spaceKey
+      };
+    }
+  }, [datasetDetail.apiDatasetServer, datasetDetail.type, t]);
+
+  const openSourceEditor = () => {
+    setEditedAPIDataset({
+      id: datasetDetail._id,
+      apiDatasetServer: datasetDetail.apiDatasetServer
+    });
+  };
 
   return (
-    <Box w={'100%'} h={'100%'} p={6}>
-      <Box>
-        <Flex mb={2} alignItems={'center'}>
-          <Avatar src={datasetDetail.avatar} w={'20px'} h={'20px'} borderRadius={'xs'} />
-          <Box ml={1.5}>
-            <Box fontWeight={'bold'} color={'myGray.900'}>
-              {datasetDetail.name}
+    <Flex w={'100%'} h={'100%'} flexDir={'column'} bg={omniTheme.colors.pageBg} overflow={'hidden'}>
+      <Flex
+        h={'52px'}
+        px={4}
+        align={'center'}
+        justify={'space-between'}
+        borderBottom={'1px solid'}
+        borderColor={omniTheme.colors.border}
+        bg={omniTheme.colors.surface}
+        flexShrink={0}
+      >
+        <Flex align={'center'} minW={0}>
+          <Flex
+            w={'30px'}
+            h={'30px'}
+            align={'center'}
+            justify={'center'}
+            borderRadius={omniTheme.radii.sm}
+            bg={omniTheme.colors.graphite}
+            color={'white'}
+            flexShrink={0}
+          >
+            <MyIcon name={'common/setting'} w={'15px'} />
+          </Flex>
+          <Box ml={2.5} fontSize={'14px'} fontWeight={750} color={omniTheme.colors.text}>
+            {t('dataset:inspector_title')}
+          </Box>
+        </Flex>
+        {onClose && (
+          <IconButton
+            aria-label={t('common:Close')}
+            icon={<MyIcon name={'common/closeLight'} w={'15px'} />}
+            size={'smSquare'}
+            variant={'whiteBase'}
+            borderRadius={omniTheme.radii.sm}
+            onClick={onClose}
+          />
+        )}
+      </Flex>
+
+      <Box px={4} pt={4} pb={3} bg={omniTheme.colors.surface} flexShrink={0}>
+        <Flex align={'center'}>
+          <Avatar
+            src={datasetDetail.avatar}
+            w={'44px'}
+            h={'44px'}
+            borderRadius={omniTheme.radii.sm}
+          />
+          <Box ml={3} minW={0} flex={1}>
+            <Flex align={'center'} gap={2} minW={0}>
+              <Box
+                minW={0}
+                fontSize={'15px'}
+                fontWeight={750}
+                color={omniTheme.colors.text}
+                className={'textEllipsis'}
+              >
+                {datasetDetail.name}
+              </Box>
+              {DatasetTypeMap[datasetDetail.type] && (
+                <DatasetTypeTag
+                  type={datasetDetail.type}
+                  h={'20px'}
+                  px={1.5}
+                  py={0}
+                  border={'none'}
+                  bg={omniTheme.colors.sidebarBg}
+                  fontSize={'10px'}
+                  flexShrink={0}
+                />
+              )}
+            </Flex>
+            <Box
+              mt={1}
+              noOfLines={2}
+              wordBreak={'break-word'}
+              fontSize={'11px'}
+              lineHeight={'17px'}
+              color={omniTheme.colors.muted}
+            >
+              {datasetDetail.intro || t('common:core.dataset.Intro Placeholder')}
             </Box>
           </Box>
-          <MyIcon
-            pl={1.5}
-            name={'edit'}
-            _hover={{ color: 'primary.600' }}
-            w={'0.875rem'}
-            cursor={'pointer'}
+          <IconButton
+            ml={2}
+            aria-label={t('common:Edit')}
+            icon={<MyIcon name={'edit'} w={'14px'} />}
+            size={'smSquare'}
+            variant={'whiteBase'}
+            borderRadius={omniTheme.radii.sm}
             onClick={() =>
               setEditedDataset({
                 id: datasetDetail._id,
@@ -138,281 +271,176 @@ const Info = ({ datasetId }: { datasetId: string }) => {
             }
           />
         </Flex>
-        {DatasetTypeMap[datasetDetail.type] && (
-          <Flex alignItems={'center'} justifyContent={'space-between'}>
-            <DatasetTypeTag type={datasetDetail.type} />
-          </Flex>
-        )}
-        <Box
-          flex={1}
-          className={'textEllipsis3'}
-          pt={3}
-          wordBreak={'break-all'}
-          fontSize={'xs'}
-          color={'myGray.500'}
+
+        <Flex
+          mt={3}
+          h={'32px'}
+          px={2.5}
+          align={'center'}
+          borderRadius={omniTheme.radii.sm}
+          bg={omniTheme.colors.sidebarBg}
+          color={omniTheme.colors.muted}
+          minW={0}
         >
-          {datasetDetail.intro || t('common:core.dataset.Intro Placeholder')}
-        </Box>
-      </Box>
-
-      <MyDivider my={4} h={'2px'} maxW={'500px'} />
-
-      <Box>
-        <Flex w={'100%'} flexDir={'column'}>
-          <FormLabel fontSize={'mini'} fontWeight={'500'}>
-            {t('common:core.dataset.Dataset ID')}
-          </FormLabel>
-          <Box fontSize={'mini'}>{datasetDetail._id}</Box>
+          <Box
+            mr={2}
+            fontSize={'9px'}
+            lineHeight={'14px'}
+            fontWeight={800}
+            color={omniTheme.colors.saturatedBlue}
+          >
+            ID
+          </Box>
+          <Box
+            minW={0}
+            className={'textEllipsis'}
+            fontFamily={'mono'}
+            fontSize={'10px'}
+            color={omniTheme.colors.graphite}
+          >
+            {datasetDetail._id}
+          </Box>
         </Flex>
-
-        <Box mt={5} w={'100%'}>
-          <Flex alignItems={'center'}>
-            <FormLabel fontWeight={'500'} flex={'1 0 0'} fontSize={'mini'}>
-              {t('common:core.ai.model.Vector Model')}
-            </FormLabel>
-            <MyTooltip label={t('dataset:vector_model_max_tokens_tip')}>
-              <Box fontSize={'mini'}>
-                {t('dataset:chunk_max_tokens')}: {vectorModel.maxToken}
-              </Box>
-            </MyTooltip>
-          </Flex>
-          <Box pt={2}>
-            <AIModelSelector
-              w={'100%'}
-              value={vectorModel.model}
-              fontSize={'mini'}
-              disableTip={
-                isTraining
-                  ? t(
-                      'dataset:the_knowledge_base_has_indexes_that_are_being_trained_or_being_rebuilt'
-                    )
-                  : undefined
-              }
-              list={embeddingModelList.map((item) => ({
-                label: item.name,
-                value: item.model
-              }))}
-              onChange={(e) => {
-                const vectorModel = embeddingModelList.find((item) => item.model === e);
-                if (!vectorModel) return;
-                return onOpenConfirmRebuild({
-                  onConfirm: async () => {
-                    await onRebuilding(vectorModel);
-                    setValue('vectorModel', vectorModel);
-                  }
-                })();
-              }}
-            />
-          </Box>
-        </Box>
-
-        <Box pt={5}>
-          <FormLabel fontSize={'mini'} fontWeight={'500'}>
-            {t('common:core.ai.model.Dataset Agent Model')}
-          </FormLabel>
-          <Box pt={2}>
-            <AIModelSelector
-              w={'100%'}
-              value={agentModel.model}
-              list={llmModelList.map((item) => ({
-                label: item.name,
-                value: item.model
-              }))}
-              fontSize={'mini'}
-              onChange={(e) => {
-                const agentModel = llmModelList.find((item) => item.model === e);
-                if (!agentModel) return;
-                setValue('agentModel', agentModel);
-                return handleSubmit((data) => onSave({ ...data, agentModel: agentModel }))();
-              }}
-            />
-          </Box>
-        </Box>
-
-        <Box pt={5}>
-          <FormLabel fontSize={'mini'} fontWeight={'500'}>
-            {t('dataset:vllm_model')}
-          </FormLabel>
-          <Box pt={2}>
-            <AIModelSelector
-              w={'100%'}
-              value={vlmModel?.model}
-              list={vllmModelList.map((item) => ({
-                label: item.name,
-                value: item.model
-              }))}
-              fontSize={'mini'}
-              onChange={(e) => {
-                const vlmModel = vllmModelList.find((item) => item.model === e);
-                if (!vlmModel) return;
-                setValue('vlmModel', vlmModel);
-                return handleSubmit((data) => onSave({ ...data, vlmModel }))();
-              }}
-            />
-          </Box>
-        </Box>
-
-        {/*{feConfigs?.isPlus && (*/}
-        {/*  <Flex alignItems={'center'} pt={5}>*/}
-        {/*    <FormLabel fontSize={'mini'} fontWeight={'500'}>*/}
-        {/*      {t('dataset:sync_schedule')}*/}
-        {/*    </FormLabel>*/}
-        {/*    <QuestionTip ml={1} label={t('dataset:sync_schedule_tip')} />*/}
-        {/*    <Box flex={1} />*/}
-        {/*    <Switch*/}
-        {/*      isChecked={!!datasetDetail.autoSync}*/}
-        {/*      onChange={(e) => {*/}
-        {/*        e.preventDefault();*/}
-        {/*        const autoSync = e.target.checked;*/}
-        {/*        const text = autoSync ? t('dataset:open_auto_sync') : t('dataset:close_auto_sync');*/}
-
-        {/*        onOpenConfirmSyncSchedule({*/}
-        {/*          onConfirm: async () => {*/}
-        {/*            return updateDataset({*/}
-        {/*              id: datasetId,*/}
-        {/*              autoSync*/}
-        {/*            });*/}
-        {/*          },*/}
-        {/*          customContent: text*/}
-        {/*        })();*/}
-        {/*      }}*/}
-        {/*    />*/}
-        {/*  </Flex>*/}
-        {/*)}*/}
-
-        {datasetDetail.type === DatasetTypeEnum.externalFile && (
-          <>
-            <Box w={'100%'} alignItems={'center'} pt={4}>
-              <FormLabel display={'flex'} pb={2} fontSize={'mini'} fontWeight={'500'}>
-                <Box>{t('dataset:external_read_url')}</Box>
-                <QuestionTip label={t('dataset:external_read_url_tip')} />
-              </FormLabel>
-              <Input
-                fontSize={'mini'}
-                flex={[1, '0 0 320px']}
-                placeholder="https://test.com/read?fileId={{fileId}}"
-                {...register('externalReadUrl')}
-                onBlur={handleSubmit((data) => onSave(data))}
-              />
-            </Box>
-          </>
-        )}
-
-        {datasetDetail.type === DatasetTypeEnum.apiDataset && (
-          <>
-            <Box w={'100%'} alignItems={'center'} pt={4}>
-              <Flex justifyContent={'space-between'} mb={1}>
-                <FormLabel fontSize={'mini'} fontWeight={'500'}>
-                  {t('dataset:api_url')}
-                </FormLabel>
-                <MyIcon
-                  name={'edit'}
-                  w={'14px'}
-                  _hover={{ color: 'primary.600' }}
-                  cursor={'pointer'}
-                  onClick={() =>
-                    setEditedAPIDataset({
-                      id: datasetDetail._id,
-                      apiDatasetServer: datasetDetail.apiDatasetServer
-                    })
-                  }
-                />
-              </Flex>
-              <Box fontSize={'mini'}>{datasetDetail.apiDatasetServer?.apiServer?.baseUrl}</Box>
-            </Box>
-          </>
-        )}
-
-        {datasetDetail.type === DatasetTypeEnum.yuque && (
-          <>
-            <Box w={'100%'} alignItems={'center'} pt={4}>
-              <Flex justifyContent={'space-between'} mb={1}>
-                <FormLabel fontSize={'mini'} fontWeight={'500'}>
-                  {t('dataset:yuque_dataset_config')}
-                </FormLabel>
-                <MyIcon
-                  name={'edit'}
-                  w={'14px'}
-                  _hover={{ color: 'primary.600' }}
-                  cursor={'pointer'}
-                  onClick={() =>
-                    setEditedAPIDataset({
-                      id: datasetDetail._id,
-                      apiDatasetServer: datasetDetail.apiDatasetServer
-                    })
-                  }
-                />
-              </Flex>
-              <Box fontSize={'mini'}>{datasetDetail.apiDatasetServer?.yuqueServer?.userId}</Box>
-            </Box>
-          </>
-        )}
-
-        {datasetDetail.type === DatasetTypeEnum.feishu && (
-          <>
-            <Box w={'100%'} alignItems={'center'} pt={4}>
-              <Flex justifyContent={'space-between'} mb={1}>
-                <FormLabel fontSize={'mini'} fontWeight={'500'}>
-                  {t('dataset:feishu_dataset_config')}
-                </FormLabel>
-                <MyIcon
-                  name={'edit'}
-                  w={'14px'}
-                  _hover={{ color: 'primary.600' }}
-                  cursor={'pointer'}
-                  onClick={() =>
-                    setEditedAPIDataset({
-                      id: datasetDetail._id,
-                      apiDatasetServer: datasetDetail.apiDatasetServer
-                    })
-                  }
-                />
-              </Flex>
-              <Box fontSize={'mini'}>
-                {datasetDetail.apiDatasetServer?.feishuServer?.folderToken}
-              </Box>
-            </Box>
-          </>
-        )}
-
-        {datasetDetail.type === DatasetTypeEnum.confluence && (
-          <>
-            <Box w={'100%'} alignItems={'center'} pt={4}>
-              <Flex justifyContent={'space-between'} mb={1}>
-                <FormLabel fontSize={'mini'} fontWeight={'500'}>
-                  {t('dataset:confluence_dataset_config')}
-                </FormLabel>
-                <MyIcon
-                  name={'edit'}
-                  w={'14px'}
-                  _hover={{ color: 'primary.600' }}
-                  cursor={'pointer'}
-                  onClick={() =>
-                    setEditedAPIDataset({
-                      id: datasetDetail._id,
-                      apiDatasetServer: datasetDetail.apiDatasetServer
-                    })
-                  }
-                />
-              </Flex>
-              <Box fontSize={'mini'}>
-                {datasetDetail.apiDatasetServer?.confluenceServer?.pageId ||
-                  datasetDetail.apiDatasetServer?.confluenceServer?.spaceKey}
-              </Box>
-            </Box>
-          </>
-        )}
       </Box>
 
-      {datasetDetail.permission.hasManagePer && (
-        <>
-          <MyDivider my={4} h={'2px'} maxW={'500px'} />
-          <Box>
+      <Grid
+        gridTemplateColumns={'repeat(auto-fit, minmax(84px, 1fr))'}
+        px={4}
+        bg={omniTheme.colors.surface}
+        borderBottomWidth={'1px'}
+        borderBottomStyle={'solid'}
+        borderBottomColor={omniTheme.colors.border}
+        flexShrink={0}
+      >
+        <InspectorTabButton
+          label={t('dataset:inspector_models')}
+          icon={<MyIcon name={'core/app/simpleMode/ai'} w={'14px'} />}
+          isActive={activeTab === 'models'}
+          onClick={() => setActiveTab('models')}
+        />
+        {datasetDetail.permission.hasManagePer && (
+          <InspectorTabButton
+            label={t('dataset:inspector_access')}
+            icon={<MyIcon name={'common/user'} w={'14px'} />}
+            isActive={activeTab === 'access'}
+            onClick={() => setActiveTab('access')}
+          />
+        )}
+        {hasSourceConfig && (
+          <InspectorTabButton
+            label={t('dataset:inspector_source')}
+            icon={<MyIcon name={'core/dataset/externalDataset'} w={'14px'} />}
+            isActive={activeTab === 'source'}
+            onClick={() => setActiveTab('source')}
+          />
+        )}
+      </Grid>
+
+      <Box flex={1} minH={0} overflowY={'auto'} px={4} py={4}>
+        {activeTab === 'models' && (
+          <Box
+            overflow={'hidden'}
+            borderWidth={'1px'}
+            borderStyle={'solid'}
+            borderColor={omniTheme.colors.border}
+            borderRadius={omniTheme.radii.md}
+            bg={omniTheme.colors.surface}
+          >
+            <ModelRouteRow
+              icon={<MyIcon name={'core/dataset/modeEmbedding'} w={'16px'} />}
+              label={t('common:core.ai.model.Vector Model')}
+              meta={
+                <MyTooltip label={t('dataset:vector_model_max_tokens_tip')}>
+                  <Box>
+                    {t('dataset:chunk_max_tokens')} {vectorModel.maxToken}
+                  </Box>
+                </MyTooltip>
+              }
+            >
+              <AIModelSelector
+                w={'100%'}
+                h={'36px'}
+                value={vectorModel.model}
+                fontSize={'11px'}
+                disableTip={
+                  isTraining
+                    ? t(
+                        'dataset:the_knowledge_base_has_indexes_that_are_being_trained_or_being_rebuilt'
+                      )
+                    : undefined
+                }
+                list={embeddingModelList.map((item) => ({
+                  label: item.name,
+                  value: item.model
+                }))}
+                onChange={(e) => {
+                  const vectorModel = embeddingModelList.find((item) => item.model === e);
+                  if (!vectorModel) return;
+                  return onOpenConfirmRebuild({
+                    onConfirm: async () => {
+                      await onRebuilding(vectorModel);
+                      setValue('vectorModel', vectorModel);
+                    }
+                  })();
+                }}
+              />
+            </ModelRouteRow>
+
+            <ModelRouteRow
+              icon={<MyIcon name={'core/app/aiLight'} w={'16px'} />}
+              label={t('common:core.ai.model.Dataset Agent Model')}
+            >
+              <AIModelSelector
+                w={'100%'}
+                h={'36px'}
+                value={agentModel.model}
+                list={llmModelList.map((item) => ({
+                  label: item.name,
+                  value: item.model
+                }))}
+                fontSize={'11px'}
+                onChange={(e) => {
+                  const agentModel = llmModelList.find((item) => item.model === e);
+                  if (!agentModel) return;
+                  setValue('agentModel', agentModel);
+                  return handleSubmit((data) => onSave({ ...data, agentModel }))();
+                }}
+              />
+            </ModelRouteRow>
+
+            <ModelRouteRow
+              icon={<MyIcon name={'core/dataset/imageFill'} w={'16px'} />}
+              label={t('dataset:vllm_model')}
+              isLast
+            >
+              <AIModelSelector
+                w={'100%'}
+                h={'36px'}
+                value={vlmModel?.model}
+                list={vllmModelList.map((item) => ({
+                  label: item.name,
+                  value: item.model
+                }))}
+                fontSize={'11px'}
+                onChange={(e) => {
+                  const vlmModel = vllmModelList.find((item) => item.model === e);
+                  if (!vlmModel) return;
+                  setValue('vlmModel', vlmModel);
+                  return handleSubmit((data) => onSave({ ...data, vlmModel }))();
+                }}
+              />
+            </ModelRouteRow>
+          </Box>
+        )}
+
+        {datasetDetail.permission.hasManagePer && (
+          <Box display={activeTab === 'access' ? 'block' : 'none'}>
             <MemberManager
               managePer={{
                 defaultRole: ReadRoleVal,
                 permission: datasetDetail.permission,
                 onGetCollaboratorList: () => getCollaboratorList(datasetId),
+                refreshDeps: [datasetId, feConfigs.isPlus],
                 roleList: DatasetRoleList,
                 onUpdateCollaborators: (body) =>
                   postUpdateDatasetCollaborators({
@@ -421,27 +449,86 @@ const Info = ({ datasetId }: { datasetId: string }) => {
                   }),
                 onDelOneCollaborator: async ({ groupId, tmbId, orgId }) => {
                   if (tmbId) {
-                    return deleteDatasetCollaborators({
-                      datasetId,
-                      tmbId
-                    });
-                  } else if (groupId) {
-                    return deleteDatasetCollaborators({
-                      datasetId,
-                      groupId
-                    });
-                  } else if (orgId) {
-                    return deleteDatasetCollaborators({
-                      datasetId,
-                      orgId
-                    });
+                    return deleteDatasetCollaborators({ datasetId, tmbId });
+                  }
+                  if (groupId) {
+                    return deleteDatasetCollaborators({ datasetId, groupId });
+                  }
+                  if (orgId) {
+                    return deleteDatasetCollaborators({ datasetId, orgId });
                   }
                 }
               }}
             />
           </Box>
-        </>
-      )}
+        )}
+
+        {activeTab === 'source' && hasSourceConfig && (
+          <Box
+            borderWidth={'1px'}
+            borderStyle={'solid'}
+            borderColor={omniTheme.colors.border}
+            borderRadius={omniTheme.radii.md}
+            bg={omniTheme.colors.surface}
+            overflow={'hidden'}
+          >
+            {datasetDetail.type === DatasetTypeEnum.externalFile ? (
+              <Box p={4}>
+                <Flex align={'center'} mb={2} fontSize={'12px'} fontWeight={700}>
+                  <Box>{t('dataset:external_read_url')}</Box>
+                  <QuestionTip label={t('dataset:external_read_url_tip')} />
+                </Flex>
+                <Input
+                  h={'38px'}
+                  fontSize={'11px'}
+                  bg={omniTheme.colors.pageBg}
+                  placeholder="https://test.com/read?fileId={{fileId}}"
+                  {...register('externalReadUrl')}
+                  onBlur={handleSubmit((data) => onSave(data))}
+                />
+              </Box>
+            ) : (
+              <Flex p={4} align={'center'} minW={0}>
+                <Flex
+                  w={'34px'}
+                  h={'34px'}
+                  align={'center'}
+                  justify={'center'}
+                  borderRadius={omniTheme.radii.sm}
+                  bg={omniTheme.colors.saturatedBlueSoft}
+                  color={omniTheme.colors.saturatedBlue}
+                  flexShrink={0}
+                >
+                  <MyIcon name={'core/dataset/externalDataset'} w={'16px'} />
+                </Flex>
+                <Box ml={3} minW={0} flex={1}>
+                  <Box fontSize={'12px'} fontWeight={700} color={omniTheme.colors.text}>
+                    {sourceConfig?.label}
+                  </Box>
+                  <Box
+                    mt={1}
+                    fontFamily={'mono'}
+                    fontSize={'10px'}
+                    color={omniTheme.colors.muted}
+                    className={'textEllipsis'}
+                  >
+                    {sourceConfig?.value || '-'}
+                  </Box>
+                </Box>
+                <IconButton
+                  ml={2}
+                  aria-label={t('common:Edit')}
+                  icon={<MyIcon name={'edit'} w={'14px'} />}
+                  size={'smSquare'}
+                  variant={'whiteBase'}
+                  borderRadius={omniTheme.radii.sm}
+                  onClick={openSourceEditor}
+                />
+              </Flex>
+            )}
+          </Box>
+        )}
+      </Box>
 
       <ConfirmRebuildModal countDown={10} />
       <ConfirmSyncScheduleModal />
@@ -473,8 +560,93 @@ const Info = ({ datasetId }: { datasetId: string }) => {
           }
         />
       )}
-    </Box>
+    </Flex>
   );
 };
+
+const InspectorTabButton = ({
+  label,
+  icon,
+  isActive,
+  onClick
+}: {
+  label: string;
+  icon: React.ReactElement;
+  isActive: boolean;
+  onClick: () => void;
+}) => (
+  <Button
+    h={'42px'}
+    minW={0}
+    px={2}
+    borderRadius={0}
+    borderBottomWidth={'2px'}
+    borderBottomStyle={'solid'}
+    borderBottomColor={isActive ? omniTheme.colors.saturatedBlue : 'transparent'}
+    bg={'transparent'}
+    color={isActive ? omniTheme.colors.saturatedBlue : omniTheme.colors.muted}
+    fontSize={'11px'}
+    fontWeight={isActive ? 750 : 600}
+    leftIcon={icon}
+    _hover={{ color: omniTheme.colors.text, bg: 'transparent' }}
+    _focusVisible={{ boxShadow: `inset 0 0 0 2px ${omniTheme.colors.saturatedBlue}` }}
+    onClick={onClick}
+  >
+    {label}
+  </Button>
+);
+
+const ModelRouteRow = ({
+  icon,
+  label,
+  meta,
+  isLast = false,
+  children
+}: {
+  icon: React.ReactElement;
+  label: string;
+  meta?: React.ReactNode;
+  isLast?: boolean;
+  children: React.ReactNode;
+}) => (
+  <Box
+    px={3.5}
+    py={3.5}
+    borderBottomWidth={isLast ? '0' : '1px'}
+    borderBottomStyle={'solid'}
+    borderBottomColor={omniTheme.colors.border}
+  >
+    <Flex align={'center'} mb={2.5} minW={0}>
+      <Flex
+        w={'30px'}
+        h={'30px'}
+        align={'center'}
+        justify={'center'}
+        borderRadius={omniTheme.radii.sm}
+        bg={omniTheme.colors.saturatedBlueSoft}
+        color={omniTheme.colors.saturatedBlue}
+        flexShrink={0}
+      >
+        {icon}
+      </Flex>
+      <Box
+        ml={2.5}
+        minW={0}
+        flex={1}
+        fontSize={'12px'}
+        fontWeight={700}
+        color={omniTheme.colors.text}
+      >
+        {label}
+      </Box>
+      {meta && (
+        <Box ml={2} fontSize={'10px'} color={omniTheme.colors.muted} whiteSpace={'nowrap'}>
+          {meta}
+        </Box>
+      )}
+    </Flex>
+    {children}
+  </Box>
+);
 
 export default React.memo(Info);

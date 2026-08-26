@@ -28,11 +28,12 @@ import {
   postCreateDatasetTextCollection,
   postReTrainingDatasetFileCollection
 } from '@/web/core/dataset/api/collection';
-import MyTag from '@fastgpt/web/components/common/Tag/index';
 import { useContextSelector } from 'use-context-selector';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import { DatasetImportContext, type ImportFormType } from '../Context';
 import { type ApiCreateDatasetCollectionParams } from '@fastgpt/global/openapi/core/dataset/collection/createApi';
+import { ImportStepFooter, ImportStepLayout } from '../components/ImportStepLayout';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const Upload = () => {
   const { t } = useTranslation();
@@ -211,89 +212,222 @@ const Upload = () => {
   );
 
   return (
-    <Box h={'100%'} overflow={'auto'}>
-      <TableContainer>
-        <Table variant={'simple'} fontSize={'sm'} draggable={false}>
-          <Thead draggable={false}>
-            <Tr bg={'myGray.100'} mb={2}>
-              <Th borderLeftRadius={'md'} overflow={'hidden'} borderBottom={'none'} py={4}>
-                {t('common:core.dataset.import.Source name')}
-              </Th>
-              <Th borderBottom={'none'} py={4}>
-                {t('common:core.dataset.import.Upload status')}
-              </Th>
-              <Th borderRightRadius={'md'} borderBottom={'none'} py={4}>
-                {t('common:Action')}
-              </Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {sources.map((item) => (
-              <Tr key={item.id}>
-                <Td>
-                  <Flex alignItems={'center'}>
-                    <MyIcon name={item.icon as any} w={'16px'} mr={1} />
-                    <Box whiteSpace={'wrap'} maxW={'30vw'}>
-                      {item.sourceName}
-                    </Box>
-                  </Flex>
-                </Td>
-                <Td>
-                  <Box display={'inline-block'}>
-                    {item.errorMsg ? (
-                      <Tooltip label={item.errorMsg} fontSize="md">
-                        <Flex alignItems="center">
-                          <MyTag colorSchema={'red'}>{t('common:Error')}</MyTag>
-                          <QuestionOutlineIcon ml={2} color="red.500" w="14px" />
-                        </Flex>
-                      </Tooltip>
-                    ) : (
-                      <>
-                        {item.createStatus === 'waiting' && (
-                          <MyTag colorSchema={'gray'}>{t('common:Waiting')}</MyTag>
-                        )}
-                        {item.createStatus === 'creating' && (
-                          <MyTag colorSchema={'blue'}>{t('common:Creating')}</MyTag>
-                        )}
-                        {item.createStatus === 'finish' && (
-                          <MyTag colorSchema={'green'}>{t('common:Finish')}</MyTag>
-                        )}
-                      </>
-                    )}
-                  </Box>
-                </Td>
-                <Td>
-                  {!hasCreatingFiles && item.createStatus !== 'finish' && (
-                    <IconButton
-                      variant={'grayDanger'}
-                      size={'sm'}
-                      icon={<MyIcon name={'delete'} w={'14px'} />}
-                      aria-label={'Delete file'}
-                      onClick={() => {
-                        setSources((prevFiles) => prevFiles.filter((file) => file.id !== item.id));
-                      }}
-                    />
-                  )}
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </TableContainer>
-
-      <Flex justifyContent={'flex-end'} mt={4}>
-        <Button
-          isLoading={isLoading}
-          onClick={processParamsForm.handleSubmit((data) => startUpload(data))}
+    <ImportStepLayout
+      variant={'boundedWorkbench'}
+      eyebrow={t('dataset:import_confirm')}
+      title={t('dataset:import_confirm_title')}
+      description={t('dataset:import_confirm_desc')}
+      footer={
+        <ImportStepFooter>
+          <Box mr={'auto'} color={omniTheme.colors.muted} fontSize={'sm'}>
+            {t('dataset:import_selected_count', { total: totalFilesCount })}
+          </Box>
+          <Button
+            isLoading={isLoading}
+            onClick={processParamsForm.handleSubmit((data) => startUpload(data))}
+            bg={omniTheme.colors.saturatedBlue}
+            color={'white'}
+            _hover={{ bg: omniTheme.colors.saturatedBlueHover }}
+          >
+            {buttonText}
+          </Button>
+        </ImportStepFooter>
+      }
+    >
+      <Box w={'100%'}>
+        <Box
+          overflow={'hidden'}
+          border={'1px solid'}
+          borderColor={omniTheme.colors.border}
+          borderRadius={omniTheme.radii.md}
+          bg={omniTheme.colors.surface}
         >
-          {totalFilesCount > 0 &&
-            `${t('dataset:total_num_files', {
-              total: totalFilesCount
-            })} | `}
-          {buttonText}
-        </Button>
-      </Flex>
-    </Box>
+          <Flex
+            minH={'52px'}
+            alignItems={'center'}
+            justifyContent={'space-between'}
+            gap={4}
+            px={4}
+            borderBottom={'1px solid'}
+            borderColor={omniTheme.colors.border}
+          >
+            <Box color={omniTheme.colors.text} fontSize={'sm'} fontWeight={700}>
+              {t('dataset:file_list')}
+            </Box>
+            <Flex
+              minW={'26px'}
+              h={'24px'}
+              alignItems={'center'}
+              justifyContent={'center'}
+              px={2}
+              borderRadius={'full'}
+              color={omniTheme.colors.graphite}
+              bg={omniTheme.colors.sidebarBg}
+              fontSize={'xs'}
+              fontWeight={700}
+            >
+              {totalFilesCount}
+            </Flex>
+          </Flex>
+
+          <TableContainer>
+            <Table variant={'simple'} fontSize={'sm'} draggable={false}>
+              <Thead draggable={false}>
+                <Tr bg={omniTheme.colors.pageBg}>
+                  <Th
+                    h={'42px'}
+                    py={0}
+                    borderBottomColor={omniTheme.colors.border}
+                    color={omniTheme.colors.muted}
+                    fontSize={'xs'}
+                    textTransform={'none'}
+                    letterSpacing={0}
+                  >
+                    {t('common:core.dataset.import.Source name')}
+                  </Th>
+                  <Th
+                    w={'180px'}
+                    h={'42px'}
+                    py={0}
+                    borderBottomColor={omniTheme.colors.border}
+                    color={omniTheme.colors.muted}
+                    fontSize={'xs'}
+                    textTransform={'none'}
+                    letterSpacing={0}
+                  >
+                    {t('common:core.dataset.import.Upload status')}
+                  </Th>
+                  <Th
+                    w={'76px'}
+                    h={'42px'}
+                    py={0}
+                    borderBottomColor={omniTheme.colors.border}
+                    color={omniTheme.colors.muted}
+                    fontSize={'xs'}
+                    textAlign={'right'}
+                    textTransform={'none'}
+                    letterSpacing={0}
+                  >
+                    {t('common:Action')}
+                  </Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {sources.map((item) => {
+                  let status = { color: 'gray.400', label: t('common:Waiting') };
+                  if (item.createStatus === 'creating') {
+                    status = {
+                      color: omniTheme.colors.saturatedBlue,
+                      label: t('common:Creating')
+                    };
+                  }
+                  if (item.createStatus === 'finish') {
+                    status = { color: 'green.500', label: t('common:Finish') };
+                  }
+                  if (item.errorMsg) {
+                    status = { color: 'red.500', label: t('common:Error') };
+                  }
+
+                  const statusContent = (
+                    <Flex alignItems={'center'} gap={2} color={omniTheme.colors.graphite}>
+                      <Box
+                        w={'8px'}
+                        h={'8px'}
+                        flexShrink={0}
+                        borderRadius={'full'}
+                        bg={status.color}
+                      />
+                      <Box fontSize={'sm'}>{status.label}</Box>
+                      {!!item.errorMsg && (
+                        <QuestionOutlineIcon color={'red.500'} w={'13px'} h={'13px'} />
+                      )}
+                    </Flex>
+                  );
+
+                  return (
+                    <Tr key={item.id} _hover={{ bg: omniTheme.colors.pageBg }}>
+                      <Td h={'64px'} py={2.5} borderBottomColor={omniTheme.colors.border}>
+                        <Flex alignItems={'center'} gap={2.5}>
+                          <Flex
+                            w={'32px'}
+                            h={'32px'}
+                            flexShrink={0}
+                            alignItems={'center'}
+                            justifyContent={'center'}
+                            borderRadius={omniTheme.radii.sm}
+                            bg={omniTheme.colors.saturatedBlueSoft}
+                          >
+                            <MyIcon
+                              name={item.icon as any}
+                              w={'16px'}
+                              color={omniTheme.colors.saturatedBlue}
+                            />
+                          </Flex>
+                          <Box
+                            maxW={'54vw'}
+                            overflow={'hidden'}
+                            textOverflow={'ellipsis'}
+                            whiteSpace={'nowrap'}
+                            color={omniTheme.colors.text}
+                            fontWeight={600}
+                          >
+                            {item.sourceName}
+                          </Box>
+                        </Flex>
+                      </Td>
+                      <Td h={'64px'} py={2.5} borderBottomColor={omniTheme.colors.border}>
+                        {item.errorMsg ? (
+                          <Tooltip label={item.errorMsg} fontSize={'md'}>
+                            {statusContent}
+                          </Tooltip>
+                        ) : (
+                          statusContent
+                        )}
+                      </Td>
+                      <Td
+                        h={'64px'}
+                        py={2.5}
+                        borderBottomColor={omniTheme.colors.border}
+                        textAlign={'right'}
+                      >
+                        {!hasCreatingFiles && item.createStatus !== 'finish' && (
+                          <IconButton
+                            variant={'ghost'}
+                            size={'sm'}
+                            icon={<MyIcon name={'delete'} w={'14px'} />}
+                            aria-label={'Delete file'}
+                            color={omniTheme.colors.muted}
+                            _hover={{ color: 'red.600', bg: 'red.50' }}
+                            onClick={() => {
+                              setSources((prevFiles) =>
+                                prevFiles.filter((file) => file.id !== item.id)
+                              );
+                            }}
+                          />
+                        )}
+                      </Td>
+                    </Tr>
+                  );
+                })}
+                {sources.length === 0 && (
+                  <Tr>
+                    <Td
+                      colSpan={3}
+                      py={8}
+                      borderBottom={0}
+                      color={omniTheme.colors.muted}
+                      textAlign={'center'}
+                    >
+                      {t('dataset:import_selected_count', { total: 0 })}
+                    </Td>
+                  </Tr>
+                )}
+              </Tbody>
+            </Table>
+          </TableContainer>
+        </Box>
+      </Box>
+    </ImportStepLayout>
   );
 };
 

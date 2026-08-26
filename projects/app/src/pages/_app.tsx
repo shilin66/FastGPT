@@ -16,6 +16,7 @@ import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 import SystemStoreContextProvider from '@fastgpt/web/context/useSystem';
 import { useRouter } from 'next/router';
 import { errorLogger } from '@/web/common/utils/errorLogger';
+import { OMNICOCKPIT_ASSETS } from '@/web/common/brand/constants';
 
 import '@scalar/api-reference-react/style.css';
 
@@ -63,7 +64,9 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
           <NextHead
             title={title}
             desc={process.env.SYSTEM_DESCRIPTION || t('common:system_intro', { title })}
-            icon={getWebReqUrl(feConfigs?.favicon || process.env.SYSTEM_FAVICON)}
+            icon={getWebReqUrl(
+              feConfigs?.favicon || process.env.SYSTEM_FAVICON || OMNICOCKPIT_ASSETS.favicon
+            )}
           />
         )}
         {setLayout(<Component {...pageProps} />)}
@@ -77,7 +80,9 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
         <NextHead
           title={title}
           desc={process.env.SYSTEM_DESCRIPTION || t('common:system_intro', { title })}
-          icon={getWebReqUrl(feConfigs?.favicon || process.env.SYSTEM_FAVICON)}
+          icon={getWebReqUrl(
+            feConfigs?.favicon || process.env.SYSTEM_FAVICON || OMNICOCKPIT_ASSETS.favicon
+          )}
         />
       )}
 

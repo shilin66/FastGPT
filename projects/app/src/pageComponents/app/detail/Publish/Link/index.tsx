@@ -10,8 +10,6 @@ import {
   Th,
   Td,
   Tbody,
-  ModalFooter,
-  ModalBody,
   Input,
   Switch,
   Link,
@@ -43,10 +41,17 @@ import dynamic from 'next/dynamic';
 import MyMenu from '@fastgpt/web/components/common/MyMenu';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
-import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
+import PublishCreateButton from '../components/PublishCreateButton';
+import PublishEmptyState from '../components/PublishEmptyState';
+import {
+  OmniModalBody,
+  OmniModalFooter,
+  OmniModalSection,
+  OmniToggleRow
+} from '../../components/OmniModalLayout';
 
 const SelectUsingWayModal = dynamic(() => import('./SelectUsingWayModal'));
 
@@ -73,17 +78,14 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
 
   return (
     <MyBox h={'100%'} isLoading={isFetching} position={'relative'}>
-      <Flex justifyContent={'space-between'}>
-        <HStack>
-          <Box color={'myGray.900'} fontSize={'lg'}>
+      <Flex justifyContent={'space-between'} alignItems={'center'} gap={3}>
+        <HStack minW={0}>
+          <Box color={'#1E293B'} fontSize={'lg'} fontWeight={800}>
             {t('common:core.app.Share link')}
           </Box>
           <QuestionTip label={t('common:core.app.Share link desc detail')} />
         </HStack>
-        <Button
-          variant={'whitePrimary'}
-          colorScheme={'blue'}
-          size={['sm', 'md']}
+        <PublishCreateButton
           {...(shareChatList.length >= 10
             ? {
                 isDisabled: true,
@@ -92,11 +94,52 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
             : {})}
           onClick={() => setEditLinkData(defaultOutLinkForm)}
         >
-          {t('common:core.app.share.Create link')}
-        </Button>
+          {t('common:new_create')}
+        </PublishCreateButton>
       </Flex>
-      <TableContainer mt={3}>
-        <Table variant={'simple'} w={'100%'} overflowX={'auto'} fontSize={'sm'}>
+      <TableContainer mt={4} overflowX={'auto'}>
+        <Table
+          variant={'simple'}
+          minW={'720px'}
+          fontSize={'sm'}
+          sx={{
+            borderCollapse: 'separate',
+            borderSpacing: '0 10px',
+            th: {
+              borderBottom: '0',
+              color: '#64748B',
+              fontSize: '12px',
+              fontWeight: 800,
+              letterSpacing: 0,
+              h: '46px',
+              py: '11px',
+              whiteSpace: 'nowrap'
+            },
+            td: {
+              bg: 'white',
+              borderTop: '1px solid rgba(148, 163, 184, 0.2)',
+              borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
+              color: '#334155',
+              py: 3,
+              whiteSpace: 'nowrap'
+            },
+            'tbody td:first-of-type': {
+              borderLeft: '1px solid rgba(37, 99, 235, 0.18)',
+              borderLeftWidth: '4px',
+              borderTopLeftRadius: '14px',
+              borderBottomLeftRadius: '14px'
+            },
+            'tbody td:last-of-type': {
+              borderRight: '1px solid rgba(148, 163, 184, 0.2)',
+              borderTopRightRadius: '14px',
+              borderBottomRightRadius: '14px'
+            },
+            'tbody tr:hover td': {
+              bg: 'rgba(37, 99, 235, 0.04)',
+              borderColor: 'rgba(37, 99, 235, 0.3)'
+            }
+          }}
+        >
           <Thead>
             <Tr>
               <Th>{t('common:Name')}</Th>
@@ -120,7 +163,31 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
           <Tbody>
             {shareChatList.map((item) => (
               <Tr key={item._id}>
-                <Td>{item.name}</Td>
+                <Td>
+                  <Flex alignItems={'center'} gap={3} minW={0}>
+                    <Flex
+                      alignItems={'center'}
+                      justifyContent={'center'}
+                      w={'34px'}
+                      h={'34px'}
+                      flexShrink={0}
+                      borderRadius={'11px'}
+                      bg={'linear-gradient(135deg, #2563EB, #8FB4FF)'}
+                      color={'white'}
+                      boxShadow={'0 10px 22px rgba(37, 99, 235, 0.16)'}
+                    >
+                      <MyIcon name={'common/link'} w={'17px'} />
+                    </Flex>
+                    <Box minW={0}>
+                      <Box color={'#1E293B'} fontWeight={800} className={'textEllipsis'}>
+                        {item.name}
+                      </Box>
+                      <Box mt={1} color={'#64748B'} fontSize={'xs'}>
+                        {t('common:core.app.Share link')}
+                      </Box>
+                    </Box>
+                  </Flex>
+                </Td>
                 {/*{feConfigs?.isPlus && (*/}
                 {/*  <>*/}
                 {/*    <Td>*/}
@@ -131,7 +198,17 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
                 {/*  </>*/}
                 {/*)}*/}
                 <Td>
-                  {Math.round(item.usagePoints)}
+                  <Box
+                    display={'inline-flex'}
+                    px={2.5}
+                    py={1}
+                    borderRadius={'full'}
+                    bg={'rgba(37, 99, 235, 0.08)'}
+                    color={'#2563EB'}
+                    fontWeight={800}
+                  >
+                    {Math.round(item.usagePoints)}
+                  </Box>
                   {/*{feConfigs?.isPlus*/}
                   {/*  ? `${*/}
                   {/*      item.limit?.maxUsagePoints && item.limit.maxUsagePoints > -1*/}
@@ -140,7 +217,19 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
                   {/*    }`*/}
                   {/*  : ''}*/}
                 </Td>
-                <Td>{item.showCite ? '✔' : '✖'}</Td>
+                <Td>
+                  <Box
+                    display={'inline-flex'}
+                    px={2.5}
+                    py={1}
+                    borderRadius={'full'}
+                    bg={item.showCite ? 'rgba(37, 99, 235, 0.08)' : 'rgba(100, 116, 139, 0.1)'}
+                    color={item.showCite ? '#2563EB' : '#64748B'}
+                    fontWeight={800}
+                  >
+                    {item.showCite ? t('common:Open') : t('common:Close')}
+                  </Box>
+                </Td>
                 {/*{feConfigs?.isPlus && (*/}
                 {/*  <>*/}
                 {/*    <Td>{item?.limit?.QPM || '-'}</Td>*/}
@@ -153,65 +242,67 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
                     ? t(formatTimeToChatTime(item.lastTime) as any).replace('#', ':')
                     : t('common:un_used')}
                 </Td>
-                <Td display={'flex'} alignItems={'center'}>
-                  <Button
-                    onClick={() => setSelectedLinkData(item as OutLinkSchemaType)}
-                    size={'sm'}
-                    mr={3}
-                    variant={'whitePrimary'}
-                  >
-                    {t('common:core.app.outLink.Select Mode')}
-                  </Button>
-                  <MyMenu
-                    Button={
-                      <IconButton
-                        icon={<MyIcon name={'more'} w={'14px'} />}
-                        name={'more'}
-                        variant={'whiteBase'}
-                        size={'sm'}
-                        aria-label={''}
-                      />
-                    }
-                    menuList={[
-                      {
-                        children: [
-                          {
-                            label: t('common:Edit'),
-                            icon: 'edit',
-                            onClick: () =>
-                              setEditLinkData({
-                                _id: item._id,
-                                name: item.name,
-                                showCite: item.showCite,
-                                canDownloadSource: item.canDownloadSource,
-                                showFullText: item.showFullText,
-                                showRunningStatus: item.showRunningStatus,
-                                showSkillReferences: item.showSkillReferences,
-                                limit: item.limit
-                              })
-                          },
-                          {
-                            label: t('common:Delete'),
-                            icon: 'delete',
-                            type: 'danger',
-                            onClick: () =>
-                              openConfirm({
-                                onConfirm: async () => {
-                                  setIsLoading(true);
-                                  try {
-                                    await delShareChatById(item._id);
-                                    refetchShareChatList();
-                                  } catch (error) {
-                                    console.log(error);
-                                  }
-                                  setIsLoading(false);
-                                }
-                              })()
-                          }
-                        ]
+                <Td>
+                  <Flex alignItems={'center'} justifyContent={'flex-end'}>
+                    <Button
+                      onClick={() => setSelectedLinkData(item as OutLinkSchemaType)}
+                      size={'sm'}
+                      mr={3}
+                      variant={'whitePrimary'}
+                    >
+                      {t('common:core.app.outLink.Select Mode')}
+                    </Button>
+                    <MyMenu
+                      Button={
+                        <IconButton
+                          icon={<MyIcon name={'more'} w={'14px'} />}
+                          name={'more'}
+                          variant={'whiteBase'}
+                          size={'sm'}
+                          aria-label={''}
+                        />
                       }
-                    ]}
-                  />
+                      menuList={[
+                        {
+                          children: [
+                            {
+                              label: t('common:Edit'),
+                              icon: 'edit',
+                              onClick: () =>
+                                setEditLinkData({
+                                  _id: item._id,
+                                  name: item.name,
+                                  showCite: item.showCite,
+                                  canDownloadSource: item.canDownloadSource,
+                                  showFullText: item.showFullText,
+                                  showRunningStatus: item.showRunningStatus,
+                                  showSkillReferences: item.showSkillReferences,
+                                  limit: item.limit
+                                })
+                            },
+                            {
+                              label: t('common:Delete'),
+                              icon: 'delete',
+                              type: 'danger',
+                              onClick: () =>
+                                openConfirm({
+                                  onConfirm: async () => {
+                                    setIsLoading(true);
+                                    try {
+                                      await delShareChatById(item._id);
+                                      refetchShareChatList();
+                                    } catch (error) {
+                                      console.log(error);
+                                    }
+                                    setIsLoading(false);
+                                  }
+                                })()
+                            }
+                          ]
+                        }
+                      ]}
+                    />
+                  </Flex>
                 </Td>
               </Tr>
             ))}
@@ -220,7 +311,7 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
       </TableContainer>
 
       {shareChatList.length === 0 && !isFetching && (
-        <EmptyTip text={t('common:core.app.share.Not share link')} />
+        <PublishEmptyState text={t('common:core.app.share.Not share link')} />
       )}
       {!!editLinkData && (
         <EditLinkModal
@@ -313,22 +404,36 @@ function EditLinkModal({
       iconSrc="/imgs/modal/shareFill.svg"
       title={isEdit ? t('publish:edit_link') : t('publish:create_link')}
       maxW={['90vw', '700px']}
+      minW={['90vw', '760px']}
       w={'100%'}
       h={['90vh', 'auto']}
     >
-      <ModalBody
-        p={6}
-        display={['block', 'flex']}
-        flex={['1 0 0', 'auto']}
-        overflow={'auto'}
-        gap={4}
+      <OmniModalBody
+        icon="common/link"
+        title={isEdit ? t('publish:edit_link') : t('publish:create_link')}
+        desc={t('common:core.app.Share link desc')}
+        asideItems={[
+          {
+            label: t('publish:basic_info'),
+            desc: t('publish:link_name'),
+            icon: 'common/link'
+          },
+          {
+            label: t('publish:private_config'),
+            desc: t('common:support.outlink.share.Response Quote'),
+            icon: 'common/setting'
+          }
+        ]}
+        minH={['auto', '430px']}
       >
-        <Box pr={[0, 4]} flex={1} borderRight={['0px', '1px']} borderColor={['', 'myGray.150']}>
-          <Box fontSize={'sm'} fontWeight={'500'} color={'myGray.600'}>
-            {t('publish:basic_info')}
-          </Box>
-          <Flex alignItems={'center'} mt={4}>
-            <FormLabel flex={'0 0 90px'}>{t('common:Name')}</FormLabel>
+        <OmniModalSection
+          title={t('publish:basic_info')}
+          desc={t('common:core.app.Share link desc')}
+        >
+          <Flex alignItems={['stretch', 'center']} flexDirection={['column', 'row']} gap={3}>
+            <FormLabel flex={'0 0 92px'} color={'#1E293B'} fontWeight={700}>
+              {t('common:Name')}
+            </FormLabel>
             <Input
               placeholder={t('publish:link_name')}
               maxLength={100}
@@ -337,170 +442,191 @@ function EditLinkModal({
               })}
             />
           </Flex>
-          {/*{feConfigs?.isPlus && (*/}
-          {/*  <>*/}
-          {/*    <Flex alignItems={'center'} mt={4}>*/}
-          {/*      <FormLabel flex={'0 0 90px'} alignItems={'center'}>*/}
-          {/*        {t('common:expired_time')}*/}
-          {/*      </FormLabel>*/}
-          {/*      <Input*/}
-          {/*        type="datetime-local"*/}
-          {/*        defaultValue={*/}
-          {/*          defaultData.limit?.expiredTime*/}
-          {/*            ? dayjs(defaultData.limit?.expiredTime).format('YYYY-MM-DDTHH:mm')*/}
-          {/*            : ''*/}
-          {/*        }*/}
-          {/*        onChange={(e) => {*/}
-          {/*          setValue('limit.expiredTime', new Date(e.target.value));*/}
-          {/*        }}*/}
-          {/*      />*/}
-          {/*    </Flex>*/}
-          {/*    <Flex alignItems={'center'} mt={4}>*/}
-          {/*      <Flex flex={'0 0 90px'} alignItems={'center'}>*/}
-          {/*        <FormLabel>QPM</FormLabel>*/}
-          {/*        <QuestionTip ml={1} label={t('publish:qpm_tips')}></QuestionTip>*/}
-          {/*      </Flex>*/}
-          {/*      <Input*/}
-          {/*        max={1000}*/}
-          {/*        {...register('limit.QPM', {*/}
-          {/*          min: 0,*/}
-          {/*          max: 1000,*/}
-          {/*          valueAsNumber: true,*/}
-          {/*          required: t('publish:qpm_is_empty')*/}
-          {/*        })}*/}
-          {/*      />*/}
-          {/*    </Flex>*/}
-          {/*    <Flex alignItems={'center'} mt={4}>*/}
-          {/*      <Flex flex={'0 0 90px'} alignItems={'center'}>*/}
-          {/*        <FormLabel>{t('common:support.outlink.Max usage points')}</FormLabel>*/}
-          {/*        <QuestionTip*/}
-          {/*          ml={1}*/}
-          {/*          label={t('common:support.outlink.Max usage points tip')}*/}
-          {/*        ></QuestionTip>*/}
-          {/*      </Flex>*/}
-          {/*      <Input*/}
-          {/*        {...register('limit.maxUsagePoints', {*/}
-          {/*          min: -1,*/}
-          {/*          max: 10000000,*/}
-          {/*          valueAsNumber: true,*/}
-          {/*          required: true*/}
-          {/*        })}*/}
-          {/*      />*/}
-          {/*    </Flex>*/}
+        </OmniModalSection>
+        {/*{feConfigs?.isPlus && (*/}
+        {/*  <>*/}
+        {/*    <Flex alignItems={'center'} mt={4}>*/}
+        {/*      <FormLabel flex={'0 0 90px'} alignItems={'center'}>*/}
+        {/*        {t('common:expired_time')}*/}
+        {/*      </FormLabel>*/}
+        {/*      <Input*/}
+        {/*        type="datetime-local"*/}
+        {/*        defaultValue={*/}
+        {/*          defaultData.limit?.expiredTime*/}
+        {/*            ? dayjs(defaultData.limit?.expiredTime).format('YYYY-MM-DDTHH:mm')*/}
+        {/*            : ''*/}
+        {/*        }*/}
+        {/*        onChange={(e) => {*/}
+        {/*          setValue('limit.expiredTime', new Date(e.target.value));*/}
+        {/*        }}*/}
+        {/*      />*/}
+        {/*    </Flex>*/}
+        {/*    <Flex alignItems={'center'} mt={4}>*/}
+        {/*      <Flex flex={'0 0 90px'} alignItems={'center'}>*/}
+        {/*        <FormLabel>QPM</FormLabel>*/}
+        {/*        <QuestionTip ml={1} label={t('publish:qpm_tips')}></QuestionTip>*/}
+        {/*      </Flex>*/}
+        {/*      <Input*/}
+        {/*        max={1000}*/}
+        {/*        {...register('limit.QPM', {*/}
+        {/*          min: 0,*/}
+        {/*          max: 1000,*/}
+        {/*          valueAsNumber: true,*/}
+        {/*          required: t('publish:qpm_is_empty')*/}
+        {/*        })}*/}
+        {/*      />*/}
+        {/*    </Flex>*/}
+        {/*    <Flex alignItems={'center'} mt={4}>*/}
+        {/*      <Flex flex={'0 0 90px'} alignItems={'center'}>*/}
+        {/*        <FormLabel>{t('common:support.outlink.Max usage points')}</FormLabel>*/}
+        {/*        <QuestionTip*/}
+        {/*          ml={1}*/}
+        {/*          label={t('common:support.outlink.Max usage points tip')}*/}
+        {/*        ></QuestionTip>*/}
+        {/*      </Flex>*/}
+        {/*      <Input*/}
+        {/*        {...register('limit.maxUsagePoints', {*/}
+        {/*          min: -1,*/}
+        {/*          max: 10000000,*/}
+        {/*          valueAsNumber: true,*/}
+        {/*          required: true*/}
+        {/*        })}*/}
+        {/*      />*/}
+        {/*    </Flex>*/}
 
-          {/*    <Flex alignItems={'center'} mt={4}>*/}
-          {/*      <Flex flex={'0 0 90px'} alignItems={'center'}>*/}
-          {/*        <FormLabel>{t('publish:token_auth')}</FormLabel>*/}
-          {/*        <QuestionTip ml={1} label={t('publish:token_auth_tips')}></QuestionTip>*/}
-          {/*      </Flex>*/}
-          {/*      <Input*/}
-          {/*        placeholder={t('publish:token_auth_tips')}*/}
-          {/*        fontSize={'sm'}*/}
-          {/*        {...register('limit.hookUrl')}*/}
-          {/*      />*/}
-          {/*    </Flex>*/}
-          {/*    <Link*/}
-          {/*      href={getDocPath('/docs/openapi/share')}*/}
-          {/*      target={'_blank'}*/}
-          {/*      fontSize={'xs'}*/}
-          {/*      color={'myGray.500'}*/}
-          {/*    >*/}
-          {/*      {t('publish:token_auth_use_cases')}*/}
-          {/*    </Link>*/}
-          {/*  </>*/}
-          {/*)}*/}
-        </Box>
-        <Box flex={1} pt={[6, 0]}>
-          <Box fontSize={'sm'} fontWeight={'500'} color={'myGray.600'}>
-            {t('publish:private_config')}
-          </Box>
-          <Flex alignItems={'center'} mt={4} justify={'space-between'} height={'36px'}>
-            <FormLabel>{t('publish:show_node')}</FormLabel>
-            <Switch {...register('showRunningStatus')} />
-          </Flex>
-          <Flex alignItems={'center'} mt={4} justify={'space-between'} height={'36px'}>
+        {/*    <Flex alignItems={'center'} mt={4}>*/}
+        {/*      <Flex flex={'0 0 90px'} alignItems={'center'}>*/}
+        {/*        <FormLabel>{t('publish:token_auth')}</FormLabel>*/}
+        {/*        <QuestionTip ml={1} label={t('publish:token_auth_tips')}></QuestionTip>*/}
+        {/*      </Flex>*/}
+        {/*      <Input*/}
+        {/*        placeholder={t('publish:token_auth_tips')}*/}
+        {/*        fontSize={'sm'}*/}
+        {/*        {...register('limit.hookUrl')}*/}
+        {/*      />*/}
+        {/*    </Flex>*/}
+        {/*    <Link*/}
+        {/*      href={getDocPath('/docs/openapi/share')}*/}
+        {/*      target={'_blank'}*/}
+        {/*      fontSize={'xs'}*/}
+        {/*      color={'myGray.500'}*/}
+        {/*    >*/}
+        {/*      {t('publish:token_auth_use_cases')}*/}
+        {/*    </Link>*/}
+        {/*  </>*/}
+        {/*)}*/}
+        <OmniModalSection
+          title={t('publish:private_config')}
+          desc={t('common:support.outlink.share.Response Quote tips')}
+        >
+          <OmniToggleRow control={<Switch {...register('showRunningStatus')} />}>
+            <FormLabel color={'#1E293B'} fontWeight={700}>
+              {t('publish:show_node')}
+            </FormLabel>
+          </OmniToggleRow>
+          <OmniToggleRow
+            control={
+              <Switch
+                {...register('showCite', {
+                  onChange(e) {
+                    if (!e.target.checked) {
+                      setValue('showFullText', false);
+                      setValue('canDownloadSource', false);
+                    }
+                  }
+                })}
+                isChecked={showCite}
+              />
+            }
+          >
             <Flex alignItems={'center'}>
-              <FormLabel>{t('common:support.outlink.share.Response Quote')}</FormLabel>
+              <FormLabel color={'#1E293B'} fontWeight={700}>
+                {t('common:support.outlink.share.Response Quote')}
+              </FormLabel>
               <QuestionTip
                 ml={1}
                 label={t('common:support.outlink.share.Response Quote tips')}
               ></QuestionTip>
             </Flex>
-            <Switch
-              {...register('showCite', {
-                onChange(e) {
-                  if (!e.target.checked) {
-                    setValue('showFullText', false);
-                    setValue('canDownloadSource', false);
+          </OmniToggleRow>
+          <OmniToggleRow
+            control={
+              <Switch
+                {...register('showFullText', {
+                  onChange(e) {
+                    if (!e.target.checked) {
+                      setValue('canDownloadSource', false);
+                    } else {
+                      setValue('showCite', true);
+                    }
                   }
-                }
-              })}
-              isChecked={showCite}
-            />
-          </Flex>
-          <Flex alignItems={'center'} mt={4} justify={'space-between'} height={'36px'}>
+                })}
+                isChecked={showFullText}
+              />
+            }
+          >
             <Flex alignItems={'center'}>
-              <FormLabel>{t('common:core.app.share.Show full text')}</FormLabel>
+              <FormLabel color={'#1E293B'} fontWeight={700}>
+                {t('common:core.app.share.Show full text')}
+              </FormLabel>
               <QuestionTip
                 ml={1}
                 label={t('common:support.outlink.share.Show full text tips')}
               ></QuestionTip>
             </Flex>
-            <Switch
-              {...register('showFullText', {
-                onChange(e) {
-                  if (!e.target.checked) {
-                    setValue('canDownloadSource', false);
-                  } else {
-                    setValue('showCite', true);
+          </OmniToggleRow>
+          <OmniToggleRow
+            control={
+              <Switch
+                {...register('canDownloadSource', {
+                  onChange(e) {
+                    if (e.target.checked) {
+                      setValue('showFullText', true);
+                      setValue('showCite', true);
+                    }
                   }
-                }
-              })}
-              isChecked={showFullText}
-            />
-          </Flex>
-          <Flex alignItems={'center'} mt={4} justify={'space-between'} height={'36px'}>
+                })}
+                isChecked={canDownloadSource}
+              />
+            }
+          >
             <Flex alignItems={'center'}>
-              <FormLabel>{t('common:core.app.share.Download source')}</FormLabel>
+              <FormLabel color={'#1E293B'} fontWeight={700}>
+                {t('common:core.app.share.Download source')}
+              </FormLabel>
               <QuestionTip
                 ml={1}
                 label={t('common:support.outlink.share.Download source tips')}
               ></QuestionTip>
             </Flex>
-            <Switch
-              {...register('canDownloadSource', {
-                onChange(e) {
-                  if (e.target.checked) {
-                    setValue('showFullText', true);
-                    setValue('showCite', true);
-                  }
-                }
-              })}
-              isChecked={canDownloadSource}
-            />
-          </Flex>
+          </OmniToggleRow>
           {feConfigs?.show_skill && (
-            <Flex alignItems={'center'} mt={4} justify={'space-between'} height={'36px'}>
+            <OmniToggleRow
+              control={
+                <Switch
+                  {...register('showSkillReferences', {
+                    onChange(e) {
+                      if (e.target.checked) {
+                        setValue('showRunningStatus', true);
+                      }
+                    }
+                  })}
+                  isChecked={showSkillReferences}
+                />
+              }
+            >
               <Flex alignItems={'center'}>
-                <FormLabel>{t('publish:show_skill_reference')}</FormLabel>
+                <FormLabel color={'#1E293B'} fontWeight={700}>
+                  {t('publish:show_skill_reference')}
+                </FormLabel>
                 <QuestionTip ml={1} label={t('publish:show_skill_reference_tips')}></QuestionTip>
               </Flex>
-              <Switch
-                {...register('showSkillReferences', {
-                  onChange(e) {
-                    if (e.target.checked) {
-                      setValue('showRunningStatus', true);
-                    }
-                  }
-                })}
-                isChecked={showSkillReferences}
-              />
-            </Flex>
+            </OmniToggleRow>
           )}
-        </Box>
-      </ModalBody>
+        </OmniModalSection>
+      </OmniModalBody>
 
-      <ModalFooter>
+      <OmniModalFooter>
         <Button variant={'whiteBase'} mr={3} onClick={onClose}>
           {t('common:Close')}
         </Button>
@@ -510,7 +636,7 @@ function EditLinkModal({
         >
           {t('common:Confirm')}
         </Button>
-      </ModalFooter>
+      </OmniModalFooter>
     </MyModal>
   );
 }

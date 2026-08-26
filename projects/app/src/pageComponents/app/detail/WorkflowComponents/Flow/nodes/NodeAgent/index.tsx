@@ -398,7 +398,15 @@ const NodeAgent = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
 
         {/* 2. System prompt */}
         {promptInput && (
-          <Box position={'relative'} mb={5}>
+          <Box
+            position={'relative'}
+            mb={3}
+            p={3}
+            bg={'white'}
+            border={'1px solid rgba(148, 163, 184, 0.18)'}
+            borderRadius={'12px'}
+            boxShadow={'0 8px 20px rgba(15, 23, 42, 0.035)'}
+          >
             <InputLabel nodeId={nodeId} input={promptInput} RightComponent={PromptSkillTip} />
             <Box mt={2} className={'nodrag'}>
               {promptRenderType === FlowNodeInputTypeEnum.textarea ? (
@@ -431,7 +439,14 @@ const NodeAgent = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
 
         {/* 4. Skills section (manual select / reference dual mode) */}
         {feConfigs?.show_skill && skillsInput && (
-          <Box mb={5}>
+          <Box
+            mb={3}
+            p={3}
+            bg={'white'}
+            border={'1px solid rgba(148, 163, 184, 0.18)'}
+            borderRadius={'12px'}
+            boxShadow={'0 8px 20px rgba(15, 23, 42, 0.035)'}
+          >
             <CustomInputLabel
               nodeId={nodeId}
               input={skillsInput}
@@ -556,7 +571,14 @@ const NodeAgent = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
 
         {/* 5. Tools section (manual select / reference dual mode) */}
         {toolsInput && (
-          <Box mb={5}>
+          <Box
+            mb={3}
+            p={3}
+            bg={'white'}
+            border={'1px solid rgba(148, 163, 184, 0.18)'}
+            borderRadius={'12px'}
+            boxShadow={'0 8px 20px rgba(15, 23, 42, 0.035)'}
+          >
             <CustomInputLabel
               nodeId={nodeId}
               input={toolsInput}
@@ -646,7 +668,14 @@ const NodeAgent = ({ data, selected }: NodeProps<FlowNodeItemType>) => {
 
         {/* 6. Dataset inputs (datasetSelectList, datasetParams, etc.) */}
         {datasetSelectInput && (
-          <Box mb={5}>
+          <Box
+            mb={3}
+            p={3}
+            bg={'white'}
+            border={'1px solid rgba(148, 163, 184, 0.18)'}
+            borderRadius={'12px'}
+            boxShadow={'0 8px 20px rgba(15, 23, 42, 0.035)'}
+          >
             <Flex className="nodrag" cursor={'default'} alignItems={'center'}>
               <FormLabel color={'myGray.600'}>{t('common:core.dataset.Dataset')}</FormLabel>
               {datasetSelectInput.renderTypeList &&

@@ -1,13 +1,15 @@
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'next-i18next';
-import { Box, Flex, IconButton, useTheme, Progress } from '@chakra-ui/react';
+import { Box, Button, Flex, IconButton } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useRouter } from 'next/router';
 import { useContextSelector } from 'use-context-selector';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import LightRowTabs from '@fastgpt/web/components/common/Tabs/LightRowTabs';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
-import FolderPath from '@/components/common/folder/Path';
+import Avatar from '@fastgpt/web/components/common/Avatar';
+import { DatasetTypeMap } from '@fastgpt/global/core/dataset/constants';
+import { omniTheme } from '@/web/common/brand/theme';
 
 export enum TabEnum {
   dataCard = 'dataCard',
@@ -17,16 +19,18 @@ export enum TabEnum {
   import = 'import'
 }
 
-const NavBar = ({ currentTab }: { currentTab: TabEnum }) => {
-  const theme = useTheme();
+type Props = {
+  currentTab: TabEnum;
+  isInfoOpen?: boolean;
+  onToggleInfo?: () => void;
+};
+
+const NavBar = ({ currentTab, isInfoOpen, onToggleInfo }: Props) => {
   const { t } = useTranslation();
   const router = useRouter();
   const query = router.query;
   const { isPc } = useSystem();
-  const { datasetDetail, rebuildingCount, paths } = useContextSelector(
-    DatasetPageContext,
-    (v) => v
-  );
+  const { datasetDetail, rebuildingCount } = useContextSelector(DatasetPageContext, (v) => v);
 
   const tabList = [
     {
@@ -55,83 +59,121 @@ const NavBar = ({ currentTab }: { currentTab: TabEnum }) => {
     <>
       {isPc ? (
         <Flex
-          pb={2}
-          pt={3}
+          h={'68px'}
           px={4}
+          align={'center'}
           justify={'space-between'}
-          borderBottom={currentTab === TabEnum.dataCard ? 'none' : theme.borders.base}
-          borderColor={'myGray.200'}
-          position={'relative'}
+          gap={4}
+          borderBottom={'1px solid'}
+          borderColor={omniTheme.colors.border}
+          bg={omniTheme.colors.surface}
+          flexShrink={0}
         >
-          {currentTab === TabEnum.dataCard ? (
-            <>
-              <Flex
-                alignItems={'center'}
-                cursor={'pointer'}
-                py={'0.38rem'}
-                px={2}
-                ml={0}
-                borderRadius={'md'}
-                _hover={{ bg: 'myGray.05' }}
-                fontSize={'sm'}
-                fontWeight={500}
-                onClick={() => {
-                  router.back();
-                }}
-              >
-                <IconButton
-                  p={2}
-                  mr={2}
-                  border={'1px solid'}
-                  borderColor={'myGray.200'}
-                  boxShadow={'1'}
-                  icon={<MyIcon name={'common/arrowLeft'} w={'16px'} color={'myGray.500'} />}
-                  bg={'white'}
-                  size={'xsSquare'}
-                  borderRadius={'50%'}
-                  aria-label={''}
-                  _hover={'none'}
-                />
-                <Box fontWeight={500} color={'myGray.600'} fontSize={'sm'}>
-                  {datasetDetail.name}
-                </Box>
-              </Flex>
-            </>
-          ) : (
-            <Flex py={'0.38rem'} px={2} h={10} ml={0.5}>
-              <FolderPath
-                paths={paths}
-                onClick={(e) => {
-                  router.push(`/dataset/list?parentId=${e}`);
-                }}
-              />
+          <Flex minW={0} flex={'1 1 0'} align={'center'} gap={3}>
+            <IconButton
+              icon={<MyIcon name={'common/arrowLeft'} w={'16px'} />}
+              aria-label={t('common:back')}
+              size={'smSquare'}
+              variant={'whiteBase'}
+              borderRadius={omniTheme.radii.sm}
+              onClick={() => router.back()}
+            />
+            <Flex
+              w={'36px'}
+              h={'36px'}
+              align={'center'}
+              justify={'center'}
+              borderRadius={omniTheme.radii.sm}
+              bg={omniTheme.colors.saturatedBlueSoft}
+              flexShrink={0}
+            >
+              <Avatar src={datasetDetail.avatar} w={'26px'} h={'26px'} borderRadius={'4px'} />
             </Flex>
-          )}
+            <Box minW={0}>
+              <Box
+                fontSize={'15px'}
+                lineHeight={'20px'}
+                fontWeight={700}
+                color={omniTheme.colors.text}
+                className={'textEllipsis'}
+              >
+                {datasetDetail.name}
+              </Box>
+              <Flex align={'center'} gap={2} fontSize={'11px'} color={omniTheme.colors.muted}>
+                <Box className={'textEllipsis'}>
+                  {DatasetTypeMap[datasetDetail.type]
+                    ? t(DatasetTypeMap[datasetDetail.type].label)
+                    : ''}
+                </Box>
+                {rebuildingCount > 0 && (
+                  <Flex align={'center'} gap={1} color={omniTheme.colors.saturatedBlue}>
+                    <Box
+                      w={'5px'}
+                      h={'5px'}
+                      borderRadius={'50%'}
+                      bg={omniTheme.colors.saturatedBlue}
+                    />
+                    {t('common:dataset.collections.Collection Embedding', {
+                      total: rebuildingCount
+                    })}
+                  </Flex>
+                )}
+              </Flex>
+            </Box>
+          </Flex>
 
-          <Box position={'absolute'} left={'50%'} transform={'translateX(-50%)'}>
+          <Box flexShrink={0}>
             <LightRowTabs<TabEnum>
-              px={4}
+              px={1}
               py={1}
               visibility={currentTab === TabEnum.dataCard ? 'hidden' : 'visible'}
-              flex={1}
-              mx={'auto'}
-              w={'100%'}
+              bg={omniTheme.colors.sidebarBg}
+              border={'1px solid'}
+              borderColor={omniTheme.colors.border}
+              borderRadius={omniTheme.radii.md}
               list={tabList}
               value={currentTab}
-              activeColor="primary.700"
+              activeColor={omniTheme.colors.saturatedBlue}
               onChange={setCurrentTab}
               inlineStyles={{
-                fontSize: '1rem',
-                lineHeight: '1.5rem',
-                fontWeight: 500,
+                px: 4,
+                py: 1.5,
+                fontSize: '13px',
+                lineHeight: '18px',
+                fontWeight: 600,
                 border: 'none',
                 _hover: {
-                  bg: 'myGray.05'
+                  bg: omniTheme.colors.surface
                 },
-                borderRadius: '6px'
+                borderRadius: omniTheme.radii.sm
               }}
             />
           </Box>
+
+          <Flex flex={'1 1 0'} justify={'flex-end'}>
+            {onToggleInfo && currentTab !== TabEnum.dataCard && (
+              <Button
+                size={'sm'}
+                h={'34px'}
+                px={3}
+                variant={'unstyled'}
+                display={'inline-flex'}
+                alignItems={'center'}
+                border={'1px solid'}
+                borderColor={isInfoOpen ? '#B9CCFB' : omniTheme.colors.border}
+                borderRadius={omniTheme.radii.sm}
+                bg={isInfoOpen ? omniTheme.colors.saturatedBlueSoft : omniTheme.colors.surface}
+                color={isInfoOpen ? omniTheme.colors.saturatedBlue : omniTheme.colors.graphite}
+                fontSize={'12px'}
+                fontWeight={700}
+                leftIcon={<MyIcon name={'common/settingLight'} w={'15px'} />}
+                onClick={onToggleInfo}
+                _hover={{ bg: isInfoOpen ? '#CFE0FF' : omniTheme.colors.sidebarBg }}
+              >
+                {t('common:Config')}
+              </Button>
+            )}
+          </Flex>
         </Flex>
       ) : (
         <Box mb={2}>

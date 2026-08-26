@@ -106,8 +106,10 @@ const NodeTemplatesPopover = () => {
         left={`${handleParams.popoverPosition.x + 10}px`}
         width={popoverWidth}
         height={popoverHeight}
-        boxShadow="3px 0 20px rgba(0,0,0,0.2)"
-        border={'none'}
+        boxShadow="0 24px 64px rgba(15, 23, 42, 0.14)"
+        border={'1px solid rgba(148, 163, 184, 0.22)'}
+        borderRadius={'18px'}
+        overflow={'hidden'}
       >
         <PopoverBody padding={0} h={'full'}>
           <MyBox

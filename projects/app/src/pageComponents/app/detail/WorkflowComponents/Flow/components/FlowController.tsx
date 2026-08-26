@@ -96,8 +96,9 @@ const FlowController = React.memo(function FlowController() {
             height: 92,
             width: 150,
             marginBottom: 62,
-            borderRadius: '10px',
-            boxShadow: '0px 0px 1px rgba(19, 51, 107, 0.10), 0px 4px 10px rgba(19, 51, 107, 0.10)'
+            borderRadius: '14px',
+            border: '1px solid rgba(148, 163, 184, 0.22)',
+            boxShadow: '0 18px 42px rgba(15, 23, 42, 0.10)'
           }}
           pannable
           nodeComponent={MiniMapNode}
@@ -108,13 +109,14 @@ const FlowController = React.memo(function FlowController() {
             display: 'flex',
             marginBottom: 16,
             padding: '5px 8px',
-            background: 'white',
-            borderRadius: '6px',
+            background: 'rgba(255, 255, 255, 0.92)',
+            border: '1px solid rgba(148, 163, 184, 0.22)',
+            borderRadius: '14px',
             overflow: 'hidden',
             alignItems: 'center',
             gap: '2px',
-            boxShadow:
-              '0px 0px 1px 0px rgba(19, 51, 107, 0.20), 0px 12px 16px -4px rgba(19, 51, 107, 0.20)'
+            backdropFilter: 'blur(14px)',
+            boxShadow: '0 20px 44px rgba(15, 23, 42, 0.12)'
           }}
         >
           {/* Control Mode */}
@@ -208,7 +210,7 @@ const FlowController = React.memo(function FlowController() {
             </ControlButton>
           </MyTooltip>
         </Panel>
-        <Background color="#A4A4A4" gap={60} size={3} />
+        <Background color="rgba(37, 99, 235, 0.18)" gap={24} size={1} />
       </>
     );
   }, [

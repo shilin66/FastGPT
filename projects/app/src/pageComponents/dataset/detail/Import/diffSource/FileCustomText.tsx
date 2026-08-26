@@ -6,8 +6,11 @@ import { useForm } from 'react-hook-form';
 import { Box, Button, Flex, Input, Textarea } from '@chakra-ui/react';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import Loading from '@fastgpt/web/components/common/MyLoading';
+import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useContextSelector } from 'use-context-selector';
 import { DatasetImportContext } from '../Context';
+import { ImportStepFooter, ImportStepLayout } from '../components/ImportStepLayout';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const DataProcess = dynamic(() => import('../commonProgress/DataProcess'), {
   loading: () => <Loading fixed={false} />
@@ -65,42 +68,93 @@ const CustomTextInput = () => {
         value: source.rawText
       });
     }
-  }, []);
+  }, [reset, sources]);
 
   return (
-    <Box maxW={['100%', '800px']}>
-      <Box display={['block', 'flex']} alignItems={'center'}>
-        <Box flex={'0 0 120px'} fontSize={'sm'}>
-          {t('dataset:collection_name')}
-        </Box>
-        <Input
-          flex={'1 0 0'}
-          maxW={['100%', '350px']}
-          {...register('name', {
-            required: true
-          })}
-          placeholder={t('dataset:collection_name')}
-          bg={'myGray.50'}
-        />
-      </Box>
-      <Box display={['block', 'flex']} alignItems={'flex-start'} mt={5}>
-        <Box flex={'0 0 120px'} fontSize={'sm'}>
-          {t('common:core.dataset.collection.Collection raw text')}
-        </Box>
+    <ImportStepLayout
+      eyebrow={t('common:core.dataset.import.Custom text')}
+      title={t('dataset:import_add_custom_text_title')}
+      description={t('dataset:import_add_custom_text_desc')}
+      variant={'boundedWorkbench'}
+      footer={
+        <ImportStepFooter>
+          <Box
+            display={['none', 'block']}
+            mr={'auto'}
+            color={omniTheme.colors.muted}
+            fontSize={'sm'}
+          >
+            {t('common:core.dataset.import.Custom text desc')}
+          </Box>
+          <Button
+            onClick={handleSubmit((data) => onSubmit(data))}
+            bg={omniTheme.colors.saturatedBlue}
+            color={'white'}
+            _hover={{ bg: omniTheme.colors.saturatedBlueHover }}
+          >
+            {t('common:next_step')}
+          </Button>
+        </ImportStepFooter>
+      }
+    >
+      <Box
+        overflow={'hidden'}
+        border={'1px solid'}
+        borderColor={omniTheme.colors.border}
+        borderRadius={omniTheme.radii.md}
+        bg={omniTheme.colors.surface}
+        boxShadow={omniTheme.shadows.card}
+      >
+        <Flex minH={'64px'} alignItems={'center'} gap={3} px={[4, 5]} bg={omniTheme.colors.pageBg}>
+          <Flex
+            w={'34px'}
+            h={'34px'}
+            flexShrink={0}
+            alignItems={'center'}
+            justifyContent={'center'}
+            borderRadius={omniTheme.radii.sm}
+            bg={omniTheme.colors.graphite}
+          >
+            <MyIcon name={'file/fill/txt'} w={'17px'} color={'white'} />
+          </Flex>
+          <Box flex={1} minW={0}>
+            <Box color={omniTheme.colors.muted} fontSize={'10px'} fontWeight={700} mb={0.5}>
+              {t('dataset:collection_name')}
+            </Box>
+            <Input
+              h={'auto'}
+              minH={0}
+              p={0}
+              variant={'unstyled'}
+              color={omniTheme.colors.text}
+              fontSize={'md'}
+              fontWeight={700}
+              {...register('name', {
+                required: true
+              })}
+              placeholder={t('dataset:collection_name')}
+            />
+          </Box>
+        </Flex>
+
         <Textarea
-          flex={'1 0 0'}
           w={'100%'}
-          rows={15}
+          minH={['320px', '420px']}
+          p={[4, 5]}
+          resize={'vertical'}
+          border={0}
+          borderTop={'1px solid'}
+          borderColor={omniTheme.colors.border}
+          borderRadius={0}
           placeholder={t('common:core.dataset.collection.Collection raw text')}
           {...register('value', {
             required: true
           })}
-          bg={'myGray.50'}
+          bg={omniTheme.colors.surface}
+          lineHeight={1.8}
+          _focusVisible={{ boxShadow: `inset 0 0 0 1px ${omniTheme.colors.saturatedBlue}` }}
         />
       </Box>
-      <Flex mt={5} justifyContent={'flex-end'}>
-        <Button onClick={handleSubmit((data) => onSubmit(data))}>{t('common:next_step')}</Button>
-      </Flex>
-    </Box>
+    </ImportStepLayout>
   );
 };

@@ -13,41 +13,42 @@ import { Box, Flex } from '@chakra-ui/react';
 import { WorkflowActionsContext } from '../../../../context/workflowActionsContext';
 import { WorkflowUIContext } from '../../../../context/workflowUIContext';
 
-const handleSizeConnected = 24;
-const handleSizeConnecting = 32;
-const handleAddIconSize = 24;
+const handleSizeConnected = 18;
+const handleSizeConnecting = 24;
+const handleAddIconSize = 17;
 
 const sourceCommonStyle = {
   backgroundColor: 'white',
-  borderRadius: '50%'
+  borderRadius: '50%',
+  boxShadow: '0 0 0 3px rgba(248, 250, 252, 0.96), 0 8px 18px rgba(37, 99, 235, 0.18)'
 };
 
 const handleConnectedStyle = {
   ...sourceCommonStyle,
-  borderWidth: '3px',
+  borderWidth: '2px',
   borderColor: '#94B5FF',
   width: handleSizeConnected,
   height: handleSizeConnected,
-  zIndex: 15
+  zIndex: 30
 };
 
 const handleHighLightStyle = {
   ...sourceCommonStyle,
-  borderWidth: '4px',
+  borderWidth: '3px',
   borderColor: '#487FFF',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   width: handleSizeConnecting,
   height: handleSizeConnecting,
-  zIndex: 15
+  zIndex: 30
 };
 
 type Props = {
   nodeId: string;
   handleId: string;
   position: Position;
-  translate?: [number, number];
+  translate?: readonly [number, number];
 };
 
 export const MySourceHandle = React.memo(function MySourceHandle({
@@ -79,7 +80,7 @@ export const MySourceHandle = React.memo(function MySourceHandle({
   const translateStr = useMemo(() => {
     if (!translate) return '';
     if (position === Position.Right) {
-      const offset = active ? 8 : 5;
+      const offset = active ? 6 : 4;
       return `${translate[0] + offset}px, -50%`;
     }
   }, [active, position, translate]);
@@ -171,7 +172,7 @@ export const MyTargetHandle = React.memo(function MyTargetHandle({
     if (!translate) return '';
 
     if (position === Position.Left) {
-      const offset = connectingEdge ? -8 : -5;
+      const offset = connectingEdge ? -6 : -4;
       return `${translate[0] + offset}px, -50%`;
     }
   }, [connectingEdge, position, translate]);
@@ -198,7 +199,7 @@ export const MyTargetHandle = React.memo(function MyTargetHandle({
     }
     return {
       visibility: 'hidden' as const,
-      zIndex: 15
+      zIndex: 30
     };
   }, [connected, connectingEdge, showHandle, translateStr]);
 

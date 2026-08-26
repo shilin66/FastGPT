@@ -31,6 +31,7 @@ import { useToast } from '@fastgpt/web/hooks/useToast';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { ReadRoleVal } from '@fastgpt/global/support/permission/constant';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const EditFolderModal = dynamic(
   () => import('@fastgpt/web/components/common/MyModal/EditFolderModal')
@@ -81,7 +82,7 @@ const Dataset = () => {
     () => (
       <InputGroup maxW={['auto', '250px']}>
         <InputLeftElement h={'full'} alignItems={'center'} display={'flex'}>
-          <MyIcon color={'myGray.600'} name={'common/searchLight'} w={'1rem'} />
+          <MyIcon color={omniTheme.colors.saturatedBlue} name={'common/searchLight'} w={'1rem'} />
         </InputLeftElement>
         <Input
           pl={'34px'}
@@ -92,6 +93,8 @@ const Dataset = () => {
           lineHeight={'34px'}
           maxLength={30}
           bg={'white'}
+          borderColor={omniTheme.colors.border}
+          borderRadius={'8px'}
         />
       </InputGroup>
     ),
@@ -106,21 +109,20 @@ const Dataset = () => {
       overflowY={'auto'}
       overflowX={'hidden'}
     >
-      <Flex pt={[4, 6]} pl={3} pr={folderDetail ? [3, 6] : [3, 8]}>
+      <Flex pt={[4, 6]} pl={6} pr={folderDetail ? [3, 6] : [3, 8]}>
         <Flex flexGrow={1} flexDirection="column">
           <Flex alignItems={'center'} justifyContent={'space-between'}>
             <FolderPath
               paths={paths}
               FirstPathDom={
                 <Flex flex={1} alignItems={'center'}>
-                  <Box
-                    pl={2}
-                    letterSpacing={1}
-                    fontSize={'1.25rem'}
-                    fontWeight={'bold'}
-                    color={'myGray.900'}
-                  >
-                    {t('common:core.dataset.My Dataset')}
+                  <Box pl={2}>
+                    <Box color={omniTheme.colors.text} fontSize={'22px'} fontWeight={900}>
+                      知识库
+                    </Box>
+                    <Box mt={1} color={omniTheme.colors.muted} fontSize={'sm'}>
+                      管理可被 Agent 检索和引用的知识资产
+                    </Box>
                   </Box>
                 </Flex>
               }
@@ -142,7 +144,12 @@ const Dataset = () => {
                 <MultipleMenu
                   size="md"
                   Trigger={
-                    <Button variant={'primary'} px="0">
+                    <Button
+                      bg={omniTheme.colors.graphite}
+                      color={'white'}
+                      _hover={{ bg: omniTheme.colors.graphiteHover }}
+                      px="0"
+                    >
                       <Flex alignItems={'center'} px={5}>
                         <AddIcon mr={2} />
                         <Box>{t('common:new_create')}</Box>

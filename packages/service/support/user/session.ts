@@ -59,6 +59,11 @@ const delSession = (key: string) => {
   retryFn(() => redis.del(getSessionKey(key)));
 };
 
+export const delUserSession = async (key: string) => {
+  const redis = getGlobalRedisConnection();
+  await retryFn(() => redis.del(getSessionKey(key)));
+};
+
 const getSession = async (key: string): Promise<SessionType> => {
   const formatKey = getSessionKey(key);
   const redis = getGlobalRedisConnection();

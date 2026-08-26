@@ -9,9 +9,10 @@ import PopoverConfirm from '@fastgpt/web/components/common/MyPopover/PopoverConf
 
 type Props = {
   menuConfirmButtonText?: string;
+  embedded?: boolean;
 };
 
-const ChatSliderMenu = ({ menuConfirmButtonText }: Props) => {
+const ChatSliderMenu = ({ menuConfirmButtonText, embedded = false }: Props) => {
   const { t } = useTranslation();
   const { isPc } = useSystem();
 
@@ -24,11 +25,12 @@ const ChatSliderMenu = ({ menuConfirmButtonText }: Props) => {
   return (
     <Flex
       w={'100%'}
-      px={[2, 5]}
-      h={'36px'}
-      my={5}
+      px={embedded ? 0 : [2, 3]}
+      h={embedded ? '36px' : '40px'}
+      my={embedded ? 2 : 3}
       justify={['space-between', '']}
       alignItems={'center'}
+      gap={2}
     >
       {!isPc && (
         <Flex height={'100%'} align={'center'} justify={'center'}>
@@ -40,12 +42,16 @@ const ChatSliderMenu = ({ menuConfirmButtonText }: Props) => {
       )}
 
       <Button
-        variant={'whitePrimary'}
+        variant={embedded ? 'whiteBase' : 'primary'}
         flex={['0 0 auto', 1]}
         h={'100%'}
-        px={6}
-        color={'primary.600'}
-        borderRadius={'xl'}
+        px={4}
+        borderRadius={'6px'}
+        border={embedded ? '1px solid' : undefined}
+        borderColor={embedded ? 'myGray.200' : undefined}
+        bg={embedded ? 'myGray.900' : undefined}
+        color={embedded ? 'white' : undefined}
+        _hover={embedded ? { bg: 'myGray.800' } : undefined}
         leftIcon={<MyIcon name={'core/chat/chatLight'} w={'16px'} />}
         overflow={'hidden'}
         onClick={() => {
@@ -59,12 +65,12 @@ const ChatSliderMenu = ({ menuConfirmButtonText }: Props) => {
       {isPc && histories.length > 0 && (
         <PopoverConfirm
           Trigger={
-            <Box ml={3} h={'100%'}>
+            <Box h={'100%'}>
               <IconButton
                 variant={'whiteDanger'}
                 size={'mdSquare'}
-                aria-label={''}
-                borderRadius={'50%'}
+                aria-label={t('common:core.chat.Confirm to clear history')}
+                borderRadius={'6px'}
                 icon={<MyIcon name={'common/clearLight'} w={'16px'} />}
               />
             </Box>

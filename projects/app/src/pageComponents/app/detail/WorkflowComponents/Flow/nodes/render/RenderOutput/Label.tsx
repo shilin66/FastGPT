@@ -25,8 +25,9 @@ const OutputLabel = ({ nodeId, output }: { nodeId: string; output: FlowNodeOutpu
         className="nodrag"
         cursor={'default'}
         alignItems={'center'}
-        fontWeight={'medium'}
-        color={'myGray.600'}
+        fontWeight={800}
+        color={'#1E293B'}
+        fontSize={'12px'}
         {...(output.type === FlowNodeOutputTypeEnum.source
           ? {
               flexDirection: 'row-reverse'
@@ -77,7 +78,7 @@ const OutputLabel = ({ nodeId, output }: { nodeId: string; output: FlowNodeOutpu
         <MySourceHandle
           nodeId={nodeId}
           handleId={getHandleId(nodeId, 'source', output.key)}
-          translate={[34, 0]}
+          translate={[20, 0]}
           position={Position.Right}
         />
       )}

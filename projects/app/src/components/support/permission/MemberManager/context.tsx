@@ -143,7 +143,8 @@ const CollaboratorContextProvider = ({
     },
     {
       manual: false,
-      refreshDeps: refreshDeps
+      ready: feConfigs.isPlus !== undefined,
+      refreshDeps: [...refreshDeps, feConfigs.isPlus]
     }
   );
 

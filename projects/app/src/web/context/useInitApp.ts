@@ -18,6 +18,8 @@ import {
 } from '../support/marketing/utils';
 import { type ShortUrlParams } from '@fastgpt/global/support/marketing/type';
 import { setCouponCode } from '@/web/support/marketing/utils';
+import { OMNICOCKPIT_NAME } from '@/web/common/brand/constants';
+import { getVisibleSystemTitle } from '@/web/common/brand/utils';
 
 type MarketingQueryParams = {
   hiId?: string;
@@ -65,7 +67,7 @@ export const useInitApp = () => {
   const { loadGitStar, setInitd, feConfigs } = useSystemStore();
   const { userInfo } = useUserStore();
   const [scripts, setScripts] = useState<FastGPTFeConfigsType['scripts']>([]);
-  const [title, setTitle] = useState(process.env.SYSTEM_NAME || 'AI');
+  const [title, setTitle] = useState(process.env.SYSTEM_NAME || OMNICOCKPIT_NAME);
 
   const getPathWithoutMarketingParams = () => {
     const filteredQuery = { ...router.query };
@@ -92,14 +94,13 @@ export const useInitApp = () => {
       feConfigs: { scripts, isPlus, systemTitle }
     } = await clientInitData();
 
-    setTitle(systemTitle || 'FastGPT');
+    setTitle(getVisibleSystemTitle(systemTitle));
 
-    // log fastgpt
+    // log visible product welcome for self-hosted builds
     if (!isPlus) {
       console.log(
-        '%cWelcome to FastGPT',
-        'font-family:Arial; color:#3370ff ; font-size:18px; font-weight:bold;',
-        `GitHub：https://github.com/labring/FastGPT`
+        `%cWelcome to ${OMNICOCKPIT_NAME}`,
+        'font-family:Arial; color:#2563EB ; font-size:18px; font-weight:bold;'
       );
     }
 

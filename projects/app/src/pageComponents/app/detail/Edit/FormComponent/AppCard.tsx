@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Flex,
-  Button,
-  IconButton,
-  HStack,
-  ModalBody,
-  Checkbox,
-  ModalFooter
-} from '@chakra-ui/react';
+import { Box, Flex, Button, IconButton, HStack, Checkbox } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
 import { type AppSchemaType } from '@fastgpt/global/core/app/type';
 import type { AppFormEditFormType } from '@fastgpt/global/core/app/formEdit/type';
@@ -27,6 +18,8 @@ import type { SimpleAppSnapshotType } from './useSnapshots';
 import ExportConfigPopover from '@/pageComponents/app/detail/ExportConfigPopover';
 import { ChatSidebarPaneEnum } from '@/pageComponents/chat/constants';
 import type { Form2WorkflowFnType } from './type';
+import { OmniModalBody, OmniModalFooter } from '../../components/OmniModalLayout';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const AppCard = ({
   appForm,
@@ -85,153 +78,158 @@ const AppCard = ({
 
   return (
     <>
-      {/* basic info */}
-      <Box px={[4, 6]} py={5} position={'relative'}>
-        {/* Header: Avatar, Name and Action Icons */}
-        <Flex alignItems={'center'} justifyContent={'space-between'} mb={5}>
-          <Flex alignItems={'center'} flex={1} minW={0}>
-            <Avatar src={appDetail.avatar} borderRadius={'md'} w={'28px'} h={'28px'} />
-            <Box
-              ml={3}
-              fontWeight={'bold'}
-              fontSize={'lg'}
-              color={'myGray.900'}
-              flex={1}
-              noOfLines={1}
-            >
-              {appDetail.name}
-            </Box>
-          </Flex>
+      <Flex
+        alignItems={'center'}
+        gap={3}
+        minH={'58px'}
+        px={[4, 5]}
+        py={2.5}
+        bg={omniTheme.colors.surface}
+        borderBottom={'1px solid'}
+        borderColor={omniTheme.colors.border}
+      >
+        <Avatar src={appDetail.avatar} borderRadius={omniTheme.radii.md} w={'32px'} h={'32px'} />
+        <Box flex={1} minW={0}>
+          <Box color={omniTheme.colors.graphite} fontSize={'13px'} fontWeight={800} noOfLines={1}>
+            {appDetail.name}
+          </Box>
+          <Box mt={0.5} color={omniTheme.colors.muted} fontSize={'11px'} noOfLines={1}>
+            {appDetail.intro || t('common:core.app.tip.Add a intro to app')}
+          </Box>
+        </Box>
 
-          {/* Right Action Icons */}
-          <HStack spacing={2} ml={4}>
+        <HStack spacing={1.5} flexShrink={0}>
+          <IconButton
+            variant={'whiteBase'}
+            size={'smSquare'}
+            icon={<MyIcon name={'core/chat/chatLight'} w={'16px'} />}
+            aria-label={String(t('common:Open'))}
+            onClick={() =>
+              window.open(
+                `/chat?appId=${appId}&pane=${ChatSidebarPaneEnum.RECENTLY_USED_APPS}`,
+                '_blank'
+              )
+            }
+          />
+          {appDetail.permission.hasManagePer && (
             <IconButton
-              variant={'whitePrimary'}
-              size={'mdSquare'}
-              icon={<MyIcon name={'core/chat/chatLight'} w={'18px'} />}
-              aria-label={'chat'}
-              onClick={() =>
-                window.open(
-                  `/chat?appId=${appId}&pane=${ChatSidebarPaneEnum.RECENTLY_USED_APPS}`,
-                  '_blank'
-                )
-              }
+              variant={'whiteBase'}
+              size={'smSquare'}
+              icon={<MyIcon name={'common/settingLight'} w={'16px'} />}
+              aria-label={String(t('common:Edit'))}
+              onClick={onOpenInfoEdit}
             />
-            {appDetail.permission.hasManagePer && (
-              <IconButton
-                variant={'whitePrimary'}
-                size={'mdSquare'}
-                icon={<MyIcon name={'common/settingLight'} w={'18px'} />}
-                aria-label={'settings'}
-                onClick={onOpenInfoEdit}
-              />
-            )}
-            {appDetail.permission.isOwner && (
-              <>
-                {configToWorkflow ? (
-                  <MyMenu
-                    size={'xs'}
-                    Button={
-                      <IconButton
-                        variant={'whitePrimary'}
-                        size={'mdSquare'}
-                        icon={<MyIcon name={'more'} w={'18px'} />}
-                        aria-label={'more'}
-                      />
-                    }
-                    menuList={[
+          )}
+          {appDetail.permission.isOwner &&
+            (configToWorkflow ? (
+              <MyMenu
+                size={'xs'}
+                Button={
+                  <IconButton
+                    variant={'whiteBase'}
+                    size={'smSquare'}
+                    icon={<MyIcon name={'more'} w={'16px'} />}
+                    aria-label={String(t('common:More'))}
+                  />
+                }
+                menuList={[
+                  {
+                    children: [
                       {
-                        children: [
-                          {
-                            label: (
-                              <Flex>
-                                <ExportConfigPopover
-                                  appName={appDetail.name}
-                                  appForm={appForm}
-                                  chatConfig={appDetail.chatConfig}
-                                  filterSensitiveInfo={filterSensitiveInfo}
-                                  onFilterSensitiveInfoChange={setFilterSensitiveInfo}
-                                />
-                              </Flex>
-                            )
-                          },
-                          {
-                            icon: 'core/app/type/workflow',
-                            label: t('app:transition_to_workflow'),
-                            onClick: () => setTransitionCreateNew(true)
-                          },
-                          ...(appDetail.permission.hasWritePer && feConfigs?.show_team_chat
-                            ? [
-                                {
-                                  icon: 'core/chat/fileSelect',
-                                  label: t('app:team_tags_set'),
-                                  onClick: () => setTeamTagsSet(appDetail)
-                                }
-                              ]
-                            : [])
-                        ]
+                        label: (
+                          <Flex>
+                            <ExportConfigPopover
+                              appName={appDetail.name}
+                              appForm={appForm}
+                              chatConfig={appDetail.chatConfig}
+                              filterSensitiveInfo={filterSensitiveInfo}
+                              onFilterSensitiveInfoChange={setFilterSensitiveInfo}
+                            />
+                          </Flex>
+                        )
                       },
                       {
-                        children: [
-                          {
-                            icon: 'delete',
-                            type: 'danger',
-                            label: t('common:Delete'),
-                            onClick: onDelApp
-                          }
-                        ]
+                        icon: 'core/app/type/workflow',
+                        label: t('app:transition_to_workflow'),
+                        onClick: () => setTransitionCreateNew(true)
+                      },
+                      ...(appDetail.permission.hasWritePer && feConfigs?.show_team_chat
+                        ? [
+                            {
+                              icon: 'core/chat/fileSelect' as const,
+                              label: t('app:team_tags_set'),
+                              onClick: () => setTeamTagsSet(appDetail)
+                            }
+                          ]
+                        : [])
+                    ]
+                  },
+                  {
+                    children: [
+                      {
+                        icon: 'delete',
+                        type: 'danger' as const,
+                        label: t('common:Delete'),
+                        onClick: onDelApp
                       }
-                    ]}
-                  />
-                ) : (
-                  <>
-                    <IconButton
-                      variant={'whiteDanger'}
-                      size={'mdSquare'}
-                      icon={<MyIcon name={'delete'} w={'18px'} />}
-                      aria-label={'settings'}
-                      onClick={onDelApp}
-                    />
-                  </>
-                )}
-              </>
-            )}
-          </HStack>
-        </Flex>
+                    ]
+                  }
+                ]}
+              />
+            ) : (
+              <IconButton
+                variant={'whiteDanger'}
+                size={'smSquare'}
+                icon={<MyIcon name={'delete'} w={'16px'} />}
+                aria-label={String(t('common:Delete'))}
+                onClick={onDelApp}
+              />
+            ))}
+        </HStack>
+      </Flex>
 
-        {/* Intro Text */}
-        <Box
-          className={'textEllipsis2'}
-          wordBreak={'break-all'}
-          color={'myGray.600'}
-          fontSize={'sm'}
-          lineHeight={'1.6'}
-          height={'40px'}
-        >
-          {appDetail.intro || t('common:core.app.tip.Add a intro to app')}
-        </Box>
-      </Box>
       {TeamTagsSet && <TagsEditModal onClose={() => setTeamTagsSet(undefined)} />}
       {transitionCreateNew !== undefined && (
-        <MyModal isOpen title={t('app:transition_to_workflow')} iconSrc="core/app/type/workflow">
-          <ModalBody>
-            <Box mb={3}>{t('app:transition_to_workflow_create_new_tip')}</Box>
-            <HStack cursor={'pointer'} onClick={() => setTransitionCreateNew((state) => !state)}>
+        <MyModal isOpen title={t('app:transition_to_workflow')} iconSrc={'core/app/type/workflow'}>
+          <OmniModalBody
+            icon={'core/app/type/workflow'}
+            title={t('app:transition_to_workflow_create_new_placeholder')}
+            desc={t('app:transition_to_workflow_create_new_tip')}
+            minH={['auto', '260px']}
+          >
+            <HStack
+              as={'button'}
+              type={'button'}
+              w={'full'}
+              cursor={'pointer'}
+              p={3}
+              border={'1px solid'}
+              borderColor={omniTheme.colors.border}
+              borderRadius={omniTheme.radii.lg}
+              bg={omniTheme.colors.surface}
+              textAlign={'left'}
+              _hover={{ borderColor: omniTheme.colors.saturatedBlue }}
+              _focusVisible={{ boxShadow: `0 0 0 2px ${omniTheme.colors.saturatedBlueSoft}` }}
+              onClick={() => setTransitionCreateNew((state) => !state)}
+            >
               <Checkbox
                 isChecked={transitionCreateNew}
+                pointerEvents={'none'}
                 icon={<MyIcon name={'common/check'} w={'12px'} />}
               />
-              <Box>{t('app:transition_to_workflow_create_new_placeholder')}</Box>
+              <Box color={omniTheme.colors.graphite} fontWeight={700}>
+                {t('app:transition_to_workflow_create_new_placeholder')}
+              </Box>
             </HStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant={'whiteBase'} onClick={() => setTransitionCreateNew(undefined)} mr={3}>
+          </OmniModalBody>
+          <OmniModalFooter>
+            <Button variant={'whiteBase'} onClick={() => setTransitionCreateNew(undefined)}>
               {t('common:Close')}
             </Button>
             <Button variant={'dangerFill'} isLoading={transiting} onClick={() => onTransition()}>
               {t('common:Confirm')}
             </Button>
-          </ModalFooter>
+          </OmniModalFooter>
         </MyModal>
       )}
     </>

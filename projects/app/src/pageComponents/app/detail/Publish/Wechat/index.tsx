@@ -23,12 +23,13 @@ import { useTranslation } from 'next-i18next';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import dynamic from 'next/dynamic';
 import MyMenu from '@fastgpt/web/components/common/MyMenu';
-import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { getDocPath } from '@/web/common/system/doc';
 import { POST } from '@/web/common/api/request';
 import type { ColorSchemaType } from '@fastgpt/web/components/common/Tag/index';
 import MyTag from '@fastgpt/web/components/common/Tag/index';
+import PublishCreateButton from '../components/PublishCreateButton';
+import PublishEmptyState from '../components/PublishEmptyState';
 
 const WechatEditModal = dynamic(() => import('./WechatEditModal'));
 const QRLoginModal = dynamic(() => import('./QRLoginModal'));
@@ -64,7 +65,7 @@ const Wechat = ({ appId }: { appId: string }) => {
   };
 
   return (
-    <Box position={'relative'} pt={3} px={5} minH={'50vh'}>
+    <Box position={'relative'} minH={0}>
       <Flex justifyContent={'space-between'}>
         <Flex alignItems={'center'}>
           <Box fontWeight={'bold'} fontSize={['md', 'lg']}>
@@ -85,10 +86,7 @@ const Wechat = ({ appId }: { appId: string }) => {
             </Link>
           )}
         </Flex>
-        <Button
-          variant={'primary'}
-          size={['sm', 'md']}
-          leftIcon={<MyIcon name={'common/addLight'} w="1.25rem" color="white" />}
+        <PublishCreateButton
           {...(shareChatList.length >= 10
             ? { isDisabled: true, title: t('common:core.app.share.Amount limit tip') }
             : {})}
@@ -97,8 +95,8 @@ const Wechat = ({ appId }: { appId: string }) => {
             setIsEdit(false);
           }}
         >
-          {t('common:add_new')}
-        </Button>
+          {t('common:new_create')}
+        </PublishCreateButton>
       </Flex>
 
       <TableContainer mt={3}>
@@ -216,7 +214,7 @@ const Wechat = ({ appId }: { appId: string }) => {
       </TableContainer>
 
       {shareChatList.length === 0 && !isFetching && (
-        <EmptyTip text={t('common:core.app.share.Not share link')} />
+        <PublishEmptyState text={t('common:core.app.share.Not share link')} />
       )}
 
       {editData && (

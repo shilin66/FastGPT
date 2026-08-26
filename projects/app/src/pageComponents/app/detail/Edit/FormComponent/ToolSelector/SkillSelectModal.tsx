@@ -87,32 +87,38 @@ const SkillSelectModal = ({
       iconSrc="common/skill"
       iconColor="#487FFF"
       onClose={onClose}
-      maxW={['90vw', '700px']}
-      w={'700px'}
+      maxW={['92vw', '760px']}
+      w={'760px'}
       h={['90vh', '80vh']}
     >
-      {/* Header: search */}
-      <Box px={[3, 6]} pt={4} display={'flex'} justifyContent={'flex-end'} w={'full'}>
-        <Box w={200}>
+      <Flex
+        px={[4, 6]}
+        py={4}
+        justifyContent={'flex-end'}
+        bg={'#F8FAFC'}
+        borderBottom={'1px solid rgba(148, 163, 184, 0.18)'}
+        w={'full'}
+      >
+        <Box w={['100%', '240px']}>
           <SearchInput
             value={searchKey}
             onChange={(e) => setSearchKey(e.target.value)}
             placeholder={t('skill:search_skill')}
           />
         </Box>
-      </Box>
+      </Flex>
 
       {/* 面包屑导航 */}
       {!searchKey && navStack.length > 0 && (
-        <Flex mt={1} px={[3, 6]}>
+        <Flex px={[4, 6]} py={2} bg={'#F8FAFC'}>
           <FolderPath paths={paths} FirstPathDom={null} onClick={onUpdateParentId} />
         </Flex>
       )}
 
-      <MyBox isLoading={isLoading} mt={2} pb={3} flex={'1 0 0'} h={0}>
+      <MyBox isLoading={isLoading} pb={4} flex={'1 0 0'} h={0} bg={'#F8FAFC'}>
         <Box overflow={'overlay'} height={'100%'}>
           {skillList.length > 0 ? (
-            <Grid gridTemplateColumns={['1fr', '1fr 1fr']} gap={3} px={[3, 6]}>
+            <Grid gridTemplateColumns={['1fr', '1fr 1fr']} gap={3} px={[4, 6]} pt={4}>
               {skillList.map((item) => (
                 <SkillCard
                   key={item._id}
@@ -195,8 +201,16 @@ const SkillCard = React.memo(function SkillCard({
         alignItems={'center'}
         py={3}
         px={3}
-        _hover={{ bg: 'myWhite.600' }}
-        borderRadius={'sm'}
+        bg={'white'}
+        border={'1px solid rgba(148, 163, 184, 0.2)'}
+        borderRadius={'12px'}
+        boxShadow={'0 10px 24px rgba(15, 23, 42, 0.03)'}
+        transition={'all 0.18s ease'}
+        _hover={{
+          borderColor: 'rgba(37, 99, 235, 0.45)',
+          boxShadow: '0 16px 34px rgba(37, 99, 235, 0.1)',
+          transform: 'translateY(-1px)'
+        }}
         h={'100%'}
       >
         {isFolder ? (

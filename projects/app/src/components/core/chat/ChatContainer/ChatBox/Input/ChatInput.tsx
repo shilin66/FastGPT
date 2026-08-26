@@ -6,7 +6,6 @@ import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { type ChatBoxInputFormType, type ChatBoxInputType, type SendPromptFnType } from '../type';
-import { textareaMinH } from '../constants';
 import { useFieldArray, type UseFormReturn } from 'react-hook-form';
 import { ChatBoxContext } from '../Provider';
 import dynamic from 'next/dynamic';
@@ -146,15 +145,14 @@ const ChatInput = ({
 
   const RenderTextarea = useMemo(
     () => (
-      <Flex direction={'column'} mt={fileList.length > 0 ? 1 : 0}>
+      <Flex flex={'1 1 auto'} minW={0} mt={fileList.length > 0 ? 1 : 0}>
         {/* Textarea */}
         <Flex w={'100%'}>
           {/* Prompt Container */}
           <Textarea
             ref={TextareaDom}
-            py={0}
-            mx={[2, 4]}
-            px={2}
+            py={1.5}
+            px={0}
             border={'none'}
             _focusVisible={{
               border: 'none'
@@ -165,10 +163,10 @@ const ChatInput = ({
             }
             resize={'none'}
             rows={1}
-            height={[5, 6]}
-            lineHeight={[5, 6]}
+            height={'36px'}
+            lineHeight={6}
             maxHeight={[24, 32]}
-            minH={'50px'}
+            minH={'36px'}
             mb={0}
             maxLength={-1}
             overflowY={'hidden'}
@@ -178,19 +176,19 @@ const ChatInput = ({
             boxShadow={'none !important'}
             color={'myGray.900'}
             fontWeight={400}
-            fontSize={'1rem'}
-            letterSpacing={'0.5px'}
+            fontSize={'sm'}
+            letterSpacing={0}
             w={'100%'}
             _placeholder={{
-              color: '#707070',
+              color: 'myGray.500',
               fontSize: 'sm'
             }}
             value={inputValue}
             onChange={(e) => {
               const textarea = e.target;
-              textarea.style.height = textareaMinH;
+              textarea.style.height = '36px';
               const maxHeight = 128;
-              const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+              const newHeight = Math.max(36, Math.min(textarea.scrollHeight, maxHeight));
               textarea.style.height = `${newHeight}px`;
 
               // Only show scrollbar when content exceeds max height
@@ -213,15 +211,18 @@ const ChatInput = ({
                 TextareaDom.current.selectionStart = index + 1;
                 TextareaDom.current.selectionEnd = index + 1;
 
-                TextareaDom.current.style.height = textareaMinH;
-                TextareaDom.current.style.height = `${TextareaDom.current.scrollHeight}px`;
+                TextareaDom.current.style.height = '36px';
+                TextareaDom.current.style.height = `${Math.max(
+                  36,
+                  Math.min(TextareaDom.current.scrollHeight, 128)
+                )}px`;
 
                 return;
               }
 
-              // Select all content
-              // @ts-ignore
-              e.key === 'a' && e.ctrlKey && e.target?.select();
+              if (e.key === 'a' && e.ctrlKey) {
+                e.currentTarget.select();
+              }
 
               if ((isPc || window !== parent) && e.keyCode === 13 && !e.shiftKey) {
                 handleSend();
@@ -275,42 +276,42 @@ const ChatInput = ({
 
     return (
       <Flex
-        alignItems={'flex-start'}
-        justifyContent={'space-between'}
-        w={'100%'}
+        alignItems={'center'}
+        justifyContent={'flex-end'}
+        flexShrink={0}
         mt={0}
-        pr={[3, 4]}
-        pl={[3, 4]}
-        h={[8, 9]}
+        h={'36px'}
         gap={[0, 1]}
       >
         {/* 左侧自定义按钮组 */}
-        <Flex alignItems={'center'} gap={2} flex={'1 0 0'} w={0}>
+        <Flex alignItems={'center'} gap={1}>
           {InputLeftComponent}
         </Flex>
 
         {/* 右侧原有按钮组 */}
         <Flex alignItems={'center'} gap={[0, 1]}>
           {/* Attachment and Voice Group */}
-          <Flex alignItems={'center'} h={[8, 9]}>
+          <Flex alignItems={'center'} h={'36px'}>
             {/* file selector button */}
             {canUploadFile && (
               <Flex
                 alignItems={'center'}
                 justifyContent={'center'}
-                w={[8, 9]}
-                h={[8, 9]}
-                p={[1, 2]}
-                borderRadius={'sm'}
+                w={'36px'}
+                h={'36px'}
+                p={2}
+                borderRadius={'6px'}
                 cursor={'pointer'}
-                _hover={{ bg: 'rgba(0, 0, 0, 0.04)' }}
+                _hover={{ bg: 'myGray.100' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenSelectFile();
                 }}
               >
                 <MyTooltip label={selectFileLabel}>
-                  <MyIcon name={selectFileIcon as any} {...iconSize} color={'#707070'} />
+                  {selectFileIcon && (
+                    <MyIcon name={selectFileIcon} {...iconSize} color={'myGray.600'} />
+                  )}
                 </MyTooltip>
                 <File onSelect={(files) => onSelectFile({ files })} />
               </Flex>
@@ -321,19 +322,19 @@ const ChatInput = ({
               <Flex
                 alignItems={'center'}
                 justifyContent={'center'}
-                w={[8, 9]}
-                h={[8, 9]}
-                p={[1, 2]}
-                borderRadius={'sm'}
+                w={'36px'}
+                h={'36px'}
+                p={2}
+                borderRadius={'6px'}
                 cursor={'pointer'}
-                _hover={{ bg: 'rgba(0, 0, 0, 0.04)' }}
+                _hover={{ bg: 'myGray.100' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   VoiceInputRef.current?.onSpeak?.();
                 }}
               >
                 <MyTooltip label={t('common:core.chat.Record')}>
-                  <MyIcon name={'core/chat/recordFill'} {...iconSize} color={'#707070'} />
+                  <MyIcon name={'core/chat/recordFill'} {...iconSize} color={'myGray.600'} />
                 </MyTooltip>
               </Flex>
             )}
@@ -341,26 +342,32 @@ const ChatInput = ({
 
           {/* Divider Container */}
           {((whisperConfig?.open && !inputValue) || canUploadFile) && (
-            <Flex alignItems={'center'} justifyContent={'center'} w={2} h={4} mr={2}>
-              <Box w={'2px'} h={5} bg={'myGray.200'} />
+            <Flex alignItems={'center'} justifyContent={'center'} w={2} h={5} mr={2}>
+              <Box w={'1px'} h={5} bg={'myGray.200'} />
             </Flex>
           )}
 
           {/* Send Button Container */}
-          <Flex alignItems={'center'} w={[8, 9]} h={[8, 9]} borderRadius={'lg'}>
+          <Flex alignItems={'center'} w={'36px'} h={'36px'} borderRadius={'6px'}>
             <MyBox
               isLoading={isStopping}
               display={'flex'}
               alignItems={'center'}
               justifyContent={'center'}
-              w={[7, 9]}
-              h={[7, 9]}
-              p={[1, 2]}
-              bg={
-                isChatting ? 'primary.50' : canSendMessage ? 'primary.500' : 'rgba(17, 24, 36, 0.1)'
-              }
-              borderRadius={['md', 'lg']}
+              w={'36px'}
+              h={'36px'}
+              p={2}
+              bg={isChatting ? 'primary.50' : canSendMessage ? 'primary.600' : 'myGray.200'}
+              borderRadius={'6px'}
               cursor={isChatting ? 'pointer' : canSendMessage ? 'pointer' : 'not-allowed'}
+              transition={'background 0.15s ease'}
+              _hover={
+                isChatting
+                  ? { bg: 'primary.100' }
+                  : canSendMessage
+                    ? { bg: 'primary.700' }
+                    : undefined
+              }
               onClick={(e) => {
                 e.stopPropagation();
                 if (isChatting) {
@@ -401,8 +408,9 @@ const ChatInput = ({
   ]);
 
   const activeStyles: FlexProps = {
-    boxShadow: '0px 5px 20px -4px rgba(19, 51, 107, 0.13)',
-    border: '0.5px solid rgba(0, 0, 0, 0.24)'
+    boxShadow: '0 10px 28px rgba(37, 99, 235, 0.12)',
+    border: '1px solid',
+    borderColor: 'primary.300'
   };
 
   return (
@@ -435,23 +443,24 @@ const ChatInput = ({
       {/* Real Chat Input */}
       <Flex
         direction={'column'}
-        minH={mobilePreSpeak ? '48px' : ['96px', '120px']}
-        pt={fileList.length > 0 ? '0' : mobilePreSpeak ? [0, 4] : [3, 4]}
-        pb={InputLeftComponent ? 2 : 3}
+        minH={mobilePreSpeak ? '48px' : '56px'}
+        px={[2.5, 3]}
+        py={fileList.length > 0 ? 2 : mobilePreSpeak ? 1 : 2}
         position={'relative'}
-        borderRadius={['xl', 'xxl']}
+        borderRadius={'8px'}
         bg={'white'}
-        overflow={'display'}
+        overflow={'visible'}
         {...(focusing
           ? activeStyles
           : {
               _hover: activeStyles,
-              border: '0.5px solid rgba(0, 0, 0, 0.18)',
-              boxShadow: `0px 5px 16px -4px rgba(19, 51, 107, 0.08)`
+              border: '1px solid',
+              borderColor: 'myGray.250',
+              boxShadow: '0 8px 24px rgba(19, 51, 107, 0.08)'
             })}
         onClick={() => TextareaDom?.current?.focus()}
       >
-        <Box flex={1}>
+        <Box>
           {/* Chat input guide box */}
           {chatInputGuide.open && (
             <InputGuideBox
@@ -467,7 +476,7 @@ const ChatInput = ({
           )}
           {/* file preview */}
           {(!mobilePreSpeak || isPc || inputValue) && (
-            <Box px={[2, 3]}>
+            <Box>
               <FilePreview fileList={fileList} removeFiles={removeFiles} />
             </Box>
           )}
@@ -495,11 +504,12 @@ const ChatInput = ({
               setMobilePreSpeak={setMobilePreSpeak}
             />
           )}
-
-          {RenderTextarea}
         </Box>
 
-        {!mobilePreSpeak && <Box>{RenderButtonGroup}</Box>}
+        <Flex align={'flex-end'} gap={2}>
+          {RenderTextarea}
+          {!mobilePreSpeak && RenderButtonGroup}
+        </Flex>
       </Flex>
       <ComplianceTip type={'chat'} />
     </Box>

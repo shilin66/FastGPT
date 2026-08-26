@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Box, Button, ModalBody, Input, Link } from '@chakra-ui/react';
+import { Flex, Button, Input, Link } from '@chakra-ui/react';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import type { OffiAccountAppType, OutLinkEditType } from '@fastgpt/global/support/outLink/type';
@@ -12,6 +12,13 @@ import { getDocPath } from '@/web/common/system/doc';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
+import {
+  OmniFieldCard,
+  OmniFormGrid,
+  OmniModalBody,
+  OmniModalFooter,
+  OmniModalSection
+} from '../../components/OmniModalLayout';
 
 const OffiAccountEditModal = ({
   appId,
@@ -87,14 +94,35 @@ const OffiAccountEditModal = ({
       }
       minW={['auto', '60rem']}
     >
-      <ModalBody display={'grid'} gridTemplateColumns={['1fr', '1fr 1fr']} fontSize={'14px'} p={0}>
-        <Box p={8} minH={['auto', '400px']} borderRight={'base'}>
+      <OmniModalBody
+        icon="core/app/publish/offiaccount"
+        title={
+          isEdit
+            ? t('publish:official_account.edit_modal_title')
+            : t('publish:official_account.create_modal_title')
+        }
+        desc={t('publish:official_account.params')}
+        asideItems={[
+          {
+            label: t('publish:basic_info'),
+            desc: t('common:Name'),
+            icon: 'common/setting'
+          },
+          {
+            label: t('publish:official_account.params'),
+            desc: 'App ID / Secret / Token',
+            icon: 'core/app/publish/offiaccount'
+          }
+        ]}
+      >
+        <OmniModalSection title={t('publish:basic_info')} desc={t('publish:publish_name')}>
           <BasicInfo register={register} setValue={setValue} defaultData={defaultData} />
-        </Box>
-        <Flex p={8} minH={['auto', '400px']} flexDirection="column" gap={6}>
-          <Flex alignItems="center">
-            <Box color="myGray.600">{t('publish:official_account.params')}</Box>
-            {feConfigs?.docUrl && (
+        </OmniModalSection>
+        <OmniModalSection
+          title={t('publish:official_account.params')}
+          desc={'用于完成公众号消息服务与回调安全配置。'}
+          action={
+            feConfigs?.docUrl && (
               <Link
                 href={getDocPath('/docs/use-cases/external-integration/official_account/')}
                 target={'_blank'}
@@ -107,63 +135,66 @@ const OffiAccountEditModal = ({
                   {t('common:read_doc')}
                 </Flex>
               </Link>
-            )}
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              App ID
-            </FormLabel>
-            <Input
-              placeholder="App ID"
-              {...register('app.appId', {
-                required: true
-              })}
-            />
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              Secret
-            </FormLabel>
-            <Input
-              placeholder="Secret"
-              {...register('app.secret', {
-                required: true
-              })}
-            />
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              Token
-            </FormLabel>
-            <Input
-              placeholder="Token"
-              {...register('app.CallbackToken', {
-                required: true
-              })}
-            />
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'}>AES Key</FormLabel>
-            <Input placeholder="AES Key" {...register('app.CallbackEncodingAesKey')} />
-          </Flex>
-
-          <Box flex={1}></Box>
-
-          <Flex justifyContent={'end'}>
-            <Button variant={'whiteBase'} mr={3} onClick={onClose}>
-              {t('common:Close')}
-            </Button>
-            <Button
-              isLoading={creating || updating}
-              onClick={submitShareChat((data) =>
-                isEdit ? onclickUpdate(data) : onclickCreate(data)
-              )}
-            >
-              {t('common:Confirm')}
-            </Button>
-          </Flex>
-        </Flex>
-      </ModalBody>
+            )
+          }
+        >
+          <OmniFormGrid>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                App ID
+              </FormLabel>
+              <Input
+                mt={2}
+                placeholder="App ID"
+                {...register('app.appId', {
+                  required: true
+                })}
+              />
+            </OmniFieldCard>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                Secret
+              </FormLabel>
+              <Input
+                mt={2}
+                placeholder="Secret"
+                {...register('app.secret', {
+                  required: true
+                })}
+              />
+            </OmniFieldCard>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                Token
+              </FormLabel>
+              <Input
+                mt={2}
+                placeholder="Token"
+                {...register('app.CallbackToken', {
+                  required: true
+                })}
+              />
+            </OmniFieldCard>
+            <OmniFieldCard>
+              <FormLabel color={'#1E293B'} fontWeight={700}>
+                AES Key
+              </FormLabel>
+              <Input mt={2} placeholder="AES Key" {...register('app.CallbackEncodingAesKey')} />
+            </OmniFieldCard>
+          </OmniFormGrid>
+        </OmniModalSection>
+      </OmniModalBody>
+      <OmniModalFooter>
+        <Button variant={'whiteBase'} onClick={onClose}>
+          {t('common:Close')}
+        </Button>
+        <Button
+          isLoading={creating || updating}
+          onClick={submitShareChat((data) => (isEdit ? onclickUpdate(data) : onclickCreate(data)))}
+        >
+          {t('common:Confirm')}
+        </Button>
+      </OmniModalFooter>
     </MyModal>
   );
 };

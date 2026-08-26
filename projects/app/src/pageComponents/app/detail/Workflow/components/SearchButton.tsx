@@ -1,5 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { Box, Flex, Button, IconButton, type ButtonProps, Input } from '@chakra-ui/react';
+import {
+  Box,
+  Flex,
+  Button,
+  IconButton,
+  type ButtonProps,
+  type BoxProps,
+  Input
+} from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
 import { useContextSelector } from 'use-context-selector';
 import { WorkflowBufferDataContext } from '../../WorkflowComponents/context/workflowInitContext';
@@ -9,7 +17,11 @@ import MyIcon from '@fastgpt/web/components/common/Icon';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 
-const SearchButton = (props: ButtonProps) => {
+type SearchButtonProps = ButtonProps & {
+  readonly closedButtonLeft?: BoxProps['left'];
+};
+
+const SearchButton = ({ closedButtonLeft = [4, '360px'], ...props }: SearchButtonProps) => {
   const { t } = useTranslation();
   const setNodes = useContextSelector(WorkflowBufferDataContext, (state) => state.setNodes);
   const { fitView } = useReactFlow();
@@ -45,7 +57,7 @@ const SearchButton = (props: ButtonProps) => {
       }
 
       const searchResult = nodes.filter((node) => {
-        const nodeName = t(node.data.name as any);
+        const nodeName = String(node.data.name || '');
         return nodeName.toLowerCase().includes(keyword.toLowerCase());
       });
 
@@ -76,7 +88,7 @@ const SearchButton = (props: ButtonProps) => {
         }
       }));
     });
-  }, [keyword, searchIndex]);
+  }, [fitView, keyword, searchIndex, setNodes]);
 
   useThrottleEffect(
     () => {
@@ -112,7 +124,7 @@ const SearchButton = (props: ButtonProps) => {
 
   if (keyword === undefined) {
     return (
-      <Box position={'absolute'} top={32} left={6} zIndex={1}>
+      <Box position={'absolute'} top={'82px'} left={closedButtonLeft} zIndex={2}>
         <MyTooltip
           shouldWrapChildren={false}
           label={isMac ? t('workflow:find_tip_mac') : t('workflow:find_tip')}
@@ -121,12 +133,12 @@ const SearchButton = (props: ButtonProps) => {
             icon={<MyIcon name="common/searchLight" w={5} color={'myGray.400'} />}
             w={9}
             h={9}
-            borderRadius={'50%'}
+            borderRadius={'14px'}
             aria-label={''}
             variant="whitePrimary"
-            _hover={{ bg: 'myGray.50' }}
-            border={'none'}
-            boxShadow={'0 4px 10px 0 rgba(19, 51, 107, 0.20), 0 0 1px 0 rgba(19, 51, 107, 0.50)'}
+            _hover={{ bg: 'rgba(37, 99, 235, 0.08)' }}
+            border={'1px solid rgba(148, 163, 184, 0.22)'}
+            boxShadow={'0 18px 34px rgba(15, 23, 42, 0.08)'}
             onClick={() => setKeyword('')}
             {...props}
           />
@@ -138,7 +150,7 @@ const SearchButton = (props: ButtonProps) => {
   return (
     <Flex
       position="absolute"
-      top={20}
+      top={'80px'}
       left="50%"
       transform="translateX(-50%)"
       pl={5}

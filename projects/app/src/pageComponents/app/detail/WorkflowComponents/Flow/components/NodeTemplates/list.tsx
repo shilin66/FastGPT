@@ -8,7 +8,6 @@ import {
   Box,
   Grid,
   Flex,
-  HStack,
   css
 } from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
@@ -90,6 +89,7 @@ const NodeTemplateListItem = ({
             <MyAvatar
               src={template.avatar}
               w={'1.75rem'}
+              fill={'none'}
               objectFit={'contain'}
               borderRadius={'sm'}
             />
@@ -117,16 +117,23 @@ const NodeTemplateListItem = ({
       <Flex
         w={'100%'}
         alignItems={'center'}
-        py={isPopover ? 2 : 3}
-        px={isPopover ? 2 : 3}
+        minH={isPopover ? '40px' : '48px'}
+        py={isPopover ? 2 : 1.5}
+        px={isPopover ? 2 : 1.5}
         cursor={'pointer'}
+        border={isPopover ? '1px solid rgba(37, 99, 235, 0.12)' : '0'}
+        borderBottom={isPopover ? undefined : '1px solid #EDF1F6'}
+        bg={'transparent'}
+        boxShadow={'none'}
+        transition={'all .18s ease'}
         _hover={{
-          bg: 'myWhite.600',
+          bg: '#EFF6FF',
+          borderColor: isPopover ? 'rgba(37, 99, 235, 0.28)' : undefined,
           '& .arrowIcon': {
             display: 'flex'
           }
         }}
-        borderRadius={'sm'}
+        borderRadius={isPopover ? '8px' : '6px'}
         whiteSpace={'nowrap'}
         overflow={'hidden'}
         textOverflow={'ellipsis'}
@@ -162,20 +169,27 @@ const NodeTemplateListItem = ({
       >
         <MyAvatar
           src={template.avatar}
-          w={isPopover ? '1.5rem' : '1.75rem'}
+          w={isPopover ? '1.5rem' : '30px'}
+          h={isPopover ? '1.5rem' : '30px'}
+          fill={'none'}
           objectFit={'contain'}
-          borderRadius={'sm'}
+          borderRadius={'7px'}
           flexShrink={0}
         />
-        <Box flex={'1 0 0'} ml={3}>
+        <Box flex={'1 0 0'} minW={0} ml={2.5}>
           <Box
-            color={'myGray.900'}
-            fontWeight={'500'}
-            fontSize={isPopover ? 'xs' : 'sm'}
+            color={'#1F2937'}
+            fontWeight={800}
+            fontSize={isPopover ? 'xs' : '11px'}
             className="textEllipsis"
           >
             {t(template.name as any)}
           </Box>
+          {!isPopover && (
+            <Box mt={0.5} color={'#667085'} fontSize={'9px'} className="textEllipsis">
+              {template.intro || t('common:core.workflow.Not intro')}
+            </Box>
+          )}
         </Box>
         {/* Folder right arrow */}
         {template.isFolder && (
@@ -196,15 +210,6 @@ const NodeTemplateListItem = ({
           >
             <MyIcon name="common/arrowRight" w={isPopover ? '16px' : '20px'} />
           </Box>
-        )}
-        {/* Author */}
-        {!isPopover && template.authorAvatar && template.author && isSystemTool && (
-          <HStack spacing={1} maxW={'120px'} flexShrink={0}>
-            <MyAvatar src={template.authorAvatar} w={'1rem'} borderRadius={'50%'} />
-            <Box fontSize={'xs'} className="textEllipsis">
-              {template.author}
-            </Box>
-          </HStack>
         )}
       </Flex>
     </MyTooltip>
@@ -430,7 +435,7 @@ const NodeTemplateList = ({
       ];
     })();
     return data.filter(({ list }) => list.length > 0);
-  }, [templateType, templates, t, i18n.language]);
+  }, [templateType, templates, t, i18n.language, showSkill]);
 
   const NodeListRender = useMemoizedFn(({ list = [] }: { list: NodeTemplateListType }) => {
     return (
@@ -447,25 +452,23 @@ const NodeTemplateList = ({
             >
               {!!item.label && (
                 <Box
-                  fontSize={isPopover ? '12.8px' : 'sm'}
-                  my={2}
-                  fontWeight={'500'}
+                  position={isPopover ? undefined : 'sticky'}
+                  top={isPopover ? undefined : 0}
+                  zIndex={isPopover ? undefined : 1}
+                  py={isPopover ? 0 : 2}
+                  px={isPopover ? 0 : 1}
+                  fontSize={isPopover ? '12.8px' : '10px'}
+                  my={isPopover ? 2 : 0}
+                  fontWeight={900}
                   flex={1}
-                  color={isPopover ? 'myGray.600' : 'myGray.900'}
+                  color={'#667085'}
+                  bg={isPopover ? undefined : 'white'}
                 >
                   {t(item.label as any)}
                 </Box>
               )}
 
-              <Grid
-                gridTemplateColumns={
-                  templateType === TemplateTypeEnum.myTools ||
-                  templateType === TemplateTypeEnum.agent
-                    ? ['1fr']
-                    : ['1fr', '1fr 1fr']
-                }
-                rowGap={2}
-              >
+              <Grid gridTemplateColumns={['1fr']} rowGap={isPopover ? 2 : 0}>
                 {item.list.map((template) => (
                   <NodeTemplateListItem
                     key={template.id}
@@ -485,7 +488,7 @@ const NodeTemplateList = ({
   });
 
   return (
-    <Box flex={'1 0 0'} overflow={'overlay'} px={formatTemplatesArrayData.length > 1 ? 2 : 5}>
+    <Box flex={'1 0 0'} overflow={'overlay'} px={isPopover ? 4 : 2}>
       <Accordion defaultIndex={[0]} allowMultiple reduceMotion>
         {formatTemplatesArrayData.length > 1 ? (
           <>

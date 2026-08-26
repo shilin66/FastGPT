@@ -1,32 +1,24 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type CodeRunLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const CodeRunLinearLinear: React.FC<CodeRunLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M36 32L44 24L36 16M12 16L4 24L12 32M29 8L19 40"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="24"
-          y1="8"
-          x2="24"
-          y2="40"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#13C993"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#5AD8C8" />
-          <stop offset="1" stopColor="#1CCC9A" />
-        </linearGradient>
-      </defs>
+          <rect x="3" y="4.5" width="14" height="11" rx="2" />
+          <path d="M6 8.4l2.4 2-2.4 2" />
+          <path d="M10.4 12.4H14" />
+        </g>
+        <path d="M10.4 12.4H14" stroke="#13C993" strokeWidth="2.2" strokeLinecap="round" />
+      </g>
     </svg>
   );
 };

@@ -1,32 +1,28 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type AiChatLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const AiChatLinearLinear: React.FC<AiChatLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M24 16V8H16M4 28H8M40 28H44M30 26V30M18 26V30M12 16H36C38.2091 16 40 17.7909 40 20V36C40 38.2091 38.2091 40 36 40H12C9.79086 40 8 38.2091 8 36V20C8 17.7909 9.79086 16 12 16Z"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="24"
-          y1="8"
-          x2="24"
-          y2="40"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#7479FF"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#7C97FF" />
-          <stop offset="1" stopColor="#747BFF" />
-        </linearGradient>
-      </defs>
+          <rect x="4.2" y="7.6" width="11.6" height="9" rx="2.8" />
+          <path d="M10 7.6V5.6" />
+          <circle cx="10" cy="4.3" r="1.3" />
+          <path d="M2.6 10.8h1.6M15.8 10.8h1.6" />
+          <path d="M8.3 14.4h3.4" />
+        </g>
+        <circle cx="8" cy="10.8" r="0.95" fill="#7479FF" />
+        <circle cx="12" cy="10.8" r="0.95" fill="#7479FF" />
+        <circle cx="10" cy="4.3" r="1.3" fill="#7479FF" />
+      </g>
     </svg>
   );
 };

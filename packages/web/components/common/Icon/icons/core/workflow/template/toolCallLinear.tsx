@@ -1,32 +1,23 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type ToolCallLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const ToolCallLinearLinear: React.FC<ToolCallLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M24 24H24.02M32 12V8C32 6.93913 31.5786 5.92172 30.8284 5.17157C30.0783 4.42143 29.0609 4 28 4H20C18.9391 4 17.9217 4.42143 17.1716 5.17157C16.4214 5.92172 16 6.93913 16 8V12M44 26C38.0656 29.918 31.1111 32.0066 24 32.0066C16.8889 32.0066 9.93442 29.918 4 26M8 12H40C42.2091 12 44 13.7909 44 16V36C44 38.2091 42.2091 40 40 40H8C5.79086 40 4 38.2091 4 36V16C4 13.7909 5.79086 12 8 12Z"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="24"
-          y1="4"
-          x2="24"
-          y2="40"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          transform="translate(1.6 1.6) scale(0.7)"
+          fill="none"
+          stroke="#4383FF"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#5BA6FE" />
-          <stop offset="1" stopColor="#4585FE" />
-        </linearGradient>
-      </defs>
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+        </g>
+        <circle cx="5" cy="5" r="1.2" fill="#4383FF" />
+      </g>
     </svg>
   );
 };

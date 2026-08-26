@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Textarea, Button, Flex, useTheme, useDisclosure } from '@chakra-ui/react';
+import { Box, Textarea, Button, Flex, useDisclosure } from '@chakra-ui/react';
 import {
   useSearchTestStore,
   type SearchTestStoreItemType
 } from '@/web/core/dataset/store/searchTest';
 import { postSearchText } from '@/web/core/dataset/api';
 import MyIcon from '@fastgpt/web/components/common/Icon';
+import type { IconNameType } from '@fastgpt/web/components/common/Icon/type';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { formatTimeToChatTime } from '@fastgpt/global/common/string/time';
 import { useToast } from '@fastgpt/web/hooks/useToast';
@@ -18,17 +19,13 @@ import {
 } from '@fastgpt/global/core/dataset/constants';
 import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
-import MySelect from '@fastgpt/web/components/common/MySelect';
-import { useSelectFile } from '@/web/common/file/hooks/useSelectFile';
-import { fileDownload } from '@/web/common/file/utils';
 import QuoteItem from '@/components/core/dataset/QuoteItem';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
-import SearchParamsTip from '@/components/core/dataset/SearchParamsTip';
 import { useContextSelector } from 'use-context-selector';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
-import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const DatasetParamsModal = dynamic(() => import('@/components/core/app/DatasetParamsModal'));
 
@@ -56,16 +53,9 @@ const Test = ({ datasetId }: { datasetId: string }) => {
   const { defaultModels } = useSystemStore();
   const datasetDetail = useContextSelector(DatasetPageContext, (v) => v.datasetDetail);
   const { pushDatasetTestItem } = useSearchTestStore();
-  const [inputType, setInputType] = useState<'text' | 'file'>('text');
   const [datasetTestItem, setDatasetTestItem] = useState<SearchTestStoreItemType>();
-  const [isFocus, setIsFocus] = useState(false);
-  const { File, onOpen } = useSelectFile({
-    fileType: '.csv',
-    multiple: false
-  });
-  const [selectFile, setSelectFile] = useState<File>();
 
-  const { getValues, setValue, register, handleSubmit } = useForm<FormType>({
+  const { getValues, setValue, register, handleSubmit, watch } = useForm<FormType>({
     defaultValues: {
       inputText: '',
       searchParams: {
@@ -83,8 +73,8 @@ const Test = ({ datasetId }: { datasetId: string }) => {
     }
   });
 
-  const searchModeData = DatasetSearchModeMap[getValues(`searchParams.searchMode`)];
-  const searchParams = getValues('searchParams');
+  const searchParams = watch('searchParams');
+  const searchModeData = DatasetSearchModeMap[searchParams.searchMode];
 
   const {
     isOpen: isOpenSelectMode,
@@ -123,173 +113,159 @@ const Test = ({ datasetId }: { datasetId: string }) => {
     }
   );
 
-  const onSelectFile = async (files: File[]) => {
-    const file = files[0];
-    if (!file) return;
-    setSelectFile(file);
-  };
-
   useEffect(() => {
     setDatasetTestItem(undefined);
   }, [datasetId]);
 
   return (
-    <Box h={'100%'} display={['block', 'flex']}>
-      {/* left  */}
-      <Box
+    <Flex h={'100%'} minH={0} flexDirection={['column', 'row']} bg={omniTheme.colors.pageBg}>
+      <Flex
         h={['auto', '100%']}
-        display={['block', 'flex']}
+        w={['100%', '308px']}
+        flex={'0 0 auto'}
+        minW={0}
         flexDirection={'column'}
-        flex={1}
-        maxW={'500px'}
-        py={4}
+        bg={omniTheme.colors.surface}
+        borderRightWidth={['0', '1px']}
+        borderRightStyle={'solid'}
+        borderRightColor={omniTheme.colors.border}
+        borderBottomWidth={['1px', '0']}
+        borderBottomStyle={'solid'}
+        borderBottomColor={omniTheme.colors.border}
       >
-        <Box
-          border={'2px solid'}
-          p={3}
-          mx={4}
-          borderRadius={'md'}
-          {...(isFocus
-            ? {
-                borderColor: 'primary.500',
-                boxShadow: '0px 0px 0px 2.4px rgba(51, 112, 255, 0.15)'
-              }
-            : {
-                borderColor: 'primary.300'
-              })}
+        <Flex
+          h={'52px'}
+          flex={'0 0 auto'}
+          px={4}
+          alignItems={'center'}
+          justifyContent={'space-between'}
+          borderBottom={'1px solid'}
+          borderColor={omniTheme.colors.border}
         >
-          {/* header */}
-          <Flex alignItems={'center'} justifyContent={'space-between'}>
-            <MySelect<'text' | 'file'>
-              size={'sm'}
-              list={[
-                {
-                  label: (
-                    <Flex alignItems={'center'}>
-                      <MyIcon mr={2} name={'text'} w={'14px'} color={'primary.600'} />
-                      <Box fontSize={'sm'} fontWeight={'bold'} flex={1}>
-                        {t('common:core.dataset.test.Test Text')}
-                      </Box>
-                    </Flex>
-                  ),
-                  value: 'text'
-                }
-                // {
-                //   label: (
-                //     <Flex alignItems={'center'}>
-                //       <MyIcon mr={2} name={'file/csv'} w={'14px'} color={'primary.600'} />
-                //       <Box fontSize={'sm'} fontWeight={'bold'} flex={1}>
-                //         {t('common:core.dataset.test.Batch test')}
-                //       </Box>
-                //     </Flex>
-                //   ),
-                //   value: 'file'
-                // }
-              ]}
-              value={inputType}
-              onChange={(e) => setInputType(e)}
-            />
-
-            <Button
-              variant={'whitePrimary'}
-              leftIcon={<MyIcon name={searchModeData.icon as any} w={'14px'} />}
-              size={'sm'}
+          <Flex alignItems={'center'} minW={0}>
+            <Flex
+              w={'28px'}
+              h={'28px'}
+              mr={2.5}
+              alignItems={'center'}
+              justifyContent={'center'}
+              borderRadius={omniTheme.radii.sm}
+              bg={omniTheme.colors.graphite}
+              color={'white'}
+            >
+              <MyIcon name={'text'} w={'14px'} color={'currentColor'} />
+            </Flex>
+            <Box minW={0}>
+              <Box fontSize={'sm'} fontWeight={700} color={omniTheme.colors.text}>
+                {t('common:core.dataset.test.Test Text')}
+              </Box>
+              <Box fontSize={'11px'} color={omniTheme.colors.muted} noOfLines={1}>
+                {t(searchModeData.title)}
+              </Box>
+            </Box>
+          </Flex>
+          <MyTooltip label={t('common:core.dataset.search.Dataset Search Params')}>
+            <Flex
+              as={'button'}
+              type={'button'}
+              w={'30px'}
+              h={'30px'}
+              alignItems={'center'}
+              justifyContent={'center'}
+              border={'1px solid'}
+              borderColor={omniTheme.colors.border}
+              borderRadius={omniTheme.radii.sm}
+              color={omniTheme.colors.graphite}
+              transition={'all 0.18s ease'}
+              _hover={{ borderColor: omniTheme.colors.saturatedBlue, color: 'primary.600' }}
               onClick={onOpenSelectMode}
             >
-              {t(searchModeData.title as any)}
-            </Button>
-          </Flex>
+              <MyIcon name={'common/setting'} w={'15px'} />
+            </Flex>
+          </MyTooltip>
+        </Flex>
 
-          <Box h={'180px'}>
-            {inputType === 'text' && (
-              <Textarea
-                h={'100%'}
-                resize={'none'}
-                variant={'unstyled'}
-                maxLength={datasetDetail.vectorModel?.maxToken}
-                placeholder={t('common:core.dataset.test.Test Text Placeholder')}
-                onFocus={() => setIsFocus(true)}
-                {...register('inputText', {
-                  required: true,
-                  onBlur: () => {
-                    setIsFocus(false);
-                  }
-                })}
-              />
-            )}
-            {inputType === 'file' && (
-              <Box pt={5}>
-                <Flex
-                  p={3}
-                  borderRadius={'md'}
-                  borderWidth={'1px'}
-                  borderColor={'borderColor.base'}
-                  borderStyle={'dashed'}
-                  bg={'white'}
-                  cursor={'pointer'}
-                  justifyContent={'center'}
-                  _hover={{
-                    bg: 'primary.100',
-                    borderColor: 'primary.500',
-                    borderStyle: 'solid'
-                  }}
-                  onClick={onOpen}
-                >
-                  <MyIcon mr={2} name={'file/csv'} w={'24px'} />
-                  <Box>
-                    {selectFile
-                      ? selectFile.name
-                      : t('common:core.dataset.test.Batch test Placeholder')}
-                  </Box>
-                </Flex>
-                <Box mt={3} fontSize={'sm'}>
-                  {t('common:info.csv_message')}
-                  <Box
-                    as={'span'}
-                    color={'primary.600'}
-                    cursor={'pointer'}
-                    onClick={() => {
-                      fileDownload({
-                        text: `"问题"\n"问题1"\n"问题2"\n"问题3"`,
-                        type: 'text/csv',
-                        filename: 'Test Template'
-                      });
-                    }}
-                  >
-                    {t('common:info.csv_download')}
-                  </Box>
-                </Box>
-              </Box>
-            )}
-          </Box>
-
-          <Flex justifyContent={'flex-end'}>
-            <Button
-              size={'sm'}
-              isLoading={textTestIsLoading}
-              isDisabled={inputType === 'file' && !selectFile}
-              onClick={() => {
-                if (inputType === 'text') {
-                  handleSubmit((data) => onTextTest(data))();
-                } else {
-                  // handleSubmit((data) => onFileTest(data))();
-                }
-              }}
+        <Box p={4} flex={'0 0 auto'}>
+          <Box
+            border={'1px solid'}
+            borderColor={omniTheme.colors.border}
+            borderRadius={omniTheme.radii.md}
+            bg={'#FBFCFE'}
+            transition={'border-color 0.18s ease, box-shadow 0.18s ease'}
+            _focusWithin={{
+              borderColor: omniTheme.colors.saturatedBlue,
+              boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.10)'
+            }}
+          >
+            <Textarea
+              minH={'116px'}
+              px={3.5}
+              py={3}
+              resize={'none'}
+              border={'none'}
+              borderRadius={0}
+              boxShadow={'none !important'}
+              fontSize={'sm'}
+              lineHeight={1.65}
+              color={omniTheme.colors.text}
+              maxLength={datasetDetail.vectorModel?.maxToken}
+              placeholder={t('common:core.dataset.test.Test Text Placeholder')}
+              {...register('inputText', { required: true })}
+            />
+            <Flex
+              p={2}
+              alignItems={'center'}
+              justifyContent={'space-between'}
+              borderTop={'1px solid'}
+              borderColor={omniTheme.colors.border}
             >
-              {t('common:core.dataset.test.Test')}
-            </Button>
-          </Flex>
+              <Flex
+                px={2}
+                h={'28px'}
+                alignItems={'center'}
+                borderRadius={omniTheme.radii.sm}
+                bg={omniTheme.colors.activeBg}
+                color={'primary.700'}
+                fontSize={'xs'}
+                fontWeight={600}
+              >
+                <MyIcon name={searchModeData.icon as IconNameType} w={'13px'} mr={1.5} />
+                {t(searchModeData.title)}
+              </Flex>
+              <Button
+                h={'30px'}
+                minW={'72px'}
+                borderRadius={omniTheme.radii.sm}
+                bg={omniTheme.colors.graphite}
+                color={'white'}
+                fontSize={'sm'}
+                isLoading={textTestIsLoading}
+                _hover={{ bg: omniTheme.colors.graphiteHover }}
+                onClick={() => handleSubmit((data) => onTextTest(data))()}
+              >
+                {t('common:core.dataset.test.Test')}
+              </Button>
+            </Flex>
+          </Box>
         </Box>
-        <Box mt={5} px={4} overflow={'overlay'} display={['none', 'block']}>
+
+        <Box
+          flex={1}
+          minH={0}
+          overflowY={'auto'}
+          display={['none', 'block']}
+          borderTop={'1px solid'}
+          borderColor={omniTheme.colors.border}
+        >
           <TestHistories
             datasetId={datasetId}
             datasetTestItem={datasetTestItem}
             setDatasetTestItem={setDatasetTestItem}
           />
         </Box>
-      </Box>
-      {/* result show */}
-      <Box p={4} h={['auto', '100%']} overflow={'overlay'} flex={'1 0 0'} bg={'white'}>
+      </Flex>
+
+      <Box h={['auto', '100%']} minH={0} overflow={'hidden'} flex={'1 1 0'} minW={0}>
         <TestResults datasetTestItem={datasetTestItem} />
       </Box>
 
@@ -306,8 +282,7 @@ const Test = ({ datasetId }: { datasetId: string }) => {
           }}
         />
       )}
-      <File onSelect={onSelectFile} />
-    </Box>
+    </Flex>
   );
 };
 
@@ -331,79 +306,144 @@ const TestHistories = React.memo(function TestHistories({
   );
 
   return (
-    <>
-      <Flex alignItems={'center'} color={'myGray.900'}>
-        <MyIcon mr={2} name={'history'} w={'18px'} h={'18px'} color={'myGray.900'} />
-        <Box fontSize={'md'}>{t('common:core.dataset.test.test history')}</Box>
+    <Box>
+      <Flex
+        h={'44px'}
+        px={4}
+        alignItems={'center'}
+        justifyContent={'space-between'}
+        color={omniTheme.colors.text}
+      >
+        <Flex alignItems={'center'}>
+          <MyIcon mr={2} name={'history'} w={'15px'} h={'15px'} />
+          <Box fontSize={'sm'} fontWeight={700}>
+            {t('common:core.dataset.test.test history')}
+          </Box>
+        </Flex>
+        <Flex
+          minW={'22px'}
+          h={'22px'}
+          px={1.5}
+          alignItems={'center'}
+          justifyContent={'center'}
+          borderRadius={'full'}
+          bg={omniTheme.colors.sidebarBg}
+          color={omniTheme.colors.muted}
+          fontSize={'11px'}
+          fontWeight={700}
+        >
+          {testHistories.length}
+        </Flex>
       </Flex>
-      <Box mt={2}>
+      <Box pb={3}>
         {testHistories.map((item) => (
           <Flex
             key={item.id}
-            py={2}
-            px={3}
+            position={'relative'}
+            minH={'52px'}
+            py={2.5}
+            pl={4}
+            pr={3}
             alignItems={'center'}
-            borderColor={'borderColor.low'}
-            borderWidth={'1px'}
-            borderRadius={'md'}
-            _notLast={{
-              mb: 2
-            }}
+            borderTop={'1px solid'}
+            borderColor={omniTheme.colors.border}
             _hover={{
-              borderColor: 'primary.300',
-              boxShadow: '1',
+              bg: '#F8FAFC',
               '& .delete': {
-                display: 'block'
+                opacity: 1
               },
               '& .time': {
-                display: 'none'
+                opacity: 0
               }
             }}
             cursor={'pointer'}
             fontSize={'sm'}
             {...(item.id === datasetTestItem?.id && {
-              bg: 'primary.50'
+              bg: omniTheme.colors.activeBg,
+              _before: {
+                content: '""',
+                position: 'absolute',
+                left: 0,
+                top: '8px',
+                bottom: '8px',
+                w: '3px',
+                borderRadius: '0 3px 3px 0',
+                bg: omniTheme.colors.saturatedBlue
+              }
             })}
             onClick={() => setDatasetTestItem(item)}
           >
-            <Box flex={'0 0 auto'} mr={2}>
-              {DatasetSearchModeMap[item.searchMode] ? (
-                <Flex alignItems={'center'} fontWeight={'500'} color={'myGray.500'}>
-                  <MyIcon
-                    name={DatasetSearchModeMap[item.searchMode].icon as any}
-                    w={'12px'}
-                    mr={'1px'}
-                  />
-                  {t(DatasetSearchModeMap[item.searchMode].title as any)}
-                </Flex>
-              ) : (
-                '-'
-              )}
+            <Flex
+              w={'26px'}
+              h={'26px'}
+              mr={2.5}
+              flex={'0 0 auto'}
+              alignItems={'center'}
+              justifyContent={'center'}
+              borderRadius={omniTheme.radii.sm}
+              bg={'white'}
+              border={'1px solid'}
+              borderColor={omniTheme.colors.border}
+              color={'primary.600'}
+            >
+              <MyIcon
+                name={DatasetSearchModeMap[item.searchMode].icon as IconNameType}
+                w={'13px'}
+              />
+            </Flex>
+            <Box flex={1} minW={0} mr={2}>
+              <Box noOfLines={1} color={omniTheme.colors.text} fontWeight={600}>
+                {item.text}
+              </Box>
+              <Box mt={0.5} fontSize={'11px'} color={omniTheme.colors.muted} noOfLines={1}>
+                {t(DatasetSearchModeMap[item.searchMode].title)}
+              </Box>
             </Box>
-            <Box flex={1} mr={2} wordBreak={'break-all'} fontWeight={'400'}>
-              {item.text}
-            </Box>
-            <Box className="time" flex={'0 0 auto'} fontSize={'xs'} color={'myGray.500'}>
-              {t(formatTimeToChatTime(item.time) as any).replace('#', ':')}
+            <Box
+              className="time"
+              flex={'0 0 auto'}
+              fontSize={'11px'}
+              color={omniTheme.colors.muted}
+              transition={'opacity 0.15s ease'}
+            >
+              {(() => {
+                const timeText = formatTimeToChatTime(item.time);
+                if (timeText === 'common:just_now') return t('common:just_now');
+                if (timeText === 'common:yesterday') return t('common:yesterday');
+                return timeText.replace('#', ':');
+              })()}
             </Box>
             <MyTooltip label={t('common:core.dataset.test.delete test history')}>
-              <Box className="delete" display={'none'} w={'0.8rem'} h={'0.8rem'} ml={1}>
+              <Flex
+                className="delete"
+                position={'absolute'}
+                right={3}
+                w={'26px'}
+                h={'26px'}
+                opacity={0}
+                alignItems={'center'}
+                justifyContent={'center'}
+                borderRadius={omniTheme.radii.sm}
+                bg={'white'}
+                transition={'opacity 0.15s ease'}
+              >
                 <MyIcon
                   name={'delete'}
-                  w={'0.8rem'}
-                  _hover={{ color: 'red.600' }}
+                  w={'14px'}
+                  color={omniTheme.colors.muted}
+                  _hover={{ color: 'red.500' }}
                   onClick={(e) => {
                     e.stopPropagation();
                     delDatasetTestItemById(item.id);
                     datasetTestItem?.id === item.id && setDatasetTestItem(undefined);
                   }}
                 />
-              </Box>
+              </Flex>
             </MyTooltip>
           </Flex>
         ))}
       </Box>
-    </>
+    </Box>
   );
 });
 
@@ -413,46 +453,131 @@ const TestResults = React.memo(function TestResults({
   datasetTestItem?: SearchTestStoreItemType;
 }) {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   return (
-    <>
+    <Flex h={'100%'} minH={0} flexDirection={'column'} bg={omniTheme.colors.surface}>
       {!datasetTestItem?.results || datasetTestItem.results.length === 0 ? (
-        <EmptyTip text={t('common:core.dataset.test.test result placeholder')} mt={[10, '20vh']} />
+        <Flex flex={1} minH={'360px'} alignItems={'center'} justifyContent={'center'} px={6}>
+          <Flex
+            w={'320px'}
+            maxW={'100%'}
+            flexDirection={'column'}
+            alignItems={'center'}
+            textAlign={'center'}
+          >
+            <Flex
+              w={'48px'}
+              h={'48px'}
+              mb={4}
+              alignItems={'center'}
+              justifyContent={'center'}
+              borderRadius={omniTheme.radii.md}
+              bg={omniTheme.colors.activeBg}
+              color={'primary.600'}
+            >
+              <MyIcon name={'common/resultLight'} w={'22px'} />
+            </Flex>
+            <Box fontSize={'sm'} fontWeight={700} color={omniTheme.colors.text}>
+              {t('common:core.dataset.test.test result placeholder')}
+            </Box>
+          </Flex>
+        </Flex>
       ) : (
         <>
-          <Flex fontSize={'md'} color={'myGray.900'} alignItems={'center'}>
-            <MyIcon name={'common/paramsLight'} w={'18px'} mr={2} />
-            {t('common:core.dataset.test.Test params')}
-          </Flex>
-          <Box mt={3}>
-            <SearchParamsTip
-              searchMode={datasetTestItem.searchMode}
-              similarity={datasetTestItem.similarity}
-              limit={datasetTestItem.limit}
-              usingReRank={datasetTestItem.usingReRank}
-              usingExtensionQuery={!!datasetTestItem.queryExtensionModel}
-              queryExtensionModel={datasetTestItem.queryExtensionModel}
-            />
-          </Box>
-
-          <Flex mt={5} mb={3} alignItems={'center'}>
-            <Flex fontSize={'md'} color={'myGray.900'} alignItems={'center'}>
-              <MyIcon name={'common/resultLight'} w={'18px'} mr={2} />
-              {t('common:core.dataset.test.Test Result')}
-            </Flex>
-            <QuestionTip ml={1} label={t('common:core.dataset.test.test result tip')} />
-            <Box ml={2}>({datasetTestItem.duration})</Box>
-          </Flex>
-          <Box mt={1} gap={4}>
-            {datasetTestItem?.results.map((item, index) => (
-              <Box key={item.id} p={3} borderRadius={'lg'} bg={'myGray.100'} _notLast={{ mb: 2 }}>
-                <QuoteItem quoteItem={item} canDownloadSource canEditData />
+          <Flex
+            minH={'56px'}
+            px={[4, 5]}
+            py={2.5}
+            flex={'0 0 auto'}
+            alignItems={'center'}
+            flexWrap={'wrap'}
+            gap={2}
+            borderBottom={'1px solid'}
+            borderColor={omniTheme.colors.border}
+            bg={'#FBFCFE'}
+          >
+            <Flex alignItems={'center'} mr={2}>
+              <MyIcon name={'common/resultLight'} w={'16px'} mr={2} color={'primary.600'} />
+              <Box fontSize={'sm'} fontWeight={750} color={omniTheme.colors.text}>
+                {t('common:core.dataset.test.Test Result')}
               </Box>
-            ))}
+              <QuestionTip ml={1} label={t('common:core.dataset.test.test result tip')} />
+            </Flex>
+            <ResultMetaItem>
+              {datasetTestItem.results.length}
+              {' · '}
+              {t(DatasetSearchModeMap[datasetTestItem.searchMode].title)}
+            </ResultMetaItem>
+            <ResultMetaItem>{datasetTestItem.duration}</ResultMetaItem>
+            <ResultMetaItem>
+              {t('common:max_quote_tokens')}: {datasetTestItem.limit}
+            </ResultMetaItem>
+            {datasetTestItem.usingReRank && (
+              <ResultMetaItem>{t('common:core.dataset.search.ReRank')}</ResultMetaItem>
+            )}
+          </Flex>
+
+          <Box flex={1} minH={0} overflowY={'auto'} px={[3, 4]} py={4}>
+            <Box
+              w={'100%'}
+              maxW={'1440px'}
+              mx={'auto'}
+              border={'1px solid'}
+              borderColor={omniTheme.colors.border}
+              borderRadius={omniTheme.radii.md}
+              overflow={'hidden'}
+              bg={'white'}
+            >
+              {datasetTestItem?.results.map((item, index) => (
+                <Box
+                  as={'article'}
+                  key={item.id}
+                  position={'relative'}
+                  px={[4, 5]}
+                  py={4}
+                  borderBottom={
+                    index < datasetTestItem.results.length - 1 ? '1px solid' : undefined
+                  }
+                  borderColor={omniTheme.colors.border}
+                  bg={'white'}
+                  _hover={{ bg: '#FBFCFE' }}
+                  sx={{
+                    '& pre': {
+                      borderRadius: omniTheme.radii.sm,
+                      overflowX: 'auto'
+                    },
+                    '& h1, & h2, & h3': {
+                      letterSpacing: 0
+                    },
+                    '& p': {
+                      lineHeight: 1.7
+                    }
+                  }}
+                >
+                  <QuoteItem quoteItem={item} canDownloadSource canEditData />
+                </Box>
+              ))}
+            </Box>
           </Box>
         </>
       )}
-    </>
+    </Flex>
   );
 });
+
+const ResultMetaItem = ({ children }: { children: React.ReactNode }) => (
+  <Flex
+    h={'28px'}
+    px={2.5}
+    alignItems={'center'}
+    border={'1px solid'}
+    borderColor={omniTheme.colors.border}
+    borderRadius={omniTheme.radii.sm}
+    bg={'white'}
+    color={omniTheme.colors.muted}
+    fontSize={'11px'}
+    fontWeight={600}
+  >
+    {children}
+  </Flex>
+);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Box, Button, ModalBody, Input, Link } from '@chakra-ui/react';
+import { Flex, Button, Input, Link } from '@chakra-ui/react';
 import MyModal from '@fastgpt/web/components/common/MyModal';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import type { FeishuAppType, OutLinkEditType } from '@fastgpt/global/support/outLink/type';
@@ -12,6 +12,13 @@ import { getDocPath } from '@/web/common/system/doc';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
+import {
+  OmniFieldCard,
+  OmniFormGrid,
+  OmniModalBody,
+  OmniModalFooter,
+  OmniModalSection
+} from '../../components/OmniModalLayout';
 
 const FeiShuEditModal = ({
   appId,
@@ -81,19 +88,36 @@ const FeiShuEditModal = ({
       title={isEdit ? t('publish:edit_feishu_bot') : t('publish:new_feishu_bot')}
       minW={['auto', '60rem']}
     >
-      <ModalBody display={'grid'} gridTemplateColumns={['1fr', '1fr 1fr']} fontSize={'14px'} p={0}>
-        <Box p={8} h={['auto', '400px']} borderRight={'base'}>
+      <OmniModalBody
+        icon="core/app/publish/lark"
+        title={isEdit ? t('publish:edit_feishu_bot') : t('publish:new_feishu_bot')}
+        desc={t('publish:feishu_bot_desc')}
+        asideItems={[
+          {
+            label: t('publish:basic_info'),
+            desc: t('common:Name'),
+            icon: 'common/setting'
+          },
+          {
+            label: t('publish:feishu_api'),
+            desc: 'App ID / App Secret / Encrypt Key',
+            icon: 'core/app/publish/lark'
+          }
+        ]}
+      >
+        <OmniModalSection title={t('publish:basic_info')} desc={t('publish:feishu_bot_desc')}>
           <BasicInfo
             register={register}
             setValue={setValue}
             defaultData={defaultData}
             showResponseConfig={false}
           />
-        </Box>
-        <Flex p={8} h={['auto', '400px']} flexDirection="column" gap={6}>
-          <Flex alignItems="center">
-            <Box color="myGray.600">{t('publish:feishu_api')}</Box>
-            {feConfigs?.docUrl && (
+        </OmniModalSection>
+        <OmniModalSection
+          title={t('publish:feishu_api')}
+          desc={'用于校验飞书应用身份与消息加密配置。'}
+          action={
+            feConfigs?.docUrl && (
               <Link
                 href={getDocPath('/docs/use-cases/external-integration/feishu/')}
                 target={'_blank'}
@@ -106,52 +130,54 @@ const FeiShuEditModal = ({
                   {t('common:read_doc')}
                 </Flex>
               </Link>
-            )}
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              App ID
-            </FormLabel>
-            <Input
-              placeholder={t('common:core.module.http.AppId')}
-              {...register('app.appId', {
-                required: true
-              })}
-            />
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'} required>
-              App Secret
-            </FormLabel>
-            <Input
-              placeholder={'App Secret'}
-              {...register('app.appSecret', {
-                required: true
-              })}
-            />
-          </Flex>
-          <Flex alignItems={'center'}>
-            <FormLabel flex={'0 0 6.25rem'}>Encrypt Key</FormLabel>
-            <Input placeholder="Encrypt Key" {...register('app.encryptKey')} />
-          </Flex>
-
-          <Box flex={1}></Box>
-
-          <Flex justifyContent={'end'}>
-            <Button variant={'whiteBase'} mr={3} onClick={onClose}>
-              {t('common:Close')}
-            </Button>
-            <Button
-              isLoading={creating || updating}
-              onClick={submitShareChat((data) =>
-                isEdit ? onclickUpdate(data) : onclickCreate(data)
-              )}
-            >
-              {t('common:Confirm')}
-            </Button>
-          </Flex>
-        </Flex>
-      </ModalBody>
+            )
+          }
+        >
+          <OmniFormGrid>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                App ID
+              </FormLabel>
+              <Input
+                mt={2}
+                placeholder={t('common:core.module.http.AppId')}
+                {...register('app.appId', {
+                  required: true
+                })}
+              />
+            </OmniFieldCard>
+            <OmniFieldCard>
+              <FormLabel required color={'#1E293B'} fontWeight={700}>
+                App Secret
+              </FormLabel>
+              <Input
+                mt={2}
+                placeholder={'App Secret'}
+                {...register('app.appSecret', {
+                  required: true
+                })}
+              />
+            </OmniFieldCard>
+            <OmniFieldCard gridColumn={['auto', '1 / -1']}>
+              <FormLabel color={'#1E293B'} fontWeight={700}>
+                Encrypt Key
+              </FormLabel>
+              <Input mt={2} placeholder="Encrypt Key" {...register('app.encryptKey')} />
+            </OmniFieldCard>
+          </OmniFormGrid>
+        </OmniModalSection>
+      </OmniModalBody>
+      <OmniModalFooter>
+        <Button variant={'whiteBase'} onClick={onClose}>
+          {t('common:Close')}
+        </Button>
+        <Button
+          isLoading={creating || updating}
+          onClick={submitShareChat((data) => (isEdit ? onclickUpdate(data) : onclickCreate(data)))}
+        >
+          {t('common:Confirm')}
+        </Button>
+      </OmniModalFooter>
     </MyModal>
   );
 };

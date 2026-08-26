@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Flex } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
 import { useLoading } from '@fastgpt/web/hooks/useLoading';
@@ -16,6 +16,7 @@ import { useTranslation } from 'next-i18next';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useCheckCoupon } from './hooks/checkCoupon';
 import HelperBot from './HelperBot';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const Navbar = dynamic(() => import('./navbar'));
 const NavbarPhone = dynamic(() => import('./navbarPhone'));
@@ -66,7 +67,10 @@ const phoneUnShowLayoutRoute: Record<string, boolean> = {
   '/price': true
 };
 
-export const navbarWidth = '64px';
+export const navbarWidth = '240px';
+export const collapsedNavbarWidth = '72px';
+
+const NAVBAR_COLLAPSED_KEY = 'omni_navbar_collapsed';
 
 const Layout = ({ children }: { children: JSX.Element }) => {
   const router = useRouter();
@@ -77,6 +81,8 @@ const Layout = ({ children }: { children: JSX.Element }) => {
   const { isPc } = useSystem();
   const { userInfo, isUpdateNotification, setIsUpdateNotification } = useUserStore();
   const { setUserDefaultLng } = useI18nLng();
+  const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(false);
+  const activeNavbarWidth = isNavbarCollapsed ? collapsedNavbarWidth : navbarWidth;
 
   // Auto redeem coupon
   useCheckCoupon();
@@ -106,6 +112,18 @@ const Layout = ({ children }: { children: JSX.Element }) => {
     setUserDefaultLng();
   });
 
+  useEffect(() => {
+    setIsNavbarCollapsed(localStorage.getItem(NAVBAR_COLLAPSED_KEY) === '1');
+  }, []);
+
+  const toggleNavbarCollapsed = useCallback(() => {
+    setIsNavbarCollapsed((state) => {
+      const nextState = !state;
+      localStorage.setItem(NAVBAR_COLLAPSED_KEY, nextState ? '1' : '0');
+      return nextState;
+    });
+  }, []);
+
   // Check model invalid
   useDebounceEffect(
     () => {
@@ -134,21 +152,37 @@ const Layout = ({ children }: { children: JSX.Element }) => {
   // Route watch
   useEffect(() => {
     setLastRoute(router.pathname);
-  }, [router.pathname]);
+  }, [router.pathname, setLastRoute]);
 
   return (
     <>
-      <Box h={'100%'} bg={'myGray.100'}>
+      <Box h={'100%'} bg={omniTheme.colors.pageBg}>
         {isPc === true && (
           <>
             {isHideNavbar ? (
               <Auth>{children}</Auth>
             ) : (
               <Auth>
-                <Box h={'100%'} position={'fixed'} left={0} top={0} w={navbarWidth}>
-                  <Navbar unread={unread} />
+                <Box
+                  h={'100%'}
+                  position={'fixed'}
+                  left={0}
+                  top={0}
+                  w={activeNavbarWidth}
+                  transition={'width 0.18s ease'}
+                >
+                  <Navbar
+                    unread={unread}
+                    isCollapsed={isNavbarCollapsed}
+                    onToggleCollapse={toggleNavbarCollapsed}
+                  />
                 </Box>
-                <Box h={'100%'} ml={navbarWidth} overflow={'overlay'}>
+                <Box
+                  h={'100%'}
+                  ml={activeNavbarWidth}
+                  overflow={'overlay'}
+                  transition={'margin-left 0.18s ease'}
+                >
                   {children}
                 </Box>
               </Auth>
@@ -165,7 +199,7 @@ const Layout = ({ children }: { children: JSX.Element }) => {
                   <Box flex={'1 0 0'} h={0}>
                     {children}
                   </Box>
-                  <Box h={'50px'} borderTop={'1px solid rgba(0,0,0,0.1)'}>
+                  <Box h={'50px'} borderTop={`1px solid ${omniTheme.colors.border}`}>
                     <NavbarPhone unread={unread} />
                   </Box>
                 </Flex>

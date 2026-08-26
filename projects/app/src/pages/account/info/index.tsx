@@ -1,29 +1,27 @@
 'use client';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Flex,
   Button,
   useDisclosure,
-  useTheme,
-  Input,
   Link,
   Grid,
-  type BoxProps
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
+  Spinner
 } from '@chakra-ui/react';
-import { useForm } from 'react-hook-form';
-import { type UserUpdateParams } from '@/types/user';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { useUserStore } from '@/web/support/user/useUserStore';
-import type { UserType } from '@fastgpt/global/support/user/type';
 import dynamic from 'next/dynamic';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import { useTranslation } from 'next-i18next';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import MyIcon from '@fastgpt/web/components/common/Icon';
-import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
-import { formatStorePrice2Read } from '@fastgpt/global/support/wallet/usage/tools';
-import { putUpdateMemberName } from '@/web/support/user/team/api';
+import type { IconNameType } from '@fastgpt/web/components/common/Icon/type';
 import { getDocPath } from '@/web/common/system/doc';
 import {
   StandardSubLevelEnum,
@@ -33,7 +31,6 @@ import { formatTime2YMD } from '@fastgpt/global/common/string/time';
 import { getExtraPlanCardRoute } from '@/web/support/wallet/sub/constants';
 import StandardPlanContentList from '@/components/support/wallet/StandardPlanContentList';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
-import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 import AccountContainer from '@/pageComponents/account/AccountContainer';
 import { serviceSideProps } from '@/web/common/i18n/utils';
@@ -46,6 +43,11 @@ import MyDivider from '@fastgpt/web/components/common/MyDivider';
 import { useUploadAvatar } from '@fastgpt/web/common/file/hooks/useUploadAvatar';
 import { getUploadAvatarPresignedUrl } from '@/web/common/file/api';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
+import TimezoneSelect from '@fastgpt/web/components/common/MySelect/TimezoneSelect';
+import { useI18nLng } from '@fastgpt/web/hooks/useI18n';
+import { getLangMapping } from '@fastgpt/web/i18n/utils';
+import { langMap, type LangEnum } from '@fastgpt/global/common/i18n/type';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const RedeemCouponModal = dynamic(() => import('@/pageComponents/account/info/RedeemCouponModal'), {
   ssr: false
@@ -58,7 +60,6 @@ const StandDetailModal = dynamic(
   () => import('@/pageComponents/account/info/standardDetailModal'),
   { ssr: false }
 );
-const ConversionModal = dynamic(() => import('@/pageComponents/account/info/ConversionModal'));
 const UpdatePswModal = dynamic(() => import('@/pageComponents/account/info/UpdatePswModal'));
 // const UpdateContact = dynamic(() => import('@/components/support/user/inform/UpdateContactModal'));
 const CommunityModal = dynamic(() => import('@/components/CommunityModal'));
@@ -68,9 +69,9 @@ const ModelPriceModal = dynamic(() =>
 );
 
 const Info = () => {
-  const { isPc } = useSystem();
   const { teamPlanStatus, initUserInfo } = useUserStore();
   const standardPlan = teamPlanStatus?.standard;
+  const { t } = useTranslation();
   const { isOpen: isOpenContact, onClose: onCloseContact, onOpen: onOpenContact } = useDisclosure();
 
   useMount(() => {
@@ -79,29 +80,97 @@ const Info = () => {
 
   return (
     <AccountContainer>
-      <Box py={[3, '28px']} px={[5, 10]} mx={'auto'}>
-        {isPc ? (
-          <Flex justifyContent={'center'} maxW={'1080px'}>
-            <Box flex={'0 0 330px'}>
-              <MyInfo onOpenContact={onOpenContact} />
-              <Box mt={6}>
-                <Other onOpenContact={onOpenContact} />
+      <Tabs
+        h={'100%'}
+        display={'flex'}
+        flexDirection={'column'}
+        isLazy
+        variant={'unstyled'}
+        bg={omniTheme.colors.pageBg}
+      >
+        <Flex
+          flex={'0 0 auto'}
+          minH={'64px'}
+          px={[5, 8]}
+          alignItems={'center'}
+          gap={5}
+          bg={'white'}
+          borderBottom={'1px solid'}
+          borderColor={omniTheme.colors.border}
+        >
+          <Flex alignItems={'center'} gap={3} minW={0}>
+            <Flex
+              w={9}
+              h={9}
+              alignItems={'center'}
+              justifyContent={'center'}
+              borderRadius={omniTheme.radii.md}
+              bg={omniTheme.colors.graphite}
+              color={'white'}
+              flexShrink={0}
+            >
+              <MyIcon name={'support/user/userLight'} w={'18px'} />
+            </Flex>
+            <Box minW={0}>
+              <Box fontSize={'lg'} fontWeight={800} color={omniTheme.colors.text} noOfLines={1}>
+                {t('account_info:profile_title')}
+              </Box>
+              <Box mt={0.5} fontSize={'12px'} color={omniTheme.colors.muted} noOfLines={1}>
+                {t('account_info:profile_subtitle')}
               </Box>
             </Box>
-            {!!standardPlan && (
-              <Box ml={'45px'} flex={'1'} maxW={'600px'}>
+          </Flex>
+
+          {!!standardPlan && (
+            <TabList
+              ml={'auto'}
+              gap={1}
+              p={1}
+              bg={omniTheme.colors.sidebarBg}
+              borderRadius={'7px'}
+              flexShrink={0}
+            >
+              <Tab
+                h={8}
+                px={4}
+                borderRadius={'6px'}
+                fontSize={'sm'}
+                fontWeight={700}
+                color={omniTheme.colors.muted}
+                _selected={{ bg: 'white', color: omniTheme.colors.saturatedBlue }}
+              >
+                {t('account_info:profile_tab')}
+              </Tab>
+              <Tab
+                h={8}
+                px={4}
+                borderRadius={'6px'}
+                fontSize={'sm'}
+                fontWeight={700}
+                color={omniTheme.colors.muted}
+                _selected={{ bg: 'white', color: omniTheme.colors.saturatedBlue }}
+              >
+                {t('account_info:package_and_usage')}
+              </Tab>
+            </TabList>
+          )}
+        </Flex>
+
+        <TabPanels flex={1} minH={0} overflow={'hidden'}>
+          <TabPanel h={'100%'} p={0} overflowY={'auto'}>
+            <Box maxW={'1160px'} mx={'auto'} px={[4, 6]} py={[4, 6]}>
+              <MyInfo onOpenContact={onOpenContact} />
+            </Box>
+          </TabPanel>
+          {!!standardPlan && (
+            <TabPanel h={'100%'} p={0} overflowY={'auto'}>
+              <Box maxW={'920px'} mx={'auto'} px={[4, 6]} py={[4, 6]}>
                 <PlanUsage />
               </Box>
-            )}
-          </Flex>
-        ) : (
-          <>
-            <MyInfo onOpenContact={onOpenContact} />
-            {standardPlan && <PlanUsage />}
-            <Other onOpenContact={onOpenContact} />
-          </>
-        )}
-      </Box>
+            </TabPanel>
+          )}
+        </TabPanels>
+      </Tabs>
       {isOpenContact && <CommunityModal onClose={onCloseContact} />}
     </AccountContainer>
   );
@@ -118,253 +187,307 @@ export async function getServerSideProps(content: any) {
 export default React.memo(Info);
 
 const MyInfo = ({ onOpenContact }: { onOpenContact: () => void }) => {
-  const theme = useTheme();
-  const { feConfigs } = useSystemStore();
   const { t } = useTranslation();
-  const { userInfo, updateUserInfo, teamPlanStatus, initUserInfo } = useUserStore();
-  const { reset } = useForm<UserUpdateParams>({
-    defaultValues: userInfo as UserType
-  });
-  const standardPlan = teamPlanStatus?.standard;
-  const { isPc } = useSystem();
+  const { userInfo, updateUserInfo } = useUserStore();
   const { toast } = useToast();
 
-  const {
-    isOpen: isOpenConversionModal,
-    onClose: onCloseConversionModal,
-    onOpen: onOpenConversionModal
-  } = useDisclosure();
   const {
     isOpen: isOpenUpdatePsw,
     onClose: onCloseUpdatePsw,
     onOpen: onOpenUpdatePsw
   } = useDisclosure();
-  // const {
-  //   isOpen: isOpenUpdateContact,
-  //   onClose: onCloseUpdateContact,
-  //   onOpen: onOpenUpdateContact
-  // } = useDisclosure();
-
-  const onClickSave = useCallback(
-    async (data: UserType) => {
-      await updateUserInfo({
-        avatar: data.avatar,
-        timezone: data.timezone
-      });
-      reset(data);
+  const saveTimezone = useCallback(
+    async (timezone: string) => {
+      await updateUserInfo({ timezone });
       toast({
         title: t('account_info:update_success_tip'),
         status: 'success'
       });
     },
-    [reset, t, toast, updateUserInfo]
+    [t, toast, updateUserInfo]
   );
 
   const afterUploadAvatar = useCallback(
     (avatar: string) => {
       if (!userInfo) return;
-      onClickSave({ ...userInfo, avatar });
+      updateUserInfo({ avatar }).then(() => {
+        toast({
+          title: t('account_info:avatar_updated'),
+          status: 'success'
+        });
+      });
     },
-    [onClickSave, userInfo]
+    [t, toast, updateUserInfo, userInfo]
   );
-  const { Component: AvatarUploader, handleFileSelectorOpen } = useUploadAvatar(
-    getUploadAvatarPresignedUrl,
-    {
-      onSuccess: afterUploadAvatar
-    }
-  );
+  const {
+    Component: AvatarUploader,
+    handleFileSelectorOpen,
+    uploading
+  } = useUploadAvatar(getUploadAvatarPresignedUrl, {
+    onSuccess: afterUploadAvatar
+  });
 
-  const labelStyles: BoxProps = {
-    flex: '0 0 80px',
-    color: 'var(--light-general-on-surface-lowest, var(--Gray-Modern-500, #667085))',
-    fontFamily: '"PingFang SC"',
-    fontSize: '14px',
-    fontStyle: 'normal',
-    fontWeight: 400,
-    lineHeight: '20px',
-    letterSpacing: '0.25px'
-  };
-
-  const titleStyles: BoxProps = {
-    color: 'var(--light-general-on-surface, var(--Gray-Modern-900, #111824))',
-    fontFamily: '"PingFang SC"',
-    fontSize: '16px',
-    fontStyle: 'normal',
-    fontWeight: 500,
-    lineHeight: '24px',
-    letterSpacing: '0.15px'
-  };
-
-  const isSyncMember = feConfigs.register_method?.includes('sync');
   return (
-    <Box>
-      {/* user info */}
-      {isPc && (
-        <Flex alignItems={'center'} h={'30px'} {...titleStyles}>
-          <MyIcon mr={2} name={'core/dataset/fileCollection'} w={'1.25rem'} />
-          {t('account_info:general_info')}
-        </Flex>
-      )}
-
-      <Box mt={[0, 6]} fontSize={'sm'}>
-        <Flex alignItems={'center'}>
-          <Box {...labelStyles}>{t('account_info:user_account')}&nbsp;</Box>
-          <Box flex={1}>{userInfo?.username}</Box>
-        </Flex>
-        {feConfigs?.isPlus && userInfo?.loginType === 'password' && (
-          <Flex mt={4} alignItems={'center'}>
-            <Box {...labelStyles}>{t('account_info:password')}&nbsp;</Box>
-            <Box flex={1}>*****</Box>
-            <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdatePsw}>
-              {t('account_info:change')}
-            </Button>
+    <Box
+      bg={'white'}
+      border={'1px solid'}
+      borderColor={omniTheme.colors.border}
+      borderRadius={'8px'}
+    >
+      <Flex px={[5, 7]} py={[5, 6]} alignItems={'center'} gap={4}>
+        <Box
+          as={'button'}
+          type={'button'}
+          position={'relative'}
+          flexShrink={0}
+          cursor={uploading ? 'wait' : 'pointer'}
+          aria-label={t('account_info:change_avatar')}
+          title={t('account_info:change_avatar')}
+          disabled={uploading}
+          borderRadius={'16px'}
+          transition={'transform 160ms ease'}
+          _hover={{ transform: uploading ? 'none' : 'translateY(-1px)' }}
+          _focusVisible={{
+            outline: `2px solid ${omniTheme.colors.saturatedBlue}`,
+            outlineOffset: '3px'
+          }}
+          onClick={handleFileSelectorOpen}
+        >
+          <Avatar
+            src={userInfo?.avatar}
+            w={['56px', '68px']}
+            h={['56px', '68px']}
+            borderRadius={'16px'}
+          />
+          <Flex
+            position={'absolute'}
+            right={-1}
+            bottom={-1}
+            w={6}
+            h={6}
+            alignItems={'center'}
+            justifyContent={'center'}
+            borderRadius={'full'}
+            bg={omniTheme.colors.saturatedBlue}
+            color={'white'}
+            border={'2px solid white'}
+          >
+            {uploading ? (
+              <Spinner size={'xs'} thickness={'2px'} color={'white'} />
+            ) : (
+              <MyIcon name={'edit'} w={'12px'} />
+            )}
           </Flex>
-        )}
-        {/*{feConfigs?.isPlus && (*/}
-        {/*  <Flex mt={4} alignItems={'center'}>*/}
-        {/*    <Box {...labelStyles}>{t('common:contact_way')}&nbsp;</Box>*/}
-        {/*    <Box flex={1} {...(!userInfo?.contact ? { color: 'red.600' } : {})}>*/}
-        {/*      {userInfo?.contact ? userInfo?.contact : t('account_info:please_bind_contact')}*/}
-        {/*    </Box>*/}
-
-        {/*    <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdateContact}>*/}
-        {/*      {t('account_info:change')}*/}
-        {/*    </Button>*/}
-        {/*  </Flex>*/}
-        {/*)}*/}
-
-        <MyDivider my={6} />
-
-        {isPc && (
-          <Flex alignItems={'center'} h={'30px'} {...titleStyles} mt={6}>
-            <MyIcon mr={2} name={'support/team/group'} w={'1.25rem'} />
-            {t('account_info:team_info')}
+        </Box>
+        <Box minW={0} flex={1}>
+          <Box fontSize={['lg', 'xl']} fontWeight={800} color={omniTheme.colors.text} noOfLines={1}>
+            {userInfo?.username}
+          </Box>
+          <Flex mt={1} alignItems={'center'} gap={2} color={omniTheme.colors.muted} fontSize={'sm'}>
+            <MyIcon name={'support/team/group'} w={'14px'} />
+            <Box noOfLines={1}>{userInfo?.team?.teamName}</Box>
           </Flex>
-        )}
-
-        {feConfigs.isPlus && (
-          <Flex mt={6} alignItems={'center'}>
-            <Box {...labelStyles}>{t('account_info:user_team_team_name')}&nbsp;</Box>
-            <Flex flex={'1 0 0'} w={0} align={'center'}>
-              <TeamSelector height={'28px'} w={'100%'} showManage />
-            </Flex>
-          </Flex>
-        )}
-
+        </Box>
         <AvatarUploader />
-        {isPc ? (
-          <Flex mt={4} alignItems={'center'} cursor={'pointer'}>
-            <Box {...labelStyles}>{t('account_info:avatar')}&nbsp;</Box>
+      </Flex>
 
-            <MyTooltip label={t('account_info:select_avatar')}>
-              <Box
-                w={['22px', '32px']}
-                h={['22px', '32px']}
-                borderRadius={'50%'}
-                border={theme.borders.base}
-                overflow={'hidden'}
-                boxShadow={'0 0 5px rgba(0,0,0,0.1)'}
-                onClick={handleFileSelectorOpen}
-              >
-                <Avatar src={userInfo?.avatar} borderRadius={'50%'} w={'100%'} h={'100%'} />
+      <SettingSection
+        icon={'common/userInfo'}
+        title={t('account_info:identity_section')}
+        description={t('account_info:identity_section_desc')}
+      >
+        <ProfileRow label={t('account_info:user_account')}>
+          <Box fontWeight={700} color={omniTheme.colors.text}>
+            {userInfo?.username}
+          </Box>
+        </ProfileRow>
+        <ProfileRow label={t('account_info:user_team_team_name')}>
+          <Box w={'100%'} maxW={'420px'}>
+            <TeamSelector height={'36px'} w={'100%'} showManage />
+          </Box>
+        </ProfileRow>
+      </SettingSection>
+
+      <SettingSection
+        id={'preferences'}
+        icon={'common/language/zh'}
+        title={t('account_info:preference_section')}
+        description={t('account_info:preference_section_desc')}
+      >
+        <ProfileRow label={t('account_info:language')} alignTop>
+          <LanguagePreference />
+        </ProfileRow>
+        <ProfileRow label={t('account_info:timezone')}>
+          <Box w={'100%'} maxW={'420px'}>
+            <TimezoneSelect
+              value={userInfo?.timezone}
+              onChange={(timezone) => saveTimezone(timezone)}
+            />
+          </Box>
+        </ProfileRow>
+      </SettingSection>
+
+      {userInfo?.loginType === 'password' && (
+        <SettingSection
+          icon={'common/settingLight'}
+          title={t('account_info:security_section')}
+          description={t('account_info:security_section_desc')}
+        >
+          <ProfileRow label={t('account_info:password')}>
+            <Flex alignItems={'center'} justifyContent={'space-between'} gap={4} w={'100%'}>
+              <Box color={omniTheme.colors.muted} letterSpacing={'2px'}>
+                ••••••••
               </Box>
-            </MyTooltip>
-          </Flex>
-        ) : (
-          <Flex mt={4} alignItems={'center'}>
-            <Box {...labelStyles}>{t('account_info:avatar')}&nbsp;</Box>
-            <Flex
-              flex={'1 0 0'}
-              w={0}
-              alignItems={'center'}
-              gap={2}
-              cursor={'pointer'}
-              onClick={handleFileSelectorOpen}
-            >
-              <MyTooltip label={t('account_info:choose_avatar')}>
-                <Box
-                  w={'40px'}
-                  h={'40px'}
-                  borderRadius={'50%'}
-                  border={'1px solid'}
-                  borderColor={'borderColor.base'}
-                  overflow={'hidden'}
-                  p={'2px'}
-                  bg={'white'}
-                >
-                  <Avatar src={userInfo?.avatar} borderRadius={'50%'} w={'100%'} h={'100%'} />
-                </Box>
-              </MyTooltip>
-
-              <Flex alignItems={'center'} fontSize={'sm'} color={'myGray.600'}>
-                <MyIcon mr={1} name={'edit'} w={'14px'} />
-                {t('account_info:change')}
-              </Flex>
+              <Button
+                h={9}
+                px={4}
+                variant={'whiteBase'}
+                border={'1px solid'}
+                borderColor={omniTheme.colors.border}
+                borderRadius={omniTheme.radii.md}
+                onClick={onOpenUpdatePsw}
+              >
+                {t('account_info:update_password')}
+              </Button>
             </Flex>
-          </Flex>
-        )}
-
-        {feConfigs?.isPlus && (
-          <Flex mt={[4, 4]} alignItems={'center'}>
-            <Box {...labelStyles}>{t('account_info:member_name')}&nbsp;</Box>
-            {/*<Input*/}
-            {/*  flex={'1 0 0'}*/}
-            {/*  disabled={isSyncMember}*/}
-            {/*  defaultValue={userInfo?.team?.memberName || 'Member'}*/}
-            {/*  title={t('account_info:click_modify_nickname')}*/}
-            {/*  borderColor={'transparent'}*/}
-            {/*  transform={['none', 'translateX(-11px)']}*/}
-            {/*  maxLength={100}*/}
-            {/*  onBlur={async (e) => {*/}
-            {/*    const val = e.target.value;*/}
-            {/*    if (val === userInfo?.team?.memberName) return;*/}
-            {/*    try {*/}
-            {/*      await putUpdateMemberName(val);*/}
-            {/*      initUserInfo();*/}
-            {/*    } catch (error) {}*/}
-            {/*  }}*/}
-            {/*/>*/}
-          </Flex>
-        )}
-        {/*<Flex alignItems={'center'} mt={6}>*/}
-        {/*  <Box {...labelStyles}>{t('account_info:user_account')}:&nbsp;</Box>*/}
-        {/*  <Box flex={1}>{userInfo?.username}</Box>*/}
-        {/*</Flex>*/}
-        {/*{feConfigs?.isPlus && userInfo?.loginType === 'password' && (*/}
-        {/*  <Flex mt={6} alignItems={'center'}>*/}
-        {/*    <Box {...labelStyles}>{t('account_info:password')}:&nbsp;</Box>*/}
-        {/*    <Box flex={1}>*****</Box>*/}
-        {/*    <Button size={'sm'} variant={'whitePrimary'} onClick={onOpenUpdatePsw}>*/}
-        {/*      {t('account_info:change')}*/}
-        {/*    </Button>*/}
-        {/*  </Flex>*/}
-        {/*)}*/}
-        {/*{feConfigs?.isPlus && (userInfo?.team?.balance ?? 0) > 0 && (*/}
-        {/*  <Box mt={4} whiteSpace={'nowrap'}>*/}
-        {/*    <Flex alignItems={'center'}>*/}
-        {/*      <Box {...labelStyles}>{t('account_info:team_balance')}&nbsp;</Box>*/}
-        {/*      <Box flex={1}>*/}
-        {/*        <strong>{formatStorePrice2Read(userInfo?.team?.balance).toFixed(3)}</strong>{' '}*/}
-        {/*        {t('account_info:yuan')}*/}
-        {/*      </Box>*/}
-
-        {/*      {userInfo?.permission.hasManagePer && !!standardPlan && (*/}
-        {/*        <Button variant={'primary'} size={'sm'} ml={5} onClick={onOpenConversionModal}>*/}
-        {/*          {t('account_info:exchange')}*/}
-        {/*        </Button>*/}
-        {/*      )}*/}
-        {/*    </Flex>*/}
-        {/*  </Box>*/}
-        {/*)}*/}
-
-        <MyDivider my={6} />
-      </Box>
-      {isOpenConversionModal && (
-        <ConversionModal onClose={onCloseConversionModal} onOpenContact={onOpenContact} />
+          </ProfileRow>
+        </SettingSection>
       )}
+
+      <SettingSection
+        icon={'common/help'}
+        title={t('account_info:support_section')}
+        description={t('account_info:support_section_desc')}
+      >
+        <Other onOpenContact={onOpenContact} />
+      </SettingSection>
+
       {isOpenUpdatePsw && <UpdatePswModal onClose={onCloseUpdatePsw} />}
-      {/*{isOpenUpdateContact && <UpdateContact onClose={onCloseUpdateContact} mode="contact" />}*/}
     </Box>
+  );
+};
+
+const SettingSection = ({
+  id,
+  icon,
+  title,
+  description,
+  children
+}: {
+  id?: string;
+  icon: IconNameType;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) => (
+  <Grid
+    id={id}
+    scrollMarginTop={'16px'}
+    templateColumns={['1fr', '1fr', '220px minmax(0, 1fr)']}
+    gap={[4, 5, 8]}
+    px={[5, 7]}
+    py={[5, 6]}
+    borderTop={'1px solid'}
+    borderColor={omniTheme.colors.border}
+  >
+    <Box>
+      <Flex alignItems={'center'} gap={2} color={omniTheme.colors.text}>
+        <MyIcon name={icon} w={'16px'} color={omniTheme.colors.saturatedBlue} />
+        <Box fontSize={'sm'} fontWeight={800}>
+          {title}
+        </Box>
+      </Flex>
+      <Box mt={1.5} fontSize={'12px'} lineHeight={1.6} color={omniTheme.colors.muted}>
+        {description}
+      </Box>
+    </Box>
+    <Box minW={0}>{children}</Box>
+  </Grid>
+);
+
+const ProfileRow = ({
+  label,
+  children,
+  alignTop = false
+}: {
+  label: string;
+  children: React.ReactNode;
+  alignTop?: boolean;
+}) => (
+  <Flex
+    minH={'58px'}
+    py={3}
+    gap={[3, 5]}
+    alignItems={alignTop ? 'flex-start' : 'center'}
+    flexDirection={['column', 'row']}
+    borderBottom={'1px solid'}
+    borderColor={omniTheme.colors.border}
+    _last={{ borderBottom: 'none' }}
+  >
+    <Box flex={['0 0 auto', '0 0 168px']} minW={0} w={'100%'}>
+      <Box fontSize={'sm'} fontWeight={700} color={omniTheme.colors.text}>
+        {label}
+      </Box>
+    </Box>
+    <Flex flex={1} minW={0} w={'100%'} alignItems={'center'}>
+      {children}
+    </Flex>
+  </Flex>
+);
+
+const LanguagePreference = () => {
+  const { i18n } = useTranslation();
+  const { userInfo, updateUserInfo } = useUserStore();
+  const { onChangeLng } = useI18nLng();
+  const [savingLanguage, setSavingLanguage] = useState<string>();
+  const currentLanguage = getLangMapping(i18n.language);
+
+  const changeLanguage = useCallback(
+    async (language: `${LangEnum}`) => {
+      if (language === currentLanguage || savingLanguage) return;
+      setSavingLanguage(language);
+      try {
+        if (userInfo?.username) {
+          await updateUserInfo({ language });
+        }
+        await onChangeLng(language);
+      } finally {
+        setSavingLanguage(undefined);
+      }
+    },
+    [currentLanguage, onChangeLng, savingLanguage, updateUserInfo, userInfo?.username]
+  );
+
+  return (
+    <Grid w={'100%'} maxW={'560px'} templateColumns={['1fr', 'repeat(3, minmax(0, 1fr))']} gap={2}>
+      {Object.entries(langMap).map(([language, item]) => {
+        const isActive = language === currentLanguage;
+        return (
+          <Button
+            key={language}
+            h={'52px'}
+            px={3}
+            justifyContent={'flex-start'}
+            border={'1px solid'}
+            borderColor={isActive ? omniTheme.colors.saturatedBlue : omniTheme.colors.border}
+            borderRadius={omniTheme.radii.md}
+            bg={isActive ? omniTheme.colors.saturatedBlueSoft : 'white'}
+            color={isActive ? omniTheme.colors.saturatedBlue : omniTheme.colors.text}
+            fontSize={'sm'}
+            fontWeight={700}
+            isLoading={savingLanguage === language}
+            _hover={{ borderColor: omniTheme.colors.saturatedBlue }}
+            leftIcon={<MyIcon name={item.avatar as IconNameType} w={'18px'} borderRadius={0} />}
+            rightIcon={isActive ? <MyIcon name={'common/check'} w={'14px'} /> : undefined}
+            onClick={() => changeLanguage(language as `${LangEnum}`)}
+          >
+            <Box flex={1} textAlign={'left'} noOfLines={1}>
+              {item.label}
+            </Box>
+          </Button>
+        );
+      })}
+    </Grid>
   );
 };
 
@@ -549,7 +672,7 @@ const PlanUsage = () => {
               {t('account_info:current_package')}
             </Box>
             <Box fontWeight={'bold'} fontSize="lg">
-              {t(planName as any)}
+              {t(planName)}
             </Box>
           </Box>
           <Button
@@ -720,24 +843,10 @@ const PlanUsage = () => {
   ) : null;
 };
 
-const ButtonStyles = {
-  bg: 'white',
-  py: 3,
-  px: 6,
-  border: 'sm',
-  borderWidth: '1.5px',
-  borderRadius: 'md',
-  display: 'flex',
-  alignItems: 'center',
-  cursor: 'pointer',
-  userSelect: 'none' as any,
-  fontSize: 'sm'
-};
 const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
   const { feConfigs, setNotSufficientModalType, subPlans } = useSystemStore();
-  const { teamPlanStatus, userInfo, updateUserInfo } = useUserStore();
+  const { teamPlanStatus } = useUserStore();
   const { t } = useTranslation();
-  const { isPc } = useSystem();
 
   const { runAsync: onFeedback } = useRequest(
     async () => {
@@ -763,70 +872,53 @@ const Other = ({ onOpenContact }: { onOpenContact: () => void }) => {
     }
   );
 
-  const theme = useTheme();
-  const { toast } = useToast();
-  const { reset } = useForm<UserUpdateParams>({
-    defaultValues: userInfo as UserType
-  });
-  const onclickSave = useCallback(
-    async (data: UserType) => {
-      await updateUserInfo({
-        avatar: data.avatar,
-        timezone: data.timezone
-      });
-      reset(data);
-      toast({
-        title: t('account_info:update_success_tip'),
-        status: 'success'
-      });
-    },
-    [reset, t, toast, updateUserInfo]
-  );
   return (
-    <Box>
-      <Grid gridGap={4}>
-        {feConfigs?.docUrl && (
-          <Link
-            href={getDocPath('/docs/introduction')}
-            target="_blank"
-            textDecoration={'none !important'}
-            {...ButtonStyles}
-          >
-            <MyIcon name={'common/courseLight'} w={'18px'} color={'myGray.600'} />
-            <Box ml={2} flex={1}>
-              {t('account_info:help_document')}
-            </Box>
-          </Link>
-        )}
-
-        {!isPc &&
-          feConfigs?.navbarItems
-            ?.filter((item) => item.isActive)
-            .map((item) => (
-              <Flex key={item.id} {...ButtonStyles} onClick={() => window.open(item.url, '_blank')}>
-                <Avatar src={item.avatar} w={'18px'} />
-                <Box ml={2} flex={1}>
-                  {item.name}
-                </Box>
-              </Flex>
-            ))}
-        {feConfigs?.concatMd && (
-          <Flex onClick={onOpenContact} {...ButtonStyles}>
-            <MyIcon name={'modal/concat'} w={'18px'} color={'myGray.600'} />
-            <Box ml={2} flex={1}>
-              {t('account_info:contact_us')}
-            </Box>
-          </Flex>
-        )}
-        {feConfigs?.show_workorder && (
-          <Flex onClick={onFeedback} {...ButtonStyles}>
-            <MyIcon name={'feedback'} w={'18px'} color={'myGray.600'} />
-            <Box ml={2} flex={1}>
-              {t('common:question_feedback')}
-            </Box>
-          </Flex>
-        )}
-      </Grid>
-    </Box>
+    <Flex gap={2} flexWrap={'wrap'} py={2}>
+      {feConfigs?.docUrl && (
+        <Button
+          as={Link}
+          href={getDocPath('/docs/introduction')}
+          target={'_blank'}
+          h={9}
+          px={4}
+          variant={'whiteBase'}
+          border={'1px solid'}
+          borderColor={omniTheme.colors.border}
+          borderRadius={omniTheme.radii.md}
+          textDecoration={'none !important'}
+          leftIcon={<MyIcon name={'common/courseLight'} w={'16px'} />}
+        >
+          {t('account_info:help_document')}
+        </Button>
+      )}
+      {feConfigs?.concatMd && (
+        <Button
+          h={9}
+          px={4}
+          variant={'whiteBase'}
+          border={'1px solid'}
+          borderColor={omniTheme.colors.border}
+          borderRadius={omniTheme.radii.md}
+          leftIcon={<MyIcon name={'modal/concat'} w={'16px'} />}
+          onClick={onOpenContact}
+        >
+          {t('account_info:contact_us')}
+        </Button>
+      )}
+      {feConfigs?.show_workorder && (
+        <Button
+          h={9}
+          px={4}
+          variant={'whiteBase'}
+          border={'1px solid'}
+          borderColor={omniTheme.colors.border}
+          borderRadius={omniTheme.radii.md}
+          leftIcon={<MyIcon name={'feedback'} w={'16px'} />}
+          onClick={() => onFeedback()}
+        >
+          {t('common:question_feedback')}
+        </Button>
+      )}
+    </Flex>
   );
 };

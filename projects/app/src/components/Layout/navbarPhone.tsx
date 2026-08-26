@@ -6,6 +6,7 @@ import { useTranslation } from 'next-i18next';
 import Badge from '../Badge';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { useUserStore } from '@/web/support/user/useUserStore';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const NavbarPhone = ({ unread }: { unread: number }) => {
   const router = useRouter();
@@ -78,7 +79,7 @@ const NavbarPhone = ({ unread }: { unread: number }) => {
           ]
         : [])
     ],
-    [lastChatAppId, lastPane, t, userInfo?.username]
+    [lastChatAppId, lastPane, t, unread, userInfo?.username]
   );
 
   return (
@@ -87,7 +88,7 @@ const NavbarPhone = ({ unread }: { unread: number }) => {
         alignItems={'center'}
         h={'100%'}
         justifyContent={'space-between'}
-        backgroundColor={'white'}
+        backgroundColor={omniTheme.colors.surface}
         position={'relative'}
         px={4}
       >
@@ -105,10 +106,10 @@ const NavbarPhone = ({ unread }: { unread: number }) => {
             transform={'scale(0.9)'}
             {...(item.activeLink.includes(router.pathname)
               ? {
-                  color: 'primary.600'
+                  color: omniTheme.colors.saturatedBlue
                 }
               : {
-                  color: 'myGray.500'
+                  color: omniTheme.colors.muted
                 })}
             onClick={() => {
               if (item.link === router.asPath) return;

@@ -1,23 +1,33 @@
 import Avatar from '@fastgpt/web/components/common/Avatar';
-import { Box } from '@chakra-ui/react';
-import { useTheme } from '@chakra-ui/system';
+import MyIcon from '@fastgpt/web/components/common/Icon';
+import { Flex } from '@chakra-ui/react';
 import React from 'react';
 import type { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 
 const ChatAvatar = ({ src, type }: { src?: string; type: `${ChatRoleEnum}` }) => {
-  const theme = useTheme();
+  const isHuman = type === 'Human';
+
   return (
-    <Box
-      w={['28px', '34px']}
-      h={['28px', '34px']}
-      p={'2px'}
-      borderRadius={'sm'}
-      border={theme.borders.base}
-      boxShadow={'0 0 5px rgba(0,0,0,0.1)'}
-      bg={type === 'Human' ? 'white' : 'primary.50'}
+    <Flex
+      w={'28px'}
+      h={'28px'}
+      flexShrink={0}
+      align={'center'}
+      justify={'center'}
+      p={src ? '2px' : 0}
+      borderRadius={'6px'}
+      border={'1px solid'}
+      borderColor={isHuman ? 'primary.300' : 'myGray.200'}
+      bg={isHuman ? 'primary.600' : 'white'}
     >
-      <Avatar src={src} w={'100%'} h={'100%'} borderRadius={'sm'} />
-    </Box>
+      {src ? (
+        <Avatar src={src} w={'100%'} h={'100%'} borderRadius={'5px'} />
+      ) : isHuman ? (
+        <MyIcon name={'common/user'} w={'15px'} color={'white'} />
+      ) : (
+        <Avatar w={'100%'} h={'100%'} borderRadius={'5px'} />
+      )}
+    </Flex>
   );
 };
 

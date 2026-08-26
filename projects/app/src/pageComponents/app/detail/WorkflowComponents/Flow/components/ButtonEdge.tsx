@@ -38,7 +38,8 @@ export const CustomConnectionLine = ({
 
   return (
     <g>
-      <path d={path} fill="none" stroke="#487FFF" strokeWidth={3} />
+      <path d={path} fill="none" stroke="rgba(37, 99, 235, 0.14)" strokeWidth={9} />
+      <path d={path} fill="none" stroke="#2563EB" strokeWidth={3} />
     </g>
   );
 };
@@ -267,9 +268,9 @@ const ButtonEdge = (props: EdgeProps) => {
           ...style,
           ...(highlightEdge
             ? {
-                strokeWidth: 4
+                strokeWidth: 3.5
               }
-            : { strokeWidth: 3, zIndex: 2 })
+            : { strokeWidth: 2.5, zIndex: 2 })
         };
       }
 
@@ -291,15 +292,27 @@ const ButtonEdge = (props: EdgeProps) => {
     });
 
     return (
-      <BaseEdge
-        id={id}
-        path={path}
-        style={{
-          ...edgeStyle,
-          stroke: edgeColor,
-          display: isFolded ? 'none' : 'block'
-        }}
-      />
+      <>
+        <BaseEdge
+          id={`${id}-rail`}
+          path={path}
+          style={{
+            stroke: 'rgba(37, 99, 235, 0.12)',
+            strokeWidth: 10,
+            display: isFolded ? 'none' : 'block',
+            pointerEvents: 'none'
+          }}
+        />
+        <BaseEdge
+          id={id}
+          path={path}
+          style={{
+            ...edgeStyle,
+            stroke: edgeColor,
+            display: isFolded ? 'none' : 'block'
+          }}
+        />
+      </>
     );
   }, [
     workflowDebugData?.runtimeEdges,

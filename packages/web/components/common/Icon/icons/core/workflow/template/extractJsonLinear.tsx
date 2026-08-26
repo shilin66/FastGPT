@@ -1,32 +1,24 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 type ExtractJsonLinearLinearProps = React.SVGProps<SVGSVGElement>;
 
 const ExtractJsonLinearLinear: React.FC<ExtractJsonLinearLinearProps> = (props) => {
-  const gradientId = useId();
-
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" {...props}>
-      <path
-        d="M8 44H36C37.0609 44 38.0783 43.5786 38.8284 42.8284C39.5786 42.0783 40 41.0609 40 40V14L30 4H12C10.9391 4 9.92172 4.42143 9.17157 5.17157C8.42143 5.92172 8 6.93913 8 8V16M28 4V12C28 13.0609 28.4214 14.0783 29.1716 14.8284C29.9217 15.5786 30.9391 16 32 16H40M4 26V24H16V26M10 24V36M8 36H12"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="22"
-          y1="4"
-          x2="22"
-          y2="44"
-          gradientUnits="userSpaceOnUse"
+      <g transform="scale(2.4)">
+        <g
+          fill="none"
+          stroke="#00C874"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <stop stopColor="#5ED1C2" />
-          <stop offset="1" stopColor="#09C97C" />
-        </linearGradient>
-      </defs>
+          <path d="M7.3 3.5c-1.7 0-1.7 1.5-1.7 2.6 0 1 0 1.9-1.6 2.5-.4.15-.4.85 0 1 1.6.6 1.6 1.5 1.6 2.5 0 1.1 0 2.6 1.7 2.6" />
+          <path d="M12.7 3.5c1.7 0 1.7 1.5 1.7 2.6 0 1 0 1.9 1.6 2.5.4.15.4.85 0 1-1.6.6-1.6 1.5-1.6 2.5 0 1.1 0 2.6-1.7 2.6" />
+          <circle cx="10" cy="10" r="1.25" />
+        </g>
+        <circle cx="10" cy="10" r="1.25" fill="#00C874" />
+      </g>
     </svg>
   );
 };

@@ -15,6 +15,8 @@ import { getFileIcon } from '@fastgpt/global/common/file/icon';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import { getUploadDatasetFilePresignedUrl } from '@/web/core/dataset/api/file';
 import { putFileToS3 } from '@fastgpt/web/common/file/utils';
+import { ImportStepFooter, ImportStepLayout } from '../components/ImportStepLayout';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const DataProcess = dynamic(() => import('../commonProgress/DataProcess'));
 const PreviewData = dynamic(() => import('../commonProgress/PreviewData'));
@@ -153,20 +155,49 @@ const SelectFile = React.memo(function SelectFile() {
   );
 
   return (
-    <Box>
-      <FileSelector fileType={fileType} selectFiles={selectFiles} onSelectFiles={onSelectFiles} />
+    <ImportStepLayout
+      eyebrow={t('dataset:import_select_file')}
+      title={t('dataset:import_add_file_title')}
+      description={t('dataset:import_add_file_desc')}
+      variant={'boundedWorkbench'}
+      footer={
+        <ImportStepFooter>
+          <Box mr={'auto'} color={omniTheme.colors.muted} fontSize={'sm'}>
+            {t('dataset:import_selected_count', { total: selectFiles.length })}
+          </Box>
+          <Button
+            isDisabled={successFiles.length === 0 || uploading}
+            onClick={onclickNext}
+            bg={omniTheme.colors.saturatedBlue}
+            color={'white'}
+            _hover={{ bg: omniTheme.colors.saturatedBlueHover }}
+          >
+            {t('common:next_step')}
+          </Button>
+        </ImportStepFooter>
+      }
+    >
+      <Box
+        overflow={'hidden'}
+        border={'1px solid'}
+        borderColor={omniTheme.colors.border}
+        borderRadius={omniTheme.radii.md}
+        bg={omniTheme.colors.surface}
+      >
+        <FileSelector
+          fileType={fileType}
+          selectFiles={selectFiles}
+          onSelectFiles={onSelectFiles}
+          variant={'workbench'}
+          border={'none'}
+          borderBottom={selectFiles.length > 0 ? '1px solid' : 'none'}
+          borderBottomColor={omniTheme.colors.border}
+          borderRadius={0}
+          boxShadow={'none'}
+        />
 
-      {/* render files */}
-      <RenderUploadFiles files={selectFiles} setFiles={setSelectFiles} />
-
-      <Box textAlign={'right'} mt={5}>
-        <Button isDisabled={successFiles.length === 0 || uploading} onClick={onclickNext}>
-          {selectFiles.length > 0
-            ? `${t('dataset:total_num_files', { total: selectFiles.length })} | `
-            : ''}
-          {t('common:next_step')}
-        </Button>
+        <RenderUploadFiles files={selectFiles} setFiles={setSelectFiles} variant={'integrated'} />
       </Box>
-    </Box>
+    </ImportStepLayout>
   );
 });

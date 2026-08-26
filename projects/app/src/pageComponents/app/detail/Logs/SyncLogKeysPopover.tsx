@@ -42,7 +42,7 @@ const SyncLogKeysPopover = ({
   return (
     <MyPopover
       placement="bottom-end"
-      w={'300px'}
+      w={'360px'}
       closeOnBlur={true}
       trigger="click"
       Trigger={
@@ -53,13 +53,45 @@ const SyncLogKeysPopover = ({
     >
       {({ onClose }) => {
         return (
-          <Box p={4}>
-            <Box mb={4}>{t('app:sync_log_keys_popover_text')}</Box>
-
-            <Flex justifyContent={'end'} gap={2}>
+          <Box p={0} overflow={'hidden'}>
+            <Flex
+              alignItems={'flex-start'}
+              gap={3}
+              px={4}
+              py={3.5}
+              bg={'linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 100%)'}
+              borderBottom={'1px solid rgba(148, 163, 184, 0.18)'}
+            >
+              <Flex
+                alignItems={'center'}
+                justifyContent={'center'}
+                w={'34px'}
+                h={'34px'}
+                flexShrink={0}
+                borderRadius={'10px'}
+                bg={'#2563EB'}
+                color={'white'}
+              >
+                <MyIcon name={'common/warn'} w={'17px'} />
+              </Flex>
+              <Box minW={0}>
+                <Box color={'#1E293B'} fontSize={'14px'} fontWeight={800}>
+                  {t('app:logs_key_config')}
+                </Box>
+                <Box mt={1} color={'#64748B'} fontSize={'12px'} lineHeight={1.45}>
+                  {t('app:sync_log_keys_popover_text')}
+                </Box>
+              </Box>
+            </Flex>
+            <Flex flexDirection={'column'} gap={2.5} p={3} bg={'#F8FAFC'}>
               <Button
-                variant={'outline'}
-                size={'sm'}
+                variant={'whiteBase'}
+                h={'auto'}
+                minH={'48px'}
+                justifyContent={'flex-start'}
+                borderRadius={'12px'}
+                borderColor={'rgba(148, 163, 184, 0.2)'}
+                leftIcon={<MyIcon name={'common/refresh'} w={'16px'} color={'#2563EB'} />}
                 onClick={() => {
                   setLogKeys(teamLogKeys);
                   onClose();
@@ -68,7 +100,11 @@ const SyncLogKeysPopover = ({
                 {t('app:sync_team_app_log_keys')}
               </Button>
               <Button
-                size={'sm'}
+                h={'auto'}
+                minH={'48px'}
+                justifyContent={'flex-start'}
+                borderRadius={'12px'}
+                leftIcon={<MyIcon name={'save'} w={'16px'} color={'white'} />}
                 isLoading={updateLoading}
                 onClick={async () => {
                   await updateList({

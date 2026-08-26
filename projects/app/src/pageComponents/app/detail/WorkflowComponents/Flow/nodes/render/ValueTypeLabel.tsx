@@ -20,17 +20,18 @@ const ValueTypeLabel = ({
   return !!label ? (
     <MyTooltip label={valueDesc}>
       <Box
-        bg={'myGray.100'}
-        color={'myGray.500'}
+        bg={'rgba(37, 99, 235, 0.07)'}
+        color={'#2563EB'}
         border={'1px solid'}
-        borderColor={'myGray.200'}
-        borderRadius={'sm'}
+        borderColor={'rgba(37, 99, 235, 0.16)'}
+        borderRadius={'8px'}
         ml={2}
-        px={1}
-        h={6}
+        px={1.5}
+        h={'20px'}
         display={'flex'}
         alignItems={'center'}
-        fontSize={'11px'}
+        fontSize={'10px'}
+        fontWeight={800}
         {...props}
       >
         {t(label as any)}

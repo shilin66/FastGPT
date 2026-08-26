@@ -7,11 +7,13 @@ const Container = ({ children, ...props }: BoxProps) => {
     <Flex
       flexDirection={'column'}
       mx={3}
-      p={4}
+      px={0}
+      py={0}
       position={'relative'}
-      bg={'myGray.25'}
-      border={'1px solid #F0F1F6'}
-      borderRadius={'md'}
+      bg={'transparent'}
+      border={'0'}
+      borderRadius={0}
+      boxShadow={'none'}
       {...props}
     >
       {children}

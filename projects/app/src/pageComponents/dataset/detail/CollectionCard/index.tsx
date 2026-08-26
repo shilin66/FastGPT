@@ -46,13 +46,13 @@ import { useContextSelector } from 'use-context-selector';
 import { CollectionPageContext } from './Context';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import { formatTime2YMDHM } from '@fastgpt/global/common/string/time';
-import MyTag from '@fastgpt/web/components/common/Tag/index';
 import { collectionCanSync } from '@fastgpt/global/core/dataset/collection/utils';
 import { useFolderDrag } from '@/components/common/folder/useFolderDrag';
 import TagsPopOver from './TagsPopOver';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import TrainingStates from './TrainingStates';
 import { useTableMultipleSelect } from '@fastgpt/web/hooks/useTableMultipleSelect';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const Header = dynamic(() => import('./Header'));
 const EmptyCollectionTip = dynamic(() => import('./EmptyCollectionTip'));
@@ -81,7 +81,7 @@ const CollectionCard = () => {
           if (collection.hasError) {
             return {
               statusText: t('common:core.dataset.collection.status.error'),
-              colorSchema: 'red'
+              statusColor: '#DC2626'
             };
           }
           if (collection.trainingAmount > 0) {
@@ -89,12 +89,12 @@ const CollectionCard = () => {
               statusText: t('common:dataset.collections.Collection Embedding', {
                 total: collection.trainingAmount
               }),
-              colorSchema: 'gray'
+              statusColor: omniTheme.colors.saturatedBlue
             };
           }
           return {
             statusText: t('common:core.dataset.collection.status.active'),
-            colorSchema: 'green'
+            statusColor: '#0F9F6E'
           };
         })();
 
@@ -206,36 +206,51 @@ const CollectionCard = () => {
   const isLoading = isUpdating || isSyncing || isGetting || isDropping;
 
   return (
-    <MyBox isLoading={isLoading} h={'100%'} py={[2, 4]} overflow={'hidden'}>
-      <Flex ref={BoxRef} flexDirection={'column'} py={[1, 0]} h={'100%'} px={[2, 6]}>
+    <MyBox isLoading={isLoading} h={'100%'} overflow={'hidden'} bg={omniTheme.colors.surface}>
+      <Flex ref={BoxRef} flexDirection={'column'} h={'100%'}>
         {/* header */}
         <Header hasTrainingData={hasTrainingData} />
 
         {/* collection table */}
-        <TableContainer mt={3} overflowY={'auto'} fontSize={'sm'} flex={'1 0 0'} h={0}>
-          <Table variant={'simple'} draggable={false}>
-            <Thead draggable={false}>
-              <Tr>
-                <Th py={4}>
+        <TableContainer overflow={'auto'} fontSize={'sm'} flex={'1 0 0'} h={0}>
+          <Table variant={'simple'} draggable={false} minW={'900px'} sx={{ tableLayout: 'fixed' }}>
+            <Thead
+              draggable={false}
+              position={'sticky'}
+              top={0}
+              zIndex={1}
+              bg={omniTheme.colors.pageBg}
+            >
+              <Tr h={'40px'}>
+                <Th px={4} py={0} w={'34%'} borderColor={omniTheme.colors.border}>
                   <HStack>
                     <Checkbox isChecked={isSelecteAll} onChange={selectAllTrigger} />
                     <Box>{t('common:Name')}</Box>
                   </HStack>
                 </Th>
-                <Th py={4}>{t('dataset:collection.training_type')}</Th>
-                <Th py={4}>{t('dataset:collection_data_count')}</Th>
-                <Th py={4}>{t('dataset:collection.Create update time')}</Th>
-                <Th py={4}>{t('common:Status')}</Th>
-                <Th py={4}>{t('dataset:Enable')}</Th>
-                <Th py={4} />
+                <Th px={4} py={0} w={'18%'} borderColor={omniTheme.colors.border}>
+                  {t('dataset:collection_data_count')}
+                </Th>
+                <Th px={4} py={0} w={'20%'} borderColor={omniTheme.colors.border}>
+                  {t('dataset:collection.Create update time')}
+                </Th>
+                <Th px={4} py={0} w={'16%'} borderColor={omniTheme.colors.border}>
+                  {t('common:Status')}
+                </Th>
+                <Th px={4} py={0} w={'8%'} borderColor={omniTheme.colors.border}>
+                  {t('dataset:Enable')}
+                </Th>
+                <Th px={2} py={0} w={'48px'} borderColor={omniTheme.colors.border} />
               </Tr>
             </Thead>
             <Tbody>
-              <Tr h={'5px'} />
               {formatCollections.map((collection) => (
                 <Tr
                   key={collection._id}
-                  _hover={{ bg: 'myGray.50' }}
+                  h={'64px'}
+                  borderBottom={'1px solid'}
+                  borderColor={omniTheme.colors.border}
+                  _hover={{ bg: '#F7FAFF' }}
                   cursor={'pointer'}
                   {...getBoxProps({
                     dataId: collection._id,
@@ -261,19 +276,33 @@ const CollectionCard = () => {
                     }
                   }}
                 >
-                  <Td minW={'150px'} maxW={['200px', '300px']} draggable py={2}>
-                    <HStack>
+                  <Td px={4} py={2} draggable borderColor={omniTheme.colors.border}>
+                    <HStack spacing={3} minW={0}>
                       <HStack onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           isChecked={isSelected(collection)}
                           onChange={(e) => toggleSelect(collection)}
                         />
                       </HStack>
-                      <Box>
-                        <Flex alignItems={'center'}>
-                          <MyIcon name={collection.icon as any} w={'1.25rem'} mr={2} />
+                      <Flex
+                        w={'32px'}
+                        h={'32px'}
+                        align={'center'}
+                        justify={'center'}
+                        borderRadius={omniTheme.radii.sm}
+                        bg={omniTheme.colors.sidebarBg}
+                        flexShrink={0}
+                      >
+                        <MyIcon name={collection.icon as any} w={'18px'} />
+                      </Flex>
+                      <Box minW={0}>
+                        <Flex alignItems={'center'} minW={0}>
                           <MyTooltip label={t('common:click_drag_tip')} shouldWrapChildren={false}>
-                            <Box color={'myGray.900'} fontWeight={'500'} className="textEllipsis">
+                            <Box
+                              color={omniTheme.colors.text}
+                              fontWeight={650}
+                              className="textEllipsis"
+                            >
                               {collection.name}
                             </Box>
                           </MyTooltip>
@@ -284,38 +313,55 @@ const CollectionCard = () => {
                       </Box>
                     </HStack>
                   </Td>
-                  <Td py={2}>
-                    {collection.trainingType
-                      ? t(
-                          (DatasetCollectionDataProcessModeMap[collection.trainingType]?.label ||
-                            '-') as any
-                        )
-                      : '-'}
+                  <Td px={4} py={2} borderColor={omniTheme.colors.border}>
+                    <Box fontWeight={700} color={omniTheme.colors.text}>
+                      {collection.dataAmount || '-'}
+                    </Box>
+                    <Box mt={0.5} fontSize={'11px'} color={omniTheme.colors.muted}>
+                      {collection.trainingType
+                        ? t(
+                            (DatasetCollectionDataProcessModeMap[collection.trainingType]?.label ||
+                              '-') as any
+                          )
+                        : '-'}
+                    </Box>
                   </Td>
-                  <Td py={2}>{collection.dataAmount || '-'}</Td>
-                  <Td fontSize={'xs'} py={2} color={'myGray.500'}>
-                    <Box>{formatTime2YMDHM(collection.createTime)}</Box>
+                  <Td px={4} py={2} fontSize={'11px'} color={omniTheme.colors.muted}>
                     <Box>{formatTime2YMDHM(collection.updateTime)}</Box>
+                    <Box mt={0.5}>{formatTime2YMDHM(collection.createTime)}</Box>
                   </Td>
-                  <Td py={2}>
+                  <Td px={4} py={2} borderColor={omniTheme.colors.border}>
                     <MyTooltip label={t('common:Click_to_expand')}>
-                      <MyTag
-                        showDot
-                        colorSchema={collection.colorSchema as any}
-                        type={'fill'}
+                      <Flex
+                        display={'inline-flex'}
+                        align={'center'}
+                        gap={2}
+                        color={collection.statusColor}
+                        fontSize={'12px'}
+                        fontWeight={650}
                         onClick={(e) => {
                           e.stopPropagation();
                           setTrainingStatesCollection({ collectionId: collection._id });
                         }}
                       >
-                        <Flex fontWeight={'medium'} alignItems={'center'} gap={1}>
-                          {t(collection.statusText as any)}
-                          <MyIcon name={'common/maximize'} w={'11px'} />
-                        </Flex>
-                      </MyTag>
+                        <Box
+                          w={'6px'}
+                          h={'6px'}
+                          borderRadius={'50%'}
+                          bg={collection.statusColor}
+                          flexShrink={0}
+                        />
+                        <Box className={'textEllipsis'}>{t(collection.statusText as any)}</Box>
+                        <MyIcon name={'common/maximize'} w={'10px'} flexShrink={0} />
+                      </Flex>
                     </MyTooltip>
                   </Td>
-                  <Td py={2} onClick={(e) => e.stopPropagation()}>
+                  <Td
+                    px={4}
+                    py={2}
+                    borderColor={omniTheme.colors.border}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Switch
                       isChecked={!collection.forbid}
                       size={'sm'}
@@ -327,7 +373,12 @@ const CollectionCard = () => {
                       }
                     />
                   </Td>
-                  <Td py={2} onClick={(e) => e.stopPropagation()}>
+                  <Td
+                    px={2}
+                    py={2}
+                    borderColor={omniTheme.colors.border}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {collection.permission.hasWritePer && (
                       <MyMenu
                         width={100}
