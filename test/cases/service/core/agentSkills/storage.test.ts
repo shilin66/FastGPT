@@ -3,25 +3,42 @@ import {
   uploadSkillPackage,
   downloadSkillPackage,
   deleteSkillPackage,
+  finalizeStagedSkillPackage,
+  getSkillCandidateStorageKey,
   getSkillStorageKey,
-  getSkillStorageInfo
+  getSkillStorageInfo,
+  stageSkillPackage
 } from '@fastgpt/service/core/agentSkills/storage';
 import { S3PrivateBucket } from '@fastgpt/service/common/s3/buckets/private';
+import { MongoS3TTL } from '@fastgpt/service/common/s3/models/ttl';
+
+const { uploadObjectMock } = vi.hoisted(() => ({
+  uploadObjectMock: vi.fn().mockResolvedValue(undefined)
+}));
 
 // Mock the S3 bucket
 vi.mock('@fastgpt/service/common/s3/buckets/private', () => ({
-  S3PrivateBucket: vi.fn().mockImplementation(() => ({
-    bucketName: 'fastgpt-private',
-    client: {
-      uploadObject: vi.fn().mockResolvedValue(undefined),
-      downloadObject: vi.fn().mockResolvedValue({
-        // body must be async-iterable; an array satisfies for-await-of
-        body: [Buffer.from('mock zip content')]
-      }),
-      deleteObject: vi.fn().mockResolvedValue(undefined),
-      checkObjectExists: vi.fn().mockResolvedValue({ exists: true })
-    }
-  }))
+  S3PrivateBucket: vi.fn().mockImplementation(function S3PrivateBucketMock() {
+    return {
+      bucketName: 'fastgpt-private',
+      client: {
+        uploadObject: uploadObjectMock,
+        downloadObject: vi.fn().mockResolvedValue({
+          // body must be async-iterable; an array satisfies for-await-of
+          body: [Buffer.from('mock zip content')]
+        }),
+        deleteObject: vi.fn().mockResolvedValue(undefined),
+        checkObjectExists: vi.fn().mockResolvedValue({ exists: true })
+      }
+    };
+  })
+}));
+
+vi.mock('@fastgpt/service/common/s3/models/ttl', () => ({
+  MongoS3TTL: {
+    create: vi.fn().mockResolvedValue(undefined),
+    deleteOne: vi.fn().mockResolvedValue(undefined)
+  }
 }));
 
 describe('storage', () => {
@@ -49,6 +66,38 @@ describe('storage', () => {
     it('should handle different team and skill IDs', () => {
       const key = getSkillStorageKey('team-xyz', 'skill-123', 1);
       expect(key).toBe('agent-skills/team-xyz/skill-123/v1/package.zip');
+    });
+  });
+
+  describe('candidate storage', () => {
+    it('uses immutable version identity instead of the display version number', () => {
+      expect(getSkillCandidateStorageKey(mockTeamId, mockSkillId, 'version-789')).toBe(
+        `agent-skills/${mockTeamId}/${mockSkillId}/versions/version-789/package.zip`
+      );
+    });
+
+    it('registers TTL before uploading and removes it only after commit finalization', async () => {
+      const storage = await stageSkillPackage({
+        teamId: mockTeamId,
+        skillId: mockSkillId,
+        versionId: 'version-789',
+        zipBuffer: mockZipBuffer,
+        checksum: 'abc123'
+      });
+
+      expect(MongoS3TTL.create).toHaveBeenCalledBefore(uploadObjectMock);
+      expect(storage).toEqual({
+        bucket: 'fastgpt-private',
+        key: `agent-skills/${mockTeamId}/${mockSkillId}/versions/version-789/package.zip`,
+        size: mockZipBuffer.length,
+        checksum: 'abc123'
+      });
+
+      await finalizeStagedSkillPackage(storage);
+      expect(MongoS3TTL.deleteOne).toHaveBeenCalledWith({
+        bucketName: 'fastgpt-private',
+        minioKey: storage.key
+      });
     });
   });
 
@@ -131,12 +180,14 @@ describe('storage', () => {
       const { S3PrivateBucket: MockBucket } = await import(
         '@fastgpt/service/common/s3/buckets/private'
       );
-      (MockBucket as any).mockImplementationOnce(() => ({
-        bucketName: 'fastgpt-private',
-        client: {
-          downloadObject: vi.fn().mockResolvedValue({ body: null })
-        }
-      }));
+      vi.mocked(MockBucket).mockImplementationOnce(function S3PrivateBucketWithoutBodyMock() {
+        return {
+          bucketName: 'fastgpt-private',
+          client: {
+            downloadObject: vi.fn().mockResolvedValue({ body: null })
+          }
+        } as InstanceType<typeof S3PrivateBucket>;
+      });
 
       const storageInfo = {
         bucket: 'fastgpt-private',

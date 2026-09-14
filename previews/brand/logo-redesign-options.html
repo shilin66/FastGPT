@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OmniCockpit 品牌 Logo 方案预览（两轮七套）</title>
+  <style>
+    :root {
+      --graphite: #27364A; --graphite-deep: #1F2A3A;
+      --blue: #2563EB; --blue-strong: #1D4ED8; --blue-soft: #DBEAFE;
+      --gold: #C69B4A;
+      --page: #F8FAFC; --rail: #F5F7FA;
+      --border: #DFE5EE; --border-strong: #C9D4E2;
+      --ink: #1F2937; --muted: #667085;
+      --font: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { background: #E7EDF5; color: var(--ink); font: 14px var(--font); letter-spacing: 0; }
+
+    .preview-bar {
+      min-height: 76px; display: grid; grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
+      align-items: center; gap: 18px; padding: 11px 20px; background: #fff;
+      border-bottom: 1px solid #CBD6E4; position: sticky; top: 0; z-index: 20;
+    }
+    .preview-title strong { display: block; font-size: 17px; }
+    .preview-title span, .preview-note { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .preview-note { text-align: right; }
+    .preview-note b { color: var(--blue); }
+    .scheme-nav { display: flex; gap: 8px; }
+    .scheme-nav a {
+      padding: 7px 14px; border-radius: 8px; background: var(--rail); border: 1px solid var(--border);
+      color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600;
+    }
+    .scheme-nav a:hover { background: var(--blue-soft); }
+
+    .option { padding: 30px 24px 46px; }
+    .option-head { max-width: 1160px; margin: 0 auto 16px; }
+    .option-head h2 { margin: 0; font-size: 20px; }
+    .option-head h2 .tag {
+      display: inline-block; margin-left: 10px; padding: 3px 10px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; vertical-align: 3px; background: var(--blue-soft); color: var(--blue-strong);
+    }
+    .option-head p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 880px; }
+
+    .panel {
+      max-width: 1160px; margin: 0 auto; background: #fff; border: 1px solid var(--border-strong);
+      border-radius: 16px; padding: 28px 30px; box-shadow: 0 22px 50px -40px rgba(31, 44, 61, 0.45);
+    }
+    .show-row { display: flex; flex-wrap: wrap; gap: 22px; align-items: stretch; }
+    .tile {
+      border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px;
+      display: flex; flex-direction: column; gap: 12px; align-items: flex-start;
+    }
+    .tile .cap { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+    .tile.light { background: var(--page); }
+    .tile.dark { background: linear-gradient(150deg, var(--graphite-deep) 0%, var(--graphite) 60%, #31445E 100%); border-color: transparent; }
+    .tile.dark .cap { color: rgba(255, 255, 255, 0.5); }
+
+    .ladder { display: flex; align-items: flex-end; gap: 14px; }
+    .ladder figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .ladder figcaption { font-size: 10px; color: var(--muted); }
+    .tile.dark .ladder figcaption { color: rgba(255, 255, 255, 0.45); }
+
+    .lockup { display: flex; align-items: center; gap: 12px; }
+    .lockup .name { font-size: 19px; font-weight: 700; color: var(--ink); }
+    .tile.dark .lockup .name { color: #fff; }
+
+    .login-mock {
+      display: flex; align-items: center; gap: 26px; background: linear-gradient(90deg, var(--graphite-deep) 0%, var(--graphite) 46%, var(--page) 46%, var(--page) 100%);
+      border-radius: 14px; overflow: hidden; border: 1px solid var(--border);
+    }
+    .login-mock .left { flex: 0 0 46%; padding: 22px 26px; display: flex; flex-direction: column; gap: 6px; }
+    .login-mock .left .eyebrow { font-size: 9px; letter-spacing: 0.14em; color: #8EB1FF; font-weight: 700; }
+    .login-mock .left .big { font-size: 22px; font-weight: 800; color: #fff; }
+    .login-mock .left .small { font-size: 9px; color: rgba(255, 255, 255, 0.55); max-width: 240px; line-height: 1.5; }
+    .login-mock .right { padding: 22px 26px; display: flex; flex-direction: column; gap: 10px; }
+    .login-mock .brand-row { display: flex; align-items: center; gap: 9px; }
+    .login-mock .logo-box {
+      width: 38px; height: 38px; border-radius: 10px; background: #fff; border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px #fff;
+    }
+    .login-mock .brand-name { font-size: 15px; font-weight: 700; color: var(--ink); }
+    .login-mock .skel { height: 9px; border-radius: 5px; background: #E8EDF4; }
+    .login-mock .skel.w1 { width: 210px; } .login-mock .skel.w2 { width: 170px; } .login-mock .skel.w3 { width: 120px; background: var(--graphite); }
+
+    .color-row { display: flex; gap: 10px; margin-top: 4px; }
+    .chip { font-size: 10px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+    .chip i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; font-style: normal; }
+  </style>
+</head>
+<body>
+  <!-- ============ SVG 符号库 ============ -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- 现有 Logo（基准） -->
+      <symbol id="logo-current" viewBox="0 0 96 96">
+        <rect x="8" y="8" width="80" height="80" rx="24" fill="#27364A"/>
+        <path d="M28 50C28 38.95 36.95 30 48 30C59.05 30 68 38.95 68 50C68 61.05 59.05 70 48 70C36.95 70 28 61.05 28 50Z" stroke="#DBEAFE" stroke-width="8"/>
+        <path d="M48 22V37" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/>
+        <path d="M48 63V78" stroke="#C69B4A" stroke-width="8" stroke-linecap="round"/>
+        <path d="M27 28L37 38" stroke="#2563EB" stroke-width="7" stroke-linecap="round"/>
+        <path d="M69 28L59 38" stroke="#C69B4A" stroke-width="7" stroke-linecap="round"/>
+      </symbol>
+      <!-- 方案 1 · 驾驶舱仪表（现标识演进） -->
+      <symbol id="logo-a" viewBox="0 0 96 96">
+        <rect x="8" y="8" width="80" height="80" rx="24" fill="#27364A"/>
+        <path d="M31.5 63.5A20 20 0 1 1 64.5 63.5" stroke="#DBEAFE" stroke-width="7" stroke-linecap="round"/>
+        <path d="M48 25v7" stroke="#2563EB" stroke-width="6" stroke-linecap="round"/>
+        <path d="M48 52L61 39" stroke="#2563EB" stroke-width="7" stroke-linecap="round"/>
+        <circle cx="48" cy="52" r="5.5" fill="#C69B4A"/>
+      </symbol>
+      <!-- 方案 2 · 轨道 O（Omni 之 O + 智能体轨道） -->
+      <symbol id="logo-b" viewBox="0 0 96 96">
+        <rect x="8" y="8" width="80" height="80" rx="24" fill="#2563EB"/>
+        <circle cx="48" cy="48" r="12.5" fill="none" stroke="#FFFFFF" stroke-width="6.5"/>
+        <ellipse cx="48" cy="48" rx="27" ry="12" fill="none" stroke="#DBEAFE" stroke-width="4.5" transform="rotate(-24 48 48)"/>
+        <circle cx="59.5" cy="32.8" r="5.5" fill="#C69B4A"/>
+      </symbol>
+      <!-- 方案 3 · 流程枢纽（中心 Hub + 编排节点） -->
+      <symbol id="logo-c" viewBox="0 0 96 96">
+        <rect x="8" y="8" width="80" height="80" rx="24" fill="#27364A"/>
+        <path d="M41 43L31 34M55 43L65 34M41 57L31 66M55 57L65 66" stroke="#DBEAFE" stroke-width="4.5" stroke-linecap="round"/>
+        <circle cx="48" cy="50" r="10" fill="#2563EB"/>
+        <circle cx="27" cy="30" r="6.5" fill="none" stroke="#DBEAFE" stroke-width="4"/>
+        <circle cx="69" cy="30" r="6.5" fill="none" stroke="#DBEAFE" stroke-width="4"/>
+        <circle cx="27" cy="70" r="6.5" fill="none" stroke="#DBEAFE" stroke-width="4"/>
+        <circle cx="69" cy="70" r="6.5" fill="#C69B4A"/>
+      </symbol>
+      <!-- 方案 4 · 编排流线（Workflow 单线） -->
+      <symbol id="logo-d" viewBox="0 0 96 96">
+        <rect x="8" y="8" width="80" height="80" rx="24" fill="#27364A"/>
+        <path d="M32 58 C40 58 42 36 53 36 C61 36 65 40 71 44" stroke="#DBEAFE" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <circle cx="25" cy="58" r="5" fill="none" stroke="#DBEAFE" stroke-width="4"/>
+        <circle cx="53" cy="36" r="4" fill="#2563EB"/>
+        <circle cx="72" cy="45" r="6" fill="#C69B4A"/>
+      </symbol>
+      <!-- 方案 5 · 知识层积（知识库 + AI 火花） -->
+      <symbol id="logo-e" viewBox="0 0 96 96">
+        <rect x="8" y="8" width="80" height="80" rx="24" fill="#27364A"/>
+        <path d="M48 17 C50.5 25 53 27.5 60 29 C53 30.5 50.5 33 48 41 C45.5 33 43 30.5 36 29 C43 27.5 45.5 25 48 17 Z" fill="#C69B4A"/>
+        <rect x="28" y="48" width="40" height="8" rx="4" fill="#DBEAFE"/>
+        <rect x="28" y="60" width="40" height="8" rx="4" fill="#DBEAFE"/>
+        <rect x="28" y="72" width="40" height="8" rx="4" fill="#DBEAFE"/>
+      </symbol>
+      <!-- 方案 6 · 智能中枢（Agent 火花 + 资源网络） -->
+      <symbol id="logo-f" viewBox="0 0 96 96">
+        <rect x="8" y="8" width="80" height="80" rx="24" fill="#27364A"/>
+        <path d="M48 30 L48 24 M66 48 L72 48 M48 66 L48 72 M30 48 L24 48" stroke="#DBEAFE" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="48" cy="19.5" r="4" fill="none" stroke="#DBEAFE" stroke-width="3"/>
+        <circle cx="76.5" cy="48" r="4.5" fill="#C69B4A"/>
+        <circle cx="48" cy="76.5" r="4" fill="none" stroke="#DBEAFE" stroke-width="3"/>
+        <circle cx="19.5" cy="48" r="4" fill="none" stroke="#DBEAFE" stroke-width="3"/>
+        <path d="M48 33 C50.5 41 55 45.5 63 48 C55 50.5 50.5 55 48 63 C45.5 55 41 50.5 33 48 C41 45.5 45.5 41 48 33 Z" fill="#FFFFFF"/>
+      </symbol>
+      <!-- 方案 7 · O 之流（Omni O + 汇入火花） -->
+      <symbol id="logo-g" viewBox="0 0 96 96">
+        <rect x="8" y="8" width="80" height="80" rx="24" fill="#FFFFFF" stroke="#D9E2EF" stroke-width="2"/>
+        <path d="M56 30.7 A20 20 0 1 0 63.3 58" fill="none" stroke="#2563EB" stroke-width="7" stroke-linecap="round"/>
+        <path d="M66 36 C67.5 41 69 42.5 74 44 C69 45.5 67.5 47 66 52 C64.5 47 63 45.5 58 44 C63 42.5 64.5 41 66 36 Z" fill="#C69B4A"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <header class="preview-bar">
+    <div class="preview-title">
+      <strong>OmniCockpit 品牌 Logo · 七套方案（两轮）</strong>
+      <span>第一轮：仪表演进 / 轨道 O / 流程枢纽 · 第二轮：编排流线 / 知识层积 / 智能中枢 / O 之流</span>
+    </div>
+    <nav class="scheme-nav">
+      <a href="#baseline">现有</a><a href="#s1">方案 1</a><a href="#s2">方案 2</a><a href="#s3">方案 3</a><a href="#s4">方案 4</a><a href="#s5">方案 5</a><a href="#s6">方案 6</a><a href="#s7">方案 7</a>
+    </nav>
+    <div class="preview-note">
+      选定后将替换 <b>/omnicockpit/logo.svg</b> 与 <b>favicon.svg</b>；<br />
+      登录页、导航栏、浏览器标签等场景自动生效。
+    </div>
+  </header>
+
+  <!-- ============ 现有基准 ============ -->
+  <section class="option" id="baseline">
+    <div class="option-head">
+      <h2>现有 Logo <span class="tag">基准对照</span></h2>
+      <p>石墨蓝圆角方块 + 完整圆环 + 四向刻线。隐喻是仪表盘，但元素偏多、16~32px 小尺寸下刻线会糊。</p>
+    </div>
+    <div class="panel">
+      <div class="show-row">
+        <div class="tile light">
+          <span class="cap">图标 · 浅色背景</span>
+          <svg width="96" height="96"><use href="#logo-current"/></svg>
+        </div>
+        <div class="tile dark">
+          <span class="cap">图标 · 深色背景</span>
+          <svg width="96" height="96"><use href="#logo-current"/></svg>
+        </div>
+        <div class="tile light">
+          <span class="cap">尺寸阶梯</span>
+          <div class="ladder">
+            <figure><svg width="16" height="16"><use href="#logo-current"/></svg><figcaption>16</figcaption></figure>
+            <figure><svg width="24" height="24"><use href="#logo-current"/></svg><figcaption>24</figcaption></figure>
+            <figure><svg width="32" height="32"><use href="#logo-current"/></svg><figcaption>32</figcaption></figure>
+            <figure><svg width="48" height="48"><use href="#logo-current"/></svg><figcaption>48</figcaption></figure>
+            <figure><svg width="64" height="64"><use href="#logo-current"/></svg><figcaption>64</figcaption></figure>
+          </div>
+        </div>
+        <div class="tile light">
+          <span class="cap">横排组合</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-current"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 方案 1 ============ -->
+  <section class="option" id="s1">
+    <div class="option-head">
+      <h2>方案 1 · 驾驶舱仪表 <span class="tag">现标识演进</span></h2>
+      <p>保留「Cockpit 仪表盘」隐喻并做减法：开口环表盘 + 品牌蓝指针 + 金色轴心，元素从 6 个减到 4 个。指针指向右上寓意「增长/就绪」，小尺寸识别度显著优于现版。气质：专业、稳重、延续性最强。</p>
+      <div class="color-row">
+        <span class="chip"><i style="background:#27364A"></i>#27364A</span>
+        <span class="chip"><i style="background:#DBEAFE"></i>#DBEAFE</span>
+        <span class="chip"><i style="background:#2563EB"></i>#2563EB</span>
+        <span class="chip"><i style="background:#C69B4A"></i>#C69B4A</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="show-row">
+        <div class="tile light">
+          <span class="cap">图标 · 浅色背景</span>
+          <svg width="96" height="96"><use href="#logo-a"/></svg>
+        </div>
+        <div class="tile dark">
+          <span class="cap">图标 · 深色背景</span>
+          <svg width="96" height="96"><use href="#logo-a"/></svg>
+        </div>
+        <div class="tile light">
+          <span class="cap">尺寸阶梯</span>
+          <div class="ladder">
+            <figure><svg width="16" height="16"><use href="#logo-a"/></svg><figcaption>16</figcaption></figure>
+            <figure><svg width="24" height="24"><use href="#logo-a"/></svg><figcaption>24</figcaption></figure>
+            <figure><svg width="32" height="32"><use href="#logo-a"/></svg><figcaption>32</figcaption></figure>
+            <figure><svg width="48" height="48"><use href="#logo-a"/></svg><figcaption>48</figcaption></figure>
+            <figure><svg width="64" height="64"><use href="#logo-a"/></svg><figcaption>64</figcaption></figure>
+          </div>
+        </div>
+        <div class="tile light">
+          <span class="cap">横排组合 · 浅</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-a"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+        <div class="tile dark">
+          <span class="cap">横排组合 · 深</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-a"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:22px;">
+        <span class="cap" style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;">登录页场景模拟</span>
+        <div class="login-mock" style="margin-top:10px;">
+          <div class="left">
+            <span class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</span>
+            <span class="big">OmniCockpit</span>
+            <span class="small">统一管理企业 AI Agent、知识库与自动化流程。</span>
+          </div>
+          <div class="right">
+            <div class="brand-row">
+              <div class="logo-box"><svg width="22" height="22"><use href="#logo-a"/></svg></div>
+              <span class="brand-name">OmniCockpit</span>
+            </div>
+            <div class="skel w1"></div><div class="skel w2"></div><div class="skel w3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 方案 2 ============ -->
+  <section class="option" id="s2">
+    <div class="option-head">
+      <h2>方案 2 · 轨道 O <span class="tag">字母符号</span></h2>
+      <p>取 Omni 首字母 O：白色圆环为主体，一道倾斜的浅蓝光环穿绕（土星环式），金色光点位于轨道上——「智能体在轨道上运行」。品牌蓝满底让它在任何尺寸下都是最强的色块识别。气质：现代、动感、国际化。</p>
+      <div class="color-row">
+        <span class="chip"><i style="background:#2563EB"></i>#2563EB</span>
+        <span class="chip"><i style="background:#FFFFFF;border:1px solid #DFE5EE"></i>#FFFFFF</span>
+        <span class="chip"><i style="background:#DBEAFE"></i>#DBEAFE</span>
+        <span class="chip"><i style="background:#C69B4A"></i>#C69B4A</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="show-row">
+        <div class="tile light">
+          <span class="cap">图标 · 浅色背景</span>
+          <svg width="96" height="96"><use href="#logo-b"/></svg>
+        </div>
+        <div class="tile dark">
+          <span class="cap">图标 · 深色背景</span>
+          <svg width="96" height="96"><use href="#logo-b"/></svg>
+        </div>
+        <div class="tile light">
+          <span class="cap">尺寸阶梯</span>
+          <div class="ladder">
+            <figure><svg width="16" height="16"><use href="#logo-b"/></svg><figcaption>16</figcaption></figure>
+            <figure><svg width="24" height="24"><use href="#logo-b"/></svg><figcaption>24</figcaption></figure>
+            <figure><svg width="32" height="32"><use href="#logo-b"/></svg><figcaption>32</figcaption></figure>
+            <figure><svg width="48" height="48"><use href="#logo-b"/></svg><figcaption>48</figcaption></figure>
+            <figure><svg width="64" height="64"><use href="#logo-b"/></svg><figcaption>64</figcaption></figure>
+          </div>
+        </div>
+        <div class="tile light">
+          <span class="cap">横排组合 · 浅</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-b"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+        <div class="tile dark">
+          <span class="cap">横排组合 · 深</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-b"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:22px;">
+        <span class="cap" style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;">登录页场景模拟</span>
+        <div class="login-mock" style="margin-top:10px;">
+          <div class="left">
+            <span class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</span>
+            <span class="big">OmniCockpit</span>
+            <span class="small">统一管理企业 AI Agent、知识库与自动化流程。</span>
+          </div>
+          <div class="right">
+            <div class="brand-row">
+              <div class="logo-box"><svg width="22" height="22"><use href="#logo-b"/></svg></div>
+              <span class="brand-name">OmniCockpit</span>
+            </div>
+            <div class="skel w1"></div><div class="skel w2"></div><div class="skel w3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 方案 3 ============ -->
+  <section class="option" id="s3">
+    <div class="option-head">
+      <h2>方案 3 · 流程枢纽 <span class="tag">产品隐喻</span></h2>
+      <p>中心是品牌蓝实心 Hub，四条连线辐射到周围节点：三个浅蓝空心节点代表「知识库 / 工具 / 应用」等可编排资源，右下金色实心节点代表「产出/交付」——一图说清「OmniCockpit 是 AI 编排中枢」。气质：技术感、产品叙事最直接。</p>
+      <div class="color-row">
+        <span class="chip"><i style="background:#27364A"></i>#27364A</span>
+        <span class="chip"><i style="background:#2563EB"></i>#2563EB</span>
+        <span class="chip"><i style="background:#DBEAFE"></i>#DBEAFE</span>
+        <span class="chip"><i style="background:#C69B4A"></i>#C69B4A</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="show-row">
+        <div class="tile light">
+          <span class="cap">图标 · 浅色背景</span>
+          <svg width="96" height="96"><use href="#logo-c"/></svg>
+        </div>
+        <div class="tile dark">
+          <span class="cap">图标 · 深色背景</span>
+          <svg width="96" height="96"><use href="#logo-c"/></svg>
+        </div>
+        <div class="tile light">
+          <span class="cap">尺寸阶梯</span>
+          <div class="ladder">
+            <figure><svg width="16" height="16"><use href="#logo-c"/></svg><figcaption>16</figcaption></figure>
+            <figure><svg width="24" height="24"><use href="#logo-c"/></svg><figcaption>24</figcaption></figure>
+            <figure><svg width="32" height="32"><use href="#logo-c"/></svg><figcaption>32</figcaption></figure>
+            <figure><svg width="48" height="48"><use href="#logo-c"/></svg><figcaption>48</figcaption></figure>
+            <figure><svg width="64" height="64"><use href="#logo-c"/></svg><figcaption>64</figcaption></figure>
+          </div>
+        </div>
+        <div class="tile light">
+          <span class="cap">横排组合 · 浅</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-c"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+        <div class="tile dark">
+          <span class="cap">横排组合 · 深</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-c"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:22px;">
+        <span class="cap" style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;">登录页场景模拟</span>
+        <div class="login-mock" style="margin-top:10px;">
+          <div class="left">
+            <span class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</span>
+            <span class="big">OmniCockpit</span>
+            <span class="small">统一管理企业 AI Agent、知识库与自动化流程。</span>
+          </div>
+          <div class="right">
+            <div class="brand-row">
+              <div class="logo-box"><svg width="22" height="22"><use href="#logo-c"/></svg></div>
+              <span class="brand-name">OmniCockpit</span>
+            </div>
+            <div class="skel w1"></div><div class="skel w2"></div><div class="skel w3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- ============ 方案 4 ============ -->
+  <section class="option" id="s4">
+    <div class="option-head">
+      <h2>方案 4 · 编排流线 <span class="tag">第二轮 · 单线 Workflow</span></h2>
+      <p>一条流畅曲线串联三个节点：空心起点 → 蓝色进行中 → 金色交付点，把工作流编排抽象为一条流动线。单线风格克制安静，小尺寸下线条依然清晰。气质：优雅、工程感。</p>
+      <div class="color-row">
+        <span class="chip"><i style="background:#27364A"></i>#27364A</span>
+        <span class="chip"><i style="background:#DBEAFE"></i>#DBEAFE</span>
+        <span class="chip"><i style="background:#2563EB"></i>#2563EB</span>
+        <span class="chip"><i style="background:#C69B4A"></i>#C69B4A</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="show-row">
+        <div class="tile light">
+          <span class="cap">图标 · 浅色背景</span>
+          <svg width="96" height="96"><use href="#logo-d"/></svg>
+        </div>
+        <div class="tile dark">
+          <span class="cap">图标 · 深色背景</span>
+          <svg width="96" height="96"><use href="#logo-d"/></svg>
+        </div>
+        <div class="tile light">
+          <span class="cap">尺寸阶梯</span>
+          <div class="ladder">
+            <figure><svg width="16" height="16"><use href="#logo-d"/></svg><figcaption>16</figcaption></figure>
+            <figure><svg width="24" height="24"><use href="#logo-d"/></svg><figcaption>24</figcaption></figure>
+            <figure><svg width="32" height="32"><use href="#logo-d"/></svg><figcaption>32</figcaption></figure>
+            <figure><svg width="48" height="48"><use href="#logo-d"/></svg><figcaption>48</figcaption></figure>
+            <figure><svg width="64" height="64"><use href="#logo-d"/></svg><figcaption>64</figcaption></figure>
+          </div>
+        </div>
+        <div class="tile light">
+          <span class="cap">横排组合 · 浅</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-d"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+        <div class="tile dark">
+          <span class="cap">横排组合 · 深</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-d"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:22px;">
+        <span class="cap" style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;">登录页场景模拟</span>
+        <div class="login-mock" style="margin-top:10px;">
+          <div class="left">
+            <span class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</span>
+            <span class="big">OmniCockpit</span>
+            <span class="small">统一管理企业 AI Agent、知识库与自动化流程。</span>
+          </div>
+          <div class="right">
+            <div class="brand-row">
+              <div class="logo-box"><svg width="22" height="22"><use href="#logo-d"/></svg></div>
+              <span class="brand-name">OmniCockpit</span>
+            </div>
+            <div class="skel w1"></div><div class="skel w2"></div><div class="skel w3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 方案 5 ============ -->
+  <section class="option" id="s5">
+    <div class="option-head">
+      <h2>方案 5 · 知识层积 <span class="tag">第二轮 · 双调 知识库</span></h2>
+      <p>三道浅蓝层板象征知识库的沉淀与分层，顶端金色 AI 火花点亮——「AI 激活知识」。双调风格层次饱满，是七套方案中知识库叙事最直接的。气质：沉稳、书卷气。</p>
+      <div class="color-row">
+        <span class="chip"><i style="background:#27364A"></i>#27364A</span>
+        <span class="chip"><i style="background:#DBEAFE"></i>#DBEAFE</span>
+        <span class="chip"><i style="background:#C69B4A"></i>#C69B4A</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="show-row">
+        <div class="tile light">
+          <span class="cap">图标 · 浅色背景</span>
+          <svg width="96" height="96"><use href="#logo-e"/></svg>
+        </div>
+        <div class="tile dark">
+          <span class="cap">图标 · 深色背景</span>
+          <svg width="96" height="96"><use href="#logo-e"/></svg>
+        </div>
+        <div class="tile light">
+          <span class="cap">尺寸阶梯</span>
+          <div class="ladder">
+            <figure><svg width="16" height="16"><use href="#logo-e"/></svg><figcaption>16</figcaption></figure>
+            <figure><svg width="24" height="24"><use href="#logo-e"/></svg><figcaption>24</figcaption></figure>
+            <figure><svg width="32" height="32"><use href="#logo-e"/></svg><figcaption>32</figcaption></figure>
+            <figure><svg width="48" height="48"><use href="#logo-e"/></svg><figcaption>48</figcaption></figure>
+            <figure><svg width="64" height="64"><use href="#logo-e"/></svg><figcaption>64</figcaption></figure>
+          </div>
+        </div>
+        <div class="tile light">
+          <span class="cap">横排组合 · 浅</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-e"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+        <div class="tile dark">
+          <span class="cap">横排组合 · 深</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-e"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:22px;">
+        <span class="cap" style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;">登录页场景模拟</span>
+        <div class="login-mock" style="margin-top:10px;">
+          <div class="left">
+            <span class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</span>
+            <span class="big">OmniCockpit</span>
+            <span class="small">统一管理企业 AI Agent、知识库与自动化流程。</span>
+          </div>
+          <div class="right">
+            <div class="brand-row">
+              <div class="logo-box"><svg width="22" height="22"><use href="#logo-e"/></svg></div>
+              <span class="brand-name">OmniCockpit</span>
+            </div>
+            <div class="skel w1"></div><div class="skel w2"></div><div class="skel w3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 方案 6 ============ -->
+  <section class="option" id="s6">
+    <div class="option-head">
+      <h2>方案 6 · 智能中枢 <span class="tag">第二轮 · 网络 Agent</span></h2>
+      <p>中心白色四芒星是 Agent 本体，四条细线辐射连接周围资源节点：三个空心节点代表知识库 / 工具 / 应用，右侧金色实心节点代表产出。「Agent 调度一切」的表达最直接，结构感强。气质：技术、结构化。</p>
+      <div class="color-row">
+        <span class="chip"><i style="background:#27364A"></i>#27364A</span>
+        <span class="chip"><i style="background:#FFFFFF;border:1px solid #DFE5EE"></i>#FFFFFF</span>
+        <span class="chip"><i style="background:#DBEAFE"></i>#DBEAFE</span>
+        <span class="chip"><i style="background:#C69B4A"></i>#C69B4A</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="show-row">
+        <div class="tile light">
+          <span class="cap">图标 · 浅色背景</span>
+          <svg width="96" height="96"><use href="#logo-f"/></svg>
+        </div>
+        <div class="tile dark">
+          <span class="cap">图标 · 深色背景</span>
+          <svg width="96" height="96"><use href="#logo-f"/></svg>
+        </div>
+        <div class="tile light">
+          <span class="cap">尺寸阶梯</span>
+          <div class="ladder">
+            <figure><svg width="16" height="16"><use href="#logo-f"/></svg><figcaption>16</figcaption></figure>
+            <figure><svg width="24" height="24"><use href="#logo-f"/></svg><figcaption>24</figcaption></figure>
+            <figure><svg width="32" height="32"><use href="#logo-f"/></svg><figcaption>32</figcaption></figure>
+            <figure><svg width="48" height="48"><use href="#logo-f"/></svg><figcaption>48</figcaption></figure>
+            <figure><svg width="64" height="64"><use href="#logo-f"/></svg><figcaption>64</figcaption></figure>
+          </div>
+        </div>
+        <div class="tile light">
+          <span class="cap">横排组合 · 浅</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-f"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+        <div class="tile dark">
+          <span class="cap">横排组合 · 深</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-f"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:22px;">
+        <span class="cap" style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;">登录页场景模拟</span>
+        <div class="login-mock" style="margin-top:10px;">
+          <div class="left">
+            <span class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</span>
+            <span class="big">OmniCockpit</span>
+            <span class="small">统一管理企业 AI Agent、知识库与自动化流程。</span>
+          </div>
+          <div class="right">
+            <div class="brand-row">
+              <div class="logo-box"><svg width="22" height="22"><use href="#logo-f"/></svg></div>
+              <span class="brand-name">OmniCockpit</span>
+            </div>
+            <div class="skel w1"></div><div class="skel w2"></div><div class="skel w3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 方案 7 ============ -->
+  <section class="option" id="s7">
+    <div class="option-head">
+      <h2>方案 7 · O 之流 <span class="tag">第二轮 · 轻盈浅色</span></h2>
+      <p>Omni 的 O 用品牌蓝粗弧线一笔绘成，右上留口处承接一枚金色火花——「流程汇入智能」。七套中唯一的浅色容器方案，视觉最轻盈，与浅色 UI 融合度最高。气质：轻盈、国际化。</p>
+      <div class="color-row">
+        <span class="chip"><i style="background:#FFFFFF;border:1px solid #DFE5EE"></i>#FFFFFF</span>
+        <span class="chip"><i style="background:#2563EB"></i>#2563EB</span>
+        <span class="chip"><i style="background:#C69B4A"></i>#C69B4A</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="show-row">
+        <div class="tile light">
+          <span class="cap">图标 · 浅色背景</span>
+          <svg width="96" height="96"><use href="#logo-g"/></svg>
+        </div>
+        <div class="tile dark">
+          <span class="cap">图标 · 深色背景</span>
+          <svg width="96" height="96"><use href="#logo-g"/></svg>
+        </div>
+        <div class="tile light">
+          <span class="cap">尺寸阶梯</span>
+          <div class="ladder">
+            <figure><svg width="16" height="16"><use href="#logo-g"/></svg><figcaption>16</figcaption></figure>
+            <figure><svg width="24" height="24"><use href="#logo-g"/></svg><figcaption>24</figcaption></figure>
+            <figure><svg width="32" height="32"><use href="#logo-g"/></svg><figcaption>32</figcaption></figure>
+            <figure><svg width="48" height="48"><use href="#logo-g"/></svg><figcaption>48</figcaption></figure>
+            <figure><svg width="64" height="64"><use href="#logo-g"/></svg><figcaption>64</figcaption></figure>
+          </div>
+        </div>
+        <div class="tile light">
+          <span class="cap">横排组合 · 浅</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-g"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+        <div class="tile dark">
+          <span class="cap">横排组合 · 深</span>
+          <div class="lockup">
+            <svg width="36" height="36"><use href="#logo-g"/></svg>
+            <span class="name">OmniCockpit</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:22px;">
+        <span class="cap" style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;">登录页场景模拟</span>
+        <div class="login-mock" style="margin-top:10px;">
+          <div class="left">
+            <span class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</span>
+            <span class="big">OmniCockpit</span>
+            <span class="small">统一管理企业 AI Agent、知识库与自动化流程。</span>
+          </div>
+          <div class="right">
+            <div class="brand-row">
+              <div class="logo-box"><svg width="22" height="22"><use href="#logo-g"/></svg></div>
+              <span class="brand-name">OmniCockpit</span>
+            </div>
+            <div class="skel w1"></div><div class="skel w2"></div><div class="skel w3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

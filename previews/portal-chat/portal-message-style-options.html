@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniCockpit 门户消息样式方案</title>
+    <style>
+      :root {
+        --graphite-950: #172033;
+        --graphite-900: #1f2a3a;
+        --graphite-800: #27364a;
+        --graphite-700: #34445b;
+        --blue-700: #1d4ed8;
+        --blue-600: #2563eb;
+        --blue-500: #3970ee;
+        --blue-100: #dbeafe;
+        --blue-50: #eff6ff;
+        --gold-500: #c69b4a;
+        --page: #f8fafc;
+        --surface: #ffffff;
+        --surface-soft: #f3f6fa;
+        --surface-tint: #eef3f9;
+        --border: #dfe5ee;
+        --border-strong: #cad4e2;
+        --text: #202b3c;
+        --muted: #667085;
+        --muted-light: #8a96a8;
+        --success: #17865b;
+        --shadow: 0 12px 34px rgba(23, 32, 51, 0.08);
+        --font-sans: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        background: var(--page);
+        color: var(--text);
+        font-family: var(--font-sans);
+        letter-spacing: 0;
+      }
+
+      button,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      .preview-page {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .proposal-bar {
+        min-height: 62px;
+        display: grid;
+        grid-template-columns: minmax(240px, 1fr) auto minmax(240px, 1fr);
+        align-items: center;
+        gap: 20px;
+        padding: 10px 18px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .proposal-brand {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--graphite-900);
+        color: #fff;
+        font-weight: 800;
+        box-shadow: inset 0 -3px 0 var(--gold-500);
+      }
+
+      .proposal-brand h1 {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.25;
+      }
+
+      .proposal-brand p {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .option-switcher {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface-soft);
+      }
+
+      .option-tab {
+        min-height: 36px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        cursor: pointer;
+        padding: 5px 12px;
+        font-weight: 700;
+        font-size: 13px;
+        white-space: nowrap;
+        transition:
+          background-color 160ms ease,
+          color 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .option-tab:hover {
+        background: #fff;
+      }
+
+      .option-tab[aria-selected='true'] {
+        background: var(--blue-600);
+        color: #fff;
+        box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
+      }
+
+      .option-tab:focus-visible,
+      .icon-button:focus-visible,
+      .send-button:focus-visible {
+        outline: 2px solid var(--blue-600);
+        outline-offset: 2px;
+      }
+
+      .proposal-summary {
+        justify-self: end;
+        min-width: 0;
+        text-align: right;
+      }
+
+      .proposal-summary strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .proposal-summary span {
+        display: block;
+        max-width: 340px;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .stage {
+        min-height: 0;
+        padding: 16px;
+      }
+
+      .option-view {
+        display: none;
+        height: calc(100vh - 94px);
+        min-height: 660px;
+      }
+
+      .option-view.is-active {
+        display: block;
+      }
+
+      .chat-frame {
+        height: 100%;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: 54px minmax(0, 1fr) auto;
+        overflow: hidden;
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 0 18px;
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .chat-heading {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .agent-avatar,
+      .avatar {
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 800;
+      }
+
+      .agent-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        background: var(--graphite-900);
+        box-shadow: inset 0 -3px 0 var(--gold-500);
+        font-size: 10px;
+      }
+
+      .avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        font-size: 10px;
+      }
+
+      .avatar.ai {
+        background: var(--graphite-900);
+        box-shadow: inset 0 -3px 0 var(--gold-500);
+      }
+
+      .avatar.human {
+        background: #4f9acd;
+      }
+
+      .chat-heading h2 {
+        margin: 0;
+        font-size: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .chat-heading p {
+        margin: 1px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .header-tags {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 9px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--surface-soft);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .tag.blue {
+        border-color: #bcd0ff;
+        background: var(--blue-50);
+        color: var(--blue-700);
+      }
+
+      .chat-scroll {
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+
+      .action-strip {
+        min-width: 112px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 2px;
+        opacity: 0.58;
+        transition: opacity 140ms ease;
+      }
+
+      .message:hover .action-strip,
+      .turn:hover .action-strip,
+      .action-strip:focus-within {
+        opacity: 1;
+      }
+
+      .icon-button {
+        width: 26px;
+        height: 26px;
+        display: inline-grid;
+        place-items: center;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: #5e6b7f;
+        cursor: pointer;
+        transition:
+          background-color 140ms ease,
+          color 140ms ease;
+      }
+
+      .icon-button:hover {
+        background: var(--surface-tint);
+        color: var(--blue-700);
+      }
+
+      .icon-button.danger:hover {
+        background: #fef2f2;
+        color: #b42318;
+      }
+
+      .icon-button svg {
+        width: 14px;
+        height: 14px;
+        stroke-width: 1.9;
+      }
+
+      .icon-fallback {
+        font-size: 13px;
+        line-height: 1;
+      }
+
+      .icons-ready .icon-fallback {
+        display: none;
+      }
+
+      .meta-time {
+        width: 42px;
+        flex: 0 0 42px;
+        color: var(--muted-light);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        line-height: 28px;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .message-copy {
+        font-size: 14px;
+        line-height: 1.72;
+      }
+
+      .message-copy p {
+        margin: 0 0 11px;
+      }
+
+      .message-copy p:last-child {
+        margin-bottom: 0;
+      }
+
+      .message-copy ul {
+        margin: 8px 0 12px;
+        padding-left: 20px;
+      }
+
+      .message-copy li + li {
+        margin-top: 4px;
+      }
+
+      .code-block {
+        margin: 12px 0 2px;
+        overflow: hidden;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        background: #182132;
+        color: #d7e1ef;
+      }
+
+      .code-head {
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 11px;
+        border-bottom: 1px solid #344055;
+        background: #253248;
+        color: #bdc9da;
+        font-family: var(--font-mono);
+        font-size: 10px;
+      }
+
+      .code-block pre {
+        margin: 0;
+        padding: 13px;
+        overflow: auto;
+        color: inherit;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        line-height: 1.65;
+      }
+
+      .token-key {
+        color: #8bc4ff;
+      }
+
+      .token-string {
+        color: #8ee0bb;
+      }
+
+      .source-line {
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .source-badge {
+        min-height: 22px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 7px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        background: #fff;
+        color: var(--blue-700);
+        font-weight: 700;
+      }
+
+      .composer {
+        padding: 10px 16px 14px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+      }
+
+      .composer-inner {
+        width: min(100%, 980px);
+        min-height: 62px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 10px;
+        padding: 10px 10px 9px 14px;
+        border: 1px solid var(--border-strong);
+        border-radius: 7px;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(23, 32, 51, 0.06);
+      }
+
+      .composer textarea {
+        min-height: 38px;
+        max-height: 88px;
+        resize: none;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .composer textarea::placeholder {
+        color: var(--muted-light);
+      }
+
+      .send-button {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 6px;
+        background: var(--blue-600);
+        color: #fff;
+        cursor: pointer;
+      }
+
+      .send-button svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* Option A: dual conversation rails */
+      .rail-canvas {
+        min-height: 100%;
+        padding: 30px 24px 54px;
+        background: #f8fafc;
+      }
+
+      .rail-thread {
+        width: min(100%, 980px);
+        margin: 0 auto;
+        display: grid;
+        gap: 30px;
+      }
+
+      .rail-message {
+        width: min(100%, 820px);
+      }
+
+      .rail-message.human {
+        justify-self: end;
+      }
+
+      .rail-message.ai {
+        justify-self: start;
+      }
+
+      .rail-meta {
+        height: 30px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 6px;
+      }
+
+      .rail-message.human .rail-meta {
+        justify-content: flex-end;
+      }
+
+      .rail-message.ai .rail-meta {
+        justify-content: flex-start;
+      }
+
+      .rail-role {
+        margin: 0 3px;
+        color: var(--graphite-700);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .human-command {
+        max-width: 640px;
+        margin-left: auto;
+        padding: 12px 15px;
+        border-radius: 7px 2px 7px 7px;
+        background: var(--blue-600);
+        color: #fff;
+        font-size: 14px;
+        line-height: 1.65;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.16);
+      }
+
+      .ai-reading {
+        position: relative;
+        padding: 1px 0 1px 17px;
+      }
+
+      .ai-reading::before {
+        content: '';
+        position: absolute;
+        inset: 4px auto 4px 0;
+        width: 3px;
+        border-radius: 2px;
+        background: var(--blue-600);
+      }
+
+      .ai-reading .message-title {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+
+      /* Option B: audit bands */
+      .band-canvas {
+        min-height: 100%;
+        padding: 22px 0 46px;
+        background: #f6f8fb;
+      }
+
+      .band-thread {
+        width: min(100%, 1120px);
+        margin: 0 auto;
+        border-top: 1px solid var(--border);
+      }
+
+      .band-message {
+        display: grid;
+        grid-template-columns: 148px minmax(0, 1fr);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .band-message.human {
+        background: #eef4ff;
+      }
+
+      .band-message.ai {
+        background: #fff;
+      }
+
+      .band-identity {
+        padding: 18px 16px;
+        border-right: 1px solid var(--border);
+      }
+
+      .band-identity-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .band-identity strong {
+        font-size: 12px;
+      }
+
+      .band-identity .meta-time {
+        display: block;
+        width: auto;
+        margin-top: 4px;
+        text-align: left;
+        line-height: 1.4;
+      }
+
+      .band-content {
+        min-width: 0;
+        padding: 18px 20px 20px;
+      }
+
+      .band-tools {
+        height: 28px;
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 2px;
+      }
+
+      .band-message.human .band-content {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .band-message.human .band-tools {
+        grid-column: 2;
+        grid-row: 1;
+        margin: -4px 0 0;
+      }
+
+      .band-message.human .message-copy {
+        grid-column: 1;
+        grid-row: 1;
+        color: #1c3974;
+        font-weight: 650;
+      }
+
+      .band-answer-head {
+        margin-bottom: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .band-answer-head strong {
+        font-size: 14px;
+      }
+
+      /* Option C: command/result turns */
+      .turn-canvas {
+        min-height: 100%;
+        padding: 26px 24px 50px;
+        background: #edf2f7;
+      }
+
+      .turn-thread {
+        width: min(100%, 1000px);
+        margin: 0 auto;
+        display: grid;
+        gap: 24px;
+      }
+
+      .turn {
+        overflow: hidden;
+        border: 1px solid var(--border-strong);
+        border-radius: 7px;
+        background: #fff;
+        box-shadow: 0 7px 20px rgba(23, 32, 51, 0.06);
+      }
+
+      .turn-command {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr) auto;
+        align-items: center;
+        min-height: 54px;
+        border-bottom: 1px solid #bfd0ed;
+        background: var(--blue-50);
+      }
+
+      .turn-label {
+        align-self: stretch;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 13px;
+        background: var(--blue-600);
+        color: #fff;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+
+      .turn-command-text {
+        padding: 12px 16px;
+        color: #1e3d78;
+        font-size: 14px;
+        font-weight: 650;
+        line-height: 1.55;
+      }
+
+      .turn-human-meta {
+        display: flex;
+        align-items: center;
+        padding-right: 12px;
+      }
+
+      .turn-result {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+      }
+
+      .result-rail {
+        padding: 18px 12px;
+        background: var(--graphite-900);
+        color: #fff;
+      }
+
+      .result-rail .avatar {
+        margin-bottom: 10px;
+        background: var(--blue-600);
+        box-shadow: inset 0 -3px 0 var(--gold-500);
+      }
+
+      .result-rail strong {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.04em;
+      }
+
+      .result-rail span {
+        display: block;
+        margin-top: 5px;
+        color: #aebacf;
+        font-size: 10px;
+        line-height: 1.4;
+      }
+
+      .result-body {
+        min-width: 0;
+        padding: 16px 18px 20px;
+      }
+
+      .result-toolbar {
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .result-toolbar strong {
+        font-size: 14px;
+      }
+
+      .result-meta {
+        display: flex;
+        align-items: center;
+      }
+
+      .result-footer {
+        margin-top: 14px;
+        padding-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .streaming {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--blue-700);
+        font-weight: 700;
+      }
+
+      .streaming-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--blue-600);
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.35;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .proposal-bar {
+          grid-template-columns: 1fr;
+          gap: 8px;
+          position: static;
+        }
+
+        .proposal-summary {
+          display: none;
+        }
+
+        .option-view {
+          height: calc(100vh - 158px);
+        }
+
+        .option-switcher {
+          width: 100%;
+        }
+
+        .stage {
+          padding: 10px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .proposal-bar {
+          padding: 10px;
+        }
+
+        .option-switcher {
+          grid-template-columns: 1fr;
+        }
+
+        .option-tab {
+          min-height: 34px;
+          white-space: normal;
+        }
+
+        .option-view {
+          height: auto;
+          min-height: 720px;
+        }
+
+        .chat-frame {
+          min-height: 720px;
+          border-radius: 0;
+        }
+
+        .header-tags .tag:not(.blue) {
+          display: none;
+        }
+
+        .chat-header {
+          padding: 0 12px;
+        }
+
+        .rail-canvas,
+        .turn-canvas {
+          padding: 20px 12px 36px;
+        }
+
+        .rail-thread {
+          gap: 24px;
+        }
+
+        .rail-message {
+          width: 100%;
+        }
+
+        .human-command {
+          max-width: 88%;
+        }
+
+        .band-canvas {
+          padding-top: 10px;
+        }
+
+        .band-message {
+          grid-template-columns: 1fr;
+        }
+
+        .band-identity {
+          padding: 10px 12px;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .band-identity .meta-time {
+          display: inline-block;
+          margin: 0 0 0 8px;
+        }
+
+        .band-content {
+          padding: 14px 12px 18px;
+        }
+
+        .band-message.human .band-content {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .band-message.human .band-tools {
+          grid-column: 1;
+          grid-row: 2;
+          justify-self: end;
+          margin-top: 6px;
+        }
+
+        .turn-command {
+          grid-template-columns: 72px minmax(0, 1fr);
+        }
+
+        .turn-human-meta {
+          grid-column: 1 / -1;
+          justify-content: flex-end;
+          padding: 5px 9px;
+          border-top: 1px solid #c9d9f2;
+        }
+
+        .turn-result {
+          grid-template-columns: 1fr;
+        }
+
+        .result-rail {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 9px 12px;
+        }
+
+        .result-rail .avatar {
+          margin: 0;
+        }
+
+        .composer {
+          padding: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="preview-page">
+      <header class="proposal-bar">
+        <div class="proposal-brand">
+          <div class="brand-mark">OC</div>
+          <div>
+            <h1>门户消息视觉系统</h1>
+            <p>Human / AI 消息结构、背景与操作层级对比</p>
+          </div>
+        </div>
+
+        <nav class="option-switcher" role="tablist" aria-label="消息样式方案">
+          <button class="option-tab" role="tab" data-target="a" aria-selected="true">
+            A 双轨阅读 · 推荐
+          </button>
+          <button class="option-tab" role="tab" data-target="b" aria-selected="false">
+            B 审阅带
+          </button>
+          <button class="option-tab" role="tab" data-target="c" aria-selected="false">
+            C 指令 / 结果
+          </button>
+        </nav>
+
+        <div class="proposal-summary" aria-live="polite">
+          <strong id="summary-title">方案 A：双轨阅读</strong>
+          <span id="summary-copy">保留聊天直觉，重新建立消息、身份和操作的稳定秩序。</span>
+        </div>
+      </header>
+
+      <div class="stage">
+        <section class="option-view is-active" id="option-a" role="tabpanel">
+          <div class="chat-frame">
+            <header class="chat-header">
+              <div class="chat-heading">
+                <div class="agent-avatar">OC</div>
+                <div>
+                  <h2>售后政策助手</h2>
+                  <p>双轨阅读 · 用户指令与 Agent 答案保持不同语法</p>
+                </div>
+              </div>
+              <div class="header-tags">
+                <span class="tag">4 条消息</span>
+                <span class="tag blue">Qwen3.6-27B</span>
+              </div>
+            </header>
+
+            <div class="chat-scroll rail-canvas">
+              <div class="rail-thread">
+                <article class="message rail-message human">
+                  <div class="rail-meta">
+                    <time class="meta-time">13:08</time>
+                    <div class="action-strip" aria-label="用户消息操作">
+                      <button class="icon-button" title="复制" aria-label="复制">
+                        <span class="icon-fallback">⧉</span><i data-lucide="copy"></i>
+                      </button>
+                      <button class="icon-button" title="重新发送" aria-label="重新发送">
+                        <span class="icon-fallback">↻</span><i data-lucide="rotate-ccw"></i>
+                      </button>
+                      <button class="icon-button danger" title="删除" aria-label="删除">
+                        <span class="icon-fallback">×</span><i data-lucide="trash-2"></i>
+                      </button>
+                    </div>
+                    <span class="rail-role">我</span>
+                    <div class="avatar human">林</div>
+                  </div>
+                  <div class="human-command">
+                    请比较企业知识库中“分块存储”和“问答对提取”的差异，并给出适用场景。
+                  </div>
+                </article>
+
+                <article class="message rail-message ai">
+                  <div class="rail-meta">
+                    <div class="avatar ai">OC</div>
+                    <span class="rail-role">Omni Agent</span>
+                    <div class="action-strip" aria-label="AI 消息操作">
+                      <button class="icon-button" title="复制" aria-label="复制">
+                        <span class="icon-fallback">⧉</span><i data-lucide="copy"></i>
+                      </button>
+                      <button class="icon-button" title="朗读" aria-label="朗读">
+                        <span class="icon-fallback">♪</span><i data-lucide="volume-2"></i>
+                      </button>
+                      <button class="icon-button" title="有帮助" aria-label="有帮助">
+                        <span class="icon-fallback">+</span><i data-lucide="thumbs-up"></i>
+                      </button>
+                      <button class="icon-button" title="无帮助" aria-label="无帮助">
+                        <span class="icon-fallback">−</span><i data-lucide="thumbs-down"></i>
+                      </button>
+                    </div>
+                    <time class="meta-time">13:08</time>
+                  </div>
+                  <div class="ai-reading message-copy">
+                    <h3 class="message-title">两种处理方式解决的问题不同</h3>
+                    <p>
+                      <strong>分块存储</strong
+                      >保留原文语义和上下文，适合制度文档、产品手册与长篇技术资料。
+                    </p>
+                    <ul>
+                      <li>优点：覆盖范围完整，便于追溯原文。</li>
+                      <li>注意：分块长度与重叠比例会直接影响召回质量。</li>
+                    </ul>
+                    <p>
+                      <strong>问答对提取</strong>把内容转成明确的问题和答案，适合
+                      FAQ、客服口径与标准流程。
+                    </p>
+                    <div class="code-block">
+                      <div class="code-head"><span>推荐配置</span><span>JSON</span></div>
+                      <pre><span class="token-key">"chunkSize"</span>: 900,
+<span class="token-key">"overlap"</span>: 120,
+<span class="token-key">"indexMode"</span>: <span class="token-string">"semantic"</span></pre>
+                    </div>
+                    <div class="source-line">
+                      <span class="source-badge">知识库 #12</span>
+                      <span class="source-badge">导入指南 #04</span>
+                      <span>0.82s</span>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="message rail-message human">
+                  <div class="rail-meta">
+                    <time class="meta-time">13:10</time>
+                    <div class="action-strip" aria-label="用户消息操作">
+                      <button class="icon-button" title="复制" aria-label="复制">
+                        <span class="icon-fallback">⧉</span><i data-lucide="copy"></i>
+                      </button>
+                      <button class="icon-button" title="重新发送" aria-label="重新发送">
+                        <span class="icon-fallback">↻</span><i data-lucide="rotate-ccw"></i>
+                      </button>
+                      <button class="icon-button danger" title="删除" aria-label="删除">
+                        <span class="icon-fallback">×</span><i data-lucide="trash-2"></i>
+                      </button>
+                    </div>
+                    <span class="rail-role">我</span>
+                    <div class="avatar human">林</div>
+                  </div>
+                  <div class="human-command">如果是售后政策库，你更推荐哪一种？</div>
+                </article>
+
+                <article class="message rail-message ai">
+                  <div class="rail-meta">
+                    <div class="avatar ai">OC</div>
+                    <span class="rail-role">Omni Agent</span>
+                    <div class="action-strip" aria-label="AI 消息操作">
+                      <button class="icon-button" title="停止生成" aria-label="停止生成">
+                        <span class="icon-fallback">■</span><i data-lucide="square"></i>
+                      </button>
+                    </div>
+                    <time class="meta-time">13:10</time>
+                  </div>
+                  <div class="ai-reading message-copy">
+                    <p class="streaming"><span class="streaming-dot"></span>正在组织建议</p>
+                    <p>
+                      我会采用“分块存储为主、问答对补充”的组合方式。这样既能覆盖完整政策，也能让高频问题直接命中标准答案。
+                    </p>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <footer class="composer">
+              <div class="composer-inner">
+                <textarea
+                  aria-label="输入消息"
+                  placeholder="继续提问，或输入 / 选择变量"
+                ></textarea>
+                <button class="send-button" title="发送" aria-label="发送">
+                  <i data-lucide="arrow-up"></i>
+                </button>
+              </div>
+            </footer>
+          </div>
+        </section>
+
+        <section class="option-view" id="option-b" role="tabpanel" hidden>
+          <div class="chat-frame">
+            <header class="chat-header">
+              <div class="chat-heading">
+                <div class="agent-avatar">OC</div>
+                <div>
+                  <h2>售后政策助手</h2>
+                  <p>审阅带 · 角色固定在左列，正文占满剩余阅读宽度</p>
+                </div>
+              </div>
+              <div class="header-tags">
+                <span class="tag">高密度阅读</span>
+                <span class="tag blue">Qwen3.6-27B</span>
+              </div>
+            </header>
+
+            <div class="chat-scroll band-canvas">
+              <div class="band-thread">
+                <article class="message band-message human">
+                  <aside class="band-identity">
+                    <div class="band-identity-row">
+                      <div class="avatar human">林</div>
+                      <strong>我的指令</strong>
+                    </div>
+                    <time class="meta-time">13:08</time>
+                  </aside>
+                  <div class="band-content">
+                    <div class="message-copy">
+                      请比较企业知识库中“分块存储”和“问答对提取”的差异，并给出适用场景。
+                    </div>
+                    <div class="band-tools action-strip" aria-label="用户消息操作">
+                      <button class="icon-button" title="复制" aria-label="复制">
+                        <i data-lucide="copy"></i>
+                      </button>
+                      <button class="icon-button" title="重新发送" aria-label="重新发送">
+                        <i data-lucide="rotate-ccw"></i>
+                      </button>
+                      <button class="icon-button danger" title="删除" aria-label="删除">
+                        <i data-lucide="trash-2"></i>
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="message band-message ai">
+                  <aside class="band-identity">
+                    <div class="band-identity-row">
+                      <div class="avatar ai">OC</div>
+                      <strong>Agent 答案</strong>
+                    </div>
+                    <time class="meta-time">13:08</time>
+                  </aside>
+                  <div class="band-content">
+                    <div class="band-answer-head">
+                      <strong>两种处理方式解决的问题不同</strong>
+                      <div class="action-strip" aria-label="AI 消息操作">
+                        <button class="icon-button" title="复制" aria-label="复制">
+                          <i data-lucide="copy"></i>
+                        </button>
+                        <button class="icon-button" title="朗读" aria-label="朗读">
+                          <i data-lucide="volume-2"></i>
+                        </button>
+                        <button class="icon-button" title="有帮助" aria-label="有帮助">
+                          <i data-lucide="thumbs-up"></i>
+                        </button>
+                        <button class="icon-button" title="无帮助" aria-label="无帮助">
+                          <i data-lucide="thumbs-down"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="message-copy">
+                      <p>
+                        <strong>分块存储</strong
+                        >保留原文语义和上下文，适合制度文档、产品手册与长篇技术资料。
+                      </p>
+                      <ul>
+                        <li>优点：覆盖范围完整，便于追溯原文。</li>
+                        <li>注意：分块长度与重叠比例会直接影响召回质量。</li>
+                      </ul>
+                      <p>
+                        <strong>问答对提取</strong>把内容转成明确的问题和答案，适合
+                        FAQ、客服口径与标准流程。
+                      </p>
+                      <div class="code-block">
+                        <div class="code-head"><span>推荐配置</span><span>JSON</span></div>
+                        <pre><span class="token-key">"chunkSize"</span>: 900,  <span class="token-key">"overlap"</span>: 120,  <span class="token-key">"indexMode"</span>: <span class="token-string">"semantic"</span></pre>
+                      </div>
+                      <div class="source-line">
+                        <span class="source-badge">知识库 #12</span
+                        ><span class="source-badge">导入指南 #04</span><span>0.82s</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="message band-message human">
+                  <aside class="band-identity">
+                    <div class="band-identity-row">
+                      <div class="avatar human">林</div>
+                      <strong>我的指令</strong>
+                    </div>
+                    <time class="meta-time">13:10</time>
+                  </aside>
+                  <div class="band-content">
+                    <div class="message-copy">如果是售后政策库，你更推荐哪一种？</div>
+                    <div class="band-tools action-strip" aria-label="用户消息操作">
+                      <button class="icon-button" title="复制" aria-label="复制">
+                        <i data-lucide="copy"></i>
+                      </button>
+                      <button class="icon-button" title="重新发送" aria-label="重新发送">
+                        <i data-lucide="rotate-ccw"></i>
+                      </button>
+                      <button class="icon-button danger" title="删除" aria-label="删除">
+                        <i data-lucide="trash-2"></i>
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <footer class="composer">
+              <div class="composer-inner">
+                <textarea
+                  aria-label="输入消息"
+                  placeholder="继续提问，或输入 / 选择变量"
+                ></textarea>
+                <button class="send-button" title="发送" aria-label="发送">
+                  <i data-lucide="arrow-up"></i>
+                </button>
+              </div>
+            </footer>
+          </div>
+        </section>
+
+        <section class="option-view" id="option-c" role="tabpanel" hidden>
+          <div class="chat-frame">
+            <header class="chat-header">
+              <div class="chat-heading">
+                <div class="agent-avatar">OC</div>
+                <div>
+                  <h2>售后政策助手</h2>
+                  <p>任务回合 · 每个 Human 指令与 AI 结果组成一个完整工作单元</p>
+                </div>
+              </div>
+              <div class="header-tags">
+                <span class="tag">2 个回合</span>
+                <span class="tag blue">Qwen3.6-27B</span>
+              </div>
+            </header>
+
+            <div class="chat-scroll turn-canvas">
+              <div class="turn-thread">
+                <article class="turn message">
+                  <header class="turn-command">
+                    <div class="turn-label"><span>01</span><span>指令</span></div>
+                    <div class="turn-command-text">
+                      比较“分块存储”和“问答对提取”，并给出适用场景。
+                    </div>
+                    <div class="turn-human-meta">
+                      <time class="meta-time">13:08</time>
+                      <div class="action-strip" aria-label="用户消息操作">
+                        <button class="icon-button" title="复制" aria-label="复制">
+                          <i data-lucide="copy"></i>
+                        </button>
+                        <button class="icon-button" title="重新发送" aria-label="重新发送">
+                          <i data-lucide="rotate-ccw"></i>
+                        </button>
+                        <button class="icon-button danger" title="删除" aria-label="删除">
+                          <i data-lucide="trash-2"></i>
+                        </button>
+                      </div>
+                      <div class="avatar human">林</div>
+                    </div>
+                  </header>
+                  <div class="turn-result">
+                    <aside class="result-rail">
+                      <div class="avatar">OC</div>
+                      <div><strong>RESULT</strong><span>知识库分析</span></div>
+                    </aside>
+                    <div class="result-body">
+                      <div class="result-toolbar">
+                        <strong>处理方式建议</strong>
+                        <div class="result-meta">
+                          <div class="action-strip" aria-label="AI 消息操作">
+                            <button class="icon-button" title="复制" aria-label="复制">
+                              <i data-lucide="copy"></i>
+                            </button>
+                            <button class="icon-button" title="朗读" aria-label="朗读">
+                              <i data-lucide="volume-2"></i>
+                            </button>
+                            <button class="icon-button" title="有帮助" aria-label="有帮助">
+                              <i data-lucide="thumbs-up"></i>
+                            </button>
+                            <button class="icon-button" title="无帮助" aria-label="无帮助">
+                              <i data-lucide="thumbs-down"></i>
+                            </button>
+                          </div>
+                          <time class="meta-time">13:08</time>
+                        </div>
+                      </div>
+                      <div class="message-copy">
+                        <p>
+                          <strong>分块存储</strong
+                          >用于保留完整上下文；<strong>问答对提取</strong>用于强化高频问题的直接命中。
+                        </p>
+                        <ul>
+                          <li>长篇制度与手册：优先分块存储。</li>
+                          <li>FAQ 与标准口径：优先问答对提取。</li>
+                        </ul>
+                        <div class="code-block">
+                          <div class="code-head"><span>推荐配置</span><span>JSON</span></div>
+                          <pre><span class="token-key">"chunkSize"</span>: 900,
+<span class="token-key">"overlap"</span>: 120,
+<span class="token-key">"indexMode"</span>: <span class="token-string">"semantic"</span></pre>
+                        </div>
+                      </div>
+                      <footer class="result-footer">
+                        <span>命中 2 个知识片段 · 0.82s</span>
+                        <span class="source-badge">查看依据</span>
+                      </footer>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="turn message">
+                  <header class="turn-command">
+                    <div class="turn-label"><span>02</span><span>指令</span></div>
+                    <div class="turn-command-text">如果是售后政策库，你更推荐哪一种？</div>
+                    <div class="turn-human-meta">
+                      <time class="meta-time">13:10</time>
+                      <div class="action-strip" aria-label="用户消息操作">
+                        <button class="icon-button" title="复制" aria-label="复制">
+                          <i data-lucide="copy"></i>
+                        </button>
+                        <button class="icon-button" title="重新发送" aria-label="重新发送">
+                          <i data-lucide="rotate-ccw"></i>
+                        </button>
+                        <button class="icon-button danger" title="删除" aria-label="删除">
+                          <i data-lucide="trash-2"></i>
+                        </button>
+                      </div>
+                      <div class="avatar human">林</div>
+                    </div>
+                  </header>
+                  <div class="turn-result">
+                    <aside class="result-rail">
+                      <div class="avatar">OC</div>
+                      <div><strong>RESULT</strong><span>组合建议</span></div>
+                    </aside>
+                    <div class="result-body">
+                      <div class="result-toolbar">
+                        <strong>建议采用组合策略</strong>
+                        <div class="result-meta">
+                          <span class="streaming"><span class="streaming-dot"></span>生成中</span>
+                        </div>
+                      </div>
+                      <div class="message-copy">
+                        <p>以分块存储覆盖完整政策，再为退款、换货、保修等高频场景补充问答对。</p>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <footer class="composer">
+              <div class="composer-inner">
+                <textarea
+                  aria-label="输入消息"
+                  placeholder="继续提问，或输入 / 选择变量"
+                ></textarea>
+                <button class="send-button" title="发送" aria-label="发送">
+                  <i data-lucide="arrow-up"></i>
+                </button>
+              </div>
+            </footer>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script>
+      const optionCopy = {
+        a: {
+          title: '方案 A：双轨阅读',
+          copy: '保留聊天直觉，重新建立消息、身份和操作的稳定秩序。'
+        },
+        b: {
+          title: '方案 B：审阅带',
+          copy: '角色栏与正文栏稳定对齐，适合连续查阅长答案与审计记录。'
+        },
+        c: {
+          title: '方案 C：指令 / 结果',
+          copy: '把一问一答合并为工作回合，最有 OmniCockpit 控制台识别度。'
+        }
+      };
+
+      const tabs = [...document.querySelectorAll('.option-tab')];
+      const views = [...document.querySelectorAll('.option-view')];
+      const summaryTitle = document.querySelector('#summary-title');
+      const summaryCopy = document.querySelector('#summary-copy');
+
+      function activateOption(key, updateHash = true) {
+        const safeKey = optionCopy[key] ? key : 'a';
+        tabs.forEach((tab) => {
+          const isActive = tab.dataset.target === safeKey;
+          tab.setAttribute('aria-selected', String(isActive));
+          tab.tabIndex = isActive ? 0 : -1;
+        });
+        views.forEach((view) => {
+          const isActive = view.id === `option-${safeKey}`;
+          view.classList.toggle('is-active', isActive);
+          view.hidden = !isActive;
+        });
+        summaryTitle.textContent = optionCopy[safeKey].title;
+        summaryCopy.textContent = optionCopy[safeKey].copy;
+        document.title = `${optionCopy[safeKey].title} · OmniCockpit`;
+        if (updateHash) history.replaceState(null, '', `#${safeKey}`);
+      }
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => activateOption(tab.dataset.target));
+        tab.addEventListener('keydown', (event) => {
+          if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+          event.preventDefault();
+          const direction = event.key === 'ArrowRight' ? 1 : -1;
+          const nextIndex = (index + direction + tabs.length) % tabs.length;
+          tabs[nextIndex].focus();
+          activateOption(tabs[nextIndex].dataset.target);
+        });
+      });
+
+      window.addEventListener('hashchange', () => {
+        activateOption(location.hash.replace('#', ''), false);
+      });
+
+      activateOption(location.hash.replace('#', ''), false);
+
+      if (window.lucide) {
+        window.lucide.createIcons();
+        document.documentElement.classList.add('icons-ready');
+      }
+    </script>
+  </body>
+</html>

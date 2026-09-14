@@ -1,0 +1,193 @@
+diff --git a/dist/adapters/OpenSandboxAdapter/index.d.ts b/dist/adapters/OpenSandboxAdapter/index.d.ts
+index ab6400afa..320b03be9 100644
+--- a/dist/adapters/OpenSandboxAdapter/index.d.ts
++++ b/dist/adapters/OpenSandboxAdapter/index.d.ts
+@@ -71,6 +71,8 @@ export declare class OpenSandboxAdapter extends BaseSandboxAdapter {
+     private parseResourceLimits;
+     private extractExitCode;
+     private getSandboxBySessionId;
++    connectExisting(): Promise<boolean>;
++    inspectExisting(sandboxId?: string): Promise<Pick<SandboxInfo, "id" | "status"> | null>;
+     ensureRunning(): Promise<void>;
+     create(): Promise<void>;
+     connect(sandboxId: string): Promise<void>;
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 4dd189779..43dc978d4 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -45054,7 +45054,9 @@ class CommandPolyfillService {
+         throw error;
+       }
+       if (error instanceof CommandExecutionError) {
+-        throw this.createFileError(path, error.stderr || "");
++        const fileError = this.createFileError(path, error.stderr || "");
++        fileError.cause = error;
++        throw fileError;
+       }
+       throw error;
+     }
+@@ -48171,8 +48171,16 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+   async getSandboxBySessionId() {
+     const manager = SandboxManager.create({ connectionConfig: this._connection });
+     const result = await manager.listSandboxInfos({
+-      metadata: { sessionId: this.connectionConfig.sessionId }
++      metadata: { sessionId: this.connectionConfig.sessionId },
++      page: 1,
++      pageSize: 2
+     });
++    if (result.items.some((item) => item.metadata?.sessionId !== this.connectionConfig.sessionId)) {
++      throw new ConnectionError("Sandbox lookup returned a non-exact sessionId match");
++    }
++    if (result.items.length > 1 || result.pagination?.totalItems > 1 || result.pagination?.totalPages > 1) {
++      throw new ConnectionError("Ambiguous Sandbox sessionId: multiple provider instances match");
++    }
+     const val = result.items[0];
+     if (val) {
+       const status = this.mapStatus(val.status);
+@@ -48182,6 +48190,39 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+       };
+     }
+   }
++  async inspectExisting(sandboxId) {
++    const existing = await this.getSandboxBySessionId();
++    if (!sandboxId) return existing ?? null;
++    if (existing && existing.id !== sandboxId) {
++      throw new ConnectionError("Sandbox provider target changed");
++    }
++    const manager = SandboxManager.create({ connectionConfig: this._connection });
++    try {
++      const info = await manager.getSandboxInfo(sandboxId);
++      if (info.id !== sandboxId || info.metadata?.sessionId !== this.connectionConfig.sessionId) {
++        throw new ConnectionError("Sandbox provider id or sessionId does not match");
++      }
++      return { id: info.id, status: this.mapStatus(info.status) };
++    } catch (error) {
++      if (error instanceof SandboxApiException && error.statusCode === 404) return null;
++      throw error;
++    }
++  }
++  async connectExisting() {
++    const existing = await this.getSandboxBySessionId();
++    if (!existing) {
++      this.sandbox = undefined;
++      this._status = { state: "UnExist" };
++      return false;
++    }
++    this.sandbox = await Sandbox.connect({
++      sandboxId: existing.id,
++      connectionConfig: this._connection,
++      skipHealthCheck: true
++    });
++    this._status = existing.status;
++    return true;
++  }
+   async ensureRunning() {
+     const sandbox = await this.getSandboxBySessionId();
+     if (sandbox) {
+@@ -48234,6 +48275,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+           sessionId: this.connectionConfig.sessionId
+         },
+         volumes: cfg.volumes,
++        networkPolicy: cfg.networkPolicy,
+         skipHealthCheck: cfg.skipHealthCheck,
+         readyTimeoutSeconds: cfg.readyTimeoutSeconds,
+         healthCheckPollingInterval: cfg.healthCheckPollingInterval
+@@ -48298,7 +48340,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+   async stop() {
+     try {
+       this._status = { state: "Stopping" };
+-      await this.sandbox.kill();
++      await this.sandbox.pause();
+       this._status = { state: "Stopped" };
+     } catch (error) {
+       const message = error instanceof SandboxException2 ? error.error.message : undefined;
+diff --git a/dist/index.js b/dist/index.js
+index 315731e1b..ba930c262 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -45038,7 +45038,9 @@ class CommandPolyfillService {
+         throw error;
+       }
+       if (error instanceof CommandExecutionError) {
+-        throw this.createFileError(path, error.stderr || "");
++        const fileError = this.createFileError(path, error.stderr || "");
++        fileError.cause = error;
++        throw fileError;
+       }
+       throw error;
+     }
+@@ -48155,8 +48155,16 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+   async getSandboxBySessionId() {
+     const manager = SandboxManager.create({ connectionConfig: this._connection });
+     const result = await manager.listSandboxInfos({
+-      metadata: { sessionId: this.connectionConfig.sessionId }
++      metadata: { sessionId: this.connectionConfig.sessionId },
++      page: 1,
++      pageSize: 2
+     });
++    if (result.items.some((item) => item.metadata?.sessionId !== this.connectionConfig.sessionId)) {
++      throw new ConnectionError("Sandbox lookup returned a non-exact sessionId match");
++    }
++    if (result.items.length > 1 || result.pagination?.totalItems > 1 || result.pagination?.totalPages > 1) {
++      throw new ConnectionError("Ambiguous Sandbox sessionId: multiple provider instances match");
++    }
+     const val = result.items[0];
+     if (val) {
+       const status = this.mapStatus(val.status);
+@@ -48166,6 +48174,39 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+       };
+     }
+   }
++  async inspectExisting(sandboxId) {
++    const existing = await this.getSandboxBySessionId();
++    if (!sandboxId) return existing ?? null;
++    if (existing && existing.id !== sandboxId) {
++      throw new ConnectionError("Sandbox provider target changed");
++    }
++    const manager = SandboxManager.create({ connectionConfig: this._connection });
++    try {
++      const info = await manager.getSandboxInfo(sandboxId);
++      if (info.id !== sandboxId || info.metadata?.sessionId !== this.connectionConfig.sessionId) {
++        throw new ConnectionError("Sandbox provider id or sessionId does not match");
++      }
++      return { id: info.id, status: this.mapStatus(info.status) };
++    } catch (error) {
++      if (error instanceof SandboxApiException && error.statusCode === 404) return null;
++      throw error;
++    }
++  }
++  async connectExisting() {
++    const existing = await this.getSandboxBySessionId();
++    if (!existing) {
++      this.sandbox = undefined;
++      this._status = { state: "UnExist" };
++      return false;
++    }
++    this.sandbox = await Sandbox.connect({
++      sandboxId: existing.id,
++      connectionConfig: this._connection,
++      skipHealthCheck: true
++    });
++    this._status = existing.status;
++    return true;
++  }
+   async ensureRunning() {
+     const sandbox = await this.getSandboxBySessionId();
+     if (sandbox) {
+@@ -48218,6 +48259,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+           sessionId: this.connectionConfig.sessionId
+         },
+         volumes: cfg.volumes,
++        networkPolicy: cfg.networkPolicy,
+         skipHealthCheck: cfg.skipHealthCheck,
+         readyTimeoutSeconds: cfg.readyTimeoutSeconds,
+         healthCheckPollingInterval: cfg.healthCheckPollingInterval
+@@ -48282,7 +48324,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+   async stop() {
+     try {
+       this._status = { state: "Stopping" };
+-      await this.sandbox.kill();
++      await this.sandbox.pause();
+       this._status = { state: "Stopped" };
+     } catch (error) {
+       const message = error instanceof SandboxException2 ? error.error.message : undefined;

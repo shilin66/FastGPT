@@ -15,6 +15,8 @@ import type {
   CopySkillResponse,
   SaveDeploySkillBody,
   SaveDeploySkillResponse,
+  ResetSkillWorkspaceBody,
+  ResetSkillWorkspaceResponse,
   GetSkillFolderPathQuery,
   GetSkillFolderPathResponse,
   CreateEditDebugSandboxBody,
@@ -25,7 +27,10 @@ import type {
   ListSkillVersionsBody,
   ListSkillVersionsResponse,
   SwitchSkillVersionBody,
-  UpdateSkillVersionBody
+  UpdateSkillVersionBody,
+  RetryInitializeSkillBody,
+  RetryInitializeSkillResponse,
+  DeleteSkillVersionBody
 } from '@fastgpt/global/core/agentSkills/api';
 import type { SkillDebugDeleteChatItemBody } from '@fastgpt/global/core/agentSkills/api';
 import type { GetResourceFolderListProps } from '@fastgpt/global/common/parentFolder/type';
@@ -69,6 +74,15 @@ export const importSkill = (formData: FormData) =>
 /** 从 Sandbox 打包并发布新版本 */
 export const postSaveDeploySkill = (data: SaveDeploySkillBody) =>
   POST<SaveDeploySkillResponse>('/core/agentSkills/save-deploy', data);
+
+export const postResetSkillWorkspace = (data: ResetSkillWorkspaceBody) =>
+  POST<ResetSkillWorkspaceResponse>('/core/agentSkills/reset-workspace', data);
+
+export const postRetrySkillInitialization = (data: RetryInitializeSkillBody) =>
+  POST<RetryInitializeSkillResponse>('/core/agentSkills/retry-initialize', data);
+
+export const postDeleteSkillVersion = (data: DeleteSkillVersionBody) =>
+  POST('/core/agentSkills/version/delete', data);
 
 /** 创建编辑调试沙箱（SSE 流式返回状态，最终推送 endpoint 信息） */
 export const postCreateEditDebugSandbox = (data: CreateEditDebugSandboxBody) =>

@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import { NextAPI } from '@/service/middleware/entry';
 import { authChatCrud, authCollectionInChat } from '@/service/support/permission/auth/chat';
 import { type DatasetDataSchemaType } from '@fastgpt/global/core/dataset/type';
@@ -49,7 +50,10 @@ async function handler(req: ApiRequestProps): Promise<GetCollectionQuoteResType>
       teamId,
       teamToken
     }),
-    MongoChatItem.findOne({ appId, chatId, dataId: chatItemDataId }, 'time').lean(),
+    MongoChatItem.findOne(
+      { ...getChatSourceFilter(), appId, chatId, dataId: chatItemDataId },
+      'time'
+    ).lean(),
     authCollectionInChat({ appId, chatId, chatItemDataId, collectionIds: [collectionId] })
   ]);
 

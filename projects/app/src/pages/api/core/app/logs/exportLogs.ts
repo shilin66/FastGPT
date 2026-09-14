@@ -9,6 +9,7 @@ import { NextAPI } from '@/service/middleware/entry';
 import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { Types } from '@fastgpt/service/common/mongo';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import {
   ChatItemCollectionName,
   ChatItemResponseCollectionName
@@ -94,6 +95,7 @@ async function handler(req: ApiRequestProps, res: NextApiResponse) {
   ]);
 
   const where = {
+    ...getChatSourceFilter(),
     appId: new Types.ObjectId(appId),
     // Feedback type filtering (BEFORE pagination for performance)
     ...(feedbackType === 'has_feedback' &&
@@ -169,6 +171,7 @@ async function handler(req: ApiRequestProps, res: NextApiResponse) {
           pipeline: [
             {
               $match: {
+                ...getChatSourceFilter(),
                 $expr: {
                   $and: [{ $eq: ['$appId', '$$appId'] }, { $eq: ['$chatId', '$$chatId'] }]
                 }
@@ -243,6 +246,7 @@ async function handler(req: ApiRequestProps, res: NextApiResponse) {
           pipeline: [
             {
               $match: {
+                ...getChatSourceFilter(),
                 $expr: {
                   $and: [{ $eq: ['$appId', '$$appId'] }, { $eq: ['$chatId', '$$chatId'] }]
                 }

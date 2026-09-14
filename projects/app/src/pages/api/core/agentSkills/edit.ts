@@ -4,7 +4,9 @@ import { responseWrite } from '@fastgpt/service/common/response';
 import { authSkill } from '@fastgpt/service/support/permission/agentSkill/auth';
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { createEditDebugSandbox } from '@fastgpt/service/core/agentSkills/sandboxController';
-import type { CreateEditDebugSandboxBody } from '@fastgpt/global/core/agentSkills/api';
+import { CreateEditDebugSandboxBodySchema } from '@fastgpt/global/openapi/core/agentSkills/api';
+import { SandboxOperationConflict } from '@fastgpt/service/core/ai/sandbox/lease';
+import { UserError } from '@fastgpt/global/common/error/utils';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import type { SandboxStatusItemType } from '@fastgpt/global/core/chat/type';
 import { isValidObjectId } from 'mongoose';
@@ -29,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Parse request body
-    const { skillId, image } = req.body as CreateEditDebugSandboxBody;
+    const { skillId, image } = CreateEditDebugSandboxBodySchema.parse(req.body);
 
     // Validate required parameters
     if (!skillId) {
@@ -79,10 +81,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     res.end();
-  } catch (err: any) {
+  } catch (err) {
     console.error('[API] Create edit-debug sandbox error:', err);
     // Wrap to avoid leaking internal implementation details via SSE
-    sseErrRes(res, new Error('Failed to create sandbox'));
+    const code =
+      err instanceof SandboxOperationConflict
+        ? 'operation_conflict'
+        : err instanceof Error && err.message.startsWith('sandbox_identity')
+          ? 'workspace_identity_conflict'
+          : err instanceof Error &&
+              err.message.startsWith('sandbox_workspace_initialization_incomplete')
+            ? 'workspace_recovery_required'
+            : 'sandbox_unavailable';
+    sseErrRes(res, new UserError(code));
     res.end();
   }
 }

@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { authChatCrud } from '@/service/support/permission/auth/chat';
@@ -74,10 +75,10 @@ async function handler(
 
   // Query feedback records, only return dataId field
   const [items, total] = await Promise.all([
-    MongoChatItem.find({ appId, chatId, ...feedbackCondition }, 'dataId')
+    MongoChatItem.find({ ...getChatSourceFilter(), appId, chatId, ...feedbackCondition }, 'dataId')
       .sort({ _id: 1 }) // Sort in chronological order
       .lean(),
-    MongoChatItem.countDocuments({ appId, chatId, ...feedbackCondition })
+    MongoChatItem.countDocuments({ ...getChatSourceFilter(), appId, chatId, ...feedbackCondition })
   ]);
 
   const dataIds = items.map((item) => item.dataId).filter(Boolean);

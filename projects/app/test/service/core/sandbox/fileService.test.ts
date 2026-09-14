@@ -8,12 +8,13 @@ import {
   type SandboxFileEntry
 } from '@/service/core/sandbox/fileService';
 import type { SandboxClient } from '@fastgpt/service/core/ai/sandbox/controller';
-import type {
-  DirectoryEntry,
-  FileInfo,
-  FileReadResult,
-  FileWriteResult
-} from '@fastgpt-sdk/sandbox-adapter';
+type DirectoryEntry = Awaited<ReturnType<SandboxClient['provider']['listDirectory']>>[number];
+type FileInfo =
+  Awaited<ReturnType<SandboxClient['provider']['getFileInfo']>> extends Map<string, infer Entry>
+    ? Entry
+    : never;
+type FileReadResult = Awaited<ReturnType<SandboxClient['provider']['readFiles']>>[number];
+type FileWriteResult = Awaited<ReturnType<SandboxClient['provider']['writeFiles']>>[number];
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -26,7 +27,10 @@ function makeProvider(
     readFiles: vi.fn(),
     getFileInfo: vi.fn(),
     ensureRunning: vi.fn(),
-    execute: vi.fn(),
+    execute: vi
+      .fn()
+      .mockResolvedValue({ stdout: 'FASTGPT_WORKSPACE_PATH_OK', stderr: '', exitCode: 0 }),
+    rootPath: '/workspace',
     delete: vi.fn(),
     stop: vi.fn(),
     provider: 'mock',
@@ -98,6 +102,7 @@ describe('listSandboxDirectory', () => {
 
     expect(result[0]).toMatchObject<SandboxFileEntry>({
       name: 'src',
+      path: '/workspace/src',
       type: 'directory',
       size: undefined
     });
@@ -120,8 +125,8 @@ describe('listSandboxDirectory', () => {
   it('传递正确的 path 参数给 provider', async () => {
     const listDirectory = vi.fn().mockResolvedValue([]);
     const sandbox = makeSandbox({ listDirectory });
-    await listSandboxDirectory(sandbox, '/some/path');
-    expect(listDirectory).toHaveBeenCalledWith('/some/path');
+    await listSandboxDirectory(sandbox, '/workspace/some/path');
+    expect(listDirectory).toHaveBeenCalledWith('/workspace/some/path');
   });
 });
 
@@ -129,29 +134,33 @@ describe('listSandboxDirectory', () => {
 
 describe('writeSandboxFile', () => {
   it('写入成功时正常返回', async () => {
-    const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/file.txt')]);
+    const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/workspace/file.txt')]);
     const sandbox = makeSandbox({ writeFiles });
-    await expect(writeSandboxFile(sandbox, '/file.txt', 'hello')).resolves.toBeUndefined();
+    await expect(
+      writeSandboxFile(sandbox, '/workspace/file.txt', 'hello')
+    ).resolves.toBeUndefined();
   });
 
   it('传递正确的 path 和 content 给 provider', async () => {
-    const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/out.py')]);
+    const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/workspace/out.py')]);
     const sandbox = makeSandbox({ writeFiles });
-    await writeSandboxFile(sandbox, '/out.py', 'print("hi")');
-    expect(writeFiles).toHaveBeenCalledWith([{ path: '/out.py', data: 'print("hi")' }]);
+    await writeSandboxFile(sandbox, '/workspace/out.py', 'print("hi")');
+    expect(writeFiles).toHaveBeenCalledWith([{ path: '/workspace/out.py', data: 'print("hi")' }]);
   });
 
   it('写入失败时 reject error', async () => {
     const err = new Error('disk full');
-    const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/file.txt', err)]);
+    const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/workspace/file.txt', err)]);
     const sandbox = makeSandbox({ writeFiles });
-    await expect(writeSandboxFile(sandbox, '/file.txt', 'data')).rejects.toThrow('disk full');
+    await expect(writeSandboxFile(sandbox, '/workspace/file.txt', 'data')).rejects.toThrow(
+      'disk full'
+    );
   });
 
   it('写入空字符串不会报错', async () => {
-    const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/empty.txt')]);
+    const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/workspace/empty.txt')]);
     const sandbox = makeSandbox({ writeFiles });
-    await expect(writeSandboxFile(sandbox, '/empty.txt', '')).resolves.toBeUndefined();
+    await expect(writeSandboxFile(sandbox, '/workspace/empty.txt', '')).resolves.toBeUndefined();
   });
 });
 
@@ -160,16 +169,20 @@ describe('writeSandboxFile', () => {
 describe('isSandboxPathDirectory', () => {
   it('getFileInfo 返回 isDirectory:true', async () => {
     const sandbox = makeSandbox({
-      getFileInfo: vi.fn().mockResolvedValue(makeFileInfoMap('/src', { isDirectory: true }))
+      getFileInfo: vi
+        .fn()
+        .mockResolvedValue(makeFileInfoMap('/workspace/src', { isDirectory: true }))
     });
-    expect(await isSandboxPathDirectory(sandbox, '/src')).toBe(true);
+    expect(await isSandboxPathDirectory(sandbox, '/workspace/src')).toBe(true);
   });
 
   it('getFileInfo 返回 isDirectory:false', async () => {
     const sandbox = makeSandbox({
-      getFileInfo: vi.fn().mockResolvedValue(makeFileInfoMap('/main.py', { isDirectory: false }))
+      getFileInfo: vi
+        .fn()
+        .mockResolvedValue(makeFileInfoMap('/workspace/main.py', { isDirectory: false }))
     });
-    expect(await isSandboxPathDirectory(sandbox, '/main.py')).toBe(false);
+    expect(await isSandboxPathDirectory(sandbox, '/workspace/main.py')).toBe(false);
   });
 
   it('fileInfo 不存在时，path 为 "." 返回 true', async () => {
@@ -197,14 +210,14 @@ describe('isSandboxPathDirectory', () => {
     const sandbox = makeSandbox({
       getFileInfo: vi.fn().mockResolvedValue(new Map())
     });
-    expect(await isSandboxPathDirectory(sandbox, '/main.py')).toBe(false);
+    expect(await isSandboxPathDirectory(sandbox, '/workspace/main.py')).toBe(false);
   });
 
   it('传递正确的 path 数组给 getFileInfo', async () => {
     const getFileInfo = vi.fn().mockResolvedValue(new Map());
     const sandbox = makeSandbox({ getFileInfo });
-    await isSandboxPathDirectory(sandbox, '/some/path');
-    expect(getFileInfo).toHaveBeenCalledWith(['/some/path']);
+    await isSandboxPathDirectory(sandbox, '/workspace/some/path');
+    expect(getFileInfo).toHaveBeenCalledWith(['/workspace/some/path']);
   });
 });
 
@@ -213,33 +226,33 @@ describe('isSandboxPathDirectory', () => {
 describe('getSandboxFileContent', () => {
   it('preview=false 时 contentType 为 application/octet-stream', async () => {
     const sandbox = makeSandbox({
-      readFiles: vi.fn().mockResolvedValue([makeReadResult('/main.py', 'print(1)')])
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/main.py', 'print(1)')])
     });
-    const result = await getSandboxFileContent(sandbox, '/main.py', false);
+    const result = await getSandboxFileContent(sandbox, '/workspace/main.py', false);
     expect(result.contentType).toBe('application/octet-stream');
   });
 
   it('preview=undefined 时 contentType 为 application/octet-stream', async () => {
     const sandbox = makeSandbox({
-      readFiles: vi.fn().mockResolvedValue([makeReadResult('/main.py', 'code')])
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/main.py', 'code')])
     });
-    const result = await getSandboxFileContent(sandbox, '/main.py');
+    const result = await getSandboxFileContent(sandbox, '/workspace/main.py');
     expect(result.contentType).toBe('application/octet-stream');
   });
 
   it('preview=true 且可识别扩展名时返回正确 contentType', async () => {
     const sandbox = makeSandbox({
-      readFiles: vi.fn().mockResolvedValue([makeReadResult('/index.html', '<html/>')])
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/index.html', '<html/>')])
     });
-    const result = await getSandboxFileContent(sandbox, '/index.html', true);
+    const result = await getSandboxFileContent(sandbox, '/workspace/index.html', true);
     expect(result.contentType).toBe('text/html');
   });
 
   it('preview=true 且扩展名无法识别时回退 application/octet-stream', async () => {
     const sandbox = makeSandbox({
-      readFiles: vi.fn().mockResolvedValue([makeReadResult('/foo.unknown123', 'data')])
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/foo.unknown123', 'data')])
     });
-    const result = await getSandboxFileContent(sandbox, '/foo.unknown123', true);
+    const result = await getSandboxFileContent(sandbox, '/workspace/foo.unknown123', true);
     expect(result.contentType).toBe('application/octet-stream');
   });
 
@@ -247,18 +260,18 @@ describe('getSandboxFileContent', () => {
     const sandbox = makeSandbox({
       readFiles: vi
         .fn()
-        .mockResolvedValue([makeReadResult('/file.txt', '', new Error('not found'))])
+        .mockResolvedValue([makeReadResult('/workspace/file.txt', '', new Error('not found'))])
     });
-    await expect(getSandboxFileContent(sandbox, '/file.txt')).rejects.toThrow(
+    await expect(getSandboxFileContent(sandbox, '/workspace/file.txt')).rejects.toThrow(
       'Failed to read file: not found'
     );
   });
 
   it('正确提取 fileName（路径最后一段）', async () => {
     const sandbox = makeSandbox({
-      readFiles: vi.fn().mockResolvedValue([makeReadResult('/a/b/script.py', 'code')])
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/a/b/script.py', 'code')])
     });
-    const result = await getSandboxFileContent(sandbox, '/a/b/script.py');
+    const result = await getSandboxFileContent(sandbox, '/workspace/a/b/script.py');
     expect(result.fileName).toBe('script.py');
   });
 
@@ -273,17 +286,17 @@ describe('getSandboxFileContent', () => {
   it('content 正确转换为 Buffer', async () => {
     const text = 'hello world';
     const sandbox = makeSandbox({
-      readFiles: vi.fn().mockResolvedValue([makeReadResult('/f.txt', text)])
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/f.txt', text)])
     });
-    const result = await getSandboxFileContent(sandbox, '/f.txt');
+    const result = await getSandboxFileContent(sandbox, '/workspace/f.txt');
     expect(result.content).toEqual(Buffer.from(text));
   });
 
   it('传递正确的 path 数组给 readFiles', async () => {
-    const readFiles = vi.fn().mockResolvedValue([makeReadResult('/x.ts', '')]);
+    const readFiles = vi.fn().mockResolvedValue([makeReadResult('/workspace/x.ts', '')]);
     const sandbox = makeSandbox({ readFiles });
-    await getSandboxFileContent(sandbox, '/x.ts');
-    expect(readFiles).toHaveBeenCalledWith(['/x.ts']);
+    await getSandboxFileContent(sandbox, '/workspace/x.ts');
+    expect(readFiles).toHaveBeenCalledWith(['/workspace/x.ts']);
   });
 });
 
@@ -314,7 +327,11 @@ describe('addDirectoryToArchive', () => {
   it('嵌套文件时归档路径包含前缀', async () => {
     const archive = makeArchive();
     const sandbox = makeSandbox({
-      listDirectory: vi.fn().mockResolvedValue([makeDirectoryEntry('utils.ts', { size: 50 })]),
+      listDirectory: vi
+        .fn()
+        .mockResolvedValue([
+          makeDirectoryEntry('utils.ts', { size: 50, path: '/workspace/src/utils.ts' })
+        ]),
       readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/src/utils.ts', 'export')])
     });
     await addDirectoryToArchive(sandbox, archive, '/workspace/src', 'src');
@@ -370,12 +387,14 @@ describe('addDirectoryToArchive', () => {
     const archive = makeArchive();
     const listDirectory = vi
       .fn()
-      .mockResolvedValueOnce([makeDirectoryEntry('a', { isDirectory: true, path: '/w/a' })])
-      .mockResolvedValueOnce([makeDirectoryEntry('b', { isDirectory: true, path: '/w/a/b' })])
-      .mockResolvedValueOnce([makeDirectoryEntry('c.txt', { path: '/w/a/b/c.txt' })]);
-    const readFiles = vi.fn().mockResolvedValue([makeReadResult('/w/a/b/c.txt', 'deep')]);
+      .mockResolvedValueOnce([makeDirectoryEntry('a', { isDirectory: true, path: '/workspace/a' })])
+      .mockResolvedValueOnce([
+        makeDirectoryEntry('b', { isDirectory: true, path: '/workspace/a/b' })
+      ])
+      .mockResolvedValueOnce([makeDirectoryEntry('c.txt', { path: '/workspace/a/b/c.txt' })]);
+    const readFiles = vi.fn().mockResolvedValue([makeReadResult('/workspace/a/b/c.txt', 'deep')]);
     const sandbox = makeSandbox({ listDirectory, readFiles });
-    await addDirectoryToArchive(sandbox, archive, '/w', '');
+    await addDirectoryToArchive(sandbox, archive, '/workspace/', '');
     expect(archive.append).toHaveBeenCalledWith(expect.any(Buffer), { name: 'a/b/c.txt' });
   });
 
@@ -383,11 +402,101 @@ describe('addDirectoryToArchive', () => {
     const archive = makeArchive();
     const listDirectory = vi
       .fn()
-      .mockResolvedValue([makeDirectoryEntry('sub', { isDirectory: true, path: '/w/sub' })]);
+      .mockResolvedValue([
+        makeDirectoryEntry('sub', { isDirectory: true, path: '/workspace/sub' })
+      ]);
     const sandbox = makeSandbox({ listDirectory });
     // depth=21 超过 MAX_ARCHIVE_DEPTH(20)，应直接返回不做任何操作
-    await addDirectoryToArchive(sandbox, archive, '/w', '', 21);
+    await addDirectoryToArchive(sandbox, archive, '/workspace/', '', 21);
     expect(listDirectory).not.toHaveBeenCalled();
+    expect(archive.append).not.toHaveBeenCalled();
+  });
+});
+
+describe('Sandbox workspace boundary', () => {
+  it.each([
+    '../secret.txt',
+    '/etc/passwd',
+    '/workspace-other/secret.txt',
+    'a/../secret.txt',
+    'a\u0000b'
+  ])('拒绝读取越界路径 %s', async (path) => {
+    const readFiles = vi.fn().mockResolvedValue([makeReadResult(path, 'secret')]);
+    const sandbox = makeSandbox({ readFiles });
+    await expect(getSandboxFileContent(sandbox, path)).rejects.toThrow();
+    expect(readFiles).not.toHaveBeenCalled();
+  });
+
+  it('拒绝 provider 返回工作区外目录条目', async () => {
+    const sandbox = makeSandbox({
+      listDirectory: vi
+        .fn()
+        .mockResolvedValue([makeDirectoryEntry('passwd', { path: '/etc/passwd' })])
+    });
+    await expect(listSandboxDirectory(sandbox, '.')).rejects.toThrow();
+  });
+
+  it('拒绝 provider 伪造归档文件名', async () => {
+    const archive = { append: vi.fn() } as unknown as import('archiver').Archiver;
+    const sandbox = makeSandbox({
+      listDirectory: vi.fn().mockResolvedValue([makeDirectoryEntry('../outside.txt')]),
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/outside.txt', 'secret')])
+    });
+    await expect(addDirectoryToArchive(sandbox, archive, '.', '')).rejects.toThrow();
+    expect(archive.append).not.toHaveBeenCalled();
+  });
+
+  it('provider 拒绝符号链接后不读取文件', async () => {
+    const readFiles = vi.fn().mockResolvedValue([makeReadResult('/workspace/link.txt', 'secret')]);
+    const sandbox = makeSandbox({
+      execute: vi.fn().mockResolvedValue({ stdout: '', stderr: '', exitCode: 1 }),
+      readFiles
+    });
+    await expect(getSandboxFileContent(sandbox, '/workspace/link.txt')).rejects.toThrow();
+    expect(readFiles).not.toHaveBeenCalled();
+  });
+
+  it.each(['../outside', '/etc/passwd', '$(id)', '`id`', 'a\nb', 'a\\b'])(
+    '写入拒绝非法路径 %s',
+    async (path) => {
+      const writeFiles = vi.fn().mockResolvedValue([makeWriteResult(path)]);
+      const sandbox = makeSandbox({ writeFiles });
+      await expect(writeSandboxFile(sandbox, path, 'data')).rejects.toThrow();
+      expect(writeFiles).not.toHaveBeenCalled();
+    }
+  );
+
+  it('读取结果返回路径必须仍匹配请求文件', async () => {
+    const sandbox = makeSandbox({
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/etc/passwd', 'secret')])
+    });
+    await expect(getSandboxFileContent(sandbox, '/workspace/report.txt')).rejects.toThrow();
+  });
+
+  it('写入缺少 provider 结果时返回明确错误', async () => {
+    const sandbox = makeSandbox({ writeFiles: vi.fn().mockResolvedValue([]) });
+    await expect(writeSandboxFile(sandbox, 'report.txt', 'report')).rejects.toThrow(
+      'Missing Sandbox file result'
+    );
+  });
+
+  it('递归归档读取前再次校验，不信任之前的目录检查', async () => {
+    const archive = { append: vi.fn() } as unknown as import('archiver').Archiver;
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ stdout: 'FASTGPT_WORKSPACE_PATH_OK', stderr: '', exitCode: 0 })
+      .mockResolvedValueOnce({ stdout: 'FASTGPT_WORKSPACE_PATH_OK', stderr: '', exitCode: 0 })
+      .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 1 });
+    const readFiles = vi
+      .fn()
+      .mockResolvedValue([makeReadResult('/workspace/report.txt', 'report')]);
+    const sandbox = makeSandbox({
+      execute,
+      listDirectory: vi.fn().mockResolvedValue([makeDirectoryEntry('report.txt')]),
+      readFiles
+    });
+    await expect(addDirectoryToArchive(sandbox, archive, '.', '')).rejects.toThrow();
+    expect(readFiles).not.toHaveBeenCalled();
     expect(archive.append).not.toHaveBeenCalled();
   });
 });

@@ -16,12 +16,43 @@ import type {
   SandboxFetchUserFileSchema
 } from '@fastgpt/global/core/workflow/node/agent/skillTools';
 import axios from 'axios';
+import { SandboxUnavailableError } from './errors';
+import { isSandboxInfrastructureError } from '../../../../../../ai/sandbox/errors';
 import { serverRequestBaseUrl } from '../../../../../../../common/api/serverRequest';
-import path from 'path';
+import {
+  assertSandboxWorkspacePath,
+  resolveSandboxWorkspacePath
+} from '../../../../../../ai/sandbox/workspace';
 
 type DispatchResult = {
   response: string;
   usages: [];
+};
+
+const validateToolPath = (
+  ctx: AgentSandboxContext,
+  options: { path: string; allowMissing?: boolean }
+) =>
+  assertSandboxWorkspacePath({
+    provider: ctx.sandbox,
+    workspaceRoot: ctx.workDirectory,
+    ...options
+  });
+
+const assertFileResult = (
+  ctx: AgentSandboxContext,
+  {
+    file,
+    expectedPath
+  }: { file: { path: string; error: Error | null } | undefined; expectedPath: string }
+) => {
+  if (!file) throw new Error('Missing Sandbox file result');
+  if (file.error) throw file.error;
+  const returnedPath = resolveSandboxWorkspacePath({
+    workspaceRoot: ctx.workDirectory,
+    path: file.path
+  });
+  if (returnedPath !== expectedPath) throw new Error('Unexpected Sandbox file result');
 };
 
 /**
@@ -32,22 +63,23 @@ export async function dispatchSandboxReadFile(
   params: z.infer<typeof SandboxReadFileSchema>
 ): Promise<DispatchResult> {
   try {
-    const files = await ctx.sandbox.readFiles(params.paths);
+    const paths = await Promise.all(params.paths.map((path) => validateToolPath(ctx, { path })));
+    const files = await ctx.sandbox.readFiles(paths);
 
-    if (!files || files.length === 0) {
+    if (paths.length === 0) {
       return { response: 'No files found', usages: [] };
     }
+    if (files.length !== paths.length) throw new Error('Missing Sandbox file result');
 
-    const results = files.map((file: { path: string; content: Uint8Array | string }) => {
-      const content =
-        file.content instanceof Uint8Array
-          ? new TextDecoder('utf-8').decode(file.content)
-          : String(file.content);
+    const results = files.map((file, index) => {
+      assertFileResult(ctx, { file, expectedPath: paths[index] });
+      const content = new TextDecoder('utf-8').decode(file.content);
       return `--- ${file.path} ---\n${content}`;
     });
 
     return { response: results.join('\n\n'), usages: [] };
   } catch (error) {
+    if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
     return {
       response: `Failed to read files: ${error instanceof Error ? error.message : String(error)}`,
       usages: []
@@ -63,15 +95,18 @@ export async function dispatchSandboxWriteFile(
   params: z.infer<typeof SandboxWriteFileSchema>
 ): Promise<DispatchResult> {
   try {
-    await ctx.sandbox.writeFiles([
+    const path = await validateToolPath(ctx, { path: params.path, allowMissing: true });
+    const files = await ctx.sandbox.writeFiles([
       {
-        path: params.path,
-        data: params.content
+        path,
+        data: new TextEncoder().encode(params.content)
       }
     ]);
+    assertFileResult(ctx, { file: files[0], expectedPath: path });
 
     return { response: `File written successfully: ${params.path}`, usages: [] };
   } catch (error) {
+    if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
     return {
       response: `Failed to write file: ${error instanceof Error ? error.message : String(error)}`,
       usages: []
@@ -87,17 +122,44 @@ export async function dispatchSandboxEditFile(
   params: z.infer<typeof SandboxEditFileSchema>
 ): Promise<DispatchResult> {
   try {
-    await ctx.sandbox.replaceContent(
-      params.entries.map((e) => ({
-        path: e.path,
-        oldContent: e.oldContent,
-        newContent: e.newContent
+    const entries = await Promise.all(
+      params.entries.map(async (entry) => ({
+        ...entry,
+        path: await validateToolPath(ctx, { path: entry.path })
       }))
     );
+    const paths = [...new Set(entries.map((entry) => entry.path))];
+    const files = await ctx.sandbox.readFiles(paths);
+    if (files.length !== paths.length) throw new Error('Missing Sandbox file result');
+    const pendingWrites = new Map<string, string>();
+    files.forEach((file, index) => {
+      assertFileResult(ctx, { file, expectedPath: paths[index] });
+      pendingWrites.set(
+        paths[index],
+        new TextDecoder('utf-8', { fatal: true }).decode(file.content)
+      );
+    });
+    for (const entry of entries) {
+      const content = pendingWrites.get(entry.path);
+      if (content === undefined || !entry.oldContent || !content.includes(entry.oldContent)) {
+        throw new Error(`Original content not found: ${entry.path}`);
+      }
+      pendingWrites.set(entry.path, content.split(entry.oldContent).join(entry.newContent));
+    }
+    // All matches are checked before writing, but separate provider writes are not a transaction
+    // and do not protect against concurrent writers changing the same files.
+    for (const [path, content] of pendingWrites) {
+      await validateToolPath(ctx, { path });
+      const results = await ctx.sandbox.writeFiles([
+        { path, data: new TextEncoder().encode(content) }
+      ]);
+      assertFileResult(ctx, { file: results[0], expectedPath: path });
+    }
 
     const editedPaths = params.entries.map((e) => e.path).join(', ');
     return { response: `Files edited successfully: ${editedPaths}`, usages: [] };
   } catch (error) {
+    if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
     return {
       response: `Failed to edit files: ${error instanceof Error ? error.message : String(error)}`,
       usages: []
@@ -113,8 +175,9 @@ export async function dispatchSandboxExecute(
   params: z.infer<typeof SandboxExecuteSchema>
 ): Promise<DispatchResult> {
   try {
+    const workingDirectory = await validateToolPath(ctx, { path: params.workingDirectory ?? '.' });
     const result = await ctx.sandbox.execute(params.command, {
-      workingDirectory: params.workingDirectory,
+      workingDirectory,
       timeoutMs: params.timeoutMs
     });
 
@@ -125,6 +188,7 @@ export async function dispatchSandboxExecute(
 
     return { response: parts.join('\n'), usages: [] };
   } catch (error) {
+    if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
     return {
       response: `Failed to execute command: ${error instanceof Error ? error.message : String(error)}`,
       usages: []
@@ -140,17 +204,27 @@ export async function dispatchSandboxSearch(
   params: z.infer<typeof SandboxSearchSchema>
 ): Promise<DispatchResult> {
   try {
-    const results = await ctx.sandbox.search(params.pattern, params.path);
+    if (/[\u0000-\u001f\u007f\\$`"]/.test(params.pattern)) {
+      throw new Error('Search pattern contains characters unsupported by the Sandbox provider');
+    }
+    const searchRoot = await validateToolPath(ctx, { path: params.path ?? '.' });
+    const results = await ctx.sandbox.search(params.pattern, searchRoot);
 
     if (!results || results.length === 0) {
       return { response: 'No matching files found', usages: [] };
     }
 
-    const paths = results
-      .map((r: string | { path: string }) => (typeof r === 'string' ? r : r.path))
-      .join('\n');
-    return { response: `Matching files:\n${paths}`, usages: [] };
+    const paths = await Promise.all(
+      results.map(async (result) => {
+        const path = await validateToolPath(ctx, { path: result.path });
+        if (path !== searchRoot && !path.startsWith(`${searchRoot}/`))
+          throw new Error('Search result is outside the requested directory');
+        return path;
+      })
+    );
+    return { response: `Matching files:\n${paths.join('\n')}`, usages: [] };
   } catch (error) {
+    if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
     return {
       response: `Failed to search files: ${error instanceof Error ? error.message : String(error)}`,
       usages: []
@@ -161,23 +235,6 @@ export async function dispatchSandboxSearch(
 /**
  * Fetch a user-uploaded file (from conversation) and write it into the sandbox filesystem
  */
-
-/**
- * Resolve target_path to an absolute path within workDirectory.
- * Strips leading slash if present, then resolves and validates no traversal.
- * Returns null if the resolved path escapes workDirectory.
- */
-function resolveTargetPath(targetPath: string, workDirectory: string): string | null {
-  // Strip leading slash if provided (LLM might still send absolute path)
-  const relative = targetPath.startsWith('/') ? targetPath.slice(1) : targetPath;
-
-  // Resolve to absolute, then verify it's within workDirectory
-  const resolved = path.resolve(workDirectory, relative);
-  if (!resolved.startsWith(workDirectory + '/') && resolved !== workDirectory) {
-    return null; // Path traversal detected
-  }
-  return resolved;
-}
 
 export async function dispatchSandboxFetchUserFile(
   ctx: AgentSandboxContext,
@@ -192,28 +249,35 @@ export async function dispatchSandboxFetchUserFile(
     };
   }
 
-  const resolvedPath = resolveTargetPath(params.target_path, ctx.workDirectory);
-  if (!resolvedPath) {
-    return {
-      response: `Failed: target_path "${params.target_path}" is invalid or attempts to escape workspace.`,
-      usages: []
-    };
-  }
-
   try {
-    const response = await axios.get(fileEntry.url, {
-      baseURL: serverRequestBaseUrl,
-      responseType: 'arraybuffer'
+    const resolvedPath = await validateToolPath(ctx, {
+      path: params.target_path,
+      allowMissing: true
     });
-    const buffer: ArrayBuffer = response.data;
+    let buffer: ArrayBuffer;
+    try {
+      const response = await axios.get<ArrayBuffer>(fileEntry.url, {
+        baseURL: serverRequestBaseUrl,
+        responseType: 'arraybuffer'
+      });
+      buffer = response.data;
+    } catch (error) {
+      return {
+        response: `Failed to fetch user file: ${error instanceof Error ? error.message : String(error)}`,
+        usages: []
+      };
+    }
 
-    await ctx.sandbox.writeFiles([{ path: resolvedPath, data: buffer }]);
+    await validateToolPath(ctx, { path: resolvedPath, allowMissing: true });
+    const files = await ctx.sandbox.writeFiles([{ path: resolvedPath, data: buffer }]);
+    assertFileResult(ctx, { file: files[0], expectedPath: resolvedPath });
 
     return {
       response: `File written to sandbox: ${resolvedPath} (name: ${fileEntry.name}, size: ${buffer.byteLength} bytes)`,
       usages: []
     };
   } catch (error) {
+    if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
     return {
       response: `Failed to fetch user file: ${error instanceof Error ? error.message : String(error)}`,
       usages: []

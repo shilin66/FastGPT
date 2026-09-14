@@ -9,7 +9,8 @@ import { ChatGenerateStatusEnum } from '@fastgpt/global/core/chat/constants';
 
 vi.mock('@fastgpt/service/core/chat/chatSchema', () => ({
   MongoChat: {
-    updateOne: vi.fn()
+    updateOne: vi.fn(),
+    findOne: vi.fn()
   }
 }));
 
@@ -25,6 +26,9 @@ const baseParams = {
 describe('chatGenerateStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(MongoChat.findOne).mockReturnValue({
+      select: () => ({ session: () => ({ lean: async () => null }) })
+    } as ReturnType<typeof MongoChat.findOne>);
   });
 
   it('should ensure a chat is marked as generating', async () => {
@@ -34,6 +38,7 @@ describe('chatGenerateStatus', () => {
 
     expect(MongoChat.updateOne).toHaveBeenCalledWith(
       {
+        sourceType: { $ne: 'skillEdit' },
         appId: baseParams.appId,
         chatId: baseParams.chatId
       },
@@ -61,6 +66,7 @@ describe('chatGenerateStatus', () => {
 
     expect(MongoChat.updateOne).toHaveBeenCalledWith(
       {
+        sourceType: { $ne: 'skillEdit' },
         appId: baseParams.appId,
         chatId: baseParams.chatId,
         chatGenerateStatus: {
@@ -103,6 +109,7 @@ describe('chatGenerateStatus', () => {
 
     expect(MongoChat.updateOne).toHaveBeenCalledWith(
       {
+        sourceType: { $ne: 'skillEdit' },
         appId: baseParams.appId,
         chatId: baseParams.chatId
       },

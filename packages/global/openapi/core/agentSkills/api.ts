@@ -6,6 +6,8 @@ import {
   AgentSkillStorageSchema,
   AgentSkillTypeSchema,
   AgentSkillConfigSchema,
+  AgentSkillCreationErrorSchema,
+  RuntimeSkillMetadataSchema,
   ExtractedSkillPackageSchema,
   SandboxImageConfigSchema,
   SandboxProviderStatusSchema,
@@ -13,6 +15,8 @@ import {
   SkillSandboxEndpointSchema,
   ZipEntryInfoSchema
 } from '../../../core/agentSkills/type';
+import { AgentSkillCreationStatusEnum } from '../../../core/agentSkills/constants';
+import { SkillEditWorkspaceSchema } from '../../../core/agentSkills/workspace';
 
 const IdSchema = z.string().min(1).meta({ description: '资源 ID' });
 const NullableParentIdSchema = z.string().nullable().optional().meta({
@@ -59,8 +63,8 @@ export const CreateSkillBodySchema = z.object({
   parentId: NullableParentIdSchema,
   name: z.string().describe('技能名称'),
   description: z.string().optional().describe('技能描述'),
-  requirements: z.string().optional().describe('用于 AI 生成技能的需求描述'),
-  model: z.string().optional().describe('生成技能时使用的模型'),
+  requirements: z.string().optional().describe('兼容字段，创建时不再触发 AI 生成'),
+  model: z.string().optional().describe('兼容字段，创建时不再触发 AI 生成'),
   category: z.array(AgentSkillCategorySchema).optional().describe('技能分类'),
   config: AgentSkillConfigSchema.optional().describe('技能配置'),
   avatar: z.string().optional().describe('技能头像')
@@ -69,6 +73,16 @@ export type CreateSkillBody = z.infer<typeof CreateSkillBodySchema>;
 
 export const CreateSkillResponseSchema = IdSchema;
 export type CreateSkillResponse = z.infer<typeof CreateSkillResponseSchema>;
+
+export const RetryInitializeSkillBodySchema = z.object({
+  skillId: IdSchema
+});
+export type RetryInitializeSkillBody = z.infer<typeof RetryInitializeSkillBodySchema>;
+
+export const RetryInitializeSkillResponseSchema = z.object({
+  operationId: z.string()
+});
+export type RetryInitializeSkillResponse = z.infer<typeof RetryInitializeSkillResponseSchema>;
 
 export const UpdateSkillBodySchema = z.object({
   skillId: IdSchema,
@@ -127,8 +141,16 @@ export const GetSkillDetailResponseSchema = z.object({
   tmbId: z.string().optional(),
   createTime: z.string(),
   updateTime: z.string(),
-  permission: z.any().optional(),
-  appCount: z.number().optional()
+  permission: z.number().int().optional(),
+  appCount: z.number().optional(),
+  currentVersionId: z.string().optional(),
+  currentRuntimeSkills: z.array(RuntimeSkillMetadataSchema).optional(),
+  creationStatus: z.enum(AgentSkillCreationStatusEnum).optional(),
+  error: AgentSkillCreationErrorSchema.optional(),
+  lastOperationId: z.string().optional(),
+  workspace: SkillEditWorkspaceSchema.optional().meta({
+    description: '有写权限时返回编辑工作区状态'
+  })
 });
 export type GetSkillDetailResponse = z.infer<typeof GetSkillDetailResponseSchema>;
 
@@ -189,6 +211,14 @@ export type DeleteSandboxResponse = z.infer<typeof DeleteSandboxResponseSchema>;
 
 export const SaveDeploySkillBodySchema = z.object({
   skillId: IdSchema,
+  expectedCurrentVersionId: z
+    .string()
+    .nullable()
+    .meta({ description: '用户确认的当前版本，防止并发发布覆盖' }),
+  expectedBaseVersionId: z
+    .string()
+    .nullable()
+    .meta({ description: '用户看到的工作区基线，未知历史基线传 null' }),
   versionName: z.string().optional(),
   description: z.string().optional()
 });
@@ -196,12 +226,34 @@ export type SaveDeploySkillBody = z.infer<typeof SaveDeploySkillBodySchema>;
 
 export const SaveDeploySkillResponseSchema = z.object({
   skillId: z.string(),
+  versionId: z.string().meta({ description: '新发布版本 ID' }),
+  workspace: SkillEditWorkspaceSchema,
   version: z.number(),
   versionName: z.string(),
   storage: AgentSkillStorageSchema,
   createdAt: z.string()
 });
 export type SaveDeploySkillResponse = z.infer<typeof SaveDeploySkillResponseSchema>;
+
+export const ResetSkillWorkspaceBodySchema = z.object({
+  skillId: IdSchema,
+  expectedCurrentVersionId: z
+    .string()
+    .regex(/^[a-fA-F0-9]{24}$/)
+    .meta({ description: '用户确认用于重置的当前版本 ID' }),
+  expectedBaseVersionId: z
+    .string()
+    .nullable()
+    .meta({ description: '用户确认放弃的工作区基线，未知传 null' }),
+  expectedOperationId: z
+    .string()
+    .nullable()
+    .meta({ description: '用户看到的工作区操作 ID，无操作传 null' }),
+  confirmDiscard: z.literal(true).meta({ description: '必须明确确认丢弃未发布改动；不会自动重置' })
+});
+export type ResetSkillWorkspaceBody = z.infer<typeof ResetSkillWorkspaceBodySchema>;
+export const ResetSkillWorkspaceResponseSchema = z.object({ workspace: SkillEditWorkspaceSchema });
+export type ResetSkillWorkspaceResponse = z.infer<typeof ResetSkillWorkspaceResponseSchema>;
 
 export { ExtractedSkillPackageSchema, SkillPackageSchema, ZipEntryInfoSchema };
 export type {
@@ -369,13 +421,22 @@ export type SwitchSkillVersionBody = z.infer<typeof SwitchSkillVersionBodySchema
 export const SwitchSkillVersionResponseSchema = z.void();
 export type SwitchSkillVersionResponse = z.infer<typeof SwitchSkillVersionResponseSchema>;
 
+export const DeleteSkillVersionBodySchema = z.object({
+  skillId: IdSchema,
+  versionId: IdSchema
+});
+export type DeleteSkillVersionBody = z.infer<typeof DeleteSkillVersionBodySchema>;
+
+export const DeleteSkillVersionResponseSchema = z.void();
+export type DeleteSkillVersionResponse = z.infer<typeof DeleteSkillVersionResponseSchema>;
+
 export const ImportSkillMultipartRequestSchema = {
   type: 'object' as const,
   properties: {
     file: {
       type: 'string' as const,
       format: 'binary' as const,
-      description: '技能压缩包文件，支持 ZIP / TAR / TAR.GZ'
+      description: '技能压缩包文件，仅支持 ZIP'
     },
     name: {
       type: 'string' as const,

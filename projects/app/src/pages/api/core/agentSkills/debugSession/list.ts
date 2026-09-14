@@ -1,9 +1,9 @@
 import type { NextApiResponse } from 'next';
 import { authSkill } from '@fastgpt/service/support/permission/agentSkill/auth';
 import { NextAPI } from '@/service/middleware/entry';
-import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
+import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
-import { ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
+import { getSkillChatScope } from '@fastgpt/service/core/agentSkills/chat';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 import { parsePaginationRequest } from '@fastgpt/service/common/api/pagination';
 import { type ApiRequestProps } from '@fastgpt/service/type/next';
@@ -15,28 +15,26 @@ async function handler(req: ApiRequestProps, _res: NextApiResponse) {
   const { skillId } = req.query as { skillId: string };
 
   // Authenticate skill access
-  await authSkill({
+  const { teamId } = await authSkill({
     req,
     authToken: true,
     authApiKey: true,
     skillId,
-    per: ReadPermissionVal
+    per: WritePermissionVal
   });
 
   const { pageSize, offset } = parsePaginationRequest(req);
+  const scope = { ...getSkillChatScope({ skillId, teamId }), appId: skillId, deleteTime: null };
 
   logger.debug('Listing skill debug sessions', { skillId, pageSize, offset });
 
   const [list, total] = await Promise.all([
-    MongoChat.find(
-      { appId: skillId, source: ChatSourceEnum.test, deleteTime: null },
-      'chatId title updateTime'
-    )
+    MongoChat.find(scope, 'chatId title updateTime')
       .sort({ updateTime: -1 })
       .skip(offset)
       .limit(pageSize)
       .lean(),
-    MongoChat.countDocuments({ appId: skillId, source: ChatSourceEnum.test, deleteTime: null })
+    MongoChat.countDocuments(scope)
   ]);
 
   const result: SkillDebugSessionListResponse = {

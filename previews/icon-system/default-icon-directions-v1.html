@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniCockpit 默认图标系统 · 三方向预览</title>
+    <style>
+      :root {
+        --graphite: #27364a;
+        --ink: #1f2937;
+        --muted: #667085;
+        --subtle: #8a95a6;
+        --blue: #2563eb;
+        --blue-soft: #eef4ff;
+        --gold: #c69b4a;
+        --canvas: #f8fafc;
+        --panel: #ffffff;
+        --nav: #f5f7fa;
+        --border: #dfe5ee;
+        --border-strong: #cbd5e1;
+        --focus: #93b4ff;
+        --font-sans: 'Avenir Next', 'SF Pro Text', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif,
+          sans-serif;
+        --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        color-scheme: light;
+        background: var(--canvas);
+      }
+
+      body {
+        margin: 0;
+        min-width: 1120px;
+        color: var(--ink);
+        background: linear-gradient(rgba(39, 54, 74, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(39, 54, 74, 0.025) 1px, transparent 1px), var(--canvas);
+        background-size: 32px 32px;
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .page-shell {
+        min-height: 100vh;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: grid;
+        grid-template-columns: minmax(420px, 1fr) auto;
+        align-items: center;
+        min-height: 74px;
+        padding: 12px 24px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(16px);
+      }
+
+      .brand-block {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        color: var(--blue);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--panel);
+      }
+
+      .brand-mark svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+      }
+
+      .subtitle {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .audit-note {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-right: 12px;
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+      }
+
+      .audit-note strong {
+        color: var(--graphite);
+        font-weight: 650;
+      }
+
+      .segmented {
+        display: flex;
+        padding: 3px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--nav);
+      }
+
+      .view-button {
+        min-height: 32px;
+        padding: 0 12px;
+        color: var(--muted);
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .view-button[aria-pressed='true'] {
+        color: var(--blue);
+        background: var(--panel);
+        box-shadow: 0 1px 3px rgba(39, 54, 74, 0.09);
+      }
+
+      .view-button:hover {
+        color: var(--ink);
+      }
+
+      .view-button:focus-visible,
+      .icon-cell:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      main {
+        width: min(1740px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 24px 0 48px;
+      }
+
+      .intro {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 32px;
+        padding: 0 0 18px;
+        border-bottom: 1px solid var(--border-strong);
+      }
+
+      .eyebrow,
+      .section-kicker,
+      .scheme-index,
+      .group-label {
+        color: var(--blue);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .intro h2 {
+        margin: 7px 0 6px;
+        font-size: 28px;
+        line-height: 1.18;
+        letter-spacing: -0.035em;
+      }
+
+      .intro p {
+        max-width: 760px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .legend {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding-bottom: 3px;
+        color: var(--muted);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--graphite);
+      }
+
+      .dot.blue {
+        background: var(--blue);
+      }
+
+      .dot.gold {
+        background: var(--gold);
+      }
+
+      .directions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        border-left: 1px solid var(--border);
+        background: var(--panel);
+      }
+
+      .scheme {
+        min-width: 0;
+        border-right: 1px solid var(--border);
+      }
+
+      .scheme:last-child {
+        border-right: 0;
+      }
+
+      .scheme[hidden] {
+        display: none;
+      }
+
+      .directions.single {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .scheme-head {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: 14px;
+        min-height: 126px;
+        padding: 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .scheme-letter {
+        display: flex;
+        width: 52px;
+        height: 52px;
+        align-items: center;
+        justify-content: center;
+        color: var(--graphite);
+        border: 1px solid var(--border-strong);
+        border-radius: 50%;
+        font-family: var(--font-mono);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .scheme-title-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .scheme h3 {
+        margin: 5px 0 0;
+        font-size: 18px;
+        letter-spacing: -0.025em;
+      }
+
+      .scheme-en {
+        color: var(--subtle);
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .scheme-copy {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .scheme-spec {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px 12px;
+        margin-top: 10px;
+        color: var(--graphite);
+        font-family: var(--font-mono);
+        font-size: 9px;
+      }
+
+      .icon-ledger {
+        padding: 0 20px 18px;
+      }
+
+      .icon-group {
+        display: grid;
+        grid-template-columns: 76px minmax(0, 1fr);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .icon-group:last-child {
+        border-bottom: 0;
+      }
+
+      .group-label {
+        padding-top: 20px;
+        color: var(--subtle);
+        letter-spacing: 0.1em;
+      }
+
+      .group-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border-left: 1px solid var(--border);
+      }
+
+      .icon-cell {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        min-height: 69px;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        color: inherit;
+        text-align: left;
+        border: 0;
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .icon-cell:nth-child(2n) {
+        border-right: 0;
+      }
+
+      .icon-cell:nth-last-child(-n + 2) {
+        border-bottom: 0;
+      }
+
+      .icon-cell:hover {
+        background: #f9fbff;
+      }
+
+      .icon-cell[aria-pressed='true'] {
+        background: var(--blue-soft);
+        box-shadow: inset 3px 0 0 var(--blue);
+      }
+
+      .icon-stage {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        color: var(--graphite);
+      }
+
+      .icon-stage svg {
+        width: 25px;
+        height: 25px;
+        overflow: visible;
+      }
+
+      .cell-cn {
+        display: block;
+        overflow: hidden;
+        font-size: 12px;
+        font-weight: 650;
+        line-height: 1.3;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .cell-en {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        color: var(--subtle);
+        font-family: var(--font-mono);
+        font-size: 8px;
+        letter-spacing: 0.025em;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .icon-svg .stroke-primary {
+        fill: none;
+        stroke: var(--graphite);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .icon-svg .stroke-accent {
+        fill: none;
+        stroke: var(--blue);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .icon-svg .fill-primary {
+        fill: var(--graphite);
+      }
+
+      .icon-svg .fill-accent {
+        fill: var(--blue);
+      }
+
+      .icon-svg .fill-signal {
+        fill: var(--gold);
+      }
+
+      .scheme-a .stroke-primary,
+      .scheme-a .stroke-accent {
+        stroke-width: 1.7;
+      }
+
+      .scheme-c .stroke-primary,
+      .scheme-c .stroke-accent {
+        stroke-width: 1.45;
+      }
+
+      .inspection {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(480px, 0.95fr);
+        margin-top: 24px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+      }
+
+      .scale-lab,
+      .context-lab {
+        padding: 20px 22px;
+      }
+
+      .scale-lab {
+        border-right: 1px solid var(--border);
+      }
+
+      .lab-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .lab-heading h3 {
+        margin: 4px 0 0;
+        font-size: 16px;
+      }
+
+      .selected-name {
+        color: var(--blue);
+        font-family: var(--font-mono);
+        font-size: 10px;
+      }
+
+      .scale-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        min-height: 120px;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .scale-item {
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 12px;
+        border-right: 1px solid var(--border);
+      }
+
+      .scale-item:last-child {
+        border-right: 0;
+      }
+
+      .scale-label {
+        color: var(--subtle);
+        font-family: var(--font-mono);
+        font-size: 9px;
+      }
+
+      .scale-icons {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        min-height: 38px;
+      }
+
+      .context-strip {
+        display: grid;
+        gap: 10px;
+      }
+
+      .context-row {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) auto;
+        min-height: 48px;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        background: #fbfcfe;
+      }
+
+      .context-row strong {
+        display: block;
+        font-size: 12px;
+      }
+
+      .context-row small {
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .context-tag {
+        padding: 3px 7px;
+        color: var(--blue);
+        border: 1px solid #c9d8ff;
+        border-radius: 999px;
+        background: var(--blue-soft);
+        font-family: var(--font-mono);
+        font-size: 8px;
+        text-transform: uppercase;
+      }
+
+      .decision {
+        margin-top: 24px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+      }
+
+      .decision-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .decision-head h3 {
+        margin: 5px 0 0;
+        font-size: 16px;
+      }
+
+      .decision-head p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .decision table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      .decision th,
+      .decision td {
+        padding: 13px 18px;
+        text-align: left;
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+        line-height: 1.5;
+        vertical-align: top;
+      }
+
+      .decision th:last-child,
+      .decision td:last-child {
+        border-right: 0;
+      }
+
+      .decision tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .decision th {
+        color: var(--muted);
+        background: var(--nav);
+        font-family: var(--font-mono);
+        font-size: 9px;
+        font-weight: 650;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .decision td:first-child {
+        color: var(--graphite);
+        font-weight: 650;
+      }
+
+      .score {
+        color: var(--blue);
+        font-family: var(--font-mono);
+        font-weight: 700;
+      }
+
+      .recommended {
+        display: inline-block;
+        margin-left: 7px;
+        padding: 2px 6px;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+        border-radius: 999px;
+        background: #f0fdf4;
+        font-family: var(--font-mono);
+        font-size: 8px;
+        font-weight: 600;
+        vertical-align: 1px;
+      }
+
+      @media (max-width: 1320px) {
+        main {
+          width: calc(100% - 28px);
+        }
+
+        .topbar {
+          padding-inline: 16px;
+        }
+
+        .audit-note {
+          display: none;
+        }
+
+        .scheme-head {
+          grid-template-columns: 40px minmax(0, 1fr);
+          padding: 16px;
+        }
+
+        .scheme-letter {
+          width: 40px;
+          height: 40px;
+          font-size: 16px;
+        }
+
+        .icon-ledger {
+          padding-inline: 12px;
+        }
+
+        .icon-group {
+          grid-template-columns: 64px minmax(0, 1fr);
+        }
+
+        .icon-cell {
+          grid-template-columns: 30px minmax(0, 1fr);
+          padding-inline: 8px;
+        }
+
+        .icon-stage {
+          width: 30px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 7.25 12 3l8 4.25v9.5L12 21l-8-4.25v-9.5Z"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+              <path d="m4.5 7.5 7.5 4 7.5-4M12 11.5V21" stroke="currentColor" stroke-width="1.6" />
+              <circle cx="12" cy="11.5" r="1.5" fill="currentColor" />
+            </svg>
+          </div>
+          <div>
+            <h1>OmniCockpit 默认图标系统</h1>
+            <p class="subtitle">应用、知识资产、工具与运行资源 · 三方向并行设计预览</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <div class="audit-note">
+            <strong>24×24 GRID</strong><span>11 / 14 / 20 / 24 / 32 → 1</span>
+          </div>
+          <nav class="segmented" aria-label="预览方向">
+            <button class="view-button" type="button" data-view="all" aria-pressed="true">
+              三案并排
+            </button>
+            <button class="view-button" type="button" data-view="a" aria-pressed="false">A</button>
+            <button class="view-button" type="button" data-view="b" aria-pressed="false">B</button>
+            <button class="view-button" type="button" data-view="c" aria-pressed="false">C</button>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <div>
+            <div class="eyebrow">Icon system study · 01</div>
+            <h2 id="page-title">同一语义，三种系统语言</h2>
+            <p>
+              三套方案均取消默认彩色底板、渐变和外层光晕；只使用石墨、运行蓝与少量提示金。
+              先比较识别逻辑与小尺寸表现，再决定如何迁移现有 SVG 文件和全局映射。
+            </p>
+          </div>
+          <div class="legend" aria-label="颜色语义">
+            <span><i class="dot"></i>结构</span>
+            <span><i class="dot blue"></i>动作 / 连接</span>
+            <span><i class="dot gold"></i>稀缺提示</span>
+          </div>
+        </section>
+
+        <section class="directions" id="directions" aria-label="三套图标方向"></section>
+
+        <section class="inspection" aria-label="尺寸与使用场景检查">
+          <div class="scale-lab">
+            <div class="lab-heading">
+              <div>
+                <div class="section-kicker">Optical scale</div>
+                <h3>实际尺寸检查</h3>
+              </div>
+              <div class="selected-name" id="selected-name">对话 Agent V2 · chat-agent-v2</div>
+            </div>
+            <div class="scale-row" id="scale-row"></div>
+          </div>
+          <div class="context-lab">
+            <div class="lab-heading">
+              <div>
+                <div class="section-kicker">Product context</div>
+                <h3>真实界面密度</h3>
+              </div>
+              <div class="selected-name">透明画布 · 无头像底色</div>
+            </div>
+            <div class="context-strip" id="context-strip"></div>
+          </div>
+        </section>
+
+        <section class="decision" aria-labelledby="decision-title">
+          <div class="decision-head">
+            <div>
+              <div class="section-kicker">Decision frame</div>
+              <h3 id="decision-title">方向取舍</h3>
+            </div>
+            <p>评分为本轮设计推演，不代表已替换生产图标。</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 16%">维度</th>
+                <th>A · 坐标线</th>
+                <th>B · 信号切面</th>
+                <th>C · 模块编织</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>16px 清晰度</td>
+                <td><span class="score">4.5 / 5</span></td>
+                <td><span class="score">5 / 5</span></td>
+                <td><span class="score">4 / 5</span></td>
+              </tr>
+              <tr>
+                <td>系统辨识度</td>
+                <td>安静、理性，迁移自然</td>
+                <td>最强，资源列表一眼可分</td>
+                <td>最贴近 Agent 编排语义</td>
+              </tr>
+              <tr>
+                <td>迁移成本</td>
+                <td>低：接近 currentColor 线性体系</td>
+                <td>中：需要逐枚校准实心重量</td>
+                <td>中：需统一端口与节点规范</td>
+              </tr>
+              <tr>
+                <td>适用面</td>
+                <td>全局导航、表单、配置项 <span class="recommended">SAFE BASE</span></td>
+                <td>资源头像、市场卡片、工作流节点</td>
+                <td>Agent / Workflow 专属产品语言</td>
+              </tr>
+              <tr>
+                <td>建议</td>
+                <td>最稳妥的全局基线</td>
+                <td>最鲜明的品牌刷新</td>
+                <td>最有产品个性的统一系统</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const items = [
+        { id: 'workflow', cn: '工作流', en: 'Workflow', group: '应用' },
+        { id: 'chat-agent', cn: '对话 Agent', en: 'Chat Agent', group: '应用' },
+        { id: 'chat-agent-v2', cn: '对话 Agent V2', en: 'Chat Agent V2', group: '应用' },
+        { id: 'knowledge-base', cn: '知识库', en: 'Knowledge Base', group: '知识资产' },
+        { id: 'website-knowledge', cn: '网站知识库', en: 'Website Knowledge', group: '知识资产' },
+        { id: 'external-knowledge', cn: '外部知识库', en: 'External / API', group: '知识资产' },
+        { id: 'http-tool', cn: 'HTTP 工具', en: 'HTTP Tool', group: '工具' },
+        { id: 'knowledge-tool', cn: '知识库工具', en: 'Knowledge Search', group: '工具' },
+        { id: 'workflow-tool', cn: 'Workflow 工具', en: 'Workflow Tool', group: '工具' },
+        { id: 'mcp-tool', cn: 'MCP 工具', en: 'MCP Tool', group: '工具' },
+        { id: 'plugin-tool', cn: '插件工具', en: 'Plugin / System', group: '工具' },
+        { id: 'skill', cn: '技能', en: 'Skill', group: '工具' },
+        { id: 'agent-tool', cn: 'Agent 工具', en: 'Agent as Tool', group: '工具' },
+        { id: 'folder', cn: '文件夹', en: 'Folder', group: '资源' },
+        { id: 'file', cn: '文件 / 文档', en: 'File / Document', group: '资源' },
+        { id: 'ai-model', cn: 'AI 模型', en: 'AI Model', group: '资源' },
+        { id: 'code', cn: '代码沙盒', en: 'Code / Sandbox', group: '资源' },
+        { id: 'variable', cn: '变量 / 数据', en: 'Variable / Data', group: '资源' }
+      ];
+
+      const schemeMeta = {
+        a: {
+          name: '坐标线',
+          en: 'Atlas Line',
+          copy: '像工程地图一样，用路径、端点和轮廓说明对象关系。克制、轻量，最容易覆盖全局界面。',
+          spec: ['1.7 stroke', 'round joins', 'blue terminals']
+        },
+        b: {
+          name: '信号切面',
+          en: 'Signal Cut',
+          copy: '用实心几何和结构留白强化轮廓，在资源列表与工作流画布上拥有最高的小尺寸辨识度。',
+          spec: ['solid geometry', 'optical gaps', 'compact mass']
+        },
+        c: {
+          name: '模块编织',
+          en: 'Module Weave',
+          copy: '把端口、轨道与模块编成一套 Agent 构建语言，产品特征最强，适合长期形成专属资产。',
+          spec: ['1.45 stroke', 'ports + rails', 'modular grammar']
+        }
+      };
+
+      const A = {
+        workflow:
+          '<path class="stroke-primary" d="M4 6h5l3 6h8M4 18h5l3-6"/><circle class="fill-accent" cx="4" cy="6" r="1.7"/><circle class="fill-primary" cx="12" cy="12" r="1.7"/><circle class="fill-accent" cx="20" cy="12" r="1.7"/><circle class="fill-primary" cx="4" cy="18" r="1.7"/>',
+        'chat-agent':
+          '<path class="stroke-primary" d="M5 5.5h14v10H10l-4 3v-3H5z"/><path class="stroke-accent" d="M9 9h6M9 12h4"/>',
+        'chat-agent-v2':
+          '<path class="stroke-primary" d="M4.5 5h15v11h-8l-4 3v-3h-3z"/><path class="stroke-accent" d="M12 8v5M9.5 10.5h5"/><circle class="fill-accent" cx="12" cy="10.5" r="1.15"/>',
+        'knowledge-base':
+          '<ellipse class="stroke-primary" cx="12" cy="6" rx="7" ry="3"/><path class="stroke-primary" d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/><path class="stroke-accent" d="M8 9.6c1.1.3 2.5.4 4 .4"/>',
+        'website-knowledge':
+          '<path class="stroke-primary" d="M4 7.5h10v11H4zM4 11h10"/><circle class="stroke-accent" cx="17" cy="15" r="4"/><path class="stroke-accent" d="M13 15h8M17 11c1.5 1.6 1.5 6.4 0 8M17 11c-1.5 1.6-1.5 6.4 0 8"/>',
+        'external-knowledge':
+          '<ellipse class="stroke-primary" cx="9" cy="6.5" rx="5" ry="2.5"/><path class="stroke-primary" d="M4 6.5v9c0 1.4 2.2 2.5 5 2.5 1.1 0 2.1-.2 3-.5M4 11c0 1.4 2.2 2.5 5 2.5"/><path class="stroke-accent" d="M13 10h7v7M20 10l-8 8"/>',
+        'http-tool':
+          '<path class="stroke-primary" d="m8 6-4 6 4 6M16 6l4 6-4 6"/><path class="stroke-accent" d="M9.5 12h5"/><circle class="fill-accent" cx="12" cy="12" r="1.5"/>',
+        'knowledge-tool':
+          '<ellipse class="stroke-primary" cx="9" cy="7" rx="5" ry="2.5"/><path class="stroke-primary" d="M4 7v7c0 1.4 2.2 2.5 5 2.5M4 11c0 1.4 2.2 2.5 5 2.5"/><circle class="stroke-accent" cx="16" cy="15" r="4"/><path class="stroke-accent" d="m19 18 2 2"/>',
+        'workflow-tool':
+          '<path class="stroke-primary" d="M5 6h5l3 6h6M5 18h5l3-6"/><rect class="stroke-accent" x="3" y="4" width="4" height="4" rx="1"/><rect class="stroke-accent" x="17" y="10" width="4" height="4" rx="1"/><circle class="fill-primary" cx="5" cy="18" r="2"/>',
+        'mcp-tool':
+          '<path class="stroke-primary" d="M9 8 7 6a3 3 0 0 0-4 4l3 3a3 3 0 0 0 4 0l2-2M15 16l2 2a3 3 0 0 0 4-4l-3-3a3 3 0 0 0-4 0l-2 2"/><path class="stroke-accent" d="m9 15 6-6"/>',
+        'plugin-tool':
+          '<path class="stroke-primary" d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5z"/><path class="stroke-accent" d="M14 14h5v5h-5zM16.5 11v3M11 16.5h3"/>',
+        skill:
+          '<path class="stroke-primary" d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z"/><circle class="fill-accent" cx="18.5" cy="18.5" r="2"/><path class="stroke-accent" d="M17.1 17.1 15 15"/>',
+        'agent-tool':
+          '<path class="stroke-primary" d="M7 8.5 12 5l5 3.5v6L12 18l-5-3.5zM12 8v7M7 11.5h10"/><path class="stroke-accent" d="M17 12h4M19 10v4"/><circle class="fill-accent" cx="12" cy="11.5" r="1.5"/>',
+        folder:
+          '<path class="stroke-primary" d="M3.5 7h7l2 2h8v9.5h-17z"/><path class="stroke-accent" d="M7 12h7M7 15h5"/>',
+        file: '<path class="stroke-primary" d="M6 3.5h8l4 4v13H6zM14 3.5v4h4"/><path class="stroke-accent" d="M9 12h6M9 16h4"/>',
+        'ai-model':
+          '<path class="stroke-primary" d="m12 3 7 4v10l-7 4-7-4V7zM8.5 9.5h7v5h-7z"/><path class="stroke-accent" d="M12 7v2.5M12 14.5V17M6 12h2.5M15.5 12H18"/><circle class="fill-accent" cx="12" cy="12" r="1.5"/>',
+        code: '<rect class="stroke-primary" x="3.5" y="5" width="17" height="14" rx="2"/><path class="stroke-primary" d="M3.5 9h17"/><path class="stroke-accent" d="m8 12-2 2 2 2M11 16h4"/>',
+        variable:
+          '<path class="stroke-primary" d="M8 5H5v14h3M16 5h3v14h-3"/><path class="stroke-accent" d="M10 9h4M10 15h4"/><circle class="fill-accent" cx="12" cy="12" r="1.5"/>'
+      };
+
+      const B = {
+        workflow:
+          '<rect class="fill-primary" x="3" y="4" width="5" height="5" rx="1.5"/><rect class="fill-accent" x="16" y="9.5" width="5" height="5" rx="1.5"/><rect class="fill-primary" x="3" y="15" width="5" height="5" rx="1.5"/><path class="stroke-primary" stroke-width="2.5" d="M8 6.5h3l4 5.5M8 17.5h3l4-5.5"/>',
+        'chat-agent':
+          '<path class="fill-primary" d="M4 4h16v12H10l-5 4v-4H4z"/><rect class="fill-accent" x="8" y="8" width="8" height="2" rx="1"/><rect class="fill-accent" x="8" y="12" width="5" height="2" rx="1"/>',
+        'chat-agent-v2':
+          '<path class="fill-primary" d="M3.5 4h17v13H11l-5 4v-4H3.5z"/><circle class="fill-accent" cx="12" cy="10.5" r="3.2"/><path class="stroke-primary" stroke-width="1.4" d="M12 8.5v4M10 10.5h4"/>',
+        'knowledge-base':
+          '<path class="fill-primary" d="M4 5c0-2 3.6-3.5 8-3.5S20 3 20 5v4c0 2-3.6 3.5-8 3.5S4 11 4 9z"/><path class="fill-primary" opacity=".82" d="M4 12c1.8 1.4 4.6 2.2 8 2.2s6.2-.8 8-2.2v4c0 2-3.6 3.5-8 3.5S4 18 4 16z"/><rect class="fill-accent" x="9" y="6" width="6" height="2" rx="1"/>',
+        'website-knowledge':
+          '<path class="fill-primary" d="M3 4h11v16H3z"/><rect class="fill-accent" x="5" y="7" width="7" height="2" rx="1"/><circle class="fill-primary" cx="17" cy="15" r="5"/><path class="stroke-accent" stroke-width="1.8" d="M12 15h10M17 10c2 2.5 2 7.5 0 10M17 10c-2 2.5-2 7.5 0 10"/>',
+        'external-knowledge':
+          '<path class="fill-primary" d="M3 5c0-2 3-3 7-3s7 1 7 3v11c0 2-3 3-7 3s-7-1-7-3z"/><path class="fill-accent" d="M13 9h8v8h-3v-3.1l-6.2 6.2-2-2L16 12h-3z"/>',
+        'http-tool':
+          '<path class="fill-primary" d="m9 3-7 9 7 9 3-2.5L7 12l5-6.5zM15 3l7 9-7 9-3-2.5 5-6.5-5-6.5z"/><circle class="fill-accent" cx="12" cy="12" r="2.2"/>',
+        'knowledge-tool':
+          '<path class="fill-primary" d="M2.5 5c0-2 3-3.5 7-3.5s7 1.5 7 3.5v9c0 2-3 3.5-7 3.5s-7-1.5-7-3.5z"/><circle class="fill-accent" cx="16.5" cy="16.5" r="5"/><rect class="fill-accent" x="19" y="19" width="4.8" height="2.4" rx="1.2" transform="rotate(45 19 19)"/>',
+        'workflow-tool':
+          '<rect class="fill-primary" x="2" y="3" width="6" height="6" rx="1.5"/><rect class="fill-accent" x="16" y="9" width="6" height="6" rx="1.5"/><circle class="fill-primary" cx="5" cy="19" r="3"/><path class="stroke-primary" stroke-width="2.8" d="M8 6h3l4 6M8 18h3l4-6"/>',
+        'mcp-tool':
+          '<path class="fill-primary" d="M4.2 4.2a5 5 0 0 1 7.1 0l2 2-3.2 3.2-2-2a1.5 1.5 0 1 0-2.1 2.1l2 2-3.2 3.2-2-2a5 5 0 0 1 0-7.1z"/><path class="fill-accent" d="M19.8 19.8a5 5 0 0 1-7.1 0l-2-2 3.2-3.2 2 2a1.5 1.5 0 1 0 2.1-2.1l-2-2 3.2-3.2 2 2a5 5 0 0 1 0 7.1z"/><rect class="fill-primary" x="7.3" y="10" width="9.4" height="4" rx="2" transform="rotate(-45 12 12)"/>',
+        'plugin-tool':
+          '<rect class="fill-primary" x="3" y="3" width="8" height="8" rx="1.6"/><rect class="fill-primary" x="13" y="3" width="8" height="8" rx="1.6"/><rect class="fill-primary" x="3" y="13" width="8" height="8" rx="1.6"/><path class="fill-accent" d="M13 15h2v-2h4v2h2v4h-2v2h-4v-2h-2z"/>',
+        skill:
+          '<path class="fill-primary" d="m12 1.5 2.2 7.1 7.1 2.2-7.1 2.2-2.2 7.1-2.2-7.1-7.1-2.2 7.1-2.2z"/><circle class="fill-accent" cx="18.5" cy="18.5" r="3"/>',
+        'agent-tool':
+          '<path class="fill-primary" d="m11 2 7 4v8l-7 4-7-4V6z"/><path class="fill-accent" d="M15 11h7v3h-2v2h-3v-2h-2z"/><circle class="fill-accent" cx="11" cy="10" r="2.4"/>',
+        folder:
+          '<path class="fill-primary" d="M2.5 5h8l2.2 2.5h8.8v12H2.5z"/><path class="fill-accent" d="M2.5 5h7l2 2.5h-9z"/>',
+        file: '<path class="fill-primary" d="M5 2h9l5 5v15H5z"/><path class="fill-accent" d="M14 2v5h5z"/><rect class="fill-accent" x="8" y="11" width="8" height="2" rx="1"/>',
+        'ai-model':
+          '<path class="fill-primary" d="m12 1.5 8.5 5v11L12 22.5l-8.5-5v-11z"/><rect class="fill-accent" x="8" y="8" width="8" height="8" rx="2"/><circle class="fill-primary" cx="12" cy="12" r="2"/>',
+        code: '<rect class="fill-primary" x="2" y="4" width="20" height="17" rx="2.5"/><path class="fill-accent" d="m8.5 9 2 2.5-2 2.5-2-1.6.8-.9-.8-.9z"/><rect class="fill-accent" x="12" y="14" width="5" height="2" rx="1"/>',
+        variable:
+          '<path class="fill-primary" d="M3 3h7v3H7v12h3v3H3zM14 3h7v18h-7v-3h3V6h-3z"/><circle class="fill-accent" cx="12" cy="12" r="3"/>'
+      };
+
+      const C = {
+        workflow:
+          '<path class="stroke-primary" d="M3 5.5h6v5H3zM15 13.5h6v5h-6zM3 15.5h6"/><path class="stroke-accent" d="M9 8h3v8h3"/><circle class="fill-accent" cx="3" cy="18" r="1.7"/>',
+        'chat-agent':
+          '<path class="stroke-primary" d="M4 4.5h16v12H11l-5 4v-4H4z"/><path class="stroke-accent" d="M8 8h8M8 12h5"/><circle class="fill-accent" cx="18" cy="18" r="1.5"/>',
+        'chat-agent-v2':
+          '<path class="stroke-primary" d="M3.5 4h17v13h-9l-5 4v-4h-3z"/><path class="stroke-accent" d="M9 8h6v5H9zM12 8V6M12 15v-2M9 10.5H7M17 10.5h-2"/><circle class="fill-accent" cx="12" cy="10.5" r="1.3"/>',
+        'knowledge-base':
+          '<path class="stroke-primary" d="M4 4h16v16H4zM4 9h16M4 14h16"/><path class="stroke-accent" d="M8 6.5h5M8 11.5h8M8 16.5h6"/><circle class="fill-accent" cx="18" cy="6.5" r="1.2"/>',
+        'website-knowledge':
+          '<path class="stroke-primary" d="M3 4h11v16H3zM3 8h11"/><circle class="stroke-accent" cx="17" cy="15" r="4"/><path class="stroke-accent" d="M13 15h8M17 11v8"/><circle class="fill-accent" cx="17" cy="15" r="1.2"/>',
+        'external-knowledge':
+          '<path class="stroke-primary" d="M3 4h12v16H3zM3 9h12M3 14h8"/><path class="stroke-accent" d="M13 12h8v8M21 12l-9 9"/><circle class="fill-accent" cx="6" cy="6.5" r="1.2"/>',
+        'http-tool':
+          '<path class="stroke-primary" d="M3 8h5v8H3zM16 8h5v8h-5z"/><path class="stroke-accent" d="M8 12h8M13 9l3 3-3 3"/><circle class="fill-accent" cx="11" cy="12" r="1.2"/>',
+        'knowledge-tool':
+          '<path class="stroke-primary" d="M3 3.5h13v14H3zM3 8h13M3 12.5h8"/><circle class="stroke-accent" cx="16.5" cy="16.5" r="4"/><path class="stroke-accent" d="m19.5 19.5 2 2"/><circle class="fill-accent" cx="6" cy="5.7" r="1.1"/>',
+        'workflow-tool':
+          '<path class="stroke-primary" d="M3 4h6v5H3zM15 10h6v5h-6zM3 16h6v4H3z"/><path class="stroke-accent" d="M9 6.5h3v6h3M9 18h3v-5.5"/><circle class="fill-accent" cx="12" cy="12.5" r="1.4"/>',
+        'mcp-tool':
+          '<path class="stroke-primary" d="M3 8h5v8H3zM16 8h5v8h-5zM8 10h3v4h2v-4h3"/><path class="stroke-accent" d="M8 12h3M13 12h3"/><circle class="fill-accent" cx="12" cy="12" r="1.4"/>',
+        'plugin-tool':
+          '<path class="stroke-primary" d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3z"/><path class="stroke-accent" d="M13 16h3v-3h5v8h-8z"/><circle class="fill-accent" cx="18.5" cy="15.5" r="1.2"/>',
+        skill:
+          '<path class="stroke-primary" d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5 19 19M19 5l-3.5 3.5M8.5 15.5 5 19"/><rect class="stroke-accent" x="8.5" y="8.5" width="7" height="7"/><circle class="fill-accent" cx="12" cy="12" r="1.5"/>',
+        'agent-tool':
+          '<path class="stroke-primary" d="M3 5h13v14H3zM7 9h5v5H7z"/><path class="stroke-accent" d="M16 10h5v5h-5M12 11.5h4"/><circle class="fill-accent" cx="9.5" cy="11.5" r="1.3"/>',
+        folder:
+          '<path class="stroke-primary" d="M3 6h7l2 2h9v12H3zM3 11h18"/><path class="stroke-accent" d="M7 14h7M7 17h4"/><circle class="fill-accent" cx="18" cy="14" r="1.2"/>',
+        file: '<path class="stroke-primary" d="M5 2h10l4 4v16H5zM15 2v4h4"/><path class="stroke-accent" d="M8 10h8M8 14h8M8 18h5"/><circle class="fill-accent" cx="17.5" cy="18" r="1.2"/>',
+        'ai-model':
+          '<path class="stroke-primary" d="M3 3h18v18H3zM8 8h8v8H8z"/><path class="stroke-accent" d="M12 3v5M12 16v5M3 12h5M16 12h5"/><circle class="fill-accent" cx="12" cy="12" r="1.6"/>',
+        code: '<path class="stroke-primary" d="M3 4h18v16H3zM3 8h18"/><path class="stroke-accent" d="m8 11-2 2 2 2M11 16h5"/><circle class="fill-accent" cx="6" cy="6" r="1"/>',
+        variable:
+          '<path class="stroke-primary" d="M7 3H3v18h4M17 3h4v18h-4"/><path class="stroke-accent" d="M9 8h6v8H9zM12 8V5M15 12h3"/><circle class="fill-accent" cx="12" cy="12" r="1.4"/>'
+      };
+
+      const paths = { a: A, b: B, c: C };
+      const groups = ['应用', '知识资产', '工具', '资源'];
+      let activeView = 'all';
+      let selectedId = 'chat-agent-v2';
+
+      function icon(set, id, size = 24) {
+        return `<svg class="icon-svg scheme-${set}" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" focusable="false">${paths[set][id]}</svg>`;
+      }
+
+      function schemeMarkup(set) {
+        const meta = schemeMeta[set];
+        const grouped = groups
+          .map((group) => {
+            const cells = items
+              .filter((item) => item.group === group)
+              .map(
+                (
+                  item
+                ) => `<button class="icon-cell" type="button" data-icon="${item.id}" data-scheme="${set}" aria-label="查看 ${meta.name} 方案的${item.cn}" aria-pressed="${item.id === selectedId}">
+                  <span class="icon-stage">${icon(set, item.id)}</span>
+                  <span><span class="cell-cn">${item.cn}</span><span class="cell-en">${item.en}</span></span>
+                </button>`
+              )
+              .join('');
+            return `<div class="icon-group"><div class="group-label">${group}</div><div class="group-grid">${cells}</div></div>`;
+          })
+          .join('');
+
+        return `<article class="scheme scheme-${set}" data-scheme-panel="${set}">
+          <header class="scheme-head">
+            <div class="scheme-letter">${set.toUpperCase()}</div>
+            <div>
+              <div class="scheme-index">Direction ${set.toUpperCase()}</div>
+              <div class="scheme-title-row"><h3>${meta.name}</h3><span class="scheme-en">${meta.en}</span></div>
+              <p class="scheme-copy">${meta.copy}</p>
+              <div class="scheme-spec">${meta.spec.map((spec) => `<span>${spec}</span>`).join('')}</div>
+            </div>
+          </header>
+          <div class="icon-ledger">${grouped}</div>
+        </article>`;
+      }
+
+      function visibleSets() {
+        return activeView === 'all' ? ['a', 'b', 'c'] : [activeView];
+      }
+
+      function renderDirections() {
+        const directions = document.getElementById('directions');
+        directions.classList.toggle('single', activeView !== 'all');
+        directions.innerHTML = ['a', 'b', 'c'].map(schemeMarkup).join('');
+        directions.querySelectorAll('[data-scheme-panel]').forEach((panel) => {
+          panel.hidden = activeView !== 'all' && panel.dataset.schemePanel !== activeView;
+        });
+        directions.querySelectorAll('.icon-cell').forEach((button) => {
+          button.addEventListener('click', () => {
+            selectedId = button.dataset.icon;
+            renderDirections();
+            renderInspection();
+          });
+        });
+      }
+
+      function renderInspection() {
+        const selected = items.find((item) => item.id === selectedId);
+        document.getElementById('selected-name').textContent = `${selected.cn} · ${selected.id}`;
+        const sizes = [16, 20, 24, 32];
+        document.getElementById('scale-row').innerHTML = sizes
+          .map(
+            (size) =>
+              `<div class="scale-item"><div class="scale-icons">${visibleSets()
+                .map((set) => icon(set, selectedId, size))
+                .join('')}</div><span class="scale-label">${size}px · ${visibleSets()
+                .map((set) => set.toUpperCase())
+                .join('/')}</span></div>`
+          )
+          .join('');
+
+        const contextData = [
+          { title: selected.cn, desc: '资源列表 / 透明头像画布', tag: 'resource' },
+          { title: `${selected.cn} 节点`, desc: '工作流画布 / 运行端口', tag: 'node' },
+          { title: `${selected.cn} 配置`, desc: '参数工作台 / 20px 行图标', tag: 'config' }
+        ];
+        const contextSet = activeView === 'all' ? 'a' : activeView;
+        document.getElementById('context-strip').innerHTML = contextData
+          .map(
+            (row) =>
+              `<div class="context-row scheme-${contextSet}">${icon(contextSet, selectedId, 22)}<span><strong>${row.title}</strong><small>${row.desc}</small></span><span class="context-tag">${row.tag}</span></div>`
+          )
+          .join('');
+      }
+
+      document.querySelectorAll('.view-button').forEach((button) => {
+        button.addEventListener('click', () => {
+          activeView = button.dataset.view;
+          document.querySelectorAll('.view-button').forEach((candidate) => {
+            candidate.setAttribute('aria-pressed', String(candidate === button));
+          });
+          renderDirections();
+          renderInspection();
+        });
+      });
+
+      renderDirections();
+      renderInspection();
+    </script>
+  </body>
+</html>

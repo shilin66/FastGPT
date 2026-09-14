@@ -14,7 +14,8 @@ import {
   getChatTitleFromChatMessage,
   removeEmptyUserInput
 } from '@fastgpt/global/core/chat/utils';
-import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
+import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
+import { getSkillChatScope, assertSkillChatSession } from '@fastgpt/service/core/agentSkills/chat';
 import { NextAPI } from '@/service/middleware/entry';
 import { GPTMessages2Chats } from '@fastgpt/global/core/chat/adapt';
 import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/llm/type';
@@ -34,8 +35,8 @@ import { UserError } from '@fastgpt/global/common/error/utils';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { getDefaultLLMModel } from '@fastgpt/service/core/ai/model';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
-import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
-import { SandboxTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
+import { resolveEditWorkspace } from '@fastgpt/service/core/agentSkills/editWorkspace/entity';
+import { isEditWorkspaceOperationComplete } from '@fastgpt/service/core/agentSkills/editWorkspace/utils';
 import {
   FlowNodeTypeEnum,
   FlowNodeInputTypeEnum,
@@ -218,8 +219,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       authToken: true,
       authApiKey: true,
       skillId,
-      per: ReadPermissionVal
+      per: WritePermissionVal
     });
+    const sourceScope = getSkillChatScope({ skillId, teamId });
+    await assertSkillChatSession({ skillId, teamId, chatId });
 
     // Frequency limit
     if (!(await teamFrequencyLimit({ teamId, type: LimitTypeEnum.chat, res }))) {
@@ -227,12 +230,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Verify edit-debug sandbox exists for this skill
-    const sandboxInstance = await MongoSandboxInstance.findOne({
-      appId: skillId,
-      chatId: 'edit-debug',
-      'metadata.sandboxType': SandboxTypeEnum.editDebug
-    }).lean();
-    if (!sandboxInstance) {
+    const sandboxInstance = await resolveEditWorkspace({ skillId, teamId });
+    if (
+      !sandboxInstance ||
+      sandboxInstance.status !== 'running' ||
+      !isEditWorkspaceOperationComplete(sandboxInstance)
+    ) {
       throw new UserError(
         'Edit debug sandbox not found. Please create it via /api/core/agentSkills/edit first.'
       );
@@ -250,6 +253,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { histories } = await getChatItems({
       appId: skillId,
       chatId,
+      sourceScope,
       offset: 0,
       limit: 20,
       field: 'obj value memories'
@@ -336,6 +340,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const saveParams = {
       chatId,
+      sourceScope,
       appId: skillId,
       teamId,
       tmbId,

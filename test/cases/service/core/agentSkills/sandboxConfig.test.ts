@@ -21,9 +21,10 @@ describe('sandboxConfig provider helpers', () => {
     process.env.AGENT_SANDBOX_PROVIDER = 'sealosdevbox';
     process.env.AGENT_SANDBOX_SEALOS_BASEURL = 'https://devbox.example.com';
     process.env.AGENT_SANDBOX_SEALOS_TOKEN = 'sealos-token';
-    process.env.AGENT_SANDBOX_RUNTIME = 'docker';
+    process.env.AGENT_SANDBOX_OPENSANDBOX_RUNTIME = 'docker';
 
-    const { getSandboxProviderConfig } = await loadSandboxConfigModule();
+    vi.resetModules();
+    const { getSandboxProviderConfig } = await import('@fastgpt/service/core/ai/sandbox/config');
 
     const config = getSandboxProviderConfig();
 
@@ -169,7 +170,8 @@ describe('sandboxConfig provider helpers', () => {
   });
 
   it('validates sealosdevbox token requirement', async () => {
-    const { validateSandboxConfig } = await loadSandboxConfigModule();
+    vi.resetModules();
+    const { validateSandboxConfig } = await import('@fastgpt/service/core/ai/sandbox/config');
 
     expect(() =>
       validateSandboxConfig({
@@ -179,5 +181,48 @@ describe('sandboxConfig provider helpers', () => {
         runtime: 'docker'
       })
     ).toThrow('Sandbox provider token is required for sealosdevbox');
+  });
+
+  it('uses the configured persistent volume as the new runtime workspace root', async () => {
+    process.env.AGENT_SANDBOX_ENABLE_VOLUME = 'true';
+    process.env.AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH = '/workspace';
+    const { getSandboxDefaults } = await loadSandboxConfigModule();
+    expect(getSandboxDefaults().workDirectory).toBe('/workspace');
+  });
+
+  it('respects a custom mount root and keeps edit initialization off the mount point', async () => {
+    process.env.AGENT_SANDBOX_ENABLE_VOLUME = 'true';
+    process.env.AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH = '/persistent/workspaces';
+    const { getSandboxDefaults, getSkillEditWorkspaceRoot } = await loadSandboxConfigModule();
+    expect(getSandboxDefaults().workDirectory).toBe('/persistent/workspaces');
+    expect(getSkillEditWorkspaceRoot()).toBe('/persistent/workspaces/edit');
+  });
+
+  it('preserves a legacy edit root until its draft is explicitly migrated', async () => {
+    process.env.AGENT_SANDBOX_ENABLE_VOLUME = 'true';
+    process.env.AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH = '/workspace';
+    const { getSkillEditWorkspaceRoot } = await loadSandboxConfigModule();
+    expect(getSkillEditWorkspaceRoot({ metadata: { skillId: 'legacy' } })).toBe(
+      '/home/sandbox/workspace'
+    );
+    expect(getSkillEditWorkspaceRoot({ metadata: { workspaceRoot: '/workspace/edit' } })).toBe(
+      '/workspace/edit'
+    );
+  });
+
+  it('retains the container-only default when volumes are disabled', async () => {
+    process.env.AGENT_SANDBOX_ENABLE_VOLUME = 'false';
+    const { getSandboxDefaults } = await loadSandboxConfigModule();
+    expect(getSandboxDefaults().workDirectory).toBe('/home/sandbox/workspace');
+  });
+
+  it('rejects unsafe mount and stored workspace roots', async () => {
+    process.env.AGENT_SANDBOX_ENABLE_VOLUME = 'true';
+    process.env.AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH = '/';
+    const { getSandboxDefaults, getSkillEditWorkspaceRoot } = await loadSandboxConfigModule();
+    expect(() => getSandboxDefaults()).toThrow('Invalid Sandbox workspace path');
+    expect(() =>
+      getSkillEditWorkspaceRoot({ metadata: { workspaceRoot: '/tmp/../etc' } })
+    ).toThrow();
   });
 });

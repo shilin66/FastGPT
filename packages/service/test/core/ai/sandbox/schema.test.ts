@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
+import { SandboxMetadataSchema } from '@fastgpt/service/core/ai/sandbox/type';
 
 describe('MongoSandboxInstance schema indexes', () => {
+  it('represents the root snapshot before provider-specific metadata is available', () => {
+    expect(SandboxMetadataSchema.parse({ workspaceRoot: '/workspace/edit' })).toEqual({
+      workspaceRoot: '/workspace/edit'
+    });
+  });
   it('uses a Mongo-compatible partial index for chat sandbox uniqueness', () => {
     const indexes = MongoSandboxInstance.schema.indexes();
     const targetIndex = indexes.find(

@@ -1,4 +1,5 @@
 import path from 'path';
+import type { z } from 'zod';
 import type { AgentCapability } from './type';
 import {
   allSandboxTools,
@@ -34,12 +35,17 @@ import type {
   SandboxStatusItemType
 } from '@fastgpt/global/core/chat/type';
 import type { AgentSandboxContext, DeployedSkillInfo } from '../sub/sandbox/types';
-import { MongoAgentSkills } from '../../../../../agentSkills/schema';
 import { MongoSandboxInstance } from '../../../../../ai/sandbox/schema';
-import { getSandboxDefaults } from '../../../../../agentSkills/sandboxConfig';
-import { downloadSkillPackage } from '../../../../../agentSkills/storage';
-import { extractSkillMdInfoFromBuffer } from '../../../../../agentSkills/archiveUtils';
-import { parseSkillMarkdown } from '../../../../../agentSkills/utils';
+import {
+  resolveRuntimeSkills,
+  type ResolvedRuntimeSkill
+} from '../../../../../agentSkills/runtimeResolver';
+import { SandboxUnavailableError, isFatalAgentError } from '../sub/sandbox/errors';
+import { isSandboxInfrastructureError } from '../../../../../ai/sandbox/errors';
+import { resolveSandboxWorkspacePath } from '../../../../../ai/sandbox/workspace';
+import { resolveAppSandboxIdentity } from '../../../../../ai/sandbox/identity';
+import { getRuntimeSandboxWorkspaceRoot, runEditDebugSandboxTool } from '../sub/sandbox/lifecycle';
+import { env } from '../../../../../../env';
 
 type SandboxToolResult = {
   response: string;
@@ -47,8 +53,21 @@ type SandboxToolResult = {
   assistantResponses?: AIChatItemValueItemType[];
 };
 
+const sandboxToolSchemas: Record<string, z.ZodType> = {
+  [SandboxToolIds.readFile]: SandboxReadFileSchema,
+  [SandboxToolIds.writeFile]: SandboxWriteFileSchema,
+  [SandboxToolIds.editFile]: SandboxEditFileSchema,
+  [SandboxToolIds.execute]: SandboxExecuteSchema,
+  [SandboxToolIds.search]: SandboxSearchSchema,
+  [SandboxToolIds.fetchUserFile]: SandboxFetchUserFileSchema
+};
+
 type SandboxSkillsCapabilityParams = {
   skillIds: string[];
+  expectedVersionIds?: Record<string, string>;
+  onResolvedVersionIds?: (versions: Record<string, string>) => void;
+  appId: string;
+  runtimeUserId: string;
   teamId: string;
   tmbId: string;
   sessionId: string;
@@ -58,81 +77,30 @@ type SandboxSkillsCapabilityParams = {
   allFilesMap: Record<string, { url: string; name: string; type: string }>;
 };
 
-/** Fetch skill metadata from MongoDB and compute sandbox paths from the ZIP for prompt construction. */
-async function fetchSkillsMetaForPrompt(
-  skillIds: string[],
-  teamId: string,
-  workDirectory: string
-): Promise<DeployedSkillInfo[]> {
-  const skills = await MongoAgentSkills.find(
-    { _id: { $in: skillIds }, teamId, deleteTime: null },
-    { name: 1, description: 1, avatar: 1, currentStorage: 1 }
-  ).lean();
-
-  const results = await Promise.allSettled(
-    skills.map(async (skill) => {
-      const fallback: DeployedSkillInfo = {
+function fetchSkillsMetaForPrompt({
+  resolvedSkills,
+  workDirectory
+}: {
+  resolvedSkills: ResolvedRuntimeSkill[];
+  workDirectory: string;
+}): DeployedSkillInfo[] {
+  return resolvedSkills.flatMap(({ skill, version, runtimeSkills }) =>
+    runtimeSkills.map((runtimeSkill) => {
+      const directory = resolveSandboxWorkspacePath({
+        workspaceRoot: workDirectory,
+        path: '.runtime/current/' + skill._id + '/' + runtimeSkill.path
+      });
+      return {
         id: String(skill._id),
-        name: skill.name,
-        description: skill.description ?? '',
+        versionId: String(version._id),
+        name: runtimeSkill.name,
+        description: runtimeSkill.description,
         avatar: skill.avatar,
-        skillMdPath: '',
-        directory: ''
+        directory,
+        skillMdPath: path.posix.join(directory, 'SKILL.md')
       };
-
-      if (!skill.currentStorage) return fallback;
-
-      try {
-        const buffer = await downloadSkillPackage({ storageInfo: skill.currentStorage });
-        const info = await extractSkillMdInfoFromBuffer(buffer);
-        if (!info) return fallback;
-
-        const { frontmatter } = parseSkillMarkdown(info.content);
-        const skillMdPath = `${workDirectory}/${info.relativePath}`;
-        return {
-          id: fallback.id,
-          name: frontmatter.name ? String(frontmatter.name) : fallback.name,
-          description: frontmatter.description
-            ? String(frontmatter.description)
-            : fallback.description,
-          avatar: fallback.avatar,
-          skillMdPath,
-          directory: path.dirname(skillMdPath)
-        };
-      } catch {
-        return fallback;
-      }
     })
   );
-
-  return results.map((r, i) =>
-    r.status === 'fulfilled'
-      ? r.value
-      : {
-          id: String(skills[i]._id),
-          name: skills[i].name,
-          description: skills[i].description ?? '',
-          avatar: skills[i].avatar,
-          skillMdPath: '',
-          directory: ''
-        }
-  );
-}
-
-/** Check whether an error indicates a sandbox that no longer exists or is unreachable. */
-export function isSandboxExpiredError(err: unknown): boolean {
-  if (err instanceof Error) {
-    const msg = err.message.toLowerCase();
-    return (
-      msg.includes('not found') ||
-      msg.includes('not exist') ||
-      msg.includes('connection') ||
-      msg.includes('sandbox_not_found') ||
-      msg.includes('econnrefused') ||
-      msg.includes('econnreset')
-    );
-  }
-  return false;
 }
 
 export function collectSkillReferenceResponses({
@@ -148,10 +116,18 @@ export function collectSkillReferenceResponses({
   showSkillReferences: boolean;
   toolCallId: string;
 }): AIChatItemValueItemType[] {
-  if (!showSkillReferences) return [];
-
   const skillResponses: AIChatItemValueItemType[] = [];
-  for (const filePath of paths) {
+  for (const requestedPath of paths) {
+    const filePath = (() => {
+      try {
+        return resolveSandboxWorkspacePath({
+          workspaceRoot: sandboxContext.workDirectory,
+          path: requestedPath
+        });
+      } catch {
+        return '';
+      }
+    })();
     if (!filePath.endsWith('/SKILL.md')) continue;
 
     const skill = sandboxContext.deployedSkills.find(
@@ -160,30 +136,48 @@ export function collectSkillReferenceResponses({
     if (!skill) continue;
 
     // Use toolCallId from the triggering tool call for correlation
-    workflowStreamResponse?.({
-      id: toolCallId,
-      event: SseResponseEventEnum.skillCall,
-      data: {
-        skill: {
-          id: toolCallId,
-          skillName: skill.name,
-          skillAvatar: skill.avatar || '',
-          description: skill.description,
-          skillMdPath: filePath
+    if (showSkillReferences)
+      workflowStreamResponse?.({
+        id: toolCallId,
+        event: SseResponseEventEnum.skillCall,
+        data: {
+          skill: {
+            id: toolCallId,
+            skillName: skill.name,
+            skillAvatar: skill.avatar || '',
+            description: skill.description,
+            skillMdPath: filePath
+          }
         }
-      }
-    });
+      });
 
+    const audit = {
+      id: toolCallId,
+      status: 'referenced' as const,
+      skillId: skill.id,
+      versionId: skill.versionId,
+      baseVersionId: sandboxContext.baseVersionId,
+      workspaceGeneration: sandboxContext.workspaceGeneration,
+      sandboxId: sandboxContext.sandboxId,
+      operationId: sandboxContext.operationId
+    };
     skillResponses.push({
-      skills: [
-        {
-          id: toolCallId,
-          skillName: skill.name,
-          skillAvatar: skill.avatar || '',
-          description: skill.description,
-          skillMdPath: filePath
-        }
-      ]
+      sandboxEvent: audit,
+      ...(showSkillReferences && {
+        skills: [
+          {
+            id: toolCallId,
+            skillId: skill.id,
+            versionId: skill.versionId,
+            sandboxId: sandboxContext.sandboxId,
+            operationId: sandboxContext.operationId,
+            skillName: skill.name,
+            skillAvatar: skill.avatar || '',
+            description: skill.description,
+            skillMdPath: filePath
+          }
+        ]
+      })
     });
   }
   return skillResponses;
@@ -194,6 +188,8 @@ export async function createSandboxSkillsCapability(
 ): Promise<AgentCapability> {
   const {
     skillIds,
+    appId,
+    runtimeUserId,
     teamId,
     tmbId,
     sessionId,
@@ -203,8 +199,45 @@ export async function createSandboxSkillsCapability(
     allFilesMap
   } = params;
   const isEditDebug = mode === 'editDebug';
-  const defaults = getSandboxDefaults();
   const logger = getLogger(LogCategories.MODULE.AI.AGENT);
+  const failure = ({
+    context,
+    toolCallId = sessionId
+  }: {
+    context?: AgentSandboxContext;
+    toolCallId?: string;
+  }): SandboxToolResult => {
+    const status = skillIds.length || isEditDebug ? 'failed' : 'degraded';
+    const bindings = context?.deployedSkills.length ? context.deployedSkills : [undefined];
+    const assistantResponses: AIChatItemValueItemType[] = bindings.map((skill) => ({
+      sandboxEvent: {
+        id: toolCallId,
+        status,
+        code: 'sandbox_unavailable',
+        skillId: skill?.id,
+        versionId: skill?.versionId,
+        baseVersionId: context?.baseVersionId,
+        workspaceGeneration: context?.workspaceGeneration,
+        sandboxId: context?.sandboxId,
+        operationId: context?.operationId
+      }
+    }));
+    logger.error('Agent Sandbox unavailable', {
+      teamId,
+      appId,
+      sessionId,
+      status,
+      code: 'sandbox_unavailable',
+      sandboxId: context?.sandboxId,
+      operationId: context?.operationId
+    });
+    if (status === 'failed') throw new SandboxUnavailableError(assistantResponses);
+    return {
+      response: JSON.stringify({ code: 'sandbox_unavailable', status, retryable: false }),
+      usages: [],
+      assistantResponses
+    };
+  };
 
   // editDebug: keep existing immediate-connect behavior
   if (isEditDebug) {
@@ -213,7 +246,12 @@ export async function createSandboxSkillsCapability(
     }
     const sandboxContext = await connectEditDebugSandbox({
       skillId: skillIds[0],
-      teamId
+      teamId,
+      tmbId
+    }).catch((error) => {
+      if (isFatalAgentError(error)) throw error;
+      failure({});
+      throw new SandboxUnavailableError();
     });
 
     const systemPrompt = buildSkillsContextPrompt(
@@ -227,19 +265,44 @@ export async function createSandboxSkillsCapability(
       completionTools: allSandboxTools,
       handleToolCall: async (toolId, args, toolCallId) => {
         if (!(Object.values(SandboxToolIds) as string[]).includes(toolId)) return null;
-        const result = await buildEditDebugHandler(
-          toolId,
-          args,
-          sandboxContext,
-          allFilesMap,
-          workflowStreamResponse,
-          showSkillReferences,
-          toolCallId
-        );
+        const parsed = sandboxToolSchemas[toolId].safeParse(parseJsonArgs(args));
+        if (!parsed.success) return { response: parsed.error.message, usages: [] };
+        const result = await runEditDebugSandboxTool({
+          context: sandboxContext,
+          skillId: skillIds[0],
+          teamId,
+          tmbId,
+          execute: () =>
+            buildEditDebugHandler(
+              toolId,
+              args,
+              sandboxContext,
+              allFilesMap,
+              workflowStreamResponse,
+              showSkillReferences,
+              toolCallId
+            )
+        }).catch(() => {
+          return failure({ context: sandboxContext, toolCallId });
+        });
         if (result !== null) {
+          result.assistantResponses = [
+            {
+              sandboxEvent: {
+                id: toolCallId,
+                status: 'ready',
+                skillId: skillIds[0],
+                sandboxId: sandboxContext.sandboxId,
+                operationId: sandboxContext.operationId,
+                baseVersionId: sandboxContext.baseVersionId,
+                workspaceGeneration: sandboxContext.workspaceGeneration
+              }
+            },
+            ...(result.assistantResponses ?? [])
+          ];
           // Fire-and-forget: renew sandbox expiration after successful execution
           MongoSandboxInstance.updateOne(
-            { sandboxId: sandboxContext.providerSandboxId },
+            { provider: sandboxContext.sandbox.provider, sandboxId: sandboxContext.sandboxId },
             { lastActiveAt: new Date() }
           ).catch((err) =>
             logger.error('[Agent Sandbox] Failed to renew lastActiveAt', { error: err })
@@ -255,17 +318,30 @@ export async function createSandboxSkillsCapability(
     };
   }
 
-  // Session-runtime: preload skill metadata with sandbox paths from ZIP (no container creation)
-  const skillsMeta =
-    skillIds.length > 0
-      ? await fetchSkillsMetaForPrompt(skillIds, teamId, defaults.workDirectory)
-      : [];
+  const resolvedSkills = await resolveRuntimeSkills({
+    skillIds,
+    teamId,
+    tmbId,
+    expectedVersionIds: params.expectedVersionIds
+  });
+  const expectedVersionIds = Object.fromEntries(
+    resolvedSkills.map(({ skill, version }) => [String(skill._id), String(version._id)])
+  );
+  params.onResolvedVersionIds?.(expectedVersionIds);
+  const instance = env.AGENT_SANDBOX_PROVIDER
+    ? (await resolveAppSandboxIdentity({ appId, userId: runtimeUserId, chatId: sessionId }))
+        .instance
+    : undefined;
+  const workDirectory = getRuntimeSandboxWorkspaceRoot(instance);
+  const skillsMeta = fetchSkillsMetaForPrompt({ resolvedSkills, workDirectory });
 
-  const systemPrompt = buildSkillsContextPrompt(skillsMeta, defaults.workDirectory);
+  const systemPrompt = buildSkillsContextPrompt(skillsMeta, workDirectory);
 
   // --- Lazy-init state ---
   let sandboxContext: AgentSandboxContext | null = null;
   let initPromise: Promise<AgentSandboxContext> | null = null;
+  let unavailableResult: SandboxToolResult | undefined;
+  let deploymentRecorded = false;
 
   const onProgress = workflowStreamResponse
     ? (status: SandboxStatusItemType) =>
@@ -274,7 +350,16 @@ export async function createSandboxSkillsCapability(
 
   async function initializeSandbox(): Promise<AgentSandboxContext> {
     onProgress?.({ sandboxId: sessionId, phase: 'lazyInit' });
-    return createAgentSandbox({ skillIds, teamId, tmbId, sessionId, onProgress });
+    return createAgentSandbox({
+      skillIds,
+      expectedVersionIds,
+      appId,
+      runtimeUserId,
+      teamId,
+      tmbId,
+      sessionId,
+      onProgress
+    });
   }
 
   async function ensureSandbox(): Promise<AgentSandboxContext> {
@@ -294,41 +379,50 @@ export async function createSandboxSkillsCapability(
     return initPromise;
   }
 
-  async function executeWithRetry(
-    executor: (ctx: AgentSandboxContext) => Promise<SandboxToolResult>
+  async function executeOnce(
+    executor: (ctx: AgentSandboxContext) => Promise<SandboxToolResult>,
+    toolCallId: string
   ): Promise<SandboxToolResult> {
+    if (unavailableResult) return { ...unavailableResult, assistantResponses: [] };
     let ctx: AgentSandboxContext;
     try {
       ctx = await ensureSandbox();
     } catch (err) {
-      return {
-        response: `Sandbox initialization failed: ${(err as Error).message}`,
-        usages: []
-      };
+      if (isFatalAgentError(err) && !(err instanceof SandboxUnavailableError)) throw err;
+      unavailableResult = failure({ toolCallId });
+      return unavailableResult;
     }
 
     let result: SandboxToolResult;
     try {
       result = await executor(ctx);
     } catch (err) {
-      if (!isSandboxExpiredError(err)) throw err;
+      if (!isSandboxInfrastructureError(err)) throw err;
+      unavailableResult = failure({ context: ctx, toolCallId });
+      return unavailableResult;
+    }
 
-      // Silent rebuild: clear state and retry once
-      sandboxContext = null;
-      try {
-        ctx = await ensureSandbox();
-        result = await executor(ctx);
-      } catch (retryErr) {
-        return {
-          response: `Sandbox operation failed: ${(retryErr as Error).message}`,
-          usages: []
-        };
-      }
+    if (!deploymentRecorded) {
+      const assistantResponses: AIChatItemValueItemType[] = skillsMeta.map((skill) => ({
+        sandboxEvent: {
+          id: toolCallId,
+          status: 'ready',
+          skillId: skill.id,
+          versionId: skill.versionId,
+          sandboxId: ctx.sandboxId,
+          operationId: ctx.operationId
+        }
+      }));
+      result = {
+        ...result,
+        assistantResponses: [...assistantResponses, ...(result.assistantResponses ?? [])]
+      };
+      deploymentRecorded = true;
     }
 
     // Fire-and-forget: renew sandbox expiration after successful execution
     MongoSandboxInstance.updateOne(
-      { sandboxId: ctx.providerSandboxId },
+      { provider: ctx.sandbox.provider, sandboxId: ctx.sandboxId },
       { lastActiveAt: new Date() }
     ).catch((err) => logger.error('[Agent Sandbox] Failed to renew lastActiveAt', { error: err }));
 
@@ -341,8 +435,10 @@ export async function createSandboxSkillsCapability(
     completionTools: allSandboxTools,
     handleToolCall: async (toolId, args, toolCallId) => {
       if (!(Object.values(SandboxToolIds) as string[]).includes(toolId)) return null;
+      const parsed = sandboxToolSchemas[toolId].safeParse(parseJsonArgs(args));
+      if (!parsed.success) return { response: parsed.error.message, usages: [] };
 
-      return executeWithRetry(async (ctx) => {
+      return executeOnce(async (ctx) => {
         return buildSessionHandler(
           toolId,
           args,
@@ -352,7 +448,7 @@ export async function createSandboxSkillsCapability(
           showSkillReferences,
           toolCallId
         );
-      });
+      }, toolCallId);
     },
     dispose: async () => {
       if (sandboxContext) {

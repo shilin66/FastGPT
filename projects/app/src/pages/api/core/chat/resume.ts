@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import {
   ResumeStreamParamsSchema,
@@ -106,7 +107,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const findCurrentChat = async (): Promise<CurrentChatState> => {
     const chat = await MongoChat.findOne(
-      { chatId, appId },
+      { ...getChatSourceFilter(), chatId, appId },
       { hasBeenRead: 1, chatGenerateStatus: 1 }
     ).lean();
     if (!chat) {
@@ -147,7 +148,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   };
 
   const makeSureTheCompletedChatHasBeenRead = async () => {
-    await MongoChat.updateOne({ appId, chatId }, { $set: { hasBeenRead: true } });
+    await MongoChat.updateOne(
+      { ...getChatSourceFilter(), appId, chatId },
+      { $set: { hasBeenRead: true } }
+    );
   };
 
   const waitForCompletedChat = async () => {

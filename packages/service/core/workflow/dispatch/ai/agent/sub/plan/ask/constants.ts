@@ -2,6 +2,8 @@ import type { ChatCompletionTool } from '@fastgpt/global/core/ai/llm/type';
 import { SubAppIds } from '@fastgpt/global/core/workflow/node/agent/constants';
 import z from 'zod';
 import { FlowNodeInputTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
+import { WorkflowIOValueTypeEnum } from '@fastgpt/global/core/workflow/constants';
+import type { InteractiveNodeResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 
 /* AI 表单输出 schema */
 const InputSchema = z.object({
@@ -18,6 +20,31 @@ export const AIAskAnswerSchema = z.object({
   form: z.array(z.union([InputSchema, SelectSchema])).optional()
 });
 export type AIAskAnswerType = z.infer<typeof AIAskAnswerSchema>;
+
+export const formatAgentAsk = (data: AIAskAnswerType): InteractiveNodeResponseType => {
+  if (!data.form?.length) return { type: 'agentPlanAskQuery', params: { content: data.question } };
+  return {
+    type: 'agentPlanAskUserForm',
+    params: {
+      description: data.question,
+      inputForm: data.form.map((item) => ({
+        type: item.type,
+        key: item.label,
+        label: item.label,
+        value: '',
+        required: false,
+        valueType:
+          item.type === FlowNodeInputTypeEnum.numberInput
+            ? WorkflowIOValueTypeEnum.number
+            : WorkflowIOValueTypeEnum.string,
+        list:
+          'options' in item
+            ? item.options.map((option) => ({ label: option, value: option }))
+            : undefined
+      }))
+    }
+  };
+};
 
 export const AIAskTool: ChatCompletionTool = {
   type: 'function',

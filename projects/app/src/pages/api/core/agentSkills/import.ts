@@ -1,21 +1,17 @@
 import { NextAPI } from '@/service/middleware/entry';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
+import { assertTeamWritable } from '@fastgpt/service/support/user/team/status';
 import { authSkill } from '@fastgpt/service/support/permission/agentSkill/auth';
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { TeamSkillCreatePermissionVal } from '@fastgpt/global/support/permission/user/constant';
-import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
 import { importSkill } from '@fastgpt/service/core/agentSkills/controller';
-import { repackFileMapAsZip } from '@fastgpt/service/core/agentSkills/zipBuilder';
 import {
-  getSupportedArchiveFormat,
-  extractToFileMap
-} from '@fastgpt/service/core/agentSkills/archiveUtils';
+  SkillPackageValidationError,
+  type SkillPackageValidationReason,
+  validateAndNormalizeSkillPackage
+} from '@fastgpt/service/core/agentSkills/packageValidator';
 import type { ImportSkillBody, ImportSkillResponse } from '@fastgpt/global/core/agentSkills/api';
-import type { SkillPackageType } from '@fastgpt/global/core/agentSkills/type';
-import {
-  AgentSkillCategoryEnum,
-  AgentSkillTypeEnum
-} from '@fastgpt/global/core/agentSkills/constants';
+import { AgentSkillTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
 import { multer } from '@fastgpt/service/common/file/multer';
 import { getSkillSizeLimits } from '@fastgpt/service/core/agentSkills/sandboxConfig';
 import fs from 'fs/promises';
@@ -24,8 +20,36 @@ import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
 import { SkillErrEnum } from '@fastgpt/global/common/error/code/agentSkill';
 import type { ApiRequestProps } from '@fastgpt/service/type/next';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
+import type { NextApiResponse } from 'next';
+import { jsonRes } from '@fastgpt/service/common/response';
+import { i18nT } from '@fastgpt/web/i18n/utils';
 
 const logger = getLogger(LogCategories.MODULE.AGENT_SKILLS.IMPORT);
+
+const validationMessages = {
+  invalid_zip: i18nT('skill:package_error.invalid_zip'),
+  archive_too_large: i18nT('skill:package_error.archive_too_large'),
+  too_many_files: i18nT('skill:package_error.too_many_files'),
+  file_too_large: i18nT('skill:package_error.file_too_large'),
+  uncompressed_size_exceeded: i18nT('skill:package_error.uncompressed_size_exceeded'),
+  path_too_deep: i18nT('skill:package_error.path_too_deep'),
+  absolute_path: i18nT('skill:package_error.absolute_path'),
+  path_traversal: i18nT('skill:package_error.path_traversal'),
+  invalid_path: i18nT('skill:package_error.invalid_path'),
+  duplicate_path: i18nT('skill:package_error.duplicate_path'),
+  unsupported_file_type: i18nT('skill:package_error.unsupported_file_type'),
+  unsupported_compression: i18nT('skill:package_error.unsupported_compression'),
+  encrypted_entry: i18nT('skill:package_error.encrypted_entry'),
+  invalid_utf8: i18nT('skill:package_error.invalid_utf8'),
+  invalid_frontmatter: i18nT('skill:package_error.invalid_frontmatter'),
+  missing_skill_md: i18nT('skill:package_error.missing_skill_md'),
+  invalid_layout: i18nT('skill:package_error.invalid_layout'),
+  legacy_layout_not_allowed: i18nT('skill:package_error.legacy_layout_not_allowed'),
+  duplicate_runtime_name: i18nT('skill:package_error.duplicate_runtime_name'),
+  runtime_name_mismatch: i18nT('skill:package_error.runtime_name_mismatch'),
+  invalid_entrypoint: i18nT('skill:package_error.invalid_entrypoint'),
+  checksum_mismatch: i18nT('skill:package_error.checksum_mismatch')
+} satisfies Record<SkillPackageValidationReason, string>;
 
 export const config = {
   api: {
@@ -33,12 +57,22 @@ export const config = {
   }
 };
 
-async function handler(req: ApiRequestProps<ImportSkillBody>): Promise<ImportSkillResponse> {
+async function handler(
+  req: ApiRequestProps<ImportSkillBody>,
+  res: NextApiResponse
+): Promise<ImportSkillResponse | void> {
   const filepaths: string[] = [];
 
   try {
+    const { teamId: requestTeamId } = await authUserPer({
+      req,
+      authToken: true,
+      authApiKey: true
+    });
+    await assertTeamWritable(requestTeamId, WritePermissionVal);
+
     // Read env limit before multer so both use the same value
-    const { maxUploadBytes: maxArchiveSize, maxUncompressedBytes } = getSkillSizeLimits();
+    const { maxUploadBytes: maxArchiveSize } = getSkillSizeLimits();
     // Convert bytes to MB for multer (multer expects MB)
     const maxArchiveSizeMB = Math.ceil(maxArchiveSize / 1024 / 1024);
 
@@ -58,8 +92,7 @@ async function handler(req: ApiRequestProps<ImportSkillBody>): Promise<ImportSki
       avatar: result.data.avatar ?? (req.body?.avatar as string | undefined)
     };
 
-    const format = getSupportedArchiveFormat(file.originalname ?? '');
-    if (!format) {
+    if (!/\.zip$/i.test(file.originalname ?? '')) {
       return Promise.reject(SkillErrEnum.invalidArchiveFormat);
     }
 
@@ -103,51 +136,43 @@ async function handler(req: ApiRequestProps<ImportSkillBody>): Promise<ImportSki
       return Promise.reject(SkillErrEnum.archiveTooLarge);
     }
 
-    // Extract archive to file map
-    let fileMap: Record<string, Buffer>;
+    const archiveBuffer = await fs.readFile(file.path);
+    let validatedPackage;
     try {
-      fileMap = await extractToFileMap(file.path, maxUncompressedBytes);
-    } catch (err: any) {
-      logger.warn('Failed to extract archive', { error: err.message });
-      return Promise.reject(SkillErrEnum.archiveExtractionFailed);
-    }
-    if (Object.keys(fileMap).length === 0) {
-      return Promise.reject(SkillErrEnum.archiveEmpty);
+      validatedPackage = await validateAndNormalizeSkillPackage(archiveBuffer);
+    } catch (error) {
+      logger.warn('Rejected imported Skill package', {
+        reason:
+          error instanceof SkillPackageValidationError
+            ? error.reason
+            : 'unexpected_validation_error'
+      });
+      if (error instanceof SkillPackageValidationError) {
+        return jsonRes(res, {
+          code: 400,
+          error: SkillErrEnum.invalidSkillPackage,
+          message: validationMessages[error.reason]
+        });
+      }
+      return Promise.reject(SkillErrEnum.invalidSkillPackage);
     }
 
     // Derive package-level name from caller-supplied value or archive filename
     const pkgName =
-      body.name ||
-      (file.originalname ?? 'package').replace(/\.(zip|tar\.gz|tgz|tar)$/i, '').trim() ||
-      'package';
+      body.name || (file.originalname ?? 'package').replace(/\.zip$/i, '').trim() || 'package';
     const pkgDescription = body.description ?? '';
 
-    // Repack the entire fileMap as a single ZIP (converts TAR/TAR.GZ to ZIP)
-    const zipBuffer = await repackFileMapAsZip(fileMap);
-
-    // Build skill package using package-level metadata only
-    const skillPackage: SkillPackageType = {
-      skill: {
-        name: pkgName,
-        description: pkgDescription,
-        category: [AgentSkillCategoryEnum.other],
-        config: {},
-        avatar: body.avatar
-      }
-    };
-
-    // Create ONE DB record
-    const skillId = await mongoSessionRun(async (session) =>
-      importSkill(
-        skillPackage,
-        teamId,
-        tmbId,
-        userId || '',
-        zipBuffer,
-        body.parentId || null,
-        session
-      )
-    );
+    const skillId = await importSkill({
+      name: pkgName,
+      description: pkgDescription,
+      avatar: body.avatar,
+      teamId,
+      tmbId,
+      userId: userId || '',
+      parentId: body.parentId || null,
+      originalFilename: file.originalname || 'package.zip',
+      validatedPackage
+    });
 
     // Add audit log
     (async () => {

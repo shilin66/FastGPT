@@ -7,8 +7,15 @@
 import { MongoAgentSkillsVersion } from './schema';
 import type { ClientSession } from '../../../common/mongo';
 import type { AgentSkillsVersionSchemaType } from '@fastgpt/global/core/agentSkills/type';
+import { AgentSkillSchemaVersion } from '@fastgpt/global/core/agentSkills/constants';
+import { getCurrentVersion, setCurrentVersion } from './current';
+import { SkillErrEnum } from '@fastgpt/global/common/error/code/agentSkill';
+import { UserError } from '@fastgpt/global/common/error/utils';
+import { MongoAgentSkills } from '../schema';
+import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 
 export type CreateVersionData = {
+  versionId?: string;
   skillId: string;
   tmbId: string;
   version: number;
@@ -19,6 +26,8 @@ export type CreateVersionData = {
     size: number;
     checksum?: string;
   };
+  runtimeSkills?: AgentSkillsVersionSchemaType['runtimeSkills'];
+  contentHash?: string;
   importSource?: {
     originalFilename: string;
     importedAt: Date;
@@ -35,8 +44,13 @@ export async function createVersion(
   session?: ClientSession
 ): Promise<string> {
   const version = new MongoAgentSkillsVersion({
+    ...(data.versionId && { _id: data.versionId }),
     ...data,
-    isActive: true,
+    schemaVersion: AgentSkillSchemaVersion,
+    storageKey: data.storage.key,
+    createdBy: data.tmbId,
+    runtimeSkills: data.runtimeSkills ?? [],
+    isActive: false,
     isDeleted: false,
     createdAt: new Date()
   });
@@ -54,7 +68,7 @@ export async function getNextVersionNumber(
   session?: ClientSession
 ): Promise<number> {
   const lastVersion = await MongoAgentSkillsVersion.findOne(
-    { skillId, isDeleted: false },
+    { skillId },
     { version: 1 },
     { sort: { version: -1 }, session }
   ).lean();
@@ -84,13 +98,7 @@ export async function getVersionBySkillIdAndVersion(
 export async function getActiveVersion(
   skillId: string
 ): Promise<AgentSkillsVersionSchemaType | null> {
-  const version = await MongoAgentSkillsVersion.findOne({
-    skillId,
-    isActive: true,
-    isDeleted: false
-  }).lean();
-
-  return version as AgentSkillsVersionSchemaType | null;
+  return getCurrentVersion(skillId);
 }
 
 /**
@@ -124,23 +132,13 @@ export async function setActiveVersion(
   version: number,
   session?: ClientSession
 ): Promise<void> {
-  // First, deactivate all versions for this skill
-  await MongoAgentSkillsVersion.updateMany(
-    { skillId, isDeleted: false },
-    { $set: { isActive: false } },
-    { session }
-  );
-
-  // Then, activate the specified version
-  const result = await MongoAgentSkillsVersion.updateOne(
+  const versionDoc = await MongoAgentSkillsVersion.findOne(
     { skillId, version, isDeleted: false },
-    { $set: { isActive: true } },
+    { _id: 1 },
     { session }
-  );
-
-  if (result.matchedCount === 0) {
-    throw new Error(`Version ${version} not found for skill ${skillId}`);
-  }
+  ).lean();
+  if (!versionDoc) throw new Error(`Version ${version} not found for skill ${skillId}`);
+  await setCurrentVersion({ skillId, versionId: String(versionDoc._id), session });
 }
 
 /**
@@ -162,18 +160,66 @@ export async function deleteVersion(
     throw new Error(`Version ${version} not found for skill ${skillId}`);
   }
 
-  // Refuse to delete the currently active version to prevent data orphaning
-  if (versionDoc.isActive) {
-    throw new Error(
-      `Cannot delete active version ${version}. Switch to another version before deleting.`
-    );
+  await softDeleteVersionById({
+    skillId,
+    versionId: String(versionDoc._id),
+    deleteTime: new Date(),
+    session
+  });
+}
+
+async function softDeleteVersionInSession({
+  skillId,
+  versionId,
+  deleteTime,
+  session
+}: {
+  skillId: string;
+  versionId: string;
+  deleteTime: Date;
+  session?: ClientSession;
+}): Promise<void> {
+  const version = await MongoAgentSkillsVersion.findOne(
+    { _id: versionId, skillId, isDeleted: false },
+    { _id: 1 },
+    { session }
+  ).lean();
+  const currentVersion = await getCurrentVersion(skillId, session);
+  if (!version || String(currentVersion?._id) === String(version._id)) {
+    throw new UserError(SkillErrEnum.versionConflict);
+  }
+  if (!currentVersion) {
+    const skill = await MongoAgentSkills.findOne(
+      { _id: skillId, deleteTime: null },
+      { currentVersionId: 1, currentStorage: 1 },
+      { session }
+    ).lean();
+    if (!skill || skill.currentVersionId || skill.currentStorage) {
+      throw new UserError(SkillErrEnum.versionConflict);
+    }
   }
 
-  await MongoAgentSkillsVersion.updateOne(
-    { skillId, version },
-    { $set: { isDeleted: true } },
+  const fence = await MongoAgentSkills.updateOne(
+    { _id: skillId, deleteTime: null },
+    { $inc: { __v: 1 } },
     { session }
   );
+  if (fence.matchedCount !== 1) throw new UserError(SkillErrEnum.versionConflict);
+
+  const result = await MongoAgentSkillsVersion.updateOne(
+    { _id: versionId, skillId, isDeleted: false },
+    { $set: { isDeleted: true, deleteTime } },
+    { session }
+  );
+  if (result.matchedCount === 0) {
+    throw new UserError(SkillErrEnum.versionConflict);
+  }
+}
+
+export function softDeleteVersionById(args: Parameters<typeof softDeleteVersionInSession>[0]) {
+  return args.session
+    ? softDeleteVersionInSession(args)
+    : mongoSessionRun((session) => softDeleteVersionInSession({ ...args, session }));
 }
 
 /**
@@ -198,7 +244,7 @@ export async function restoreVersion(
 
   await MongoAgentSkillsVersion.updateOne(
     { skillId, version },
-    { $set: { isDeleted: false } },
+    { $set: { isDeleted: false, deleteTime: null } },
     { session }
   );
 }

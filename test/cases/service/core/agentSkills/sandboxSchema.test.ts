@@ -35,6 +35,7 @@ describe('SandboxInstance Schema', () => {
     expect(doc.status).toBe('running');
     expect(doc.metadata?.sandboxType).toBe('edit-debug');
     expect(doc?.provider).toBe('opensandbox');
+    expect(doc.schemaVersion).toBe(2);
   });
 
   it('should have default values for optional fields', async () => {
@@ -160,5 +161,34 @@ describe('SandboxInstance Schema', () => {
     expect(doc.status).toBe('stopped');
     expect(doc.metadata?.sandboxType).toBe('session-runtime');
     expect(doc.metadata?.skillIds).toHaveLength(2);
+  });
+
+  it('should preserve Phase 1 identity and operation fields', () => {
+    const now = new Date();
+    const doc = new MongoSandboxInstance({
+      provider: 'opensandbox',
+      sandboxId: 'phase1-sandbox',
+      sourceType: 'skillEdit',
+      sourceId: '507f1f77bcf86cd799439011',
+      teamId: '507f1f77bcf86cd799439012',
+      ownerTmbId: '507f1f77bcf86cd799439013',
+      runtimeUserId: 'user-1',
+      sessionId: 'edit-debug',
+      baseVersionId: '507f1f77bcf86cd799439014',
+      currentDeploymentHash: 'sha256:test',
+      status: 'provisioning',
+      operation: {
+        id: 'operation-1',
+        type: 'provision',
+        checkpoint: 'provider_pending',
+        startedAt: now,
+        updatedAt: now
+      }
+    });
+
+    expect(doc.sourceType).toBe('skillEdit');
+    expect(String(doc.sourceId)).toBe('507f1f77bcf86cd799439011');
+    expect(doc.operation?.checkpoint).toBe('provider_pending');
+    expect(doc.status).toBe('provisioning');
   });
 });

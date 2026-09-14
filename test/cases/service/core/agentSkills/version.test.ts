@@ -83,11 +83,15 @@ describe('versionController', () => {
       expect(version?.skillId.toString()).toBe(testSkillId);
       expect(version?.version).toBe(0);
       expect(version?.versionName).toBe('Initial creation');
-      expect(version?.isActive).toBe(true);
+      expect(version?.isActive).toBe(false);
       expect(version?.isDeleted).toBe(false);
       expect(version?.storage.bucket).toBe(versionData.storage.bucket);
       expect(version?.storage.key).toBe(versionData.storage.key);
       expect(version?.storage.size).toBe(versionData.storage.size);
+      expect(version?.schemaVersion).toBe(2);
+      expect(version?.storageKey).toBe(versionData.storage.key);
+      expect(String(version?.createdBy)).toBe(testTmbId);
+      expect(version?.runtimeSkills).toEqual([]);
     });
 
     it('should create multiple versions for the same skill', async () => {
@@ -142,7 +146,7 @@ describe('versionController', () => {
       expect(version?.storage.size).toBe(100);
     });
 
-    it('should set isActive to true by default', async () => {
+    it('should keep legacy isActive false for new writes', async () => {
       const versionData = {
         skillId: testSkillId,
         tmbId: testTmbId,
@@ -153,7 +157,7 @@ describe('versionController', () => {
       const versionId = await createVersion(versionData);
       const version = await MongoAgentSkillsVersion.findById(versionId);
 
-      expect(version?.isActive).toBe(true);
+      expect(version?.isActive).toBe(false);
     });
 
     it('should set isDeleted to false by default', async () => {
@@ -222,7 +226,7 @@ describe('versionController', () => {
       expect(nextVersion).toBe(3);
     });
 
-    it('should ignore deleted versions when calculating next version', async () => {
+    it('should not reuse the number of a deleted immutable version', async () => {
       // Create v0 (not deleted)
       await MongoAgentSkillsVersion.create({
         skillId: testSkillId,
@@ -255,15 +259,14 @@ describe('versionController', () => {
         createdAt: new Date()
       });
 
-      // Next version should be 1: max non-deleted version is 0 (v0), so next = 0+1 = 1
       const nextVersion = await getNextVersionNumber(testSkillId);
-      expect(nextVersion).toBe(1);
+      expect(nextVersion).toBe(2);
     });
   });
 
   // ==================== setActiveVersion ====================
   describe('setActiveVersion', () => {
-    it('should set a version as active', async () => {
+    it('should update the main current version pointer without rewriting legacy flags', async () => {
       // Create v0 and v1
       const [v0, v1] = await Promise.all([
         MongoAgentSkillsVersion.create({
@@ -299,12 +302,15 @@ describe('versionController', () => {
       // Set v1 as active
       await setActiveVersion(testSkillId, 1);
 
-      // Verify v0 is no longer active and v1 is active
-      const v0Updated = await MongoAgentSkillsVersion.findById(v0._id);
-      const v1Updated = await MongoAgentSkillsVersion.findById(v1._id);
+      const [v0Updated, v1Updated, skill] = await Promise.all([
+        MongoAgentSkillsVersion.findById(v0._id),
+        MongoAgentSkillsVersion.findById(v1._id),
+        MongoAgentSkills.findById(testSkillId)
+      ]);
 
-      expect(v0Updated?.isActive).toBe(false);
-      expect(v1Updated?.isActive).toBe(true);
+      expect(v0Updated?.isActive).toBe(true);
+      expect(v1Updated?.isActive).toBe(false);
+      expect(String(skill?.currentVersionId)).toBe(String(v1._id));
     });
 
     it('should throw error when version does not exist', async () => {

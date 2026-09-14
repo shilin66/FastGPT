@@ -1,3 +1,4 @@
+import { getChatSourceFilter, assertChatSourceSession } from './source';
 /**
  * Service helpers for persisting per-chat generate status.
  * Used by stream resume, sidebar polling, and stale-generating correction paths.
@@ -34,13 +35,11 @@ const buildGeneratingChatUpdate = (params: EnsureGenerateChatParams) => {
 };
 
 export const ensureGenerateChat = async (params: EnsureGenerateChatParams) => {
+  await assertChatSourceSession(params);
   const { $set, $setOnInsert } = buildGeneratingChatUpdate(params);
 
   await MongoChat.updateOne(
-    {
-      appId: params.appId,
-      chatId: params.chatId
-    },
+    { ...getChatSourceFilter(), appId: params.appId, chatId: params.chatId },
     {
       $set,
       $setOnInsert
@@ -52,11 +51,13 @@ export const ensureGenerateChat = async (params: EnsureGenerateChatParams) => {
 };
 
 export const tryStartGenerateChat = async (params: EnsureGenerateChatParams) => {
+  await assertChatSourceSession(params);
   const { $set, $setOnInsert } = buildGeneratingChatUpdate(params);
 
   try {
     await MongoChat.updateOne(
       {
+        ...getChatSourceFilter(),
         appId: params.appId,
         chatId: params.chatId,
         chatGenerateStatus: {
@@ -98,5 +99,5 @@ export const updateChatGenerateStatus = async (params: UpdateChatGenerateStatusP
   } else if (status === ChatGenerateStatusEnum.done || status === ChatGenerateStatusEnum.error) {
     $set.hasBeenRead = false;
   }
-  await MongoChat.updateOne({ appId, chatId }, { $set });
+  await MongoChat.updateOne({ ...getChatSourceFilter(), appId, chatId }, { $set });
 };

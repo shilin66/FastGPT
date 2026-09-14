@@ -90,7 +90,9 @@ export const LogCategories = {
       CREATION: ['agent-skills', 'create-skill'],
       EXPORT: ['agent-skills', 'export-skill'],
       DEPLOY: ['agent-skills', 'deploy-skill'],
-      IMPORT: ['agent-skills', 'import-skill']
+      IMPORT: ['agent-skills', 'import-skill'],
+      VERSION: ['agent-skills', 'version'],
+      MIGRATION: ['agent-skills', 'migration']
     }),
     USER: Object.assign(['user'], {
       ACCOUNT: ['user', 'account'],

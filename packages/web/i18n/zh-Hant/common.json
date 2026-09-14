@@ -156,6 +156,8 @@
   "code_error.skill_error.archive_empty": "壓縮包內容為空",
   "code_error.skill_error.archive_extraction_failed": "壓縮包解壓失敗",
   "code_error.skill_error.archive_too_large": "壓縮包大小超過最大限制",
+  "code_error.skill_error.version_conflict": "Skill 版本已變更或不屬於目前 Skill",
+  "code_error.skill_error.migration_conflict": "Skill 遷移發現需要人工處理的資料衝突",
   "code_error.skill_error.missing_image_repository": "提供 image 時必須指定 image.repository",
   "code_error.chat_error.un_auth": "沒有權限操作此對話記錄",
   "code_error.chat_error.chat_generating": "目前對話仍在生成中，請等待完成後再發起新的請求",

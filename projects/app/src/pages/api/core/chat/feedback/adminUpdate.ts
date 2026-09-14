@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { MongoChatItem } from '@fastgpt/service/core/chat/chatItemSchema';
@@ -24,11 +25,7 @@ async function handler(
   });
 
   await MongoChatItem.updateOne(
-    {
-      appId,
-      chatId,
-      dataId
-    },
+    { ...getChatSourceFilter(), appId, chatId, dataId },
     {
       adminFeedback: {
         datasetId,

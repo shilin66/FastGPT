@@ -3,6 +3,7 @@ import {
   AgentSkillSourceEnum,
   AgentSkillCategoryEnum,
   AgentSkillTypeEnum,
+  AgentSkillCreationStatusEnum,
   SandboxProtocolEnum,
   SandboxTypeEnum
 } from './constants';
@@ -19,10 +20,7 @@ export const AgentSkillCategorySchema = z.enum(AgentSkillCategoryEnum);
 export const AgentSkillTypeSchema = z.enum(AgentSkillTypeEnum);
 export const SandboxProtocolSchema = z.enum(SandboxProtocolEnum);
 export const SandboxTypeSchema = z.enum(SandboxTypeEnum);
-export const SandboxStatusSchema = z.enum([
-  SandboxStatusEnum.running,
-  SandboxStatusEnum.stopped
-] as const);
+export const SandboxStatusSchema = z.enum(SandboxStatusEnum);
 
 export const AgentSkillConfigParameterSchema = z.object({
   name: z.string(),
@@ -57,6 +55,30 @@ export const SkillVersionStorageSchema = AgentSkillStorageSchema.extend({
   checksum: z.string().optional()
 });
 
+export const RuntimeSkillMetadataSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  path: z.string()
+});
+export type RuntimeSkillMetadataType = z.infer<typeof RuntimeSkillMetadataSchema>;
+
+export const AgentSkillCreationErrorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  operationId: z.string().optional(),
+  updatedAt: z.coerce.date()
+});
+
+export const AgentSkillDeletionOperationSchema = z.object({
+  id: z.string(),
+  rootId: z.string(),
+  memberIds: z.array(z.string()),
+  checkpoint: z.enum(['marked', 'sandbox_deleted', 'packages_deleted', 'chat_deleted']),
+  updatedAt: z.coerce.date(),
+  lastQueuedAt: z.coerce.date().optional(),
+  error: z.string().optional()
+});
+
 export const AgentSkillSchema = z.object({
   _id: z.string(),
   parentId: z.string().nullable().optional(),
@@ -74,6 +96,13 @@ export const AgentSkillSchema = z.object({
   createTime: z.coerce.date(),
   updateTime: z.coerce.date(),
   deleteTime: z.coerce.date().nullable().optional(),
+  schemaVersion: z.number().optional(),
+  currentVersionId: z.string().optional(),
+  currentRuntimeSkills: z.array(RuntimeSkillMetadataSchema).optional(),
+  creationStatus: z.enum(AgentSkillCreationStatusEnum).optional(),
+  error: AgentSkillCreationErrorSchema.optional(),
+  lastOperationId: z.string().optional(),
+  deletionOperation: AgentSkillDeletionOperationSchema.optional(),
   currentVersion: z.number(),
   versionCount: z.number(),
   currentStorage: AgentSkillStorageSchema.optional()
@@ -117,14 +146,21 @@ export const AgentSkillsVersionImportSourceSchema = z.object({
 
 export const AgentSkillsVersionSchema = z.object({
   _id: z.string(),
+  schemaVersion: z.number().optional(),
   skillId: z.string(),
   tmbId: z.string(),
   version: z.number(),
   versionName: z.string().optional(),
   storage: SkillVersionStorageSchema,
+  storageKey: z.string().optional(),
+  runtimeSkills: z.array(RuntimeSkillMetadataSchema).optional(),
+  contentHash: z.string().optional(),
+  createdBy: z.string().optional(),
   importSource: AgentSkillsVersionImportSourceSchema.optional(),
   isActive: z.boolean(),
   isDeleted: z.boolean(),
+  deleteTime: z.coerce.date().nullable().optional(),
+  storageDeletedAt: z.coerce.date().nullable().optional(),
   createdAt: z.coerce.date()
 });
 export type AgentSkillsVersionSchemaType = z.infer<typeof AgentSkillsVersionSchema>;

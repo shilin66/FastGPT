@@ -155,6 +155,7 @@ export const getMongoLogModel = <T>(name: string, schema: mongoose.Schema): Mode
 
 const syncMongoIndex = async (model: Model<any>) => {
   if (
+    model.schema.get('autoIndex') === false ||
     process.env.NODE_ENV === 'test' ||
     process.env.SYNC_INDEX === '0' ||
     process.env.NEXT_PHASE === 'phase-production-build' ||

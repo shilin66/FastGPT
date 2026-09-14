@@ -52,6 +52,7 @@ export default defineConfig({
     testTimeout: 20000,
     hookTimeout: 30000,
     reporters: ['github-actions', 'default'],
-    include: ['test/**/*.test.ts']
+    include: ['test/**/*.test.ts'],
+    exclude: ['**/node_modules/**', '**/.git/**', '**/*.dom.test.ts']
   }
 });

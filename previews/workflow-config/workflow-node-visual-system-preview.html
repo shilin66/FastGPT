@@ -1,0 +1,1315 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniCockpit 工作流节点视觉系统预览</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      body {
+        background:
+          linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+          #edf3fb;
+        background-size: 28px 28px;
+      }
+
+      .node-preview-page {
+        min-width: 0;
+        padding: 28px clamp(18px, 2vw, 34px);
+      }
+
+      .preview-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        max-width: 1720px;
+        margin: 0 auto 18px;
+      }
+
+      .preview-head h1 {
+        margin: 8px 0;
+        font-size: 30px;
+        line-height: 1.16;
+      }
+
+      .preview-head p {
+        max-width: 900px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .preview-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .preview-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 38px;
+        padding: 0 14px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.86);
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .preview-action.primary {
+        border-color: rgba(37, 99, 235, 0.34);
+        background: var(--blue);
+        color: white;
+        box-shadow: var(--shadow-blue);
+      }
+
+      .workflow-frame {
+        display: grid;
+        grid-template-rows: minmax(64px, auto) auto;
+        max-width: 1720px;
+        height: auto;
+        margin: 0 auto;
+        overflow: auto;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.1);
+      }
+
+      .workflow-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 18px;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .workflow-title {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 12px;
+      }
+
+      .workflow-mark {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 14px;
+        background: var(--blue);
+        color: white;
+        font-size: 13px;
+        font-weight: 1000;
+        box-shadow: var(--shadow-blue);
+      }
+
+      .workflow-title strong {
+        display: block;
+        font-size: 16px;
+      }
+
+      .workflow-title span {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .toolbar-center,
+      .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .toolbar-pill,
+      .toolbar-tab,
+      .toolbar-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 38px;
+        border-radius: 13px;
+        font-size: 13px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .toolbar-pill {
+        min-width: 74px;
+        padding: 0 14px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: #f8fafc;
+      }
+
+      .toolbar-pill small {
+        margin-left: 8px;
+        color: var(--blue);
+        font-size: 15px;
+      }
+
+      .toolbar-tab {
+        padding: 0 14px;
+        color: var(--muted);
+        background: rgba(100, 116, 139, 0.1);
+      }
+
+      .toolbar-tab.active {
+        color: white;
+        background: var(--blue);
+        box-shadow: var(--shadow-blue);
+      }
+
+      .toolbar-button {
+        padding: 0 15px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background: white;
+      }
+
+      .toolbar-button.primary {
+        border-color: var(--blue);
+        background: var(--blue);
+        color: white;
+      }
+
+      .workflow-body {
+        display: grid;
+        grid-template-columns: 260px minmax(1120px, 1fr);
+        min-height: 0;
+      }
+
+      .node-dock,
+      .node-inspector {
+        min-height: 0;
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(16px);
+      }
+
+      .node-dock {
+        border-right: 1px solid rgba(148, 163, 184, 0.18);
+      }
+
+      .dock-top {
+        padding: 16px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+      }
+
+      .dock-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .dock-tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 34px;
+        gap: 6px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 11px;
+        background: #f8fafc;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .dock-tab.active {
+        border-color: rgba(37, 99, 235, 0.34);
+        background: rgba(37, 99, 235, 0.1);
+        color: var(--blue);
+      }
+
+      .dock-search {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 38px;
+        margin-top: 12px;
+        padding: 0 12px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 12px;
+        background: #f8fafc;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .dock-content {
+        height: auto;
+        overflow: visible;
+        padding: 14px 12px;
+      }
+
+      .dock-group {
+        margin-bottom: 16px;
+      }
+
+      .dock-label {
+        margin: 0 5px 8px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 1000;
+        letter-spacing: 0.08em;
+      }
+
+      .dock-item {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 54px;
+        margin-bottom: 9px;
+        padding: 9px 10px;
+        border: 1px solid rgba(37, 99, 235, 0.12);
+        border-radius: 15px;
+        background: white;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+      }
+
+      .dock-item strong,
+      .dock-item small {
+        display: block;
+      }
+
+      .dock-item strong {
+        font-size: 13px;
+      }
+
+      .dock-item small {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .node-icon {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 12px;
+        color: white;
+        background: linear-gradient(135deg, #2563eb, #1e293b);
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+        font-size: 11px;
+        font-weight: 1000;
+      }
+
+      .node-icon.kb {
+        background: linear-gradient(135deg, #3b82f6, #0f766e);
+      }
+
+      .node-icon.http {
+        background: linear-gradient(135deg, #2563eb, #475569);
+      }
+
+      .node-icon.if {
+        background: linear-gradient(135deg, #7c3aed, #2563eb);
+      }
+
+      .node-icon.warn {
+        background: linear-gradient(135deg, #ef4444, #1e293b);
+      }
+
+      .dock-key {
+        color: var(--soft);
+        font-size: 10px;
+        font-weight: 1000;
+      }
+
+      .canvas {
+        position: relative;
+        min-height: 1040px;
+        overflow: hidden;
+        background:
+          linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+          linear-gradient(rgba(37, 99, 235, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.035) 1px, transparent 1px),
+          #f8fbff;
+        background-size:
+          80px 80px,
+          80px 80px,
+          16px 16px,
+          16px 16px;
+      }
+
+      .connection-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .connection {
+        fill: none;
+        stroke: rgba(37, 99, 235, 0.18);
+        stroke-linecap: round;
+        stroke-width: 11;
+      }
+
+      .connection-main {
+        fill: none;
+        stroke: var(--blue);
+        stroke-linecap: round;
+        stroke-width: 3;
+      }
+
+      .connection.error {
+        stroke: rgba(239, 68, 68, 0.18);
+      }
+
+      .connection-main.error {
+        stroke: #ef4444;
+      }
+
+      .workflow-node {
+        position: absolute;
+        width: 320px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-left: 5px solid rgba(37, 99, 235, 0.34);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+      }
+
+      .workflow-node.selected {
+        border-color: rgba(37, 99, 235, 0.75);
+        border-left-color: var(--blue);
+        box-shadow: 0 26px 64px rgba(37, 99, 235, 0.2);
+      }
+
+      .workflow-node.error {
+        border-color: rgba(239, 68, 68, 0.48);
+        border-left-color: #ef4444;
+      }
+
+      .workflow-node.compact {
+        width: 280px;
+      }
+
+      .workflow-node.wide {
+        width: 410px;
+      }
+
+      .workflow-node.loop {
+        width: 640px;
+        height: 286px;
+        border-style: dashed;
+        background: rgba(248, 251, 255, 0.9);
+      }
+
+      .node-head {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 11px;
+        padding: 14px 15px 12px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        background:
+          linear-gradient(90deg, rgba(37, 99, 235, 0.08), transparent 66%),
+          #ffffff;
+      }
+
+      .node-head h3 {
+        margin: 0;
+        overflow: hidden;
+        font-size: 16px;
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .node-head p {
+        margin: 3px 0 0;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .node-meta {
+        display: flex;
+        gap: 6px;
+      }
+
+      .meta-chip {
+        display: inline-flex;
+        align-items: center;
+        height: 24px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: rgba(37, 99, 235, 0.1);
+        color: var(--blue);
+        font-size: 11px;
+        font-weight: 1000;
+      }
+
+      .node-body {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .node-section {
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+        background: #ffffff;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 36px;
+        padding: 0 11px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        background: rgba(248, 250, 252, 0.88);
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 1000;
+      }
+
+      .section-title::before {
+        content: "";
+        width: 4px;
+        height: 14px;
+        margin-right: 8px;
+        border-radius: 99px;
+        background: var(--blue);
+      }
+
+      .section-title span:first-child {
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .section-title small {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 1000;
+      }
+
+      .param-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 36px;
+        padding: 8px 11px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      }
+
+      .param-row:last-child {
+        border-bottom: 0;
+      }
+
+      .param-label {
+        overflow: hidden;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 850;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .param-desc {
+        margin-top: 2px;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 750;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .value-pill {
+        display: inline-flex;
+        align-items: center;
+        height: 23px;
+        padding: 0 8px;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 999px;
+        color: var(--blue);
+        background: rgba(37, 99, 235, 0.08);
+        font-size: 10px;
+        font-weight: 1000;
+      }
+
+      .value-pill.gray {
+        border-color: rgba(148, 163, 184, 0.22);
+        color: var(--muted);
+        background: rgba(100, 116, 139, 0.08);
+      }
+
+      .value-pill.red {
+        border-color: rgba(239, 68, 68, 0.22);
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.08);
+      }
+
+      .mini-form {
+        display: grid;
+        gap: 8px;
+        padding: 11px;
+      }
+
+      .input-shell {
+        height: 34px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 10px;
+        background: #f8fafc;
+      }
+
+      .input-shell.big {
+        height: 72px;
+      }
+
+      .input-shell.blue {
+        border-color: rgba(37, 99, 235, 0.28);
+        background: linear-gradient(90deg, rgba(37, 99, 235, 0.1), rgba(37, 99, 235, 0.03));
+      }
+
+      .status-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 12px 12px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .node-port {
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        border: 3px solid white;
+        border-radius: 99px;
+        background: var(--blue);
+        box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
+      }
+
+      .node-port.in {
+        top: 50%;
+        left: -8px;
+      }
+
+      .node-port.out {
+        top: 50%;
+        right: -8px;
+      }
+
+      .loop-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px;
+        border-bottom: 1px dashed rgba(37, 99, 235, 0.24);
+      }
+
+      .loop-inner {
+        position: relative;
+        height: 214px;
+      }
+
+      .node-mini {
+        position: absolute;
+        width: 230px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-left: 5px solid var(--blue);
+        border-radius: 16px;
+        background: white;
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+      }
+
+      .node-mini .node-head {
+        grid-template-columns: 34px minmax(0, 1fr);
+        padding: 11px;
+      }
+
+      .node-mini .node-icon {
+        width: 32px;
+        height: 32px;
+      }
+
+      .node-mini h3 {
+        font-size: 13px;
+      }
+
+      .canvas-control {
+        position: absolute;
+        right: 18px;
+        bottom: 18px;
+        display: flex;
+        gap: 6px;
+        padding: 6px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.1);
+      }
+
+      .canvas-control button {
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--muted);
+        font-weight: 1000;
+      }
+
+      .node-inspector {
+        border-left: 1px solid rgba(148, 163, 184, 0.18);
+      }
+
+      .workflow-body > .node-inspector {
+        display: none;
+      }
+
+      .inspector-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(248, 250, 252, 0.86);
+      }
+
+      .inspector-head small {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 1000;
+        letter-spacing: 0.1em;
+      }
+
+      .inspector-head strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 16px;
+      }
+
+      .inspector-button {
+        height: 32px;
+        padding: 0 12px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 10px;
+        background: white;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .inspector-body {
+        padding: 16px;
+      }
+
+      .selected-summary {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+
+      .selected-summary h3,
+      .selected-summary p {
+        margin: 0;
+      }
+
+      .selected-summary h3 {
+        overflow: hidden;
+        font-size: 16px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .selected-summary p {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .metric {
+        min-height: 62px;
+        padding: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+        background: #f8fafc;
+      }
+
+      .metric small {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 7px;
+        font-size: 18px;
+      }
+
+      .inspector-section-title {
+        margin: 18px 0 8px;
+        font-size: 13px;
+        font-weight: 1000;
+      }
+
+      .inspector-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 40px;
+        margin-bottom: 8px;
+        padding: 0 11px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 12px;
+        background: white;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .inspector-row span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .inspector-row span:last-child {
+        color: var(--blue);
+      }
+
+      .notes {
+        max-width: 1720px;
+        margin: 18px auto 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+
+      .note-card {
+        min-height: 126px;
+        padding: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.06);
+      }
+
+      .note-card h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+
+      .note-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .review-showcase {
+        max-width: 1720px;
+        margin: 18px auto 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+        gap: 16px;
+      }
+
+      .showcase-card {
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.06);
+      }
+
+      .showcase-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(248, 250, 252, 0.92);
+      }
+
+      .showcase-head h2 {
+        margin: 0;
+        font-size: 17px;
+      }
+
+      .showcase-head p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .showcase-body {
+        padding: 18px;
+      }
+
+      .detail-node {
+        position: relative;
+        width: min(100%, 620px);
+      }
+
+      .detail-node.workflow-node {
+        position: relative;
+        left: auto;
+        top: auto;
+        right: auto;
+        bottom: auto;
+      }
+
+      .showcase-inspector {
+        border-left: 0;
+        border-radius: 18px;
+        background: white;
+      }
+
+      @media (max-width: 1180px) {
+        .preview-head,
+        .notes,
+        .review-showcase {
+          grid-template-columns: 1fr;
+        }
+
+        .workflow-toolbar {
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="node-preview-page">
+      <header class="preview-head">
+        <div>
+          <span class="index-badge">OmniCockpit / Workflow Node Visual System</span>
+          <h1>工作流节点视觉系统：饱和蓝图谱</h1>
+          <p>
+            这个预览用于确认节点统一样式，不迁移节点配置逻辑。重点是统一节点外壳、头部层级、输入输出区块、选中态、异常态和复杂节点承载能力。
+          </p>
+        </div>
+        <div class="preview-actions">
+          <a class="preview-action" href="./workflow-v3-header-redesign-previews.html">返回头部方案</a>
+          <span class="preview-action primary">推荐落地</span>
+        </div>
+      </header>
+
+      <section class="workflow-frame">
+        <div class="workflow-toolbar">
+          <div class="workflow-title">
+            <div class="workflow-mark">WF</div>
+            <div>
+              <strong>售后咨询工作流</strong>
+              <span>草稿未发布 · 最近保存 10:24 · 节点视觉系统预览</span>
+            </div>
+          </div>
+          <div class="toolbar-center">
+            <div class="toolbar-pill">节点 <small>24</small></div>
+            <div class="toolbar-pill">连线 <small>27</small></div>
+            <div class="toolbar-pill">校验 <small>通过</small></div>
+          </div>
+          <div class="toolbar-right">
+            <div class="toolbar-tab active">配置</div>
+            <div class="toolbar-tab">调试</div>
+            <div class="toolbar-tab">发布渠道</div>
+            <div class="toolbar-tab">对话日志</div>
+            <div class="toolbar-button">版本记录</div>
+            <div class="toolbar-button">仅保存</div>
+            <div class="toolbar-button primary">保存并发布</div>
+          </div>
+        </div>
+
+        <div class="workflow-body">
+          <aside class="node-dock">
+            <div class="dock-top">
+              <div class="dock-tabs">
+                <div class="dock-tab active">基础功能</div>
+                <div class="dock-tab">系统工具</div>
+                <div class="dock-tab">我的工具</div>
+                <div class="dock-tab">Agent</div>
+              </div>
+              <div class="dock-search">搜索节点 <span>/</span></div>
+            </div>
+            <div class="dock-content">
+              <div class="dock-group">
+                <div class="dock-label">AI 能力</div>
+                <div class="dock-item">
+                  <div class="node-icon">AI</div>
+                  <div>
+                    <strong>AI 对话</strong>
+                    <small>大模型对话与响应生成</small>
+                  </div>
+                  <span class="dock-key">A</span>
+                </div>
+                <div class="dock-item">
+                  <div class="node-icon kb">KB</div>
+                  <div>
+                    <strong>知识库搜索</strong>
+                    <small>检索引用与召回策略</small>
+                  </div>
+                  <span class="dock-key">K</span>
+                </div>
+                <div class="dock-item">
+                  <div class="node-icon if">IF</div>
+                  <div>
+                    <strong>问题分类</strong>
+                    <small>按意图选择执行分支</small>
+                  </div>
+                  <span class="dock-key">C</span>
+                </div>
+              </div>
+              <div class="dock-group">
+                <div class="dock-label">集成</div>
+                <div class="dock-item">
+                  <div class="node-icon http">API</div>
+                  <div>
+                    <strong>HTTP 请求</strong>
+                    <small>调用外部服务接口</small>
+                  </div>
+                  <span class="dock-key">H</span>
+                </div>
+                <div class="dock-item">
+                  <div class="node-icon">MCP</div>
+                  <div>
+                    <strong>MCP 工具</strong>
+                    <small>工具服务调用</small>
+                  </div>
+                  <span class="dock-key">M</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <section class="canvas">
+            <svg class="connection-layer" viewBox="0 0 1180 1040" preserveAspectRatio="none">
+              <path class="connection" d="M328 232 C390 232 394 318 456 318" />
+              <path class="connection-main" d="M328 232 C390 232 394 318 456 318" />
+              <path class="connection" d="M866 318 C930 318 936 228 998 228" />
+              <path class="connection-main" d="M866 318 C930 318 936 228 998 228" />
+              <path class="connection" d="M662 660 C662 710 300 710 300 760" />
+              <path class="connection-main" d="M662 660 C662 710 300 710 300 760" />
+              <path class="connection error" d="M676 880 C800 880 816 870 940 870" />
+              <path class="connection-main error" d="M676 880 C800 880 816 870 940 870" />
+            </svg>
+
+            <article class="workflow-node compact" style="left: 48px; top: 146px">
+              <div class="node-port out"></div>
+              <div class="node-head">
+                <div class="node-icon">IN</div>
+                <div>
+                  <h3>开始节点</h3>
+                  <p>接收用户问题、附件、会话变量</p>
+                </div>
+                <div class="node-meta"><span class="meta-chip">Trigger</span></div>
+              </div>
+              <div class="node-body">
+                <section class="node-section">
+                  <div class="section-title"><span>输出</span><small>3</small></div>
+                  <div class="param-row">
+                    <div>
+                      <div class="param-label">用户问题</div>
+                      <div class="param-desc">userChatInput</div>
+                    </div>
+                    <span class="value-pill">string</span>
+                  </div>
+                </section>
+              </div>
+            </article>
+
+            <article class="workflow-node selected wide" style="left: 456px; top: 148px">
+              <div class="node-port in"></div>
+              <div class="node-port out"></div>
+              <div class="node-head">
+                <div class="node-icon http">API</div>
+                <div>
+                  <h3>EXT-02/03 网内异常日志查询</h3>
+                  <p>HTTP 请求 · 统一后的复杂节点承载样式</p>
+                </div>
+                <div class="node-meta"><span class="meta-chip">Selected</span></div>
+              </div>
+              <div class="node-body">
+                <section class="node-section">
+                  <div class="section-title"><span>请求配置</span><small>POST</small></div>
+                  <div class="mini-form">
+                    <div class="input-shell blue"></div>
+                    <div class="input-shell"></div>
+                    <div class="input-shell big"></div>
+                  </div>
+                </section>
+                <section class="node-section">
+                  <div class="section-title"><span>输入参数</span><small>6</small></div>
+                  <div class="param-row">
+                    <div>
+                      <div class="param-label">system_httpMethod</div>
+                      <div class="param-desc">请求方法</div>
+                    </div>
+                    <span class="value-pill">已配置</span>
+                  </div>
+                  <div class="param-row">
+                    <div>
+                      <div class="param-label">system_httpReqUrl</div>
+                      <div class="param-desc">请求地址</div>
+                    </div>
+                    <span class="value-pill">已配置</span>
+                  </div>
+                  <div class="param-row">
+                    <div>
+                      <div class="param-label">system_header_secret</div>
+                      <div class="param-desc">可选密钥</div>
+                    </div>
+                    <span class="value-pill gray">可选</span>
+                  </div>
+                </section>
+                <section class="node-section">
+                  <div class="section-title"><span>输出字段</span><small>3</small></div>
+                  <div class="param-row">
+                    <div class="param-label">workflow:raw_response</div>
+                    <span class="value-pill">any</span>
+                  </div>
+                  <div class="param-row">
+                    <div class="param-label">网内异常证据</div>
+                    <span class="value-pill">object</span>
+                  </div>
+                </section>
+              </div>
+            </article>
+
+            <article class="workflow-node" style="right: 46px; top: 144px">
+              <div class="node-port in"></div>
+              <div class="node-port out"></div>
+              <div class="node-head">
+                <div class="node-icon kb">KB</div>
+                <div>
+                  <h3>知识库检索</h3>
+                  <p>命中产品知识和售后策略</p>
+                </div>
+                <div class="node-meta"><span class="meta-chip">3 hits</span></div>
+              </div>
+              <div class="node-body">
+                <section class="node-section">
+                  <div class="section-title"><span>配置摘要</span><small>Top K 8</small></div>
+                  <div class="param-row">
+                    <div class="param-label">知识库选择</div>
+                    <span class="value-pill">3</span>
+                  </div>
+                  <div class="param-row">
+                    <div class="param-label">相似度阈值</div>
+                    <span class="value-pill">0.62</span>
+                  </div>
+                </section>
+              </div>
+            </article>
+
+            <article class="workflow-node loop" style="left: 86px; top: 742px">
+              <div class="loop-title">
+                <div class="node-icon">LP</div>
+                <div>
+                  <strong>批量证据检查循环</strong>
+                  <p style="margin: 2px 0 0; color: var(--muted); font-size: 12px; font-weight: 800">
+                    Loop 容器保留父子节点空间关系，只统一边框和标题区。
+                  </p>
+                </div>
+              </div>
+              <div class="loop-inner">
+                <article class="node-mini" style="left: 42px; top: 44px">
+                  <div class="node-head">
+                    <div class="node-icon if">IF</div>
+                    <div>
+                      <h3>证据完整性判断</h3>
+                      <p>条件分支</p>
+                    </div>
+                  </div>
+                </article>
+                <article class="node-mini error" style="right: 42px; top: 116px">
+                  <div class="node-head">
+                    <div class="node-icon warn">ERR</div>
+                    <div>
+                      <h3>异常回复生成</h3>
+                      <p>错误态示例</p>
+                    </div>
+                  </div>
+                  <div class="status-bar">
+                    <span>校验失败</span>
+                    <span class="value-pill red">缺少引用变量</span>
+                  </div>
+                </article>
+              </div>
+            </article>
+
+            <div class="canvas-control">
+              <button>−</button>
+              <button>⌖</button>
+              <button>+</button>
+            </div>
+          </section>
+
+          <aside class="node-inspector">
+            <div class="inspector-head">
+              <div>
+                <small>INSPECTOR</small>
+                <strong>节点检查器</strong>
+              </div>
+              <button class="inspector-button">定位</button>
+            </div>
+            <div class="inspector-body">
+              <div class="selected-summary">
+                <div class="node-icon http">API</div>
+                <div>
+                  <h3>EXT-02/03 网内异常日志查询</h3>
+                  <p>workflow:intro_http_request</p>
+                </div>
+              </div>
+              <div class="metric-grid">
+                <div class="metric"><small>输入</small><strong>10</strong></div>
+                <div class="metric"><small>输出</small><strong>3</strong></div>
+                <div class="metric"><small>状态</small><strong>正常</strong></div>
+              </div>
+
+              <div class="inspector-section-title">输入参数</div>
+              <div class="inspector-row"><span>system_httpMethod</span><span>已配置</span></div>
+              <div class="inspector-row"><span>system_httpTimeout</span><span>已配置</span></div>
+              <div class="inspector-row"><span>system_header_secret</span><span>可选</span></div>
+              <div class="inspector-row"><span>system_httpHeader</span><span>已配置</span></div>
+
+              <div class="inspector-section-title">输出字段</div>
+              <div class="inspector-row"><span>workflow:raw_response</span><span>any</span></div>
+              <div class="inspector-row"><span>workflow:error_text</span><span>object</span></div>
+              <div class="inspector-row"><span>网内异常证据</span><span>object</span></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="review-showcase">
+        <article class="showcase-card">
+          <div class="showcase-head">
+            <div>
+              <h2>节点细节样张</h2>
+              <p>独立查看复杂节点的头部、配置区、参数区和输出区，真实落地时作为公共节点外壳基准。</p>
+            </div>
+            <span class="meta-chip">Detail specimen</span>
+          </div>
+          <div class="showcase-body">
+            <article class="detail-node workflow-node selected wide">
+              <div class="node-head">
+                <div class="node-icon http">API</div>
+                <div>
+                  <h3>EXT-02/03 网内异常日志查询</h3>
+                  <p>HTTP 请求 · 展开态复杂节点</p>
+                </div>
+                <div class="node-meta"><span class="meta-chip">Selected</span></div>
+              </div>
+              <div class="node-body">
+                <section class="node-section">
+                  <div class="section-title"><span>请求配置</span><small>POST</small></div>
+                  <div class="mini-form">
+                    <div class="input-shell blue"></div>
+                    <div class="input-shell"></div>
+                  </div>
+                </section>
+                <section class="node-section">
+                  <div class="section-title"><span>关键参数</span><small>4 / 6</small></div>
+                  <div class="param-row">
+                    <div>
+                      <div class="param-label">system_httpMethod</div>
+                      <div class="param-desc">请求方法</div>
+                    </div>
+                    <span class="value-pill">已配置</span>
+                  </div>
+                  <div class="param-row">
+                    <div>
+                      <div class="param-label">system_header_secret</div>
+                      <div class="param-desc">密钥参数</div>
+                    </div>
+                    <span class="value-pill gray">可选</span>
+                  </div>
+                </section>
+              </div>
+            </article>
+          </div>
+        </article>
+
+        <article class="showcase-card">
+          <div class="showcase-head">
+            <div>
+              <h2>右侧检查器样张</h2>
+              <p>检查器作为辅助信息，不参与主画布布局，因此不再把节点挤到一起。</p>
+            </div>
+          </div>
+          <aside class="node-inspector showcase-inspector">
+            <div class="inspector-head">
+              <div>
+                <small>INSPECTOR</small>
+                <strong>节点检查器</strong>
+              </div>
+              <button class="inspector-button">定位</button>
+            </div>
+            <div class="inspector-body">
+              <div class="selected-summary">
+                <div class="node-icon http">API</div>
+                <div>
+                  <h3>EXT-02/03 网内异常日志查询</h3>
+                  <p>workflow:intro_http_request</p>
+                </div>
+              </div>
+              <div class="metric-grid">
+                <div class="metric"><small>输入</small><strong>10</strong></div>
+                <div class="metric"><small>输出</small><strong>3</strong></div>
+                <div class="metric"><small>状态</small><strong>正常</strong></div>
+              </div>
+
+              <div class="inspector-section-title">输入参数</div>
+              <div class="inspector-row"><span>system_httpMethod</span><span>已配置</span></div>
+              <div class="inspector-row"><span>system_httpTimeout</span><span>已配置</span></div>
+              <div class="inspector-row"><span>system_header_secret</span><span>可选</span></div>
+
+              <div class="inspector-section-title">输出字段</div>
+              <div class="inspector-row"><span>workflow:raw_response</span><span>any</span></div>
+              <div class="inspector-row"><span>网内异常证据</span><span>object</span></div>
+            </div>
+          </aside>
+        </article>
+      </section>
+
+      <section class="notes">
+        <article class="note-card">
+          <h3>落地范围</h3>
+          <p>先改公共节点外壳、标题区、输入输出区和动态字段样式，不迁移配置逻辑，不改保存结构。</p>
+        </article>
+        <article class="note-card">
+          <h3>视觉原则</h3>
+          <p>灰阶信息层级承载内容，饱和蓝只用于选中、连接线、关键状态和品牌识别，避免回到 FastGPT 原始风格。</p>
+        </article>
+        <article class="note-card">
+          <h3>风险控制</h3>
+          <p>HTTP、Agent、Code、Loop 等复杂节点只做包裹和间距统一，保留内部业务控件，减少功能回归。</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

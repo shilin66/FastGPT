@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import { type ChatHistoryItemResType, type ChatSchemaType } from '@fastgpt/global/core/chat/type';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
 import { type AuthModeType } from '@fastgpt/service/support/permission/type';
@@ -103,6 +104,7 @@ export async function authChatCrud({
     }
 
     const chat = await MongoChat.findOne({ appId, chatId }).lean();
+    if (chat?.sourceType === 'skillEdit') return Promise.reject(ChatErrEnum.unAuthChat);
     if (!chat) {
       return {
         teamId: spaceTeamId,
@@ -151,6 +153,7 @@ export async function authChatCrud({
     }
 
     const chat = await MongoChat.findOne({ appId, chatId }).lean();
+    if (chat?.sourceType === 'skillEdit') return Promise.reject(ChatErrEnum.unAuthChat);
 
     if (!chat) {
       return {
@@ -201,6 +204,7 @@ export async function authChatCrud({
   }
 
   const chat = await MongoChat.findOne({ appId, chatId }).lean();
+  if (chat?.sourceType === 'skillEdit') return Promise.reject(ChatErrEnum.unAuthChat);
   if (!chat) {
     return {
       teamId,
@@ -251,11 +255,7 @@ export const authCollectionInChat = async ({
   try {
     // 1. 使用 citeCollectionIds 字段来判断
     const chatItems = await MongoChatItem.find(
-      {
-        appId,
-        chatId,
-        obj: ChatRoleEnum.AI
-      },
+      { ...getChatSourceFilter(), appId, chatId, obj: ChatRoleEnum.AI },
       'citeCollectionIds'
     )
       .sort({ _id: -1 })
@@ -271,6 +271,7 @@ export const authCollectionInChat = async ({
     // Adapt <=4.13.0
     const chatItem = (await MongoChatItem.findOne(
       {
+        ...getChatSourceFilter(),
         appId,
         chatId,
         dataId: chatItemDataId
@@ -283,7 +284,7 @@ export const authCollectionInChat = async ({
     // Concat response data
     if (!chatItem.responseData || chatItem.responseData.length === 0) {
       const chatItemResponses = await MongoChatItemResponse.find(
-        { appId, chatId, chatItemDataId },
+        { ...getChatSourceFilter(), appId, chatId, chatItemDataId },
         { data: 1 }
       ).lean();
       chatItem.responseData = chatItemResponses.map((item) => item.data);

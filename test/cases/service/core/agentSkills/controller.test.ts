@@ -1,6 +1,8 @@
-import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { Types } from '@fastgpt/service/common/mongo';
 import { MongoAgentSkills } from '@fastgpt/service/core/agentSkills/schema';
+import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
+import { OwnerRoleVal, PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
 import {
   createSkill,
   updateSkill,
@@ -18,6 +20,10 @@ import {
   AgentSkillSourceEnum,
   AgentSkillCategoryEnum
 } from '@fastgpt/global/core/agentSkills/constants';
+import { createSkillPackage } from '@fastgpt/service/core/agentSkills/zipBuilder';
+import { validateAndNormalizeSkillPackage } from '@fastgpt/service/core/agentSkills/packageValidator';
+
+vi.unmock('@fastgpt/service/common/mongo/sessionRun');
 
 describe('AgentSkill Controller', () => {
   let testTeamId: string;
@@ -64,6 +70,9 @@ describe('AgentSkill Controller', () => {
       expect(skill?.name).toBe(skillData.name);
       expect(skill?.source).toBe(AgentSkillSourceEnum.personal);
       expect(skill?.description).toBe(skillData.description);
+      expect(skill?.schemaVersion).toBe(2);
+      expect(skill?.creationStatus).toBe('ready');
+      expect(skill?.currentRuntimeSkills).toEqual([]);
     });
 
     it('should create skill with default category when not provided', async () => {
@@ -124,7 +133,7 @@ describe('AgentSkill Controller', () => {
       };
 
       const skillId = await createSkill(skillData);
-      await deleteSkill(skillId);
+      await deleteSkill({ skillId, teamId: testTeamId });
 
       const skill = await getSkillById(skillId);
       expect(skill).toBeNull();
@@ -221,7 +230,7 @@ describe('AgentSkill Controller', () => {
       expect(skill?.deleteTime).toBeNull();
 
       // Delete skill
-      await deleteSkill(skillId);
+      await deleteSkill({ skillId, teamId: testTeamId });
 
       // Verify soft delete
       skill = await MongoAgentSkills.findById(skillId);
@@ -230,7 +239,9 @@ describe('AgentSkill Controller', () => {
     });
 
     it('should throw error when deleting non-existent skill', async () => {
-      await expect(deleteSkill('507f1f77bcf86cd799439011')).rejects.toThrow('Skill not found');
+      await expect(
+        deleteSkill({ skillId: '507f1f77bcf86cd799439011', teamId: testTeamId })
+      ).rejects.toThrow('Skill not found');
     });
 
     it('should throw error when deleting system skill', async () => {
@@ -243,17 +254,17 @@ describe('AgentSkill Controller', () => {
           author: 'system',
           category: [],
           config: {},
-          teamId: null,
-          tmbId: null,
+          teamId: testTeamId,
+          tmbId: testTmbId,
           createTime: new Date(),
           updateTime: new Date(),
           deleteTime: null
         }
       ]);
 
-      await expect(deleteSkill(systemSkill._id.toString())).rejects.toThrow(
-        'Cannot delete system skill'
-      );
+      await expect(
+        deleteSkill({ skillId: systemSkill._id.toString(), teamId: testTeamId })
+      ).rejects.toThrow('Cannot delete system skill');
 
       // Cleanup
       await MongoAgentSkills.deleteOne({ _id: systemSkill._id });
@@ -366,53 +377,60 @@ describe('AgentSkill Controller', () => {
   // ==================== Import Skill ====================
   describe('importSkill', () => {
     it('should import skill from package', async () => {
-      const packageData = {
-        skill: {
-          name: 'Imported Skill',
-          description: 'An imported skill',
-          category: [AgentSkillCategoryEnum.tool],
-          config: { api: { url: 'https://example.com' } }
-        }
-      };
-
-      // Create a mock ZIP buffer
-      const mockZipBuffer = Buffer.from('mock zip content');
-
-      const skillId = await importSkill(
-        packageData,
-        testTeamId,
-        testTmbId,
-        testUserId,
-        mockZipBuffer
+      const validatedPackage = await validateAndNormalizeSkillPackage(
+        await createSkillPackage({
+          name: 'imported-runtime',
+          skillMd: '---\nname: imported-runtime\ndescription: Imported runtime\n---\n'
+        })
       );
+
+      const skillId = await importSkill({
+        name: 'Imported Skill',
+        description: 'An imported skill',
+        teamId: testTeamId,
+        tmbId: testTmbId,
+        userId: testUserId,
+        originalFilename: 'imported.zip',
+        validatedPackage
+      });
 
       expect(skillId).toBeDefined();
 
       const skill = await MongoAgentSkills.findById(skillId);
-      expect(skill?.name).toBe(packageData.skill.name);
-      expect(skill?.description).toBe(packageData.skill.description);
+      expect(skill?.name).toBe('Imported Skill');
+      expect(skill?.description).toBe('An imported skill');
       expect(skill?.source).toBe(AgentSkillSourceEnum.personal);
+      expect(skill?.currentVersionId).toBeDefined();
+
+      const ownerPermission = await MongoResourcePermission.findOne({
+        resourceType: PerResourceTypeEnum.agentSkill,
+        resourceId: skillId,
+        tmbId: testTmbId
+      }).lean();
+      expect(ownerPermission?.permission).toBe(OwnerRoleVal);
     });
 
     it('should throw error when importing duplicate name', async () => {
-      const packageData = {
-        skill: {
-          name: 'Duplicate Import',
-          description: 'A skill',
-          category: [],
-          config: {}
-        }
+      const validatedPackage = await validateAndNormalizeSkillPackage(
+        await createSkillPackage({
+          name: 'duplicate-runtime',
+          skillMd: '---\nname: duplicate-runtime\ndescription: Duplicate runtime\n---\n'
+        })
+      );
+      const params = {
+        name: 'Duplicate Import',
+        description: 'A skill',
+        teamId: testTeamId,
+        tmbId: testTmbId,
+        userId: testUserId,
+        originalFilename: 'duplicate.zip',
+        validatedPackage
       };
 
-      const mockZipBuffer = Buffer.from('mock zip content');
-
-      // First import
-      await importSkill(packageData, testTeamId, testTmbId, testUserId, mockZipBuffer);
+      await importSkill(params);
 
       // Second import should fail
-      await expect(
-        importSkill(packageData, testTeamId, testTmbId, testUserId, mockZipBuffer)
-      ).rejects.toThrow('skillNameExists');
+      await expect(importSkill(params)).rejects.toThrow('skillNameExists');
     });
   });
 

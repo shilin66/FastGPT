@@ -21,12 +21,24 @@ async function handler(
   const { skillId, isActive } = req.body;
   const { offset, pageSize } = parsePaginationRequest(req);
 
-  await authSkill({ skillId, req, per: ReadPermissionVal, authToken: true, authApiKey: true });
+  const { skill } = await authSkill({
+    skillId,
+    req,
+    per: ReadPermissionVal,
+    authToken: true,
+    authApiKey: true
+  });
+
+  const currentVersionId = skill.currentVersionId ? String(skill.currentVersionId) : undefined;
 
   const match = {
     skillId,
     isDeleted: false,
-    ...(isActive !== undefined && { isActive })
+    ...(isActive !== undefined && currentVersionId
+      ? { _id: isActive ? currentVersionId : { $ne: currentVersionId } }
+      : isActive !== undefined
+        ? { isActive }
+        : {})
   };
 
   const [list, total] = await Promise.all([
@@ -43,7 +55,7 @@ async function handler(
           tmbId: String(item.tmbId),
           version: item.version,
           versionName: item.versionName,
-          isActive: !!item.isActive,
+          isActive: currentVersionId ? String(item._id) === currentVersionId : !!item.isActive,
           createdAt: item.createdAt.toISOString()
         }))
       ),

@@ -8,37 +8,12 @@ import type {
   SandboxImageConfigType,
   SkillSandboxEndpointType
 } from '@fastgpt/global/core/agentSkills/type';
-import { createSandbox, type ISandbox, type OpenSandboxVolume } from '@fastgpt-sdk/sandbox-adapter';
+import { createSandbox, type ISandbox } from '@fastgpt-sdk/sandbox-adapter';
 import type { OpenSandboxConfigType, SandboxProviderType } from '@fastgpt-sdk/sandbox-adapter';
 import type { OpenSandboxAdapter } from '@fastgpt-sdk/sandbox-adapter';
 import { env } from '../../env';
-
-type SandboxRuntime = 'kubernetes' | 'docker';
-
-type BaseSandboxProviderConfig = {
-  provider: SandboxProviderType;
-  baseUrl: string;
-  runtime: SandboxRuntime;
-};
-
-export type OpenSandboxProviderConfig = BaseSandboxProviderConfig & {
-  provider: 'opensandbox';
-  apiKey?: string;
-  useServerProxy?: boolean;
-};
-
-export type SealosDevboxProviderConfig = BaseSandboxProviderConfig & {
-  provider: 'sealosdevbox';
-  token: string;
-};
-
-export type SandboxProviderConfig = OpenSandboxProviderConfig | SealosDevboxProviderConfig;
-
-/**
- * App-side sandbox create config.
- * Providers may support only a subset of these fields.
- */
-export type SandboxCreateConfig = OpenSandboxConfigType;
+import { resolveSandboxWorkspacePath } from '../ai/sandbox/workspace';
+import type { SandboxProviderConfig } from '../ai/sandbox/config';
 
 export type SandboxDefaults = {
   defaultImage: SandboxImageConfigType;
@@ -64,45 +39,6 @@ function createUnsupportedCreateConfigError(provider: SandboxProviderType): Erro
   );
 }
 
-function toOpenSandboxCreateConfig(
-  createConfig?: SandboxCreateConfig
-): OpenSandboxConfigType | undefined {
-  return createConfig;
-}
-
-/**
- * Get sandbox provider configuration from environment variables
- */
-export function getSandboxProviderConfig(): SandboxProviderConfig {
-  const provider = (env.AGENT_SANDBOX_PROVIDER ?? 'opensandbox') as SandboxProviderType;
-  const runtime = (env.AGENT_SANDBOX_OPENSANDBOX_RUNTIME ?? 'kubernetes') as SandboxRuntime;
-
-  switch (provider) {
-    case 'opensandbox':
-      return {
-        provider,
-        baseUrl: env.AGENT_SANDBOX_OPENSANDBOX_BASEURL ?? 'http://127.0.0.1:8080',
-        apiKey: env.AGENT_SANDBOX_OPENSANDBOX_API_KEY,
-        runtime,
-        useServerProxy: env.AGENT_SANDBOX_OPENSANDBOX_USE_SERVER_PROXY
-      };
-
-    case 'sealosdevbox':
-      return {
-        provider,
-        baseUrl: env.AGENT_SANDBOX_SEALOS_BASEURL ?? env.AGENT_SANDBOX_OPENSANDBOX_BASEURL ?? '',
-        token: env.AGENT_SANDBOX_SEALOS_TOKEN ?? env.AGENT_SANDBOX_OPENSANDBOX_API_KEY ?? '',
-        runtime
-      };
-
-    case 'e2b':
-      throw new Error('Sandbox provider "e2b" is not supported');
-
-    default:
-      return assertNever(provider);
-  }
-}
-
 /**
  * Get sandbox default settings
  */
@@ -112,12 +48,36 @@ export function getSandboxDefaults(): SandboxDefaults {
       repository: env.AGENT_SANDBOX_OPENSANDBOX_IMAGE_REPO ?? 'fastgpt-agent-sandbox',
       tag: env.AGENT_SANDBOX_OPENSANDBOX_IMAGE_TAG ?? 'latest'
     },
-    workDirectory: '/home/sandbox/workspace',
-    // workDirectory: env.AGENT_SANDBOX_OPENSANDBOX_WORK_DIRECTORY ?? '/home/sandbox/workspace',
+    workDirectory: env.AGENT_SANDBOX_ENABLE_VOLUME
+      ? resolveSandboxWorkspacePath({
+          workspaceRoot: env.AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH,
+          path: '.'
+        })
+      : '/home/sandbox/workspace',
     targetPort: 44772,
     entrypoint: '/home/sandbox/entrypoint.sh'
     // entrypoint: env.AGENT_SANDBOX_OPENSANDBOX_ENTRYPOINT ?? '/home/sandbox/entrypoint.sh'
   };
+}
+
+export function getSkillEditWorkspaceRoot(existing?: { metadata?: unknown }): string {
+  if (!existing) return `${getSandboxDefaults().workDirectory}/edit`;
+  if (
+    existing.metadata &&
+    typeof existing.metadata === 'object' &&
+    'workspaceRoot' in existing.metadata
+  ) {
+    if (typeof existing.metadata.workspaceRoot !== 'string') {
+      throw new Error('Invalid Sandbox workspace path');
+    }
+    return resolveSandboxWorkspacePath({
+      workspaceRoot: existing.metadata.workspaceRoot,
+      path: '.'
+    });
+  }
+  // Legacy drafts lived in the container, not in the configured volume. Do not
+  // silently switch directories and initialize over an apparently empty draft.
+  return '/home/sandbox/workspace';
 }
 
 /**
@@ -133,23 +93,6 @@ export function getSkillSizeLimits(): SkillSizeLimits {
 }
 
 /**
- * Validate sandbox configuration
- */
-export function validateSandboxConfig(config: SandboxProviderConfig): void {
-  if (!config.baseUrl) {
-    throw new Error('Sandbox provider base URL is required');
-  }
-
-  if (!['kubernetes', 'docker'].includes(config.runtime)) {
-    throw new Error(`Invalid runtime: ${config.runtime}`);
-  }
-
-  if (config.provider === 'sealosdevbox' && !config.token) {
-    throw new Error('Sandbox provider token is required for sealosdevbox');
-  }
-}
-
-/**
  * Build a provider-specific sandbox adapter behind the unified ISandbox interface.
  * For providers that require a sandboxId at construction time, pass providerSandboxId.
  */
@@ -157,7 +100,7 @@ export function buildSandboxAdapter(
   providerConfig: SandboxProviderConfig,
   props: {
     providerSandboxId: string;
-    createConfig?: SandboxCreateConfig;
+    createConfig?: OpenSandboxConfigType;
   }
 ): ISandbox {
   switch (providerConfig.provider) {
@@ -171,7 +114,7 @@ export function buildSandboxAdapter(
           useServerProxy: providerConfig.useServerProxy,
           sessionId: props.providerSandboxId
         },
-        toOpenSandboxCreateConfig(props.createConfig)
+        props.createConfig
       );
 
     case 'sealosdevbox': {
@@ -256,98 +199,9 @@ export async function getProviderSandboxEndpoint(
   );
 }
 
-// ---- Volume Manager integration ----
-
-export type VolumeManagerConfig = {
-  url: string;
-  token: string;
-  mountPath: string;
-};
-
-/**
- * Read Volume Manager configuration from environment variables.
- * Throws when any required field is missing.
- */
-export function getVolumeManagerConfig(): VolumeManagerConfig {
-  const {
-    AGENT_SANDBOX_VOLUME_MANAGER_URL,
-    AGENT_SANDBOX_VOLUME_MANAGER_TOKEN,
-    AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH
-  } = env;
-  if (
-    !AGENT_SANDBOX_VOLUME_MANAGER_URL ||
-    !AGENT_SANDBOX_VOLUME_MANAGER_TOKEN ||
-    !AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH
-  ) {
-    throw new Error(
-      'Missing required Volume Manager configuration: VOLUME_MANAGER_URL, VOLUME_MANAGER_TOKEN, VOLUME_MANAGER_MOUNT_PATH must be set'
-    );
-  }
-  return {
-    url: AGENT_SANDBOX_VOLUME_MANAGER_URL,
-    token: AGENT_SANDBOX_VOLUME_MANAGER_TOKEN,
-    mountPath: AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH
-  };
-}
-
-/**
- * Call volume-manager HTTP API to idempotently create a volume for the session.
- * Returns the claimName (PVC name or Docker volume name).
- */
-export async function ensureSessionVolume(
-  sessionId: string,
-  vmConfig: VolumeManagerConfig
-): Promise<string> {
-  const res = await fetch(`${vmConfig.url}/v1/volumes/ensure`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${vmConfig.token}`
-    },
-    body: JSON.stringify({ sessionId })
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Volume Manager error ${res.status}: ${text}`);
-  }
-
-  const data = (await res.json()) as { claimName: string };
-  return data.claimName;
-}
-
-/**
- * Build the volumes entry for the sandbox create config.
- *
- * Both Docker and Kubernetes runtimes use the `pvc` backend:
- * - Kubernetes: pvc.claimName is the K8s PVC name
- * - Docker: pvc.claimName is the Docker named volume name (docker volume create)
- *
- * The `host` backend is for bind mounts (absolute paths) only and is not used here.
- */
-export function buildVolumeConfig(
-  _runtime: SandboxRuntime,
-  sessionId: string,
-  claimName: string,
-  mountPath: string
-): OpenSandboxVolume {
-  // Volume name must match DNS label format: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-  const name = sessionId
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return { name, pvc: { claimName }, mountPath, readOnly: false };
-}
-
-/**
- * Poll the sandbox endpoint until the service inside the container is accepting connections.
- *
- * Uses HTTP HEAD to avoid triggering application logic; any HTTP response
- * (including 4xx/5xx) means the port is open and the service is ready.
- * Retries on network errors (ECONNREFUSED / fetch failure) until timeout.
- */
-export async function waitForEndpointReady(
-  endpoint: SkillSandboxEndpointType,
+/** Probe code-server itself through the authenticated provider, not the execd gateway. */
+export async function waitForSkillEditorReady(
+  sandbox: Pick<ISandbox, 'execute'>,
   options?: { timeoutMs?: number; intervalMs?: number }
 ): Promise<void> {
   const timeoutMs = options?.timeoutMs ?? 30_000;
@@ -356,19 +210,36 @@ export async function waitForEndpointReady(
 
   while (Date.now() < deadline) {
     try {
-      await fetch(endpoint.url, {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(3_000)
-      });
-      return; // any response means port is open
+      const result = await sandbox.execute(
+        `python3 - <<'PY'
+import http.client, json, sys
+try:
+    connection = http.client.HTTPConnection('127.0.0.1', 8080, timeout=3)
+    connection.request('GET', '/healthz')
+    response = connection.getresponse()
+    if response.status != 200:
+        sys.exit(1)
+    health = json.loads(response.read(4096))
+    if not isinstance(health, dict) or health.get('status') not in ('alive', 'expired'):
+        sys.exit(1)
+    print('skill-editor-ready')
+except Exception:
+    sys.exit(1)
+PY`,
+        { timeoutMs: Math.min(5_000, deadline - Date.now()), maxOutputBytes: 1024 }
+      );
+      if (result.exitCode === 0 && result.stdout.trim() === 'skill-editor-ready') return;
     } catch {
-      // ECONNREFUSED or timeout — service not ready yet
+      // The container may be running before its editor has finished starting.
     }
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    const remainingMs = deadline - Date.now();
+    if (remainingMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, Math.min(intervalMs, remainingMs)));
+    }
   }
 
   throw new Error(
-    `Sandbox endpoint ${endpoint.url} did not become ready within ${timeoutMs / 1000}s`
+    `Skill editor did not become ready within ${timeoutMs / 1000}s; check the image supports code-server on port 8080`
   );
 }
 

@@ -1,7 +1,11 @@
 import type { ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
-import type { ChatHistoryItemResType } from '@fastgpt/global/core/chat/type';
+import type {
+  AIChatItemValueItemType,
+  ChatHistoryItemResType
+} from '@fastgpt/global/core/chat/type';
+import { SandboxUnavailableError } from './errors';
 import {
   SANDBOX_ICON,
   SANDBOX_NAME,
@@ -17,12 +21,28 @@ type SandboxDispatchParams = {
   userId: string;
   chatId: string;
   lang?: localeType;
+  requireSandbox?: boolean;
 };
 
 type SandboxDispatchResult = {
   response: string;
   usages: ChatNodeUsageType[];
   nodeResponse: ChatHistoryItemResType;
+  assistantResponses?: AIChatItemValueItemType[];
+};
+
+const sandboxFailureResponses = (required: boolean): AIChatItemValueItemType[] => {
+  const assistantResponses: AIChatItemValueItemType[] = [
+    {
+      sandboxEvent: {
+        id: getNanoid(),
+        status: required ? 'failed' : 'degraded',
+        code: 'sandbox_unavailable'
+      }
+    }
+  ];
+  if (required) throw new SandboxUnavailableError(assistantResponses);
+  return assistantResponses;
 };
 
 const buildNodeResponse = ({
@@ -59,12 +79,13 @@ export const dispatchSandboxShell = async ({
   appId,
   userId,
   chatId,
-  lang
+  lang,
+  requireSandbox = false
 }: SandboxDispatchParams & {
   command: string;
   timeout?: number;
 }): Promise<SandboxDispatchResult> => {
-  const { input, response, durationSeconds } = await callSandboxTool({
+  const { input, response, durationSeconds, errorCode } = await callSandboxTool({
     toolName: SANDBOX_TOOL_NAME,
     rawArgs: JSON.stringify({ command, timeout }),
     appId,
@@ -74,6 +95,7 @@ export const dispatchSandboxShell = async ({
 
   return {
     response,
+    ...(errorCode && { assistantResponses: sandboxFailureResponses(requireSandbox) }),
     usages: [],
     nodeResponse: buildNodeResponse({
       toolId: SANDBOX_TOOL_NAME,
@@ -90,11 +112,12 @@ export const dispatchSandboxGetFileUrl = async ({
   appId,
   userId,
   chatId,
-  lang
+  lang,
+  requireSandbox = false
 }: SandboxDispatchParams & {
   paths: string[];
 }): Promise<SandboxDispatchResult> => {
-  const { input, response, durationSeconds } = await callSandboxTool({
+  const { input, response, durationSeconds, errorCode } = await callSandboxTool({
     toolName: SANDBOX_GET_FILE_URL_TOOL_NAME,
     rawArgs: JSON.stringify({ paths }),
     appId,
@@ -104,6 +127,7 @@ export const dispatchSandboxGetFileUrl = async ({
 
   return {
     response,
+    ...(errorCode && { assistantResponses: sandboxFailureResponses(requireSandbox) }),
     usages: [],
     nodeResponse: buildNodeResponse({
       toolId: SANDBOX_GET_FILE_URL_TOOL_NAME,

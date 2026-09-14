@@ -1,3 +1,4 @@
+import { getChatSourceFilter, assertChatSourceSession } from '../../../core/chat/source';
 import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 import type { UserChatItemValueItemType } from '@fastgpt/global/core/chat/type';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
@@ -42,10 +43,7 @@ export const resetChat = ({ appId, chatId }: { appId: string; chatId: string }) 
   const newChatId = getNanoid(26);
   return mongoSessionRun(async (session) => {
     await MongoChat.updateOne(
-      {
-        appId,
-        chatId
-      },
+      { ...getChatSourceFilter(), appId, chatId },
       {
         $set: {
           chatId: newChatId
@@ -55,6 +53,7 @@ export const resetChat = ({ appId, chatId }: { appId: string; chatId: string }) 
     );
     await MongoChatItem.updateMany(
       {
+        ...getChatSourceFilter(),
         appId,
         chatId
       },
@@ -111,6 +110,7 @@ export async function outlinkInvokeChat<T extends OutlinkAppType>({
     if (!nodes || !chatConfig || !app) {
       return Promise.reject('Invalid chat');
     }
+    await assertChatSourceSession({ appId: String(outLinkConfig.appId), chatId });
 
     // Check whether the chatId is valid
     const userQuestion = query.find((item) => item.text)?.text?.content || '';
@@ -133,7 +133,10 @@ export async function outlinkInvokeChat<T extends OutlinkAppType>({
         limit: getMaxHistoryLimitFromNodes(nodes),
         field: `obj value`
       }),
-      MongoChat.findOne({ appId: outLinkConfig.appId, chatId }, 'source variableList variables')
+      MongoChat.findOne(
+        { ...getChatSourceFilter(), appId: outLinkConfig.appId, chatId },
+        'source variableList variables'
+      )
     ]);
 
     // dedupe

@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { NextApiResponse } from 'next';
 import { UpdateHistoryBodySchema } from '@fastgpt/global/openapi/core/chat/history/api';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
@@ -18,7 +19,7 @@ export async function handler(req: ApiRequestProps, res: NextApiResponse) {
   });
 
   await MongoChat.updateOne(
-    { appId, chatId },
+    { ...getChatSourceFilter(), appId, chatId },
     {
       updateTime: new Date(),
       ...(title !== undefined && { title }),

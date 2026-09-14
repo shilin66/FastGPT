@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { authCert } from '@fastgpt/service/support/permission/auth/common';
@@ -29,14 +30,14 @@ async function handler(
   await mongoSessionRun(async (session) => {
     // Remove custom feedback at index
     await MongoChatItem.findOneAndUpdate(
-      { appId, chatId, dataId },
+      { ...getChatSourceFilter(), appId, chatId, dataId },
       { $unset: { [`customFeedbacks.${index}`]: 1 } },
       { session }
     );
 
     // Remove null values from array
     await MongoChatItem.updateOne(
-      { appId, chatId, dataId },
+      { ...getChatSourceFilter(), appId, chatId, dataId },
       { $pull: { customFeedbacks: null } },
       { session }
     );

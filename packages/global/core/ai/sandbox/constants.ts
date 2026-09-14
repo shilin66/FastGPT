@@ -5,8 +5,15 @@ import z from 'zod';
 
 // ---- 沙盒状态 ----
 export const SandboxStatusEnum = {
+  provisioning: 'provisioning',
   running: 'running',
-  stopped: 'stopped'
+  stopping: 'stopping',
+  stopped: 'stopped',
+  archiving: 'archiving',
+  archived: 'archived',
+  restoring: 'restoring',
+  deleting: 'deleting',
+  failed: 'failed'
 } as const;
 export type SandboxStatusType = (typeof SandboxStatusEnum)[keyof typeof SandboxStatusEnum];
 

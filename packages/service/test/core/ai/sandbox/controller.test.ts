@@ -1,45 +1,87 @@
-import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock the env module BEFORE any imports that use it
-vi.mock('@fastgpt/service/env', () => ({
-  env: {
-    AGENT_SANDBOX_PROVIDER: 'sealosdevbox',
-    AGENT_SANDBOX_SEALOS_BASEURL: 'http://mock-sandbox.local',
-    AGENT_SANDBOX_SEALOS_TOKEN: 'mock-token-12345'
-  }
+const {
+  providerDelete,
+  providerConnect,
+  providerEnsure,
+  providerInspect,
+  createProvider,
+  volumeEnsure,
+  volumeDelete,
+  redisSet,
+  redisEval,
+  redisStorage,
+  loggerError,
+  loggerWarn
+} = vi.hoisted(() => ({
+  providerDelete: vi.fn(),
+  providerConnect: vi.fn(),
+  providerEnsure: vi.fn(),
+  providerInspect: vi.fn(),
+  createProvider: vi.fn(),
+  volumeEnsure: vi.fn(),
+  volumeDelete: vi.fn(),
+  redisSet: vi.fn(),
+  redisEval: vi.fn(),
+  redisStorage: new Map<string, { token: string; expiresAt: number }>(),
+  loggerError: vi.fn(),
+  loggerWarn: vi.fn()
 }));
 
-// Mock the SealosDevboxAdapter to avoid real API calls
-vi.mock('@fastgpt-sdk/sandbox-adapter', () => {
-  class MockSealosDevboxAdapter {
-    async create() {
-      return undefined;
+vi.mock('@fastgpt/service/env', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@fastgpt/service/env')>();
+  return {
+    env: {
+      ...original.env,
+      AGENT_SANDBOX_PROVIDER: 'opensandbox',
+      AGENT_SANDBOX_OPENSANDBOX_BASEURL: 'http://mock-sandbox.local',
+      AGENT_SANDBOX_VOLUME_MANAGER_URL: 'http://volume.test',
+      AGENT_SANDBOX_ENABLE_VOLUME: true
     }
-    async start() {
-      return undefined;
+  };
+});
+
+vi.mock('@fastgpt-sdk/sandbox-adapter', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@fastgpt-sdk/sandbox-adapter')>();
+  class OpenSandboxAdapter {
+    readonly provider = 'opensandbox';
+    ensureRunning = providerEnsure;
+    constructor(private readonly sandboxId: string) {}
+    get id() {
+      return `provider-${this.sandboxId}`;
     }
-    async stop() {
-      return undefined;
+    inspectExisting(id: string) {
+      return providerInspect(id);
     }
-    async delete() {
-      return undefined;
+    connectExisting() {
+      return providerConnect(this.sandboxId);
     }
-    async getInfo() {
-      return null;
-    }
-    async execute() {
-      return { stdout: 'ok', stderr: '', exitCode: 0 };
-    }
-    async waitUntilReady() {
-      return undefined;
-    }
-    async ensureRunning() {
-      return undefined;
+    delete() {
+      return providerDelete(this.sandboxId);
     }
   }
-
   return {
-    SealosDevboxAdapter: MockSealosDevboxAdapter
+    ...original,
+    OpenSandboxAdapter,
+    createSandbox: (provider: string, config: { sessionId: string }, createConfig: unknown) => {
+      createProvider(provider, config, createConfig);
+      return new OpenSandboxAdapter(config.sessionId);
+    }
+  };
+});
+vi.mock('@fastgpt/service/core/ai/sandbox/config', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@fastgpt/service/core/ai/sandbox/config')>();
+  return { ...original, getVolumeManagerConfig: volumeEnsure, deleteSessionVolume: volumeDelete };
+});
+vi.mock('@fastgpt/service/common/redis', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@fastgpt/service/common/redis')>();
+  return { ...original, getGlobalRedisConnection: () => ({ set: redisSet, eval: redisEval }) };
+});
+vi.mock('@fastgpt/service/common/logger', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@fastgpt/service/common/logger')>();
+  return {
+    ...original,
+    getLogger: () => ({ info: vi.fn(), debug: vi.fn(), error: loggerError, warn: loggerWarn })
   };
 });
 
@@ -54,19 +96,112 @@ import {
 const { Types } = connectionMongo;
 const oid = () => String(new Types.ObjectId());
 
-beforeAll(async () => {
+beforeEach(() => {
   vi.clearAllMocks();
-  await MongoSandboxInstance.deleteMany({});
+  redisStorage.clear();
+  providerConnect.mockResolvedValue(true);
+  providerDelete.mockResolvedValue(undefined);
+  providerInspect.mockResolvedValue(null);
+  volumeDelete.mockResolvedValue(undefined);
+  redisSet.mockImplementation(async (key: string, token: string, _mode: string, ttl: number) => {
+    const current = redisStorage.get(key);
+    if (current && current.expiresAt > Date.now()) return null;
+    redisStorage.set(key, { token, expiresAt: Date.now() + ttl });
+    return 'OK';
+  });
+  redisEval.mockImplementation(
+    async (script: string, _keys: number, key: string, token: string, ttl?: number) => {
+      const current = redisStorage.get(key);
+      if (!current || current.token !== token || current.expiresAt <= Date.now()) return 0;
+      if (script.includes('pexpire') && ttl) current.expiresAt = Date.now() + ttl;
+      else redisStorage.delete(key);
+      return 1;
+    }
+  );
+});
+
+afterEach(() => {
+  expect(loggerError).not.toHaveBeenCalled();
+  expect(loggerWarn).not.toHaveBeenCalled();
+  expect(providerEnsure).not.toHaveBeenCalled();
+  expect(volumeEnsure).not.toHaveBeenCalled();
+  expect(redisStorage.size).toBe(0);
 });
 
 const appId1 = oid();
 const appId2 = oid();
 
+describe.each(['app', 'chat'] as const)('Sandbox %s cleanup source isolation', (mode) => {
+  it('deletes only canonical or unambiguous legacy runtime records and preserves Skill Edit', async () => {
+    const runtime = {
+      sourceType: 'appRuntime',
+      sourceId: appId1,
+      runtimeUserId: 'runtime-user',
+      sessionId: 'selected-chat'
+    };
+    const candidates = [
+      { sandboxId: 'canonical-runtime', ...runtime },
+      {
+        sandboxId: 'canonical-without-legacy-fields',
+        ...runtime,
+        appId: undefined,
+        userId: undefined,
+        chatId: undefined
+      },
+      { sandboxId: 'legacy-runtime' },
+      { sandboxId: 'legacy-session-runtime', metadata: { sandboxType: 'session-runtime' } },
+      { sandboxId: 'canonical-edit', sourceType: 'skillEdit', sourceId: appId1 },
+      { sandboxId: 'legacy-edit', metadata: { sandboxType: 'edit-debug', skillId: appId1 } },
+      { sandboxId: 'legacy-edit-sentinel', chatId: 'edit-debug' },
+      { sandboxId: 'legacy-skill-marker', metadata: { skillId: appId1 } },
+      { sandboxId: 'canonical-conflicting-source', ...runtime, sourceId: appId2 },
+      { sandboxId: 'canonical-conflicting-legacy-app', ...runtime, appId: appId2 },
+      { sandboxId: 'canonical-conflicting-legacy-chat', ...runtime, chatId: 'other-chat' },
+      { sandboxId: 'canonical-conflicting-legacy-user', ...runtime, userId: 'other-user' },
+      { sandboxId: 'partial-legacy-source', sourceId: appId1 },
+      { sandboxId: 'legacy-missing-user', userId: undefined },
+      { sandboxId: 'legacy-unknown-type', metadata: { sandboxType: 'unrecognized' } }
+    ];
+    await MongoSandboxInstance.create(
+      candidates.map((fields) => ({
+        provider: 'opensandbox',
+        appId: appId1,
+        userId: 'runtime-user',
+        chatId: 'selected-chat',
+        status: 'running',
+        ...fields
+      }))
+    );
+
+    if (mode === 'app') await deleteSandboxesByAppId(appId1);
+    else
+      await deleteSandboxesByChatIds({ appId: appId1, chatIds: ['selected-chat', 'edit-debug'] });
+
+    const deleted = [
+      'canonical-runtime',
+      'canonical-without-legacy-fields',
+      'legacy-runtime',
+      'legacy-session-runtime'
+    ];
+    expect(providerDelete.mock.calls.map(([id]) => id).sort()).toEqual(deleted.sort());
+    expect(providerInspect).toHaveBeenCalledExactlyOnceWith('provider-legacy-session-runtime');
+    expect(volumeDelete.mock.calls.map(([id]) => id).sort()).toEqual(deleted.sort());
+    expect(
+      (await MongoSandboxInstance.find().lean()).map(({ sandboxId }) => sandboxId).sort()
+    ).toEqual(
+      candidates
+        .filter(({ sandboxId }) => !deleted.includes(sandboxId))
+        .map(({ sandboxId }) => sandboxId)
+        .sort()
+    );
+  });
+});
+
 describe('deleteSandboxesByChatIds', () => {
   beforeEach(async () => {
     await MongoSandboxInstance.create([
       {
-        provider: 'sealosdevbox',
+        provider: 'opensandbox',
         sandboxId: 'sb1',
         appId: appId1,
         userId: 'u1',
@@ -76,7 +211,7 @@ describe('deleteSandboxesByChatIds', () => {
         createdAt: new Date()
       },
       {
-        provider: 'sealosdevbox',
+        provider: 'opensandbox',
         sandboxId: 'sb2',
         appId: appId1,
         userId: 'u1',
@@ -86,11 +221,11 @@ describe('deleteSandboxesByChatIds', () => {
         createdAt: new Date()
       },
       {
-        provider: 'sealosdevbox',
+        provider: 'opensandbox',
         sandboxId: 'sb3',
         appId: appId2,
         userId: 'u1',
-        chatId: 'c3',
+        chatId: 'c1',
         status: 'running',
         lastActiveAt: new Date(),
         createdAt: new Date()
@@ -104,6 +239,17 @@ describe('deleteSandboxesByChatIds', () => {
 
     await deleteSandboxesByChatIds({ appId: appId1, chatIds: ['c1', 'c2'] });
 
+    expect(await MongoSandboxInstance.countDocuments({ appId: appId1 })).toBe(0);
+    expect(providerDelete).toHaveBeenCalledTimes(2);
+    expect(providerDelete.mock.calls.map(([id]) => id).sort()).toEqual(['sb1', 'sb2']);
+    expect(providerConnect.mock.calls.map(([id]) => id).sort()).toEqual(['sb1', 'sb2']);
+    expect(volumeDelete.mock.calls.map(([id]) => id).sort()).toEqual(['sb1', 'sb2']);
+    expect(
+      createProvider.mock.calls.every(
+        ([provider, , config]) => provider === 'opensandbox' && config === undefined
+      )
+    ).toBe(true);
+    expect(redisEval).toHaveBeenCalled();
     // 验证不影响其他 appId 的数据
     expect(await MongoSandboxInstance.countDocuments({ appId: appId2 })).toBe(1);
   });
@@ -112,10 +258,30 @@ describe('deleteSandboxesByChatIds', () => {
     await expect(
       deleteSandboxesByChatIds({ appId: appId1, chatIds: ['nonexistent'] })
     ).resolves.not.toThrow();
+    expect(await MongoSandboxInstance.countDocuments()).toBe(3);
+    expect(providerDelete).not.toHaveBeenCalled();
+    expect(createProvider).not.toHaveBeenCalled();
   });
 
   it('should handle empty chatIds array', async () => {
     await expect(deleteSandboxesByChatIds({ appId: appId1, chatIds: [] })).resolves.not.toThrow();
+    expect(await MongoSandboxInstance.countDocuments()).toBe(3);
+    expect(providerDelete).not.toHaveBeenCalled();
+    expect(createProvider).not.toHaveBeenCalled();
+  });
+
+  it('deletes only selected chats and preserves another app with the same chat ID', async () => {
+    await deleteSandboxesByChatIds({ appId: appId1, chatIds: ['c1'] });
+    expect(await MongoSandboxInstance.exists({ sandboxId: 'sb1' })).toBeNull();
+    expect(await MongoSandboxInstance.exists({ sandboxId: 'sb2' })).not.toBeNull();
+    expect(await MongoSandboxInstance.exists({ sandboxId: 'sb3' })).not.toBeNull();
+    expect(providerDelete).toHaveBeenCalledExactlyOnceWith('sb1');
+    expect(volumeDelete).toHaveBeenCalledExactlyOnceWith(
+      'sb1',
+      expect.objectContaining({
+        binding: expect.objectContaining({ protocol: 'sessionId', target: 'sb1' })
+      })
+    );
   });
 });
 
@@ -123,7 +289,7 @@ describe('deleteSandboxesByAppId', () => {
   beforeEach(async () => {
     await MongoSandboxInstance.create([
       {
-        provider: 'sealosdevbox',
+        provider: 'opensandbox',
         sandboxId: 'sb1',
         appId: appId1,
         userId: 'u1',
@@ -133,7 +299,7 @@ describe('deleteSandboxesByAppId', () => {
         createdAt: new Date()
       },
       {
-        provider: 'sealosdevbox',
+        provider: 'opensandbox',
         sandboxId: 'sb2',
         appId: appId1,
         userId: 'u1',
@@ -143,7 +309,7 @@ describe('deleteSandboxesByAppId', () => {
         createdAt: new Date()
       },
       {
-        provider: 'sealosdevbox',
+        provider: 'opensandbox',
         sandboxId: 'sb3',
         appId: appId2,
         userId: 'u1',
@@ -161,6 +327,12 @@ describe('deleteSandboxesByAppId', () => {
 
     await deleteSandboxesByAppId(appId1);
 
+    expect(await MongoSandboxInstance.countDocuments({ appId: appId1 })).toBe(0);
+    expect(providerDelete).toHaveBeenCalledTimes(2);
+    expect(providerDelete.mock.calls.map(([id]) => id).sort()).toEqual(['sb1', 'sb2']);
+    expect(providerConnect.mock.calls.map(([id]) => id).sort()).toEqual(['sb1', 'sb2']);
+    expect(volumeDelete.mock.calls.map(([id]) => id).sort()).toEqual(['sb1', 'sb2']);
+    expect(redisEval).toHaveBeenCalled();
     // 验证不影响其他 appId 的数据
     expect(await MongoSandboxInstance.countDocuments({ appId: appId2 })).toBe(1);
   });
@@ -168,6 +340,9 @@ describe('deleteSandboxesByAppId', () => {
   it('should not error when appId has no sandboxes', async () => {
     const emptyAppId = oid();
     await expect(deleteSandboxesByAppId(emptyAppId)).resolves.not.toThrow();
+    expect(await MongoSandboxInstance.countDocuments()).toBe(3);
+    expect(providerDelete).not.toHaveBeenCalled();
+    expect(createProvider).not.toHaveBeenCalled();
   });
 });
 

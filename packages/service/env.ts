@@ -15,6 +15,17 @@ const LogLevelSchema = z.enum(['trace', 'debug', 'info', 'warning', 'error', 'fa
 const StorageVendorSchema = z.enum(['minio', 'aws-s3', 'cos', 'oss']);
 const StorageCosProtocolSchema = z.enum(['https:', 'http:']);
 
+const resolveSandboxVolumeEnv = (suffix: 'URL' | 'TOKEN') => {
+  const key = `AGENT_SANDBOX_VOLUME_MANAGER_${suffix}`;
+  const alias = `AGENT_SANDBOX_OPENSANDBOX_VOLUME_MANAGER_${suffix}`;
+  const current = process.env[key] || undefined;
+  const standalone = process.env[alias] || undefined;
+  if (current && standalone && current !== standalone) {
+    throw new Error(`Conflicting environment variables: ${key} and ${alias}`);
+  }
+  return current ?? standalone;
+};
+
 export const env = createEnv({
   server: {
     FILE_TOKEN_KEY: z.string().min(6, 'FILE_TOKEN_KEY must be at least 6 characters'),
@@ -34,6 +45,7 @@ export const env = createEnv({
     AGENT_SANDBOX_ENABLE_VOLUME: BoolSchema.default(false),
     AGENT_SANDBOX_VOLUME_MANAGER_URL: z.string().url().optional(),
     AGENT_SANDBOX_VOLUME_MANAGER_TOKEN: z.string().optional(),
+    AGENT_SANDBOX_VOLUME_MANAGER_PROTOCOL: z.enum(['sessionId', 'claimName']).default('sessionId'),
     AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH: z.string().default('/workspace'),
 
     AGENT_SKILL_MAX_UPLOAD_SIZE: NumSchema.optional(),
@@ -41,7 +53,7 @@ export const env = createEnv({
     AGENT_SKILL_MAX_DOWNLOAD_SIZE: NumSchema.optional(),
     AGENT_SKILL_MAX_SANDBOX_SIZE: NumSchema.optional(),
 
-    AGENT_SANDBOX_MAX_EDIT_DEBUG: NumSchema.optional(),
+    AGENT_SANDBOX_MAX_EDIT_DEBUG: NumSchema.default(100),
     AGENT_SANDBOX_MAX_SESSION_RUNTIME: NumSchema.optional(),
 
     // 对象存储
@@ -131,7 +143,11 @@ export const env = createEnv({
     SKIP_FILE_TYPE_CHECK: BoolSchema.default(false)
   },
   emptyStringAsUndefined: true,
-  runtimeEnv: process.env,
+  runtimeEnv: {
+    ...process.env,
+    AGENT_SANDBOX_VOLUME_MANAGER_URL: resolveSandboxVolumeEnv('URL'),
+    AGENT_SANDBOX_VOLUME_MANAGER_TOKEN: resolveSandboxVolumeEnv('TOKEN')
+  },
   onValidationError(issues) {
     const paths = issues.map((issue) => issue.path).join(', ');
     throw new Error(`Invalid environment variables. Please check: ${paths}\n`);

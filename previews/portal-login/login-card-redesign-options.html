@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OmniCockpit 登录页 · 方案 A 右侧登录卡重设计</title>
+  <style>
+    :root {
+      --graphite: #27364A; --graphite-deep: #1F2A3A; --graphite-950: #172033;
+      --blue: #2563EB; --blue-strong: #1D4ED8; --blue-soft: #DBEAFE; --blue-line: #BFDBFE;
+      --gold: #C69B4A;
+      --page: #F8FAFC; --surface: #FFFFFF; --rail: #F5F7FA;
+      --border: #DFE5EE; --border-strong: #C9D4E2;
+      --ink: #1F2937; --muted: #667085; --muted-light: #94A0B2;
+      --shadow-card: 0 24px 70px -42px rgba(31, 41, 55, 0.45);
+      --font: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { background: #E7EDF5; color: var(--ink); font: 14px var(--font); letter-spacing: 0; }
+    button, input { font: inherit; letter-spacing: 0; }
+    button { cursor: pointer; border: none; background: none; }
+
+    /* ---------- 顶部说明条 ---------- */
+    .preview-bar {
+      min-height: 76px; display: grid; grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
+      align-items: center; gap: 18px; padding: 11px 20px; background: #fff;
+      border-bottom: 1px solid #CBD6E4; position: sticky; top: 0; z-index: 20;
+    }
+    .preview-title strong { display: block; font-size: 17px; }
+    .preview-title span, .preview-note { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .preview-note { text-align: right; }
+    .preview-note b { color: var(--blue); }
+    .scheme-nav { display: flex; gap: 8px; }
+    .scheme-nav a {
+      padding: 7px 14px; border-radius: 8px; background: var(--rail); border: 1px solid var(--border);
+      color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600;
+    }
+    .scheme-nav a:hover { background: var(--blue-soft); border-color: var(--blue-line); }
+
+    .option { padding: 34px 24px 50px; }
+    .option-head { max-width: 1240px; margin: 0 auto 18px; }
+    .option-head h2 { margin: 0; font-size: 20px; }
+    .option-head h2 .tag {
+      display: inline-block; margin-left: 10px; padding: 3px 10px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; vertical-align: 3px; background: var(--blue-soft); color: var(--blue-strong);
+    }
+    .option-head p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 860px; }
+    .frame {
+      max-width: 1240px; margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border-strong); box-shadow: 0 26px 60px -44px rgba(31, 44, 61, 0.5);
+      position: relative; display: flex;
+    }
+
+    /* ---------- 方案 A 左侧品牌面板（四个变体共用） ---------- */
+    .a-brand {
+      flex: 1.15; min-width: 0; padding: 56px 60px; display: flex; flex-direction: column; justify-content: center;
+      background: linear-gradient(150deg, var(--graphite-deep) 0%, var(--graphite) 55%, #31445E 100%);
+      color: #fff; position: relative; overflow: hidden;
+    }
+    .a-brand::after {
+      content: ''; position: absolute; right: -140px; top: -140px; width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.32) 0%, rgba(37, 99, 235, 0) 68%);
+    }
+    .a-brand::before {
+      content: ''; position: absolute; left: -100px; bottom: -160px; width: 360px; height: 360px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(198, 155, 74, 0.14) 0%, rgba(198, 155, 74, 0) 66%);
+    }
+    .a-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: #8EB1FF; position: relative; z-index: 1; }
+    .a-title { margin: 14px 0 0; font-size: 38px; font-weight: 800; line-height: 1.1; position: relative; z-index: 1; }
+    .a-desc { margin: 14px 0 0; font-size: 13.5px; line-height: 1.8; color: rgba(255, 255, 255, 0.72); max-width: 400px; position: relative; z-index: 1; }
+    .a-flow { margin-top: 36px; position: relative; z-index: 1; }
+    .a-flow-label { font-size: 11px; color: rgba(255, 255, 255, 0.45); margin-bottom: 12px; }
+    .a-nodes { display: flex; align-items: center; gap: 0; }
+    .a-node {
+      display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px;
+      background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14);
+      color: rgba(255, 255, 255, 0.88); font-size: 12px; font-weight: 500; white-space: nowrap;
+    }
+    .a-node .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .a-link { width: 26px; height: 1.5px; background: linear-gradient(90deg, rgba(142, 177, 255, 0.8), rgba(142, 177, 255, 0.25)); flex: none; }
+    .a-stats { display: flex; gap: 34px; margin-top: 34px; position: relative; z-index: 1; }
+    .a-stat b { display: block; font-size: 20px; font-weight: 700; color: #fff; }
+    .a-stat span { font-size: 11px; color: rgba(255, 255, 255, 0.5); }
+
+    /* ---------- 右侧通用 ---------- */
+    .a-side { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+    .lang-pill {
+      position: absolute; top: 24px; right: 32px; display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.85);
+      font-size: 12px; color: var(--muted); z-index: 5; backdrop-filter: blur(6px);
+    }
+    .brand-row { display: flex; align-items: center; gap: 10px; }
+    .logo-box {
+      width: 40px; height: 40px; border-radius: 10px; background: var(--page);
+      border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center;
+      box-shadow: inset 0 0 0 1px #fff; flex: none;
+    }
+    .logo-mark { width: 22px; height: 22px; }
+    .sys-title { font-size: 17px; font-weight: 700; color: var(--ink); }
+    .divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 11px; margin: 22px 0 16px; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .oauth-row { display: flex; gap: 12px; justify-content: center; }
+    .oauth-btn {
+      width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: #fff;
+      display: flex; align-items: center; justify-content: center; transition: border-color 160ms ease;
+    }
+    .oauth-btn:hover { border-color: var(--blue-line); }
+    .policy { margin-top: 20px; font-size: 11px; color: var(--muted-light); text-align: center; line-height: 1.6; }
+    .policy a { color: var(--muted); }
+    .link-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; margin-top: 14px; }
+    .link-row a { color: var(--blue-strong); font-weight: 500; text-decoration: none; }
+    .link-row .sep { width: 1px; height: 12px; background: var(--border); }
+
+    /* ================= 变体 1 · 无边界浮层 ================= */
+    .v1-side { background: linear-gradient(180deg, #FFFFFF 0%, var(--page) 60%, var(--blue-soft) 130%); }
+    .v1-wrap { width: 340px; }
+    .v1-h1 { margin: 26px 0 0; font-size: 26px; font-weight: 800; color: var(--ink); }
+    .v1-sub { margin: 10px 0 30px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .v1-input {
+      width: 100%; height: 48px; border-radius: 10px; border: 1px solid var(--border); background: #fff;
+      padding: 0 14px; font-size: 13px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(31, 41, 55, 0.04);
+    }
+    .v1-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+    .v1-btn {
+      width: 100%; height: 48px; border-radius: 10px; background: var(--graphite); color: #fff;
+      font-size: 14px; font-weight: 600; margin-top: 6px; transition: background 160ms ease;
+    }
+    .v1-btn:hover { background: var(--graphite-deep); }
+
+    /* ================= 变体 2 · 石墨蓝深色卡 ================= */
+    .v2-side { background: linear-gradient(160deg, #EDF2F8 0%, var(--page) 45%, var(--blue-soft) 130%); }
+    .v2-card {
+      width: 384px; background: var(--graphite-deep); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px; padding: 36px 40px 30px;
+      box-shadow: 0 30px 80px -40px rgba(23, 32, 51, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+    .v2-card .logo-box { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.14); box-shadow: none; }
+    .v2-card .sys-title { color: #fff; }
+    .v2-h1 { margin: 24px 0 0; font-size: 22px; font-weight: 800; color: #fff; }
+    .v2-sub { margin: 8px 0 24px; font-size: 12.5px; color: rgba(255, 255, 255, 0.55); }
+    .v2-label { font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.78); margin-bottom: 7px; }
+    .v2-input {
+      width: 100%; height: 44px; border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06); padding: 0 13px; font-size: 13px; color: #fff;
+    }
+    .v2-input::placeholder { color: rgba(255, 255, 255, 0.32); }
+    .v2-input:focus { outline: none; border-color: #5B8CFF; background: rgba(255, 255, 255, 0.1); box-shadow: 0 0 0 3px rgba(91, 140, 255, 0.22); }
+    .v2-btn {
+      width: 100%; height: 44px; border-radius: 9px; background: var(--blue); color: #fff;
+      font-size: 14px; font-weight: 600; margin-top: 4px; transition: background 160ms ease;
+    }
+    .v2-btn:hover { background: var(--blue-strong); }
+    .v2-links { display: flex; align-items: center; justify-content: space-between; font-size: 12px; margin-top: 14px; }
+    .v2-links a { color: #8EB1FF; font-weight: 500; text-decoration: none; }
+    .v2-links .sep { width: 1px; height: 12px; background: rgba(255, 255, 255, 0.14); }
+    .v2-card .divider { color: rgba(255, 255, 255, 0.4); margin: 22px 0 16px; }
+    .v2-card .divider::before, .v2-card .divider::after { background: rgba(255, 255, 255, 0.12); }
+    .v2-oauth { display: flex; gap: 12px; justify-content: center; }
+    .v2-oauth .oauth-btn { background: rgba(255, 255, 255, 0.92); border-color: transparent; }
+    .v2-card .policy { color: rgba(255, 255, 255, 0.38); }
+    .v2-card .policy a { color: rgba(255, 255, 255, 0.6); }
+
+    /* ================= 变体 3 · 分区结构卡 ================= */
+    .v3-side { background: linear-gradient(180deg, #FFFFFF 0%, var(--page) 60%, var(--blue-soft) 130%); }
+    .v3-card {
+      width: 384px; background: #fff; border: 1px solid var(--border); border-radius: 16px;
+      overflow: hidden; box-shadow: var(--shadow-card);
+    }
+    .v3-top { padding: 28px 36px 22px; border-bottom: 1px solid #EEF2F7; display: flex; align-items: center; justify-content: space-between; }
+    .v3-step { font-size: 11px; font-weight: 700; color: var(--blue-strong); background: var(--blue-soft); padding: 4px 10px; border-radius: 999px; }
+    .v3-body { padding: 26px 36px 4px; }
+    .v3-h1 { margin: 0; font-size: 20px; font-weight: 800; color: var(--ink); }
+    .v3-sub { margin: 7px 0 20px; font-size: 12.5px; color: var(--muted); }
+    .v3-field { margin-bottom: 15px; }
+    .v3-label { font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; }
+    .v3-label a { font-weight: 500; color: var(--blue-strong); text-decoration: none; font-size: 11.5px; }
+    .v3-input {
+      width: 100%; height: 44px; border-radius: 9px; border: 1px solid var(--border); background: #F9FAFB;
+      padding: 0 13px; font-size: 13px;
+    }
+    .v3-input:focus { outline: none; border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+    .v3-btn {
+      width: 100%; height: 44px; border-radius: 9px; background: var(--blue); color: #fff;
+      font-size: 14px; font-weight: 600; margin-top: 4px; transition: background 160ms ease;
+    }
+    .v3-btn:hover { background: var(--blue-strong); }
+    .v3-reg { text-align: center; font-size: 12px; color: var(--muted); margin: 14px 0 22px; }
+    .v3-reg a { color: var(--blue-strong); font-weight: 600; text-decoration: none; }
+    .v3-foot { background: var(--rail); border-top: 1px solid #EEF2F7; padding: 18px 36px 20px; }
+    .v3-foot-label { font-size: 11px; color: var(--muted); text-align: center; margin-bottom: 12px; }
+    .v3-oauth-list { display: flex; flex-direction: column; gap: 9px; }
+    .v3-oauth-item {
+      display: flex; align-items: center; justify-content: center; gap: 8px; height: 38px;
+      border-radius: 9px; border: 1px solid var(--border); background: #fff; font-size: 12.5px;
+      font-weight: 500; color: var(--ink); transition: border-color 160ms ease;
+    }
+    .v3-oauth-item:hover { border-color: var(--blue-line); }
+    .v3-card .policy { margin-top: 14px; }
+
+    /* ================= 变体 4 · 浮标输入卡 ================= */
+    .v4-side { background: linear-gradient(180deg, #FFFFFF 0%, var(--page) 60%, var(--blue-soft) 130%); }
+    .v4-card {
+      width: 384px; background: #fff; border: 1px solid var(--border); border-radius: 18px;
+      padding: 34px 40px 28px; box-shadow: var(--shadow-card);
+    }
+    .v4-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .v4-badge {
+      width: 34px; height: 34px; border-radius: 9px; background: var(--graphite); display: flex;
+      align-items: center; justify-content: center;
+    }
+    .v4-h1 { margin: 0 0 7px; font-size: 22px; font-weight: 800; color: var(--ink); }
+    .v4-sub { margin: 0 0 24px; font-size: 12.5px; color: var(--muted); }
+    .v4-field { position: relative; margin-bottom: 16px; }
+    .v4-field .float-label {
+      position: absolute; top: 8px; left: 15px; font-size: 10.5px; font-weight: 600; color: var(--blue-strong);
+    }
+    .v4-input {
+      width: 100%; height: 54px; border-radius: 11px; border: 1px solid var(--border); background: #F9FAFB;
+      padding: 17px 15px 0; font-size: 13.5px;
+    }
+    .v4-input:focus { outline: none; border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+    .v4-btn {
+      width: 100%; height: 46px; border-radius: 11px; color: #fff; font-size: 14px; font-weight: 600;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--graphite-deep) 120%);
+      margin-top: 4px; box-shadow: 0 10px 24px -14px rgba(37, 99, 235, 0.8); transition: filter 160ms ease;
+    }
+    .v4-btn:hover { filter: brightness(1.06); }
+    .v4-links { display: flex; align-items: center; justify-content: space-between; font-size: 12px; margin-top: 13px; }
+    .v4-links a { color: var(--blue-strong); font-weight: 500; text-decoration: none; }
+    .v4-oauth { display: flex; gap: 10px; }
+    .v4-oauth-item {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; height: 40px;
+      border-radius: 10px; border: 1px solid var(--border); background: #fff; font-size: 12.5px;
+      font-weight: 500; color: var(--ink); transition: border-color 160ms ease;
+    }
+    .v4-oauth-item:hover { border-color: var(--blue-line); }
+    .v4-card .divider { margin: 20px 0 14px; }
+    .v4-card .policy { margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <header class="preview-bar">
+    <div class="preview-title">
+      <strong>方案 A（分屏品牌区）· 右侧登录卡 4 种重设计</strong>
+      <span>无边界浮层 / 石墨蓝深色卡 / 分区结构卡 / 浮标输入卡</span>
+    </div>
+    <nav class="scheme-nav">
+      <a href="#v1">变体 1</a><a href="#v2">变体 2</a><a href="#v3">变体 3</a><a href="#v4">变体 4</a>
+    </nav>
+    <div class="preview-note">
+      左侧品牌面板与已选定的方案 A 完全一致；<br />
+      仅右侧登录卡不同，配色沿用 <b>omniTheme</b>。
+    </div>
+  </header>
+
+  <!-- ==================== 变体 1 · 无边界浮层 ==================== -->
+  <section class="option" id="v1">
+    <div class="option-head">
+      <h2>变体 1 · 无边界浮层 <span class="tag">轻量 · 高级感</span></h2>
+      <p>取消卡片容器：表单直接浮在右侧浅色渐变上，没有边框、阴影与圆角包裹，整屏只剩「内容」本身。输入框白底带细边框，主按钮用石墨蓝（与左栏呼应而非同色复制）。视觉上最松弛、最接近现代 SaaS 登录页，但信息密度最低。</p>
+    </div>
+    <div class="frame">
+      <div class="a-brand">
+        <div class="a-eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+        <h1 class="a-title">OmniCockpit</h1>
+        <p class="a-desc">统一管理企业 AI Agent、知识库与自动化流程，让团队在一个工作台内完成智能应用的构建、调试与发布。</p>
+        <div class="a-flow">
+          <div class="a-flow-label">WORKFLOW PREVIEW</div>
+          <div class="a-nodes">
+            <div class="a-node"><span class="dot" style="background: #5B7CFA;"></span>开始</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #0091FF;"></span>知识库搜索</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #7479FF;"></span>AI 对话</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #43CA40;"></span>条件判断</div>
+          </div>
+        </div>
+        <div class="a-stats">
+          <div class="a-stat"><b>120+</b><span>工作流节点类型</span></div>
+          <div class="a-stat"><b>30+</b><span>模型一键接入</span></div>
+          <div class="a-stat"><b>99.9%</b><span>服务可用性</span></div>
+        </div>
+      </div>
+      <div class="a-side v1-side">
+        <div class="lang-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          简体中文
+        </div>
+        <div class="v1-wrap">
+          <div class="brand-row">
+            <div class="logo-box">
+              <svg class="logo-mark" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="4" width="18" height="14" rx="3" stroke="#2563EB" stroke-width="2"/>
+                <circle cx="9" cy="11" r="1.4" fill="#2563EB"/><circle cx="15" cy="11" r="1.4" fill="#2563EB"/>
+                <path d="M9 21h6" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="sys-title">OmniCockpit</span>
+          </div>
+          <h1 class="v1-h1">欢迎回来</h1>
+          <p class="v1-sub">登录以继续构建你的 AI Agent 与知识库</p>
+          <input class="v1-input" placeholder="用户名 / 邮箱 / 手机号" />
+          <input class="v1-input" type="password" placeholder="请输入密码" value="password1" />
+          <button class="v1-btn">登 录</button>
+          <div class="link-row">
+            <a href="#">忘记密码？</a>
+            <span class="sep"></span>
+            <a href="#">注册账号</a>
+          </div>
+          <div class="divider">或通过以下方式登录</div>
+          <div class="oauth-row">
+            <button class="oauth-btn" title="微信">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#07C160"><path d="M8.7 4C5 4 2 6.6 2 9.8c0 1.8 1 3.4 2.5 4.5l-.6 2 2.2-1.1c.7.2 1.4.3 2.1.3h.4A5.4 5.4 0 0 1 8.5 14c0-3 2.9-5.4 6.4-5.4h.3C14.6 6 11.9 4 8.7 4zM6.6 8.3a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zm4.4 0a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zM22 14.1c0-2.7-2.6-4.9-5.7-4.9s-5.7 2.2-5.7 4.9 2.6 4.9 5.7 4.9c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.5-.9 2.5-2.3 2.5-3.8zm-7.6-.8a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6zm3.9 0a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6z"/></svg>
+            </button>
+            <button class="oauth-btn" title="GitHub">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="#27364A"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.6 1 1.6 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.2-.4-1.3.1-2.7 0 0 .9-.3 2.8 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.5.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>
+            </button>
+            <button class="oauth-btn" title="Google">
+              <svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.5-.2-2.3H12v4.5h5.9a5 5 0 0 1-2.2 3.3v2.8h3.6c2.1-1.9 3.3-4.8 3.3-8.3z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.2 1-3.7 1a6.6 6.6 0 0 1-6.2-4.6H2.1v2.9A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 13.9a6.6 6.6 0 0 1 0-4.2V6.8H2.1a11 11 0 0 0 0 10z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.7l3.1-3.1A11 11 0 0 0 2.1 6.8l3.7 2.9A6.6 6.6 0 0 1 12 5.4z"/></svg>
+            </button>
+          </div>
+          <div class="policy">登录即代表同意 <a href="#">服务条款</a> 与 <a href="#">隐私政策</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 变体 2 · 石墨蓝深色卡 ==================== -->
+  <section class="option" id="v2">
+    <div class="option-head">
+      <h2>变体 2 · 石墨蓝深色卡 <span class="tag">深色 · 仪式感</span></h2>
+      <p>右侧改用石墨蓝深色卡片，与左侧深色品牌面板形成「同族深浅」的暗色双联：左栏讲故事、右栏办正事，整屏暗色统一、仪式感最强。输入框为半透明深色，主按钮保持品牌蓝以保证唯一行动焦点。代价是小屏上暗色区域占比大，需要接受整体偏沉的观感。</p>
+    </div>
+    <div class="frame">
+      <div class="a-brand">
+        <div class="a-eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+        <h1 class="a-title">OmniCockpit</h1>
+        <p class="a-desc">统一管理企业 AI Agent、知识库与自动化流程，让团队在一个工作台内完成智能应用的构建、调试与发布。</p>
+        <div class="a-flow">
+          <div class="a-flow-label">WORKFLOW PREVIEW</div>
+          <div class="a-nodes">
+            <div class="a-node"><span class="dot" style="background: #5B7CFA;"></span>开始</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #0091FF;"></span>知识库搜索</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #7479FF;"></span>AI 对话</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #43CA40;"></span>条件判断</div>
+          </div>
+        </div>
+        <div class="a-stats">
+          <div class="a-stat"><b>120+</b><span>工作流节点类型</span></div>
+          <div class="a-stat"><b>30+</b><span>模型一键接入</span></div>
+          <div class="a-stat"><b>99.9%</b><span>服务可用性</span></div>
+        </div>
+      </div>
+      <div class="a-side v2-side">
+        <div class="lang-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          简体中文
+        </div>
+        <div class="v2-card">
+          <div class="brand-row">
+            <div class="logo-box">
+              <svg class="logo-mark" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="4" width="18" height="14" rx="3" stroke="#8EB1FF" stroke-width="2"/>
+                <circle cx="9" cy="11" r="1.4" fill="#8EB1FF"/><circle cx="15" cy="11" r="1.4" fill="#8EB1FF"/>
+                <path d="M9 21h6" stroke="#8EB1FF" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="sys-title">OmniCockpit</span>
+          </div>
+          <h1 class="v2-h1">登录工作台</h1>
+          <p class="v2-sub">继续你的 AI Agent、知识库与自动化流程</p>
+          <div style="margin-bottom:14px;">
+            <div class="v2-label">用户名</div>
+            <input class="v2-input" placeholder="用户名 / 邮箱 / 手机号" />
+          </div>
+          <div>
+            <div class="v2-label">密码</div>
+            <input class="v2-input" type="password" placeholder="请输入密码" value="password1" />
+          </div>
+          <button class="v2-btn" style="margin-top:20px;">登 录</button>
+          <div class="v2-links">
+            <a href="#">忘记密码？</a>
+            <span class="sep"></span>
+            <a href="#">注册账号</a>
+          </div>
+          <div class="divider">或通过以下方式登录</div>
+          <div class="v2-oauth">
+            <button class="oauth-btn" title="微信">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#07C160"><path d="M8.7 4C5 4 2 6.6 2 9.8c0 1.8 1 3.4 2.5 4.5l-.6 2 2.2-1.1c.7.2 1.4.3 2.1.3h.4A5.4 5.4 0 0 1 8.5 14c0-3 2.9-5.4 6.4-5.4h.3C14.6 6 11.9 4 8.7 4zM6.6 8.3a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zm4.4 0a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zM22 14.1c0-2.7-2.6-4.9-5.7-4.9s-5.7 2.2-5.7 4.9 2.6 4.9 5.7 4.9c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.5-.9 2.5-2.3 2.5-3.8zm-7.6-.8a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6zm3.9 0a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6z"/></svg>
+            </button>
+            <button class="oauth-btn" title="GitHub">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="#27364A"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.6 1 1.6 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.2-.4-1.3.1-2.7 0 0 .9-.3 2.8 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.5.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>
+            </button>
+            <button class="oauth-btn" title="Google">
+              <svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.5-.2-2.3H12v4.5h5.9a5 5 0 0 1-2.2 3.3v2.8h3.6c2.1-1.9 3.3-4.8 3.3-8.3z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.2 1-3.7 1a6.6 6.6 0 0 1-6.2-4.6H2.1v2.9A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 13.9a6.6 6.6 0 0 1 0-4.2V6.8H2.1a11 11 0 0 0 0 10z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.7l3.1-3.1A11 11 0 0 0 2.1 6.8l3.7 2.9A6.6 6.6 0 0 1 12 5.4z"/></svg>
+            </button>
+          </div>
+          <div class="policy">登录即代表同意 <a href="#">服务条款</a> 与 <a href="#">隐私政策</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 变体 3 · 分区结构卡 ==================== -->
+  <section class="option" id="v3">
+    <div class="option-head">
+      <h2>变体 3 · 分区结构卡 <span class="tag">层次 · 功能感</span></h2>
+      <p>白色卡片内部做三段分区：顶部 logo 区 + 步骤徽标（暗示「登录 → 进入工作台」的流程感），中部表单区，底部浅灰 OAuth 区（第三方登录收纳进 #F5F7FA 底色块，竖排全宽按钮更易点按）。层级最清晰、可点性最好，风格偏企业后台。</p>
+    </div>
+    <div class="frame">
+      <div class="a-brand">
+        <div class="a-eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+        <h1 class="a-title">OmniCockpit</h1>
+        <p class="a-desc">统一管理企业 AI Agent、知识库与自动化流程，让团队在一个工作台内完成智能应用的构建、调试与发布。</p>
+        <div class="a-flow">
+          <div class="a-flow-label">WORKFLOW PREVIEW</div>
+          <div class="a-nodes">
+            <div class="a-node"><span class="dot" style="background: #5B7CFA;"></span>开始</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #0091FF;"></span>知识库搜索</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #7479FF;"></span>AI 对话</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #43CA40;"></span>条件判断</div>
+          </div>
+        </div>
+        <div class="a-stats">
+          <div class="a-stat"><b>120+</b><span>工作流节点类型</span></div>
+          <div class="a-stat"><b>30+</b><span>模型一键接入</span></div>
+          <div class="a-stat"><b>99.9%</b><span>服务可用性</span></div>
+        </div>
+      </div>
+      <div class="a-side v3-side">
+        <div class="lang-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          简体中文
+        </div>
+        <div class="v3-card">
+          <div class="v3-top">
+            <div class="brand-row">
+              <div class="logo-box">
+                <svg class="logo-mark" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="4" width="18" height="14" rx="3" stroke="#2563EB" stroke-width="2"/>
+                  <circle cx="9" cy="11" r="1.4" fill="#2563EB"/><circle cx="15" cy="11" r="1.4" fill="#2563EB"/>
+                  <path d="M9 21h6" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="sys-title">OmniCockpit</span>
+            </div>
+            <span class="v3-step">登录 · 步骤 1/2</span>
+          </div>
+          <div class="v3-body">
+            <h1 class="v3-h1">登录工作台</h1>
+            <p class="v3-sub">输入账号信息，进入你的 AI 工作台</p>
+            <div class="v3-field">
+              <div class="v3-label">用户名</div>
+              <input class="v3-input" placeholder="用户名 / 邮箱 / 手机号" />
+            </div>
+            <div class="v3-field">
+              <div class="v3-label">密码 <a href="#">忘记密码？</a></div>
+              <input class="v3-input" type="password" placeholder="请输入密码" value="password1" />
+            </div>
+            <button class="v3-btn">登 录</button>
+            <div class="v3-reg">还没有账号？<a href="#">立即注册</a></div>
+          </div>
+          <div class="v3-foot">
+            <div class="v3-foot-label">或通过以下方式登录</div>
+            <div class="v3-oauth-list">
+              <button class="v3-oauth-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#07C160"><path d="M8.7 4C5 4 2 6.6 2 9.8c0 1.8 1 3.4 2.5 4.5l-.6 2 2.2-1.1c.7.2 1.4.3 2.1.3h.4A5.4 5.4 0 0 1 8.5 14c0-3 2.9-5.4 6.4-5.4h.3C14.6 6 11.9 4 8.7 4zM6.6 8.3a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zm4.4 0a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zM22 14.1c0-2.7-2.6-4.9-5.7-4.9s-5.7 2.2-5.7 4.9 2.6 4.9 5.7 4.9c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.5-.9 2.5-2.3 2.5-3.8zm-7.6-.8a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6zm3.9 0a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6z"/></svg>
+                微信登录
+              </button>
+              <button class="v3-oauth-item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="#27364A"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.6 1 1.6 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.2-.4-1.3.1-2.7 0 0 .9-.3 2.8 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.5.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>
+                GitHub 登录
+              </button>
+            </div>
+            <div class="policy">登录即代表同意 <a href="#">服务条款</a> 与 <a href="#">隐私政策</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 变体 4 · 浮标输入卡 ==================== -->
+  <section class="option" id="v4">
+    <div class="option-head">
+      <h2>变体 4 · 浮标输入卡 <span class="tag">精致 · 动效感</span></h2>
+      <p>白色卡片内使用浮标标签输入框（聚焦时标签上浮，此处为静态示意）、蓝→石墨蓝渐变主按钮（带投影的行动焦点）、双列带文字的 OAuth 按钮。卡片右上角的石墨蓝徽标方块呼应左栏。细节最精致、输入体验最好，实现时需处理浮标动效与 i18n 长文案。</p>
+    </div>
+    <div class="frame">
+      <div class="a-brand">
+        <div class="a-eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+        <h1 class="a-title">OmniCockpit</h1>
+        <p class="a-desc">统一管理企业 AI Agent、知识库与自动化流程，让团队在一个工作台内完成智能应用的构建、调试与发布。</p>
+        <div class="a-flow">
+          <div class="a-flow-label">WORKFLOW PREVIEW</div>
+          <div class="a-nodes">
+            <div class="a-node"><span class="dot" style="background: #5B7CFA;"></span>开始</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #0091FF;"></span>知识库搜索</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #7479FF;"></span>AI 对话</div>
+            <div class="a-link"></div>
+            <div class="a-node"><span class="dot" style="background: #43CA40;"></span>条件判断</div>
+          </div>
+        </div>
+        <div class="a-stats">
+          <div class="a-stat"><b>120+</b><span>工作流节点类型</span></div>
+          <div class="a-stat"><b>30+</b><span>模型一键接入</span></div>
+          <div class="a-stat"><b>99.9%</b><span>服务可用性</span></div>
+        </div>
+      </div>
+      <div class="a-side v4-side">
+        <div class="lang-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          简体中文
+        </div>
+        <div class="v4-card">
+          <div class="v4-head">
+            <div class="brand-row">
+              <div class="logo-box">
+                <svg class="logo-mark" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="4" width="18" height="14" rx="3" stroke="#2563EB" stroke-width="2"/>
+                  <circle cx="9" cy="11" r="1.4" fill="#2563EB"/><circle cx="15" cy="11" r="1.4" fill="#2563EB"/>
+                  <path d="M9 21h6" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="sys-title">OmniCockpit</span>
+            </div>
+            <div class="v4-badge">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8EB1FF" stroke-width="2" stroke-linecap="round"><path d="M13 3L4 14h6l-1 7 9-11h-6l1-7z"/></svg>
+            </div>
+          </div>
+          <h1 class="v4-h1">欢迎回来</h1>
+          <p class="v4-sub">登录后进入你的 AI Agent 工作台</p>
+          <div class="v4-field">
+            <span class="float-label">用户名</span>
+            <input class="v4-input" placeholder="用户名 / 邮箱 / 手机号" />
+          </div>
+          <div class="v4-field">
+            <span class="float-label">密码</span>
+            <input class="v4-input" type="password" placeholder="请输入密码" value="password1" />
+          </div>
+          <button class="v4-btn">登 录</button>
+          <div class="v4-links">
+            <a href="#">忘记密码？</a>
+            <a href="#">注册账号</a>
+          </div>
+          <div class="divider">或通过以下方式登录</div>
+          <div class="v4-oauth">
+            <button class="v4-oauth-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#07C160"><path d="M8.7 4C5 4 2 6.6 2 9.8c0 1.8 1 3.4 2.5 4.5l-.6 2 2.2-1.1c.7.2 1.4.3 2.1.3h.4A5.4 5.4 0 0 1 8.5 14c0-3 2.9-5.4 6.4-5.4h.3C14.6 6 11.9 4 8.7 4zM6.6 8.3a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zm4.4 0a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zM22 14.1c0-2.7-2.6-4.9-5.7-4.9s-5.7 2.2-5.7 4.9 2.6 4.9 5.7 4.9c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.5-.9 2.5-2.3 2.5-3.8zm-7.6-.8a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6zm3.9 0a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6z"/></svg>
+              微信
+            </button>
+            <button class="v4-oauth-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#27364A"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.6 1 1.6 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.2-.4-1.3.1-2.7 0 0 .9-.3 2.8 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.5.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>
+              GitHub
+            </button>
+          </div>
+          <div class="policy">登录即代表同意 <a href="#">服务条款</a> 与 <a href="#">隐私政策</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

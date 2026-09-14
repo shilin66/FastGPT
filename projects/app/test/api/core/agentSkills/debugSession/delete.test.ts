@@ -31,6 +31,8 @@ describe('debugSession/delete', () => {
       appId: skillId,
       chatId,
       source: ChatSourceEnum.test,
+      sourceType: 'skillEdit',
+      sourceId: skillId,
       title: 'Session To Delete'
     });
   });
@@ -116,6 +118,8 @@ describe('debugSession/delete', () => {
       appId: String(otherSkill._id),
       chatId: otherChatId,
       source: ChatSourceEnum.test,
+      sourceType: 'skillEdit',
+      sourceId: skillId,
       title: 'Other Skill Session'
     });
 

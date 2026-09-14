@@ -1,5 +1,6 @@
 import type { NextApiResponse } from 'next';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import { Types } from '@fastgpt/service/common/mongo';
 import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { NextAPI } from '@/service/middleware/entry';
@@ -35,6 +36,7 @@ async function handler(req: ApiRequestProps, _res: NextApiResponse): Promise<Get
     [
       {
         $match: {
+          ...getChatSourceFilter(),
           appId: new Types.ObjectId(appId),
           updateTime: {
             $gte: new Date(dateStart),

@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { NextApiResponse } from 'next';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
 import { ClearChatHistoriesSchema } from '@fastgpt/global/openapi/core/chat/history/api';
@@ -55,13 +56,10 @@ export async function handler(req: ApiRequestProps, res: NextApiResponse) {
   })();
 
   // find chatIds
-  const list = await MongoChat.find(match, 'chatId').lean();
+  const list = await MongoChat.find({ ...match, ...getChatSourceFilter() }, 'chatId').lean();
 
   await MongoChat.updateMany(
-    {
-      appId,
-      chatId: { $in: list.map((item) => item.chatId) }
-    },
+    { ...getChatSourceFilter(), appId, chatId: { $in: list.map((item) => item.chatId) } },
     {
       $set: {
         deleteTime: new Date()

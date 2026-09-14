@@ -1,0 +1,199 @@
+<svg
+  width="1440"
+  height="900"
+  viewBox="0 0 1440 900"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">OmniCockpit 平台 Logo 三方向预览</title>
+  <desc id="description">舱门切面、双舱联字、合流矢量三套矢量标识及小尺寸应用预览</desc>
+  <defs>
+    <symbol id="aperture" viewBox="0 0 96 96">
+      <path fill="var(--ink, #27364A)" d="M15 29 29 15h18v15H35l-5 5v12H15V29Z" />
+      <path fill="var(--blue, #2563EB)" d="M49 15h18l14 14v18H66V35l-5-5H49V15Z" />
+      <path fill="var(--ink, #27364A)" d="M81 49v18L67 81H49V66h12l5-5V49h15Z" />
+      <path fill="var(--ink, #27364A)" d="M47 81H29L15 67V49h15v12l5 5h12v15Z" />
+      <rect x="42" y="42" width="12" height="12" rx="3" fill="var(--gold, #C69B4A)" />
+    </symbol>
+    <symbol id="twin-gate" viewBox="0 0 96 96">
+      <path
+        fill="var(--ink, #27364A)"
+        d="M17 31c0-9.94 8.06-18 18-18h13v17H36c-2.21 0-4 1.79-4 4v28c0 2.21 1.79 4 4 4h12v17H35c-9.94 0-18-8.06-18-18V31Z"
+      />
+      <path
+        fill="var(--blue, #2563EB)"
+        d="M48 13h13c9.94 0 18 8.06 18 18v34c0 9.94-8.06 18-18 18H48V66h12c2.21 0 4-1.79 4-4V34c0-2.21-1.79-4-4-4H48V13Z"
+      />
+      <path fill="var(--gold, #C69B4A)" d="M43 42h10v12H43z" />
+    </symbol>
+    <symbol id="twin-gate-dark" viewBox="0 0 96 96">
+      <path
+        fill="#FFFFFF"
+        d="M17 31c0-9.94 8.06-18 18-18h13v17H36c-2.21 0-4 1.79-4 4v28c0 2.21 1.79 4 4 4h12v17H35c-9.94 0-18-8.06-18-18V31Z"
+      />
+      <path
+        fill="#DBEAFE"
+        d="M48 13h13c9.94 0 18 8.06 18 18v34c0 9.94-8.06 18-18 18H48V66h12c2.21 0 4-1.79 4-4V34c0-2.21-1.79-4-4-4H48V13Z"
+      />
+      <path fill="#C69B4A" d="M43 42h10v12H43z" />
+    </symbol>
+    <symbol id="convergence" viewBox="0 0 96 96">
+      <path fill="var(--ink, #27364A)" d="M14 18h30l19 19H33L14 30V18Z" />
+      <path fill="var(--blue, #2563EB)" d="M14 39h52l17 9-17 9H14V39Z" />
+      <path fill="var(--ink, #27364A)" d="M14 66l19-12h30L44 78H14V66Z" />
+      <path fill="var(--gold, #C69B4A)" d="M82 40 92 48 82 56V40Z" />
+    </symbol>
+    <linearGradient id="stage-light" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FBFDFF" />
+      <stop offset="1" stop-color="#F4F7FB" />
+    </linearGradient>
+    <radialGradient id="stage-dark" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(772 278) rotate(126.7) scale(286 390)">
+      <stop stop-color="#2563EB" stop-opacity="0.3" />
+      <stop offset="0.72" stop-color="#2563EB" stop-opacity="0" />
+    </radialGradient>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#27364A" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <rect width="1440" height="900" fill="#F8FAFC" />
+  <rect width="1440" height="58" fill="#FFFFFF" />
+  <path d="M0 57.5H1440" stroke="#DFE5EE" />
+  <text x="32" y="29" fill="#27364A" font-family="Avenir Next, PingFang SC, sans-serif" font-size="14" font-weight="700">OmniCockpit 平台标识探索</text>
+  <text x="32" y="45" fill="#667085" font-family="SFMono-Regular, monospace" font-size="9" letter-spacing="0.7">NEW LOGO DIRECTIONS / VECTOR PREVIEW</text>
+  <circle cx="1198" cy="29" r="6" fill="#27364A" />
+  <text x="1210" y="33" fill="#667085" font-family="Avenir Next, PingFang SC, sans-serif" font-size="10">Graphite</text>
+  <circle cx="1281" cy="29" r="6" fill="#2563EB" />
+  <text x="1293" y="33" fill="#667085" font-family="Avenir Next, PingFang SC, sans-serif" font-size="10">Atlas Blue</text>
+  <circle cx="1385" cy="29" r="6" fill="#C69B4A" />
+
+  <text x="32" y="112" fill="#27364A" font-family="Avenir Next, PingFang SC, sans-serif" font-size="40" font-weight="700" letter-spacing="-1.8">三个全新的平台标识方向</text>
+  <text x="32" y="140" fill="#667085" font-family="Avenir Next, PingFang SC, sans-serif" font-size="13">不复用仪表盘、轨道、网络节点、流程线与 AI 火花。三套标识均可脱离底板，并验证至 16px。</text>
+  <g font-family="SFMono-Regular, monospace" text-anchor="middle">
+    <text x="1136" y="102" fill="#27364A" font-size="17" font-weight="700">16px</text>
+    <text x="1136" y="120" fill="#667085" font-size="9">MIN SIZE</text>
+    <text x="1247" y="102" fill="#27364A" font-size="17" font-weight="700">2 tone</text>
+    <text x="1247" y="120" fill="#667085" font-size="9">COLOR CORE</text>
+    <text x="1357" y="102" fill="#27364A" font-size="17" font-weight="700">0 tile</text>
+    <text x="1357" y="120" fill="#667085" font-size="9">NO BACKPLATE</text>
+  </g>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="32" y="166" width="442" height="664" rx="16" fill="#FFFFFF" />
+    <rect x="499" y="166" width="442" height="664" rx="16" fill="#FFFFFF" />
+    <rect x="966" y="166" width="442" height="664" rx="16" fill="#FFFFFF" />
+  </g>
+
+  <g font-family="Avenir Next, PingFang SC, sans-serif">
+    <rect x="54" y="186" width="26" height="26" rx="7" fill="#DBEAFE" />
+    <text x="67" y="204" fill="#2563EB" font-family="SFMono-Regular, monospace" font-size="11" font-weight="700" text-anchor="middle">A</text>
+    <text x="92" y="204" fill="#27364A" font-size="15" font-weight="700">舱门切面</text>
+    <text x="448" y="204" fill="#667085" font-family="SFMono-Regular, monospace" font-size="9" text-anchor="end" letter-spacing="0.5">APERTURE</text>
+
+    <rect x="521" y="186" width="26" height="26" rx="7" fill="#DBEAFE" />
+    <text x="534" y="204" fill="#2563EB" font-family="SFMono-Regular, monospace" font-size="11" font-weight="700" text-anchor="middle">B</text>
+    <text x="559" y="204" fill="#27364A" font-size="15" font-weight="700">双舱联字</text>
+    <text x="915" y="204" fill="#667085" font-family="SFMono-Regular, monospace" font-size="9" text-anchor="end" letter-spacing="0.5">TWIN GATE</text>
+
+    <rect x="988" y="186" width="26" height="26" rx="7" fill="#DBEAFE" />
+    <text x="1001" y="204" fill="#2563EB" font-family="SFMono-Regular, monospace" font-size="11" font-weight="700" text-anchor="middle">C</text>
+    <text x="1026" y="204" fill="#27364A" font-size="15" font-weight="700">合流矢量</text>
+    <text x="1382" y="204" fill="#667085" font-family="SFMono-Regular, monospace" font-size="9" text-anchor="end" letter-spacing="0.5">CONVERGENCE</text>
+  </g>
+
+  <path d="M32 230H474M499 230H941M966 230H1408" stroke="#DFE5EE" />
+  <rect x="32" y="230" width="442" height="260" fill="url(#stage-light)" />
+  <rect x="499" y="230" width="442" height="260" fill="#27364A" />
+  <rect x="499" y="230" width="442" height="260" fill="url(#stage-dark)" />
+  <rect x="966" y="230" width="442" height="260" fill="url(#stage-light)" />
+
+  <use href="#aperture" x="195" y="262" width="116" height="116" />
+  <use href="#twin-gate-dark" x="662" y="262" width="116" height="116" />
+  <use href="#convergence" x="1129" y="262" width="116" height="116" />
+
+  <g font-family="Avenir Next, PingFang SC, sans-serif" font-weight="700" font-size="22" letter-spacing="-0.9">
+    <use href="#aperture" x="137" y="410" width="34" height="34" />
+    <text x="181" y="433" fill="#27364A">OmniCockpit</text>
+    <use href="#twin-gate-dark" x="604" y="410" width="34" height="34" />
+    <text x="648" y="433" fill="#FFFFFF">OmniCockpit</text>
+    <use href="#convergence" x="1071" y="410" width="34" height="34" />
+    <text x="1115" y="433" fill="#27364A">OmniCockpit</text>
+  </g>
+  <g font-family="SFMono-Regular, monospace" font-size="7" letter-spacing="0.6">
+    <text x="181" y="449" fill="#667085">AGENT AND KNOWLEDGE WORKSPACE</text>
+    <text x="648" y="449" fill="#DBEAFE">AGENT AND KNOWLEDGE WORKSPACE</text>
+    <text x="1115" y="449" fill="#667085">AGENT AND KNOWLEDGE WORKSPACE</text>
+  </g>
+
+  <path d="M32 490H474M499 490H941M966 490H1408" stroke="#DFE5EE" />
+  <g font-family="SFMono-Regular, monospace" font-size="8" letter-spacing="0.5" fill="#667085">
+    <text x="54" y="516">PRODUCT RAIL</text><text x="295" y="516">SMALL SCALE</text>
+    <text x="521" y="516">PRODUCT RAIL</text><text x="762" y="516">SMALL SCALE</text>
+    <text x="988" y="516">PRODUCT RAIL</text><text x="1229" y="516">SMALL SCALE</text>
+  </g>
+
+  <g>
+    <rect x="54" y="530" width="216" height="48" rx="8" fill="#F5F7FA" stroke="#DFE5EE" />
+    <use href="#aperture" x="66" y="541" width="26" height="26" />
+    <text x="102" y="559" fill="#27364A" font-family="Avenir Next, PingFang SC, sans-serif" font-size="12" font-weight="700">OmniCockpit</text>
+    <rect x="236" y="544" width="22" height="20" rx="6" fill="#DBEAFE" />
+    <text x="247" y="558" fill="#2563EB" font-family="SFMono-Regular, monospace" font-size="8" font-weight="700" text-anchor="middle">AI</text>
+
+    <rect x="521" y="530" width="216" height="48" rx="8" fill="#F5F7FA" stroke="#DFE5EE" />
+    <use href="#twin-gate" x="533" y="541" width="26" height="26" />
+    <text x="569" y="559" fill="#27364A" font-family="Avenir Next, PingFang SC, sans-serif" font-size="12" font-weight="700">OmniCockpit</text>
+    <rect x="703" y="544" width="22" height="20" rx="6" fill="#DBEAFE" />
+    <text x="714" y="558" fill="#2563EB" font-family="SFMono-Regular, monospace" font-size="8" font-weight="700" text-anchor="middle">AI</text>
+
+    <rect x="988" y="530" width="216" height="48" rx="8" fill="#F5F7FA" stroke="#DFE5EE" />
+    <use href="#convergence" x="1000" y="541" width="26" height="26" />
+    <text x="1036" y="559" fill="#27364A" font-family="Avenir Next, PingFang SC, sans-serif" font-size="12" font-weight="700">OmniCockpit</text>
+    <rect x="1170" y="544" width="22" height="20" rx="6" fill="#DBEAFE" />
+    <text x="1181" y="558" fill="#2563EB" font-family="SFMono-Regular, monospace" font-size="8" font-weight="700" text-anchor="middle">AI</text>
+  </g>
+
+  <g font-family="SFMono-Regular, monospace" fill="#667085" font-size="7" text-anchor="middle">
+    <use href="#aperture" x="298" y="532" width="32" height="32" /><text x="314" y="576">32</text>
+    <use href="#aperture" x="353" y="536" width="24" height="24" style="--ink:#27364A;--blue:#27364A;--gold:#27364A" /><text x="365" y="576">24</text>
+    <use href="#aperture" x="408" y="540" width="16" height="16" /><text x="416" y="576">16</text>
+
+    <use href="#twin-gate" x="765" y="532" width="32" height="32" /><text x="781" y="576">32</text>
+    <use href="#twin-gate" x="820" y="536" width="24" height="24" style="--ink:#27364A;--blue:#27364A;--gold:#27364A" /><text x="832" y="576">24</text>
+    <use href="#twin-gate" x="875" y="540" width="16" height="16" /><text x="883" y="576">16</text>
+
+    <use href="#convergence" x="1232" y="532" width="32" height="32" /><text x="1248" y="576">32</text>
+    <use href="#convergence" x="1287" y="536" width="24" height="24" style="--ink:#27364A;--blue:#27364A;--gold:#27364A" /><text x="1299" y="576">24</text>
+    <use href="#convergence" x="1342" y="540" width="16" height="16" /><text x="1350" y="576">16</text>
+  </g>
+
+  <path d="M32 600H474M499 600H941M966 600H1408" stroke="#DFE5EE" />
+  <g font-family="Avenir Next, PingFang SC, sans-serif">
+    <text x="54" y="635" fill="#27364A" font-size="17" font-weight="700">把驾驶舱变成一个可进入的界面</text>
+    <text x="54" y="662" fill="#667085" font-size="12"><tspan x="54">四个结构件围合操作焦点，中心金色键表示被确认的</tspan><tspan x="54" dy="19">任务。识别最稳，更偏企业平台与控制系统。</tspan></text>
+
+    <text x="521" y="635" fill="#27364A" font-size="17" font-weight="700">两条控制轨合成专属字形</text>
+    <text x="521" y="662" fill="#667085" font-size="12"><tspan x="521">左右舱体共同构成抽象 O，中央缝隙形成指令轴。</tspan><tspan x="521" dy="19">品牌记忆最独立，适合发展成产品家族联字。</tspan></text>
+
+    <text x="988" y="635" fill="#27364A" font-size="17" font-weight="700">把多路能力压缩成一个执行方向</text>
+    <text x="988" y="662" fill="#667085" font-size="12"><tspan x="988">三条输入带向右汇聚，金色端点表示可交付结果。</tspan><tspan x="988" dy="19">速度感最强，适合工作流执行和资源调度。</tspan></text>
+  </g>
+
+  <g font-family="Avenir Next, PingFang SC, sans-serif" font-size="9" font-weight="700">
+    <rect x="54" y="711" width="76" height="25" rx="6" fill="#DBEAFE" /><text x="92" y="727" fill="#2563EB" text-anchor="middle">平台感最强</text>
+    <rect x="138" y="711" width="68" height="25" rx="6" fill="#F5F7FA" stroke="#DFE5EE" /><text x="172" y="727" fill="#27364A" text-anchor="middle">结构稳定</text>
+    <rect x="214" y="711" width="88" height="25" rx="6" fill="#F5F7FA" stroke="#DFE5EE" /><text x="258" y="727" fill="#27364A" text-anchor="middle">适合后台入口</text>
+
+    <rect x="521" y="711" width="102" height="25" rx="6" fill="#DBEAFE" /><text x="572" y="727" fill="#2563EB" text-anchor="middle">品牌独特性最高</text>
+    <rect x="631" y="711" width="84" height="25" rx="6" fill="#F5F7FA" stroke="#DFE5EE" /><text x="673" y="727" fill="#27364A" text-anchor="middle">适合国际化</text>
+    <rect x="723" y="711" width="84" height="25" rx="6" fill="#F5F7FA" stroke="#DFE5EE" /><text x="765" y="727" fill="#27364A" text-anchor="middle">暗色表现佳</text>
+
+    <rect x="988" y="711" width="88" height="25" rx="6" fill="#DBEAFE" /><text x="1032" y="727" fill="#2563EB" text-anchor="middle">产品叙事直接</text>
+    <rect x="1084" y="711" width="68" height="25" rx="6" fill="#F5F7FA" stroke="#DFE5EE" /><text x="1118" y="727" fill="#27364A" text-anchor="middle">横向动势</text>
+    <rect x="1160" y="711" width="90" height="25" rx="6" fill="#F5F7FA" stroke="#DFE5EE" /><text x="1205" y="727" fill="#27364A" text-anchor="middle">适合启动画面</text>
+  </g>
+
+  <text x="32" y="872" fill="#667085" font-family="Avenir Next, PingFang SC, sans-serif" font-size="11">选择建议：A 偏企业控制台，B 偏独立品牌资产，C 偏工作流执行平台。确认方向后再展开黑白版、反白版、favicon 与正式 SVG 资产。</text>
+  <text x="1408" y="872" fill="#667085" font-family="SFMono-Regular, monospace" font-size="9" text-anchor="end" letter-spacing="0.4">STEEL ATLAS / VECTOR FIRST</text>
+</svg>

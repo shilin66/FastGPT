@@ -334,7 +334,7 @@ export const runtimeSystemVar2StoreType = ({
     else if (item.type === VariableInputEnum.file) {
       const currentValue = copyVariables[item.key];
 
-      copyVariables[item.key] = currentValue
+      copyVariables[item.key] = (currentValue ?? [])
         .map((url: string) => {
           try {
             const urlObj = new URL(url);

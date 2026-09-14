@@ -8,9 +8,13 @@ import { TeamSkillCreatePermissionVal } from '@fastgpt/global/support/permission
 import { authSkill } from '@fastgpt/service/support/permission/agentSkill/auth';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
-import { createSkill, updateCurrentStorage } from '@fastgpt/service/core/agentSkills/controller';
+import { createSkill } from '@fastgpt/service/core/agentSkills/controller';
 import { copySkillPackage } from '@fastgpt/service/core/agentSkills/storage';
 import { createVersion } from '@fastgpt/service/core/agentSkills/version/controller';
+import {
+  getCurrentVersion,
+  setCurrentVersion
+} from '@fastgpt/service/core/agentSkills/version/current';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import { addAuditLog, getI18nSkillType } from '@fastgpt/service/support/user/audit/util';
 import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
@@ -51,7 +55,8 @@ async function handler(req: ApiRequestProps<CopySkillBody>): Promise<CopySkillRe
   // 3. Append " Copy" suffix to the name; duplicate conflicts are handled by E11000 (see app/copy.ts)
   const copyName = `${skill.name} Copy`;
 
-  if (!skill.currentStorage) {
+  const sourceVersion = await getCurrentVersion(skillId);
+  if (!sourceVersion) {
     return Promise.reject(SkillErrEnum.noStorage);
   }
 
@@ -82,17 +87,13 @@ async function handler(req: ApiRequestProps<CopySkillBody>): Promise<CopySkillRe
     );
 
     // Copy the ZIP package in MinIO to the new skill path
-    const storageInfo = await copySkillPackage(skill.currentStorage!, {
+    const storageInfo = await copySkillPackage(sourceVersion.storage, {
       teamId,
       skillId: newId,
       version: 0
     });
 
-    // Update currentStorage on the new skill
-    await updateCurrentStorage(newId, storageInfo, session);
-
-    // Create the initial v0 version record
-    await createVersion(
+    const versionId = await createVersion(
       {
         skillId: newId,
         tmbId,
@@ -102,6 +103,13 @@ async function handler(req: ApiRequestProps<CopySkillBody>): Promise<CopySkillRe
       },
       session
     );
+
+    await setCurrentVersion({
+      skillId: newId,
+      versionId,
+      expectedCurrentVersionId: null,
+      session
+    });
 
     // Write owner record to ResourcePermission
     await MongoResourcePermission.insertOne(

@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>登录页左侧重设计 · Agentic × Workflow 第三轮</title>
+    <style>
+      :root {
+        --graphite-950: #172033;
+        --graphite-900: #1f2a3a;
+        --graphite-800: #27364a;
+        --graphite-700: #31445e;
+        --blue: #2563eb;
+        --blue-light: #8eb1ff;
+        --blue-border: rgba(142, 177, 255, 0.25);
+        --gold: #c69b4a;
+        --gold-light: #e8ce9c;
+        --green: #43ca40;
+        --white-88: rgba(255, 255, 255, 0.88);
+        --white-70: rgba(255, 255, 255, 0.7);
+        --white-48: rgba(255, 255, 255, 0.48);
+        --line: rgba(255, 255, 255, 0.11);
+        --page: #e9eef5;
+        --ink: #1f2937;
+        --muted: #667085;
+        --font: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--page);
+        font-family: var(--font);
+      }
+
+      .preview-bar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        min-height: 76px;
+        padding: 12px 24px;
+        display: grid;
+        grid-template-columns: minmax(320px, 1fr) auto minmax(280px, 1fr);
+        gap: 24px;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.96);
+        border-bottom: 1px solid #ccd6e3;
+        backdrop-filter: blur(14px);
+      }
+      .preview-title strong {
+        display: block;
+        font-size: 17px;
+      }
+      .preview-title span,
+      .preview-note {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .preview-note {
+        text-align: right;
+      }
+      .scheme-nav {
+        display: flex;
+        gap: 8px;
+      }
+      .scheme-nav a {
+        padding: 8px 13px;
+        color: var(--ink);
+        background: #f5f7fa;
+        border: 1px solid #dfe5ee;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 650;
+        text-decoration: none;
+      }
+      .scheme-nav a:hover {
+        color: #1d4ed8;
+        background: #dbeafe;
+        border-color: #bfdbfe;
+      }
+
+      .option {
+        padding: 34px 24px 54px;
+      }
+      .option + .option {
+        border-top: 1px solid #d3dce8;
+      }
+      .option-head {
+        width: min(760px, 100%);
+        margin: 0 auto 16px;
+      }
+      .option-head h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .tag {
+        display: inline-flex;
+        margin-left: 8px;
+        padding: 3px 9px;
+        vertical-align: 3px;
+        color: #1d4ed8;
+        background: #dbeafe;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .option-head p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 9px;
+      }
+      .chip {
+        padding: 3px 9px;
+        color: var(--muted);
+        background: #f8fafc;
+        border: 1px solid #dfe5ee;
+        border-radius: 999px;
+        font-size: 11px;
+      }
+
+      .stage {
+        width: min(760px, 100%);
+        margin: 0 auto;
+      }
+      .panel {
+        position: relative;
+        min-height: 620px;
+        padding: 44px 54px 42px;
+        overflow: hidden;
+        color: #fff;
+        background: linear-gradient(
+          150deg,
+          var(--graphite-900),
+          var(--graphite-800) 55%,
+          var(--graphite-700)
+        );
+        border-radius: 22px;
+        box-shadow: 0 28px 64px -42px rgba(23, 32, 51, 0.72);
+      }
+      .panel::before {
+        content: '';
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        top: -240px;
+        right: -190px;
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.36), transparent 68%);
+        border-radius: 50%;
+      }
+      .panel::after {
+        content: '';
+        position: absolute;
+        width: 380px;
+        height: 380px;
+        left: -150px;
+        bottom: -210px;
+        background: radial-gradient(circle, rgba(198, 155, 74, 0.16), transparent 68%);
+        border-radius: 50%;
+      }
+      .panel-content {
+        position: relative;
+        z-index: 1;
+      }
+      .eyebrow {
+        color: var(--blue-light);
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: 0.15em;
+      }
+      .brand {
+        margin-top: 12px;
+        font-size: 34px;
+        font-weight: 820;
+        letter-spacing: -0.025em;
+      }
+      .desc {
+        width: min(520px, 100%);
+        margin: 10px 0 0;
+        color: var(--white-70);
+        font-size: 13px;
+        line-height: 1.75;
+      }
+      .visual-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 25px 0 12px;
+        color: var(--white-48);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+      }
+      .visual-label i {
+        width: 5px;
+        height: 5px;
+        background: var(--gold);
+        border-radius: 50%;
+      }
+      .visual-shell {
+        position: relative;
+        padding: 16px;
+        background: rgba(12, 22, 36, 0.2);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+      }
+      .micro {
+        color: var(--white-48);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.055);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 11px;
+      }
+      .spark {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        flex: none;
+        color: var(--gold);
+        background: rgba(198, 155, 74, 0.13);
+        border: 1px solid rgba(198, 155, 74, 0.27);
+        border-radius: 9px;
+      }
+      .spark svg {
+        width: 17px;
+        height: 17px;
+      }
+      .node-dot {
+        width: 7px;
+        height: 7px;
+        flex: none;
+        border-radius: 2px;
+      }
+      .result {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 13px;
+        background: rgba(67, 202, 64, 0.07);
+        border: 1px solid rgba(67, 202, 64, 0.2);
+        border-radius: 10px;
+      }
+      .result-icon {
+        display: grid;
+        width: 20px;
+        height: 20px;
+        place-items: center;
+        color: #75df73;
+        background: rgba(67, 202, 64, 0.12);
+        border-radius: 50%;
+      }
+      .result-icon svg {
+        width: 11px;
+        height: 11px;
+      }
+
+      /* A · 任务中枢 */
+      .task-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 13px;
+        border-bottom: 1px solid var(--line);
+      }
+      .task-strip b {
+        display: block;
+        margin-top: 4px;
+        color: var(--white-88);
+        font-size: 13px;
+      }
+      .input-badge {
+        padding: 4px 9px;
+        color: var(--white-70);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 700;
+      }
+      .mission-grid {
+        display: grid;
+        grid-template-columns: 145px 1fr 190px;
+        gap: 13px;
+        align-items: stretch;
+        margin: 14px 0;
+      }
+      .agent-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 14px;
+        border-color: rgba(198, 155, 74, 0.46);
+        background: linear-gradient(155deg, rgba(198, 155, 74, 0.13), rgba(255, 255, 255, 0.045));
+      }
+      .agent-card strong {
+        font-size: 14px;
+      }
+      .agent-card small {
+        color: var(--white-48);
+        font-size: 9.5px;
+        text-align: center;
+        line-height: 1.4;
+      }
+      .channels {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        min-width: 0;
+      }
+      .channel {
+        color: var(--gold-light);
+        font-size: 9.5px;
+        line-height: 1.3;
+      }
+      .channel.reverse {
+        text-align: right;
+      }
+      .arrow {
+        display: flex;
+        align-items: center;
+        margin-top: 5px;
+      }
+      .arrow.reverse {
+        flex-direction: row-reverse;
+      }
+      .arrow-line {
+        flex: 1;
+        border-top: 1.5px solid var(--gold);
+      }
+      .reverse .arrow-line {
+        border-top-style: dashed;
+      }
+      .arrow-head {
+        width: 0;
+        height: 0;
+        border-top: 4px solid transparent;
+        border-bottom: 4px solid transparent;
+        border-left: 7px solid var(--gold);
+      }
+      .reverse .arrow-head {
+        border-left: 0;
+        border-right: 7px solid var(--gold);
+      }
+      .workflow-card {
+        padding: 12px;
+        border-color: var(--blue-border);
+      }
+      .workflow-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--white-88);
+        font-size: 11px;
+        font-weight: 750;
+      }
+      .workflow-title::before {
+        content: '';
+        width: 14px;
+        height: 3px;
+        background: linear-gradient(90deg, #5b7cfa 33%, #0091ff 33% 66%, #7479ff 66%);
+        border-radius: 2px;
+      }
+      .node-list {
+        display: grid;
+        gap: 6px;
+        margin-top: 9px;
+      }
+      .node {
+        display: flex;
+        min-height: 28px;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 8px;
+        color: var(--white-70);
+        background: rgba(255, 255, 255, 0.045);
+        border: 1px solid rgba(255, 255, 255, 0.075);
+        border-radius: 7px;
+        font-size: 9.5px;
+      }
+
+      /* B · 闭环轨道 */
+      .loop-board {
+        position: relative;
+        height: 270px;
+        overflow: hidden;
+      }
+      .loop-board > svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .loop-center {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 150px;
+        padding: 12px;
+        transform: translate(-50%, -50%);
+        text-align: center;
+      }
+      .loop-center b {
+        display: block;
+        margin-top: 4px;
+        color: var(--white-88);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .orbit-card {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 11px;
+      }
+      .orbit-card.agentic {
+        left: 18px;
+        top: 96px;
+        width: 145px;
+        border-color: rgba(198, 155, 74, 0.46);
+      }
+      .orbit-card.workflow {
+        right: 18px;
+        top: 88px;
+        width: 168px;
+        border-color: var(--blue-border);
+      }
+      .orbit-card strong {
+        display: block;
+        color: var(--white-88);
+        font-size: 11px;
+      }
+      .orbit-card small {
+        display: block;
+        margin-top: 2px;
+        color: var(--white-48);
+        font-size: 8.5px;
+      }
+      .loop-label {
+        position: absolute;
+        padding: 3px 7px;
+        color: var(--gold-light);
+        background: var(--graphite-800);
+        border-radius: 5px;
+        font-size: 8.5px;
+      }
+      .loop-label.forward {
+        left: 215px;
+        top: 42px;
+      }
+      .loop-label.backward {
+        right: 206px;
+        bottom: 38px;
+      }
+      .node-pills {
+        position: absolute;
+        left: 50%;
+        bottom: 5px;
+        display: flex;
+        gap: 6px;
+        transform: translateX(-50%);
+      }
+      .node-pill {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 8px;
+        color: var(--white-70);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 8.5px;
+        white-space: nowrap;
+      }
+
+      /* C · 实战回放 */
+      .timeline {
+        position: relative;
+        display: grid;
+        gap: 7px;
+      }
+      .timeline::before {
+        content: '';
+        position: absolute;
+        left: 17px;
+        top: 15px;
+        bottom: 15px;
+        width: 1px;
+        background: linear-gradient(var(--gold), rgba(142, 177, 255, 0.38), var(--green));
+      }
+      .timeline-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: 35px 76px 1fr auto;
+        gap: 9px;
+        align-items: center;
+        min-height: 42px;
+        padding: 6px 9px 6px 0;
+      }
+      .step-dot {
+        display: grid;
+        width: 24px;
+        height: 24px;
+        place-items: center;
+        justify-self: center;
+        z-index: 1;
+        color: var(--white-88);
+        background: var(--graphite-800);
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        font-size: 9px;
+        font-weight: 750;
+      }
+      .timeline-row.agent .step-dot {
+        color: var(--gold-light);
+        border-color: rgba(198, 155, 74, 0.5);
+      }
+      .timeline-row.flow .step-dot {
+        color: var(--blue-light);
+        border-color: var(--blue-border);
+      }
+      .timeline-row.done .step-dot {
+        color: #75df73;
+        border-color: rgba(67, 202, 64, 0.35);
+      }
+      .actor {
+        color: var(--white-48);
+        font-size: 9px;
+        font-weight: 750;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .timeline-row b {
+        color: var(--white-88);
+        font-size: 10.5px;
+        font-weight: 600;
+      }
+      .state {
+        padding: 3px 7px;
+        color: var(--white-48);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 8px;
+        white-space: nowrap;
+      }
+      .state.call {
+        color: var(--gold-light);
+        border-color: rgba(198, 155, 74, 0.3);
+      }
+
+      @media (max-width: 850px) {
+        .preview-bar {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .preview-note {
+          display: none;
+        }
+        .panel {
+          padding: 36px 30px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="preview-bar">
+      <div class="preview-title">
+        <strong>登录页左侧重设计 · 第三轮</strong>
+        <span>围绕真实问题构建 Agentic × Workflow 双向协作，不延续当前的“卡片 + 细连线”构图。</span>
+      </div>
+      <nav class="scheme-nav">
+        <a href="#mission">A · 任务中枢</a>
+        <a href="#loop">B · 闭环轨道</a>
+        <a href="#timeline">C · 实战回放</a>
+      </nav>
+      <div class="preview-note">
+        实线暖金：Agentic 主动调用 Workflow<br />虚线暖金：Workflow 节点回调 Agentic
+      </div>
+    </header>
+
+    <section class="option" id="mission">
+      <div class="option-head">
+        <h2>方案 A · 任务中枢 <span class="tag">Mission Control</span></h2>
+        <p>
+          把左侧做成一个紧凑的任务执行面板：上方是真实问题，中间是 Agentic 与 Workflow
+          的双通道协作，下方直接给出可执行结果。信息完整、方向最明确，最像产品真实运行状态。
+        </p>
+        <div class="chips">
+          <span class="chip">语义最直白</span><span class="chip">真实问题驱动</span
+          ><span class="chip">适合企业产品</span>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="panel">
+          <div class="panel-content">
+            <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+            <div class="brand">OmniCockpit</div>
+            <p class="desc">
+              让 Agentic 自主判断目标、选择并调用 Workflow；执行过程中，关键节点也能回调 Agentic
+              再决策，把复杂问题转化为可执行结果。
+            </p>
+            <div class="visual-label"><i></i>AGENTIC × WORKFLOW · 双向协作执行</div>
+            <div class="visual-shell">
+              <div class="task-strip">
+                <div>
+                  <span class="micro">实际问题</span
+                  ><b>客户订单异常，判断是否退款并给出下一步动作</b>
+                </div>
+                <span class="input-badge">INPUT</span>
+              </div>
+              <div class="mission-grid">
+                <div class="agent-card card">
+                  <span class="spark"
+                    ><svg viewBox="0 0 24 24">
+                      <path
+                        d="M12 2C13 8 16 11 22 12C16 13 13 16 12 22C11 16 8 13 2 12C8 11 11 8 12 2Z"
+                        fill="currentColor"
+                      /></svg
+                  ></span>
+                  <strong>Agentic</strong><small>理解目标 · 自主决策<br />选择最合适的流程</small>
+                </div>
+                <div class="channels">
+                  <div class="channel">
+                    自主决策 · 调用 Workflow
+                    <div class="arrow">
+                      <span class="arrow-line"></span><span class="arrow-head"></span>
+                    </div>
+                  </div>
+                  <div class="channel reverse">
+                    节点遇到分支 · 回调 Agentic
+                    <div class="arrow reverse">
+                      <span class="arrow-line"></span><span class="arrow-head"></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="workflow-card card">
+                  <div class="workflow-title">Workflow</div>
+                  <div class="node-list">
+                    <div class="node">
+                      <i class="node-dot" style="background: #0091ff"></i>检索售后规则
+                    </div>
+                    <div class="node">
+                      <i class="node-dot" style="background: #43ca40"></i>校验退款条件
+                    </div>
+                    <div class="node">
+                      <i class="node-dot" style="background: #7479ff"></i>生成处理建议
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="result">
+                <span class="result-icon"
+                  ><svg viewBox="0 0 12 12" fill="none">
+                    <path
+                      d="M2.25 6.1L4.7 8.45L9.75 3.55"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    /></svg
+                ></span>
+                <div>
+                  <span class="micro">协作结果</span>
+                  <div
+                    style="
+                      margin-top: 2px;
+                      color: var(--white-88);
+                      font-size: 11px;
+                      font-weight: 600;
+                    "
+                  >
+                    建议退款，并自动生成客户回复与工单动作
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="option" id="loop">
+      <div class="option-head">
+        <h2>方案 B · 闭环轨道 <span class="tag">Decision Loop</span></h2>
+        <p>
+          用一条闭合轨道表达“决策不是一次性的”：Agentic 发起执行，Workflow 节点遇到不确定分支时回到
+          Agentic，再进入下一轮流程。记忆点最强，适合强调平台的 Agentic 特征。
+        </p>
+        <div class="chips">
+          <span class="chip">视觉记忆最强</span><span class="chip">突出多轮决策</span
+          ><span class="chip">结构更品牌化</span>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="panel">
+          <div class="panel-content">
+            <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+            <div class="brand">OmniCockpit</div>
+            <p class="desc">
+              不是让 Agentic 与 Workflow
+              各自工作，而是形成持续判断、执行、反馈、再判断的闭环，直到问题真正解决。
+            </p>
+            <div class="visual-label"><i></i>AGENTIC × WORKFLOW · 循环决策系统</div>
+            <div class="visual-shell">
+              <div class="loop-board">
+                <svg viewBox="0 0 620 270" fill="none" aria-hidden="true">
+                  <defs>
+                    <marker
+                      id="gold-r"
+                      markerWidth="8"
+                      markerHeight="8"
+                      refX="6"
+                      refY="4"
+                      orient="auto"
+                    >
+                      <path d="M1 1L7 4L1 7Z" fill="#C69B4A" />
+                    </marker>
+                  </defs>
+                  <path
+                    d="M154 102C212 20 408 20 468 96"
+                    stroke="rgba(198,155,74,.9)"
+                    stroke-width="1.8"
+                    marker-end="url(#gold-r)"
+                  />
+                  <path
+                    d="M468 160C400 239 222 238 157 165"
+                    stroke="rgba(198,155,74,.85)"
+                    stroke-width="1.8"
+                    stroke-dasharray="5 5"
+                    marker-end="url(#gold-r)"
+                  />
+                  <circle
+                    cx="310"
+                    cy="135"
+                    r="72"
+                    stroke="rgba(142,177,255,.16)"
+                    stroke-dasharray="3 5"
+                  />
+                </svg>
+                <div class="loop-center card">
+                  <span class="micro">真实问题</span><b>合同风险识别与审批建议</b>
+                </div>
+                <div class="orbit-card agentic card">
+                  <span class="spark"
+                    ><svg viewBox="0 0 24 24">
+                      <path
+                        d="M12 2C13 8 16 11 22 12C16 13 13 16 12 22C11 16 8 13 2 12C8 11 11 8 12 2Z"
+                        fill="currentColor"
+                      /></svg
+                  ></span>
+                  <div><strong>Agentic</strong><small>拆解目标 · 选择流程</small></div>
+                </div>
+                <div class="orbit-card workflow card">
+                  <span
+                    style="
+                      width: 28px;
+                      height: 28px;
+                      display: grid;
+                      place-items: center;
+                      border-radius: 8px;
+                      background: rgba(37, 99, 235, 0.16);
+                      color: #8eb1ff;
+                    "
+                    ><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <rect
+                        x="2.25"
+                        y="2.25"
+                        width="4.5"
+                        height="4.5"
+                        rx="1.1"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                      />
+                      <rect
+                        x="9.25"
+                        y="9.25"
+                        width="4.5"
+                        height="4.5"
+                        rx="1.1"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                      />
+                      <path
+                        d="M6.75 4.5H9.1C10.15 4.5 11 5.35 11 6.4V9.25M9.25 11.5H6.9C5.85 11.5 5 10.65 5 9.6V6.75"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                        stroke-linecap="round"
+                      /></svg
+                  ></span>
+                  <div><strong>Workflow</strong><small>检索 · 比对 · 审批路由</small></div>
+                </div>
+                <span class="loop-label forward">① 自主调用</span
+                ><span class="loop-label backward">② 节点回调再决策</span>
+                <div class="node-pills">
+                  <span class="node-pill"
+                    ><i class="node-dot" style="background: #0091ff"></i>条款检索</span
+                  ><span class="node-pill"
+                    ><i class="node-dot" style="background: #43ca40"></i>风险判断</span
+                  ><span class="node-pill"
+                    ><i class="node-dot" style="background: #7479ff"></i>审批建议</span
+                  >
+                </div>
+              </div>
+              <div class="result">
+                <span class="result-icon"
+                  ><svg viewBox="0 0 12 12" fill="none">
+                    <path
+                      d="M2.25 6.1L4.7 8.45L9.75 3.55"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    /></svg
+                ></span>
+                <div>
+                  <span class="micro">闭环完成</span>
+                  <div
+                    style="
+                      margin-top: 2px;
+                      color: var(--white-88);
+                      font-size: 11px;
+                      font-weight: 600;
+                    "
+                  >
+                    输出风险等级、证据条款与审批路径
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="option" id="timeline">
+      <div class="option-head">
+        <h2>方案 C · 实战回放 <span class="tag">Case Timeline</span></h2>
+        <p>
+          像运行记录一样，从问题输入逐步播放一次真实协作：Agentic 先规划，Workflow
+          执行，条件节点发现缺失信息后回调 Agentic，再继续运行直至输出。最适合把“双向调用”解释清楚。
+        </p>
+        <div class="chips">
+          <span class="chip">叙事最完整</span><span class="chip">理解成本最低</span
+          ><span class="chip">适合首次访问者</span>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="panel">
+          <div class="panel-content">
+            <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+            <div class="brand">OmniCockpit</div>
+            <p class="desc">
+              把一次真实问题的解决过程直接展示出来，让用户在登录前就理解 Agentic 与 Workflow
+              如何互相配合。
+            </p>
+            <div class="visual-label"><i></i>真实案例 · 客诉处理流程回放</div>
+            <div class="visual-shell">
+              <div class="timeline">
+                <div class="timeline-row card">
+                  <span class="step-dot">01</span><span class="actor">问题输入</span
+                  ><b>客户反馈重复扣费，要求立即处理</b><span class="state">RECEIVED</span>
+                </div>
+                <div class="timeline-row card agent">
+                  <span class="step-dot">02</span><span class="actor">Agentic</span
+                  ><b>识别目标，选择“订单异常处理”Workflow</b
+                  ><span class="state call">主动调用 →</span>
+                </div>
+                <div class="timeline-row card flow">
+                  <span class="step-dot">03</span><span class="actor">Workflow</span
+                  ><b>查询订单、支付流水与退款规则</b><span class="state">3 NODES</span>
+                </div>
+                <div class="timeline-row card agent">
+                  <span class="step-dot">04</span><span class="actor">条件节点</span
+                  ><b>发现两笔流水状态冲突，请 Agentic 判断</b
+                  ><span class="state call">← 回调决策</span>
+                </div>
+                <div class="timeline-row card flow">
+                  <span class="step-dot">05</span><span class="actor">Workflow</span
+                  ><b>按新决策继续执行，生成退款工单</b><span class="state">RESUMED</span>
+                </div>
+                <div class="timeline-row card done">
+                  <span class="step-dot">06</span><span class="actor">处理结果</span
+                  ><b>退款方案、客户回复与后续动作已生成</b><span class="state">DONE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

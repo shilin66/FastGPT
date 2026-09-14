@@ -534,6 +534,20 @@ describe('checkQuoteQAValue', () => {
 });
 
 describe('runtimeSystemVar2StoreType', () => {
+  it.each([undefined, null, []])(
+    'serializes an absent optional file value %j as an empty list',
+    (myFile) => {
+      expect(
+        runtimeSystemVar2StoreType({
+          variables: { myFile },
+          userVariablesConfigs: [
+            { key: 'myFile', label: 'Optional file', description: '', type: VariableInputEnum.file }
+          ]
+        })
+      ).toEqual({ myFile: [] });
+    }
+  );
+
   it('should remove system variables', () => {
     const variables = {
       userId: 'u1',

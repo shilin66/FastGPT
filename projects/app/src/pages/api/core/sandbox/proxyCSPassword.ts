@@ -1,22 +1,44 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { NextAPI } from '@/service/middleware/entry';
-import { getCodeServerPasswordFromSandbox } from '@/service/core/sandbox/proxy';
+import {
+  getCodeServerPasswordFromSandbox,
+  getSandboxProxyTarget
+} from '@/service/core/sandbox/proxy';
+import {
+  assertSandboxProxyInternalRequest,
+  getSandboxProxyOrigins
+} from '@/service/core/sandbox/proxyUtils';
+import { SandboxProxyInternalBodySchema } from '@fastgpt/global/openapi/core/ai/sandbox/api';
+import { ZodError } from 'zod';
 
-// Internal-only endpoint: read the code-server password from the container config.yaml.
-// Called by server.ts (running in the same process) to avoid importing service packages directly.
-// Only requests from 127.0.0.1 are accepted.
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const clientIp = req.socket.remoteAddress;
-
-  if (clientIp !== '127.0.0.1' && clientIp !== '::1' && clientIp !== '::ffff:127.0.0.1') {
-    return res.status(403).json({ error: 'Internal only' });
-  }
-
-  const { sandboxId } = req.body as { sandboxId?: string };
-  if (!sandboxId) return res.status(400).json({ error: 'Missing sandboxId' });
-
+  if (req.method !== 'POST') return res.status(405).end('Method not allowed');
+  assertSandboxProxyInternalRequest({
+    headers: req.headers,
+    remoteAddress: req.socket.remoteAddress
+  });
+  const { sandboxId, targetPort, proxyHost } = SandboxProxyInternalBodySchema.parse(req.body);
+  const { audience } = getSandboxProxyOrigins({ sandboxId, targetPort, host: proxyHost });
+  if (proxyHost !== new URL(audience).host) return res.status(403).end('Invalid origin');
+  await getSandboxProxyTarget({ req, sandboxId, targetPort, audience });
   const password = await getCodeServerPasswordFromSandbox(sandboxId);
+  res.setHeader('Cache-Control', 'no-store');
   return res.json({ password });
 }
 
-export default NextAPI(handler);
+export default NextAPI(async (req, res) => {
+  try {
+    return await handler(req, res);
+  } catch (error) {
+    const code =
+      error instanceof ZodError
+        ? 400
+        : error &&
+            typeof error === 'object' &&
+            'statusCode' in error &&
+            typeof error.statusCode === 'number'
+          ? error.statusCode
+          : 503;
+    return res.status(code).json({ code, message: 'Sandbox proxy unavailable' });
+  }
+});

@@ -12,7 +12,7 @@ import { DispatchNodeResponseSchema } from '../workflow/runtime/type';
 import { WorkflowInteractiveResponseTypeSchema } from '../workflow/template/system/interactive/type';
 import type { FlowNodeInputItemType } from '../workflow/type/io';
 import z from 'zod';
-import { AgentPlanSchema } from '../ai/agent/type';
+import { AgentPlanEventSchema, AgentPlanSchema } from '../ai/agent/type';
 
 export const ChatHistoryItemResSchema = DispatchNodeResponseSchema.extend({
   nodeId: z.string(),
@@ -84,6 +84,10 @@ export type SandboxStatusItemType = {
 /* Skill module response */
 export const SkillModuleResponseItemSchema = z.object({
   id: z.string(),
+  skillId: z.string().optional(),
+  versionId: z.string().optional(),
+  sandboxId: z.string().optional(),
+  operationId: z.string().optional(),
   skillName: z.string(),
   skillAvatar: z.string(),
   description: z.string(),
@@ -91,7 +95,29 @@ export const SkillModuleResponseItemSchema = z.object({
 });
 export type SkillModuleResponseItemType = z.infer<typeof SkillModuleResponseItemSchema>;
 
+export const SandboxRuntimeEventSchema = z.object({
+  id: z.string(),
+  status: z.enum(['ready', 'referenced', 'failed', 'degraded']),
+  code: z.enum(['sandbox_unavailable', 'skill_unavailable']).optional(),
+  skillId: z.string().optional(),
+  versionId: z.string().optional(),
+  baseVersionId: z.string().optional(),
+  workspaceGeneration: z.string().optional(),
+  sandboxId: z.string().optional(),
+  operationId: z.string().optional()
+});
+
 /* --------- chat ---------- */
+export const ChatSourceTypeSchema = z.enum(['appRuntime', 'skillEdit']).meta({
+  description: '会话所属业务资源类型；与访问渠道 source 独立'
+});
+export const ChatSourceScopeSchema = z.object({
+  teamId: z.string().meta({ description: '会话所属团队' }),
+  sourceType: ChatSourceTypeSchema,
+  sourceId: z.string().meta({ description: '会话所属 App 或 Skill ID' })
+});
+export type ChatSourceScope = z.infer<typeof ChatSourceScopeSchema>;
+
 export type ChatSchemaType = {
   _id: string;
   chatId: string;
@@ -99,6 +125,8 @@ export type ChatSchemaType = {
   teamId: string;
   tmbId: string;
   appId: string;
+  sourceType?: z.infer<typeof ChatSourceTypeSchema>;
+  sourceId?: string;
   appVersionId?: string;
   createTime: Date;
   updateTime: Date;
@@ -206,8 +234,10 @@ export const AIChatItemValueSchema = z.object({
     .nullish(),
   tools: z.array(ToolModuleResponseItemSchema).nullish(),
   skills: z.array(SkillModuleResponseItemSchema).nullish(),
+  sandboxEvent: SandboxRuntimeEventSchema.optional(),
   interactive: WorkflowInteractiveResponseTypeSchema.optional(),
   plan: AgentPlanSchema.nullish(),
+  planEvent: AgentPlanEventSchema.optional(),
   stepTitle: StepTitleItemSchema.nullish(),
 
   /** @deprecated */
@@ -256,6 +286,8 @@ export const ChatItemDBSchema = ChatItemObjItemSchema.and(
     teamId: z.string(),
     tmbId: z.string(),
     appId: z.string(),
+    sourceType: ChatSourceTypeSchema.optional(),
+    sourceId: z.string().optional(),
     time: z.coerce.date(),
     deleteTime: z.coerce.date().nullish()
   })
@@ -273,6 +305,8 @@ export type ErrorTextItemType = z.infer<typeof ErrorTextItemSchema>;
 export const ChatItemResponseSchema = z.object({
   teamId: z.string(),
   appId: z.string(),
+  sourceType: ChatSourceTypeSchema.optional(),
+  sourceId: z.string().optional(),
   chatId: z.string(),
   chatItemDataId: z.string(),
   data: ChatHistoryItemResSchema

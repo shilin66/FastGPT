@@ -1,0 +1,44 @@
+{
+  "name": "@fastgpt/admin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "typecheck": "tsc --noEmit --pretty",
+    "test": "vitest run -c vitest.config.ts"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": "10.x"
+  },
+  "dependencies": {
+    "@chakra-ui/icons": "catalog:",
+    "@chakra-ui/react": "catalog:",
+    "@emotion/react": "catalog:",
+    "@emotion/styled": "catalog:",
+    "@fastgpt/global": "workspace:*",
+    "@fastgpt/service": "workspace:*",
+    "@fastgpt/web": "workspace:*",
+    "cookie": "^0.7.1",
+    "mongoose": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "request-ip": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/request-ip": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-next": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

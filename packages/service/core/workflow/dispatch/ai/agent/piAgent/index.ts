@@ -8,8 +8,8 @@ import type {
   ChatHistoryItemResType
 } from '@fastgpt/global/core/chat/type';
 import type { DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
-import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
-import { getHistories, getNodeErrResponse } from '../../../utils';
+import { getNodeErrResponse } from '../../../utils';
+import { chatValue2RuntimePrompt } from '@fastgpt/global/core/chat/adapt';
 import { parseUserSystemPrompt } from '../sub/plan/prompt';
 import { formatFileInput } from '../sub/file/utils';
 import { normalizeSkillIds } from '@fastgpt/global/core/app/formEdit/type';
@@ -24,6 +24,11 @@ import { buildAgentTools, type ToolDispatchContext } from './toolAdapter';
 import { getLogger, LogCategories } from '../../../../../../common/logger';
 import { env } from '../../../../../../env';
 import type { DispatchAgentModuleProps } from '..';
+import { buildAgentMemory, getAgentHistories } from '../memory';
+import { AIAskAnswerSchema, AIAskTool, formatAgentAsk } from '../sub/plan/ask/constants';
+import type { InteractiveNodeResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
+import { chatHistoriesToPiMessages, readPiAgentState, resumePiMessages } from './memory';
+import { isFatalAgentError, SandboxUnavailableError } from '../sub/sandbox/errors';
 
 type Response = DispatchNodeResultType<{
   [NodeOutputKeyEnum.answerText]: string;
@@ -35,7 +40,7 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     node: { nodeId, inputs },
     lang,
     histories,
-    query: _query,
+    query,
     requestOrigin,
     chatConfig,
     runningAppInfo,
@@ -59,14 +64,22 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     }
   } = props;
 
-  const chatHistories = getHistories(history, histories);
+  const chatHistories = getAgentHistories({ history, histories, nodeId });
   const normalizedSkillIds = normalizeSkillIds(skillIds);
 
   const assistantResponses: AIChatItemValueItemType[] = [];
   const nodeResponses: ChatHistoryItemResType[] = [];
   const capabilities: AgentCapability[] = [];
+  const restoredState = readPiAgentState({ histories, nodeId });
+  let sandboxSkillVersions = restoredState?.sandboxSkillVersions;
+  const terminalPlanEvent: AIChatItemValueItemType = {
+    planEvent: { nodeId, type: 'completed', plan: null }
+  };
 
   try {
+    if (!env.SHOW_SKILL && (normalizedSkillIds.length > 0 || useEditDebugSandbox)) {
+      throw new SandboxUnavailableError();
+    }
     // Get files — check whether fileUrlList input has actual values
     const fileUrlInput = inputs.find((item) => item.key === NodeInputKeyEnum.fileUrlList);
     const fileLinks =
@@ -97,13 +110,19 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
 
       const sandboxCap = await createSandboxSkillsCapability({
         skillIds: normalizedSkillIds,
+        appId: runningAppInfo.id,
+        runtimeUserId: props.uid,
         teamId: runningAppInfo.teamId,
         tmbId: runningAppInfo.tmbId,
         sessionId: sandboxSessionId,
         mode: sandboxMode,
         workflowStreamResponse,
         showSkillReferences: showSkillReferences === true,
-        allFilesMap
+        allFilesMap,
+        expectedVersionIds: sandboxSkillVersions,
+        onResolvedVersionIds: (versions) => {
+          sandboxSkillVersions = versions;
+        }
       });
       capabilities.push(sandboxCap);
     }
@@ -184,9 +203,13 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
       workflowDispatchDeep: props.workflowDispatchDeep,
       usagePush,
       model,
-      datasetParams
+      datasetParams,
+      requireSandbox: normalizedSkillIds.length > 0 || !!useEditDebugSandbox
     };
 
+    let fatalError: Error | undefined;
+    let agent: import('@mariozechner/pi-agent-core').Agent | undefined;
+    let pendingAsk: { interactive: InteractiveNodeResponseType; toolCallId: string } | undefined;
     const piTools = await buildAgentTools({
       completionTools: agentCompletionTools,
       ctx: toolCtx,
@@ -194,29 +217,56 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
       getSubApp,
       getSubAppInfo,
       capabilityToolCallHandler,
-      nodeResponses
+      nodeResponses,
+      assistantResponses,
+      onFatalError: (error) => {
+        fatalError ??= error;
+        agent?.abort();
+      }
     });
 
-    /* ===== Restore session messages from last AI history ===== */
-    const piMessagesKey = `piMessages-${nodeId}`;
-    const lastHistory = chatHistories[chatHistories.length - 1];
-    const restoredMessages =
-      lastHistory?.obj === ChatRoleEnum.AI
-        ? (lastHistory.memories?.[piMessagesKey] as any[] | undefined) ?? []
-        : [];
+    const { Type } = await import('@mariozechner/pi-ai');
+    piTools.push({
+      name: AIAskTool.function.name,
+      label: AIAskTool.function.name,
+      description: AIAskTool.function.description ?? '',
+      parameters: Type.Unsafe<unknown>(AIAskTool.function.parameters),
+      execute: async (toolCallId, args: unknown) => {
+        const data = AIAskAnswerSchema.parse(args);
+        pendingAsk = { interactive: formatAgentAsk(data), toolCallId };
+        agent?.abort();
+        return {
+          content: [{ type: 'text', text: 'Waiting for the user to answer.' }],
+          details: {}
+        };
+      }
+    });
+    const restoredMessages = restoredState
+      ? resumePiMessages({ state: restoredState, answer: chatValue2RuntimePrompt(query).text })
+      : chatHistoriesToPiMessages({ histories: chatHistories, model: piModel });
 
     /* ===== Create & run Agent ===== */
     const { Agent } = await import('@mariozechner/pi-agent-core');
     type AgentEvent = import('@mariozechner/pi-agent-core').AgentEvent;
 
-    const agent = new Agent({
+    agent = new Agent({
       initialState: {
         systemPrompt: formatedSystemPrompt,
         model: piModel,
         tools: piTools,
         messages: restoredMessages
       },
-      getApiKey: () => apiKey
+      getApiKey: () => apiKey,
+      toolExecution: 'sequential',
+      beforeToolCall: async () =>
+        pendingAsk || fatalError || checkIsStopping()
+          ? { block: true, reason: 'Agent execution has stopped. Retry after the user responds.' }
+          : undefined,
+      transformContext: async (messages) => {
+        if (fatalError) throw fatalError;
+        if (pendingAsk || checkIsStopping()) throw new Error('Agent execution paused');
+        return messages;
+      }
     });
 
     // Collect text deltas to build answerText
@@ -233,8 +283,8 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
           });
         }
       } else if (event.type === 'turn_end') {
-        const errMsg = (event.message as any).errorMessage as string | undefined;
-        if (errMsg) {
+        const errMsg = event.message.role === 'assistant' ? event.message.errorMessage : undefined;
+        if (errMsg && !pendingAsk) {
           getLogger(LogCategories.MODULE.AI.AGENT).error(`[piAgent] Turn error: ${errMsg}`);
         }
       }
@@ -245,18 +295,23 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     // Poll for user-initiated stop
     const stopPoller = setInterval(() => {
       if (checkIsStopping()) {
-        agent.abort();
+        agent?.abort();
         clearInterval(stopPoller);
       }
     }, 200);
 
     getLogger(LogCategories.MODULE.AI.AGENT).debug(`[piAgent] Starting agent prompt`);
-    await agent.prompt(formatUserChatInput);
-    clearInterval(stopPoller);
+    try {
+      if (restoredState) await agent.continue();
+      else await agent.prompt(formatUserChatInput);
+    } finally {
+      clearInterval(stopPoller);
+    }
     getLogger(LogCategories.MODULE.AI.AGENT).debug(`[piAgent] Agent completed`);
 
     // Surface API errors that pi-agent-core stores instead of throwing
-    if (agent.state.errorMessage) {
+    if (fatalError) throw fatalError;
+    if (agent.state.errorMessage && !pendingAsk) {
       throw new Error(agent.state.errorMessage);
     }
 
@@ -265,19 +320,65 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
       assistantResponses.push({ text: { content: answerText } });
     }
 
+    if (pendingAsk && !checkIsStopping()) {
+      return {
+        [DispatchNodeResponseKeyEnum.interactive]: pendingAsk.interactive,
+        [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
+          nodeId,
+          engine: 'pi',
+          status: 'paused',
+          providerState: {
+            pendingToolCallId: pendingAsk.toolCallId,
+            sandboxSkillVersions,
+            pendingMainContext: agent.state.messages.filter(
+              (message) =>
+                message.role !== 'assistant' || !['aborted', 'error'].includes(message.stopReason)
+            )
+          }
+        }),
+        [DispatchNodeResponseKeyEnum.assistantResponses]: assistantResponses,
+        [DispatchNodeResponseKeyEnum.nodeResponses]: nodeResponses
+      };
+    }
+    assistantResponses.push(terminalPlanEvent);
+
     return {
       data: {
         [NodeOutputKeyEnum.answerText]: answerText
       },
-      [DispatchNodeResponseKeyEnum.memories]: {
-        [piMessagesKey]: agent.state.messages
-      },
+      [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
+        nodeId,
+        engine: 'pi',
+        status: checkIsStopping() ? 'failed' : 'completed'
+      }),
       [DispatchNodeResponseKeyEnum.assistantResponses]: assistantResponses,
       [DispatchNodeResponseKeyEnum.nodeResponses]: nodeResponses
     };
   } catch (error) {
     getLogger(LogCategories.MODULE.AI.AGENT).error(`[piAgent] dispatchPiAgent error`, { error });
-    return getNodeErrResponse({ error });
+    if (isFatalAgentError(error)) {
+      if (error.assistantResponses.length) assistantResponses.push(...error.assistantResponses);
+      else
+        assistantResponses.push({
+          sandboxEvent: {
+            id: nodeId,
+            status: 'failed',
+            code:
+              error instanceof SandboxUnavailableError ? 'sandbox_unavailable' : 'skill_unavailable'
+          }
+        });
+    }
+    assistantResponses.push(terminalPlanEvent);
+    return {
+      ...getNodeErrResponse({ error }),
+      [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
+        nodeId,
+        engine: 'pi',
+        status: 'failed'
+      }),
+      [DispatchNodeResponseKeyEnum.assistantResponses]: assistantResponses,
+      [DispatchNodeResponseKeyEnum.nodeResponses]: nodeResponses
+    };
   } finally {
     for (const cap of capabilities) {
       await cap.dispose?.();

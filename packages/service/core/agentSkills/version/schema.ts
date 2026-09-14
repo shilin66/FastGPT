@@ -7,13 +7,18 @@
 import { connectionMongo, getMongoModel } from '../../../common/mongo';
 import {
   agentSkillsCollectionName,
-  agentSkillsVersionCollectionName
+  agentSkillsVersionCollectionName,
+  AgentSkillSchemaVersion
 } from '@fastgpt/global/core/agentSkills/constants';
 import type { AgentSkillsVersionSchemaType } from '@fastgpt/global/core/agentSkills/type';
 
 const { Schema } = connectionMongo;
 
 const AgentSkillsVersionSchema = new Schema({
+  schemaVersion: {
+    type: Number,
+    default: AgentSkillSchemaVersion
+  },
   skillId: {
     type: Schema.Types.ObjectId,
     ref: agentSkillsCollectionName,
@@ -50,6 +55,23 @@ const AgentSkillsVersionSchema = new Schema({
       type: String
     }
   },
+  storageKey: String,
+  runtimeSkills: {
+    type: [
+      {
+        _id: false,
+        name: { type: String, required: true },
+        description: { type: String, default: '' },
+        path: { type: String, required: true }
+      }
+    ],
+    default: []
+  },
+  contentHash: String,
+  createdBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'team_members'
+  },
   // Import source (optional)
   importSource: {
     originalFilename: String,
@@ -62,6 +84,14 @@ const AgentSkillsVersionSchema = new Schema({
   isDeleted: {
     type: Boolean,
     default: false
+  },
+  deleteTime: {
+    type: Date,
+    default: null
+  },
+  storageDeletedAt: {
+    type: Date,
+    default: null
   },
   createdAt: {
     type: Date,

@@ -14,6 +14,10 @@ import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
 import { getI18nAppType } from '@fastgpt/service/support/user/audit/util';
 import { i18nT } from '@fastgpt/web/i18n/utils';
 import { updateParentFoldersUpdateTime } from '@fastgpt/service/core/app/controller';
+import {
+  getAppRuntimeSkillIds,
+  resolveRuntimeSkills
+} from '@fastgpt/service/core/agentSkills/runtimeResolver';
 
 async function handler(req: ApiRequestProps<PostPublishAppProps>, res: NextApiResponse<any>) {
   const { appId } = req.query as { appId: string };
@@ -25,6 +29,15 @@ async function handler(req: ApiRequestProps<PostPublishAppProps>, res: NextApiRe
     per: WritePermissionVal,
     authToken: true
   });
+
+  if (isPublish && !autoSave) {
+    await resolveRuntimeSkills({
+      skillIds: getAppRuntimeSkillIds(nodes),
+      teamId: String(app.teamId),
+      tmbId: String(app.tmbId),
+      validatePackages: true
+    });
+  }
 
   beforeUpdateAppFormat({
     nodes

@@ -1,23 +1,29 @@
 import { MongoAgentSkills } from './schema';
 import { MongoAgentSkillsVersion } from './version/schema';
 import {
+  AgentSkillCreationStatusEnum,
   AgentSkillSourceEnum,
   AgentSkillTypeEnum
 } from '@fastgpt/global/core/agentSkills/constants';
-import type { AgentSkillSchemaType, SkillPackageType } from '@fastgpt/global/core/agentSkills/type';
-import type { ClientSession } from '../../common/mongo';
-import { uploadSkillPackage, deleteSkillAllPackages } from './storage';
-import { removeImageByPath } from '../../common/file/image/controller';
+import type { AgentSkillSchemaType } from '@fastgpt/global/core/agentSkills/type';
+import { Types, type ClientSession } from '../../common/mongo';
+import { finalizeStagedSkillPackage, stageSkillPackage } from './storage';
 import { createVersion } from './version/controller';
+import { setCurrentVersion } from './version/current';
 import { mongoSessionRun } from '../../common/mongo/sessionRun';
 import { getLogger, LogCategories } from '../../common/logger';
-import { deleteSkillRelatedSandboxes } from './sandboxController';
+import { randomUUID } from 'node:crypto';
+import type { AgentSkillDeleteJobData } from './delete/type';
 import { SkillErrEnum } from '@fastgpt/global/common/error/code/agentSkill';
+import { OwnerRoleVal, PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
+import { MongoResourcePermission } from '../../support/permission/schema';
+import type { ValidatedSkillPackage } from './packageValidator';
 
 const logger = getLogger(LogCategories.MODULE.AGENT_SKILLS.CREATION);
 
 // Types for service operations
 type CreateSkillData = {
+  skillId?: string;
   parentId?: string | null;
   name: string;
   description: string;
@@ -27,6 +33,8 @@ type CreateSkillData = {
   avatar?: string;
   teamId: string;
   tmbId: string;
+  creationStatus?: AgentSkillCreationStatusEnum;
+  lastOperationId?: string;
 };
 
 // UpdateSkillData excludes markdown to ensure consistency with version management
@@ -42,12 +50,14 @@ type UpdateSkillData = Partial<
  */
 export async function createSkill(data: CreateSkillData, session?: ClientSession): Promise<string> {
   const skill = new MongoAgentSkills({
+    ...(data.skillId && { _id: data.skillId }),
     ...data,
     parentId: data.parentId || null,
     type: AgentSkillTypeEnum.skill,
     source: AgentSkillSourceEnum.personal,
     currentVersion: 0,
     versionCount: 0,
+    creationStatus: data.creationStatus ?? AgentSkillCreationStatusEnum.ready,
     updateTime: new Date()
   });
   await skill.save({ session });
@@ -103,67 +113,75 @@ export async function updateCurrentStorage(
  * Soft delete a skill or folder (only personal skills can be deleted)
  * If it's a folder, recursively deletes all children
  */
-export async function deleteSkill(skillId: string, session?: ClientSession): Promise<void> {
-  const skill = await MongoAgentSkills.findOne({
-    _id: skillId,
-    deleteTime: null
-  });
-
-  if (!skill) {
-    throw new Error('Skill not found');
+export async function deleteSkill(
+  { skillId: inputSkillId, teamId: inputTeamId }: { skillId: string; teamId: string },
+  session?: ClientSession
+): Promise<AgentSkillDeleteJobData> {
+  const skillId = inputSkillId.toLowerCase();
+  const teamId = inputTeamId.toLowerCase();
+  if (!session) return mongoSessionRun((session) => deleteSkill({ skillId, teamId }, session));
+  const skill = await MongoAgentSkills.findOne({ _id: skillId, teamId }, undefined, {
+    session
+  }).lean();
+  if (!skill) throw new Error('Skill not found');
+  if (skill.deleteTime) {
+    if (!skill.deletionOperation) throw new Error('skill_deletion_legacy_conflict');
+    return {
+      kind: 'delete',
+      teamId,
+      skillId: String(skill.deletionOperation.rootId),
+      deleteTime: skill.deleteTime.toISOString(),
+      operationId: skill.deletionOperation.id
+    };
   }
 
-  if (skill.source === AgentSkillSourceEnum.system) {
-    throw new Error('Cannot delete system skill');
-  }
-
-  // Find all children if it's a folder
-  let deleteList: AgentSkillSchemaType[];
-  if (skill.type === AgentSkillTypeEnum.folder) {
-    deleteList = await findSkillAndAllChildren({
-      teamId: skill.teamId!.toString(),
-      skillId
-    });
-  } else {
-    deleteList = [skill];
-  }
-
-  // Batch soft delete all skill records
-  await MongoAgentSkills.updateMany(
-    { _id: { $in: deleteList.map((s) => s._id) } },
-    { $set: { deleteTime: new Date() } },
-    { session }
-  );
-
-  // Batch soft delete all version records
-  await MongoAgentSkillsVersion.updateMany(
-    { skillId: { $in: deleteList.map((s) => s._id) } },
-    { $set: { isDeleted: true } },
-    { session }
-  );
-
-  // Queue MinIO file deletion after DB changes (S3 is not transactional)
-  for (const item of deleteList) {
-    if (item.teamId && item.type !== AgentSkillTypeEnum.folder) {
-      deleteSkillAllPackages(item.teamId.toString(), item._id);
-      if (item.avatar) {
-        removeImageByPath(item.avatar);
+  const members = [skill];
+  const seen = new Set([skillId]);
+  for (let index = 0; index < members.length; index++) {
+    const parent = members[index];
+    if (parent.source === AgentSkillSourceEnum.system)
+      throw new Error('Cannot delete system skill');
+    if (parent.type !== AgentSkillTypeEnum.folder) continue;
+    const children = await MongoAgentSkills.find({ parentId: parent._id }, undefined, { session })
+      .limit(1001)
+      .lean();
+    for (const child of children) {
+      if (String(child.teamId) !== teamId || child.deleteTime || seen.has(String(child._id))) {
+        throw new Error('skill_deletion_tree_conflict');
       }
+      seen.add(String(child._id));
+      members.push(child);
+      if (members.length > 1000) throw new Error('skill_deletion_tree_too_large');
     }
   }
 
-  // Async force delete all related sandbox resources (fire-and-forget)
-  const nonFolderIds = deleteList
-    .filter((s) => s.type !== AgentSkillTypeEnum.folder)
-    .map((s) => s._id.toString());
-  if (nonFolderIds.length > 0) {
-    deleteSkillRelatedSandboxes(nonFolderIds).catch((err) => {
-      logger.error('[Skill] Failed to cleanup skill sandboxes', {
-        skillIds: nonFolderIds,
-        error: err
-      });
-    });
-  }
+  const operationId = randomUUID();
+  const memberIds = members.map((member) => member._id);
+  const now = new Date();
+  const marked = await MongoAgentSkills.updateMany(
+    { _id: { $in: memberIds }, teamId, deleteTime: null },
+    {
+      $set: {
+        deleteTime: now,
+        creationStatus: AgentSkillCreationStatusEnum.deleting,
+        deletionOperation: {
+          id: operationId,
+          rootId: skillId,
+          memberIds,
+          checkpoint: 'marked',
+          updatedAt: now
+        }
+      }
+    },
+    { session }
+  );
+  if (marked.matchedCount !== members.length) throw new Error('skill_deletion_tree_conflict');
+  await MongoAgentSkillsVersion.updateMany(
+    { skillId: { $in: memberIds }, isDeleted: false },
+    { $set: { isDeleted: true, deleteTime: now } },
+    { session }
+  );
+  return { kind: 'delete', teamId, skillId, operationId, deleteTime: now.toISOString() };
 }
 
 /**
@@ -184,69 +202,100 @@ export async function getSkillById(skillId: string): Promise<AgentSkillSchemaTyp
  * Import skill from package with full workflow (transaction)
  * This function expects to be called inside mongoSessionRun
  */
-export async function importSkill(
-  packageData: SkillPackageType,
-  teamId: string,
-  tmbId: string,
-  userId: string,
-  zipBuffer: Buffer,
-  parentId?: string | null,
-  session?: ClientSession
-): Promise<string> {
-  const { skill } = packageData;
-
-  // Check for duplicate name before creating
-  const nameExists = await checkSkillNameExists(skill.name, teamId, parentId || null);
+export async function importSkill({
+  name,
+  description,
+  avatar,
+  teamId,
+  tmbId,
+  userId,
+  parentId,
+  originalFilename,
+  validatedPackage
+}: {
+  name: string;
+  description: string;
+  avatar?: string;
+  teamId: string;
+  tmbId: string;
+  userId: string;
+  parentId?: string | null;
+  originalFilename: string;
+  validatedPackage: ValidatedSkillPackage;
+}): Promise<string> {
+  const nameExists = await checkSkillNameExists(name, teamId, parentId || null);
   if (nameExists) {
     throw SkillErrEnum.skillNameExists;
   }
 
-  // Create skill record first
-  const newSkill = new MongoAgentSkills({
-    parentId: parentId || null,
-    type: AgentSkillTypeEnum.skill,
-    source: AgentSkillSourceEnum.personal,
-    name: skill.name,
-    description: skill.description,
-    author: userId,
-    category: skill.category,
-    config: skill.config || {},
-    avatar: skill.avatar,
+  const skillId = new Types.ObjectId().toHexString();
+  const versionId = new Types.ObjectId().toHexString();
+  const storageInfo = await stageSkillPackage({
     teamId,
-    tmbId,
-    currentVersion: 0,
-    versionCount: 1, // Will have v0
-    createTime: new Date(),
-    updateTime: new Date()
-  });
-  await newSkill.save({ session });
-
-  const newSkillId = newSkill._id.toString();
-
-  // Upload ZIP to MinIO
-  const storageInfo = await uploadSkillPackage({
-    teamId,
-    skillId: newSkillId,
-    version: 0,
-    zipBuffer
+    skillId,
+    versionId,
+    zipBuffer: validatedPackage.zipBuffer,
+    checksum: validatedPackage.contentHash
   });
 
-  // Update skill's currentStorage field
-  await updateCurrentStorage(newSkillId, storageInfo, session);
-
-  // Create v0 version record
-  await createVersion(
-    {
-      skillId: newSkillId,
+  return mongoSessionRun(async (session) => {
+    const newSkill = new MongoAgentSkills({
+      _id: skillId,
+      parentId: parentId || null,
+      type: AgentSkillTypeEnum.skill,
+      source: AgentSkillSourceEnum.personal,
+      name,
+      description,
+      author: userId,
+      category: [],
+      config: {},
+      avatar,
+      teamId,
       tmbId,
-      version: 0,
-      versionName: 'Initial import',
-      storage: storageInfo
-    },
-    session
-  );
+      currentVersion: 0,
+      versionCount: 0,
+      createTime: new Date(),
+      updateTime: new Date()
+    });
+    await newSkill.save({ session });
 
-  return newSkillId;
+    await createVersion(
+      {
+        versionId,
+        skillId,
+        tmbId,
+        version: 0,
+        versionName: 'Initial import',
+        storage: storageInfo,
+        runtimeSkills: validatedPackage.runtimeSkills,
+        contentHash: validatedPackage.contentHash,
+        importSource: {
+          originalFilename,
+          importedAt: new Date()
+        }
+      },
+      session
+    );
+    await setCurrentVersion({
+      skillId,
+      versionId,
+      expectedCurrentVersionId: null,
+      session
+    });
+    await MongoResourcePermission.insertOne(
+      {
+        teamId,
+        tmbId,
+        resourceId: skillId,
+        permission: OwnerRoleVal,
+        resourceType: PerResourceTypeEnum.agentSkill
+      },
+      { session }
+    );
+    await finalizeStagedSkillPackage(storageInfo, session);
+
+    return skillId;
+  });
 }
 
 // ==================== Permission Checks ====================

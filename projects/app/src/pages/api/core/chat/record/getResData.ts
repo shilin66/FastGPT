@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import { authChatCrud } from '@/service/support/permission/auth/chat';
 import { MongoChatItem } from '@fastgpt/service/core/chat/chatItemSchema';
 import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
@@ -31,16 +32,12 @@ export async function handler(
       teamToken
     }),
     MongoChatItem.findOne(
-      {
-        appId,
-        chatId,
-        dataId
-      },
+      { ...getChatSourceFilter(), appId, chatId, dataId },
       'dataId obj responseData'
     ).lean(),
     (
       await MongoChatItemResponse.find(
-        { appId, chatId, chatItemDataId: dataId },
+        { ...getChatSourceFilter(), appId, chatId, chatItemDataId: dataId },
         { data: 1 }
       ).lean()
     ).map((item) => item.data)

@@ -4,6 +4,7 @@ import type { AgentSkillSchemaType } from '@fastgpt/global/core/agentSkills/type
 // Info about a single skill directory discovered inside a deployed package.zip
 export type DeployedSkillInfo = {
   id: string; // skill id from Mongo
+  versionId?: string;
   name: string; // from SKILL.md frontmatter
   description: string; // from SKILL.md frontmatter
   avatar?: string; // skill avatar
@@ -14,8 +15,12 @@ export type DeployedSkillInfo = {
 // Sandbox runtime context - shared across the entire agent lifecycle
 export type AgentSandboxContext = {
   sandbox: ISandbox;
+  sandboxId: string;
   providerSandboxId: string;
   sessionId: string;
+  operationId?: string;
+  workspaceGeneration?: string;
+  baseVersionId?: string;
   skills: AgentSkillSchemaType[];
   deployedSkills: DeployedSkillInfo[];
   workDirectory: string;

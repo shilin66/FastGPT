@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
 import { ChatGenerateStatusEnum, ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
 import { authOutLink } from '@/service/support/permission/auth/outLink';
@@ -108,14 +109,14 @@ export async function handler(
 
   const [data, total] = await Promise.all([
     await MongoChat.find(
-      mergeMatch,
+      { ...mergeMatch, ...getChatSourceFilter() },
       'chatId title top customTitle appId updateTime chatGenerateStatus hasBeenRead'
     )
       .sort({ top: -1, updateTime: -1 })
       .skip(offset)
       .limit(pageSize)
       .lean(),
-    MongoChat.countDocuments(mergeMatch)
+    MongoChat.countDocuments({ ...mergeMatch, ...getChatSourceFilter() })
   ]);
 
   return GetHistoriesResponseSchema.parse({

@@ -1,6 +1,7 @@
 import { NextAPI } from '@/service/middleware/entry';
 import { authSkill } from '@fastgpt/service/support/permission/agentSkill/auth';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
+import { assertTeamWritable } from '@fastgpt/service/support/user/team/status';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
 import {
   updateSkill,
@@ -11,7 +12,8 @@ import { MongoAgentSkills } from '@fastgpt/service/core/agentSkills/schema';
 import {
   ManagePermissionVal,
   PerResourceTypeEnum,
-  ReadPermissionVal
+  ReadPermissionVal,
+  WritePermissionVal
 } from '@fastgpt/global/support/permission/constant';
 import { TeamSkillCreatePermissionVal } from '@fastgpt/global/support/permission/user/constant';
 import { parseParentIdInMongo } from '@fastgpt/global/common/parentFolder/utils';
@@ -94,6 +96,7 @@ async function handler(req: ApiRequestProps<UpdateSkillBody>) {
       return Promise.reject(SkillErrEnum.unAuthSkill);
     }
   }
+  await assertTeamWritable(teamId, WritePermissionVal);
 
   if (!isMove) {
     // Field validation for normal update

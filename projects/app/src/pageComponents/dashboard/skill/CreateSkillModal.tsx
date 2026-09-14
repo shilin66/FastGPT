@@ -5,15 +5,12 @@ import MyModal from '@fastgpt/web/components/common/MyModal';
 import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
-import MyIcon from '@fastgpt/web/components/common/Icon';
-import MyPopover from '@fastgpt/web/components/common/MyPopover';
 import { useTranslation } from 'next-i18next';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { useUploadAvatar } from '@fastgpt/web/common/file/hooks/useUploadAvatar';
 import { getUploadAvatarPresignedUrl } from '@/web/common/file/api';
 import { postCreateSkill } from '@/web/core/skill/api';
 import { useRouter } from 'next/router';
-import { useSystemStore } from '@/web/common/system/useSystemStore';
 
 const DEFAULT_SKILL_AVATAR = 'core/skill/default';
 
@@ -21,7 +18,6 @@ type FormType = {
   avatar: string;
   name: string;
   intro?: string;
-  requirement: string;
 };
 
 type Props = {
@@ -33,19 +29,16 @@ type Props = {
 const CreateSkillModal = ({ parentId, onClose, onSuccess }: Props) => {
   const { t } = useTranslation();
   const router = useRouter();
-  const { defaultModels } = useSystemStore();
 
   const { register, setValue, watch, handleSubmit } = useForm<FormType>({
     defaultValues: {
       avatar: DEFAULT_SKILL_AVATAR,
       name: '',
-      intro: '',
-      requirement: t('skill:skill_requirement_default')
+      intro: ''
     }
   });
 
   const avatar = watch('avatar');
-  const requirement = watch('requirement');
 
   const { Component: AvatarUploader, handleFileSelectorOpen: handleAvatarSelectorOpen } =
     useUploadAvatar(getUploadAvatarPresignedUrl, {
@@ -54,16 +47,12 @@ const CreateSkillModal = ({ parentId, onClose, onSuccess }: Props) => {
       }
     });
 
-  const { runAsync: onCreate, loading: isCreating } = useRequest(
-    async ({ avatar, name, intro, requirement }: FormType) => {
-      const trimmedRequirement = requirement.trim();
-      const defaultModel = defaultModels.llm?.model;
+  const { run: onCreate, loading: isCreating } = useRequest(
+    async ({ avatar, name, intro }: FormType) => {
       return postCreateSkill({
         parentId: parentId ?? null,
         name: name.trim(),
         description: intro?.trim() || undefined,
-        requirements: trimmedRequirement || undefined,
-        model: trimmedRequirement && defaultModel ? defaultModel : undefined,
         avatar: avatar || undefined
       });
     },
@@ -120,56 +109,12 @@ const CreateSkillModal = ({ parentId, onClose, onSuccess }: Props) => {
           </Box>
 
           {/* 介绍 */}
-          <Box mb={5}>
+          <Box>
             <FormLabel mb={2.5}>{t('skill:skill_intro_label')}</FormLabel>
             <Textarea
               {...register('intro')}
               rows={3}
               placeholder={t('skill:skill_intro_placeholder')}
-              resize={'vertical'}
-            />
-          </Box>
-
-          {/* Skill 需求 */}
-          <Box>
-            <Flex alignItems={'center'} mb={2.5}>
-              <FormLabel required>{t('skill:skill_requirement_label')}</FormLabel>
-              <MyPopover
-                trigger={'hover'}
-                placement={'right-start'}
-                hasArrow={false}
-                p={0}
-                w={'320px'}
-                Trigger={
-                  <Box ml={1} display={'inline-flex'} alignItems={'center'} cursor={'default'}>
-                    <MyIcon name={'help' as any} w={'16px'} color={'myGray.500'} />
-                  </Box>
-                }
-              >
-                {() => (
-                  <Box p={'12px'}>
-                    <Box fontSize={'xs'} color={'#333'} mb={2}>
-                      {t('skill:skill_requirement_tooltip_title')}
-                    </Box>
-                    <Box
-                      fontSize={'xs'}
-                      color={'#333'}
-                      border={'1px solid #E8EBF0'}
-                      borderRadius={'4px'}
-                      p={'10px'}
-                      whiteSpace={'pre-wrap'}
-                      cursor={'default'}
-                    >
-                      {t('skill:skill_requirement_tooltip_example')}
-                    </Box>
-                  </Box>
-                )}
-              </MyPopover>
-            </Flex>
-            <Textarea
-              value={requirement}
-              onChange={(e) => setValue('requirement', e.target.value)}
-              minH={'120px'}
               resize={'vertical'}
             />
           </Box>

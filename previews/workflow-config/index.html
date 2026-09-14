@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniCockpit 工作流配置页预览</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="preview-index">
+    <main class="index-shell">
+      <section class="index-title">
+        <div>
+          <span class="index-badge">Workflow Config Preview</span>
+          <h1>OmniCockpit 工作流配置页重构预览</h1>
+          <p>
+            三个方案都保留现有工作流画布能力，只重构工作台结构、配置入口、调试与保存动作的视觉层级。
+            风格延续 Steel Atlas / 饱和蓝图谱。
+          </p>
+        </div>
+      </section>
+
+      <section class="option-grid">
+        <article class="option-card">
+          <div class="option-shot">
+            <div class="mini-layout a">
+              <div class="mini-block mini-dark"></div>
+              <div class="mini-block mini-canvas">
+                <span class="mini-node n1"></span>
+                <span class="mini-node n2"></span>
+                <span class="mini-node n3"></span>
+              </div>
+              <div class="mini-block"></div>
+            </div>
+          </div>
+          <div class="option-body">
+            <h2>方案 A：Command Deck</h2>
+            <p>
+              左侧为节点与快捷操作塔，中心保留大画布，右侧常驻检查器。
+              适合频繁调试、频繁切节点配置的工作流编辑。
+            </p>
+            <a class="open-link" href="./option-a-command-deck.html">打开方案 A</a>
+          </div>
+        </article>
+
+        <article class="option-card">
+          <div class="option-shot">
+            <div class="mini-layout b">
+              <div class="mini-block"></div>
+              <div class="mini-block mini-canvas">
+                <span class="mini-node n1"></span>
+                <span class="mini-node n2"></span>
+                <span class="mini-node n3"></span>
+              </div>
+              <div class="mini-block mini-blue" style="grid-column: 1 / -1"></div>
+            </div>
+          </div>
+          <div class="option-body">
+            <h2>方案 B：Configuration Rail</h2>
+            <p>
+              左侧是工作流配置路径和运行状态，中间是画布，底部固定调试抽屉。
+              适合把“配置步骤”显性化，降低新用户理解成本。
+            </p>
+            <a class="open-link" href="./option-b-configuration-rail.html">打开方案 B</a>
+          </div>
+        </article>
+
+        <article class="option-card">
+          <div class="option-shot">
+            <div class="mini-layout c">
+              <div class="mini-block mini-dark" style="grid-column: 1 / -1"></div>
+              <div class="mini-block mini-blue"></div>
+              <div class="mini-block mini-canvas">
+                <span class="mini-node n1"></span>
+                <span class="mini-node n2"></span>
+                <span class="mini-node n3"></span>
+              </div>
+              <div class="mini-block"></div>
+              <div class="mini-block" style="grid-column: 1 / -1"></div>
+            </div>
+          </div>
+          <div class="option-body">
+            <h2>方案 C：Blueprint Console</h2>
+            <p>
+              更偏工程蓝图工作台：顶部命令栏、左侧可收起节点坞、右侧检查器、底部运行控制台。
+              推荐作为最终方向。
+            </p>
+            <a class="open-link" href="./option-c-blueprint-console.html">打开方案 C</a>
+            <a class="open-link" style="margin-top: 10px; background: var(--navy)" href="./option-c-debug-chat.html">
+              查看调试聊天框
+            </a>
+            <a class="open-link" style="margin-top: 10px; background: #1e293b" href="./workflow-node-system-previews.html">
+              查看节点坞/连线/参数预览
+            </a>
+            <a class="open-link" style="margin-top: 10px; background: #0f766e" href="./workflow-node-style-options.html">
+              查看节点三方案对比
+            </a>
+            <a class="open-link" style="margin-top: 10px; background: #2563eb" href="./workflow-hybrid-header-previews.html">
+              查看混合版头部预览
+            </a>
+            <a class="open-link" style="margin-top: 10px; background: #203047" href="./workflow-v3-header-redesign-previews.html">
+              查看方案三头部重设计
+            </a>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

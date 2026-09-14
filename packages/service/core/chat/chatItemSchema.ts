@@ -1,6 +1,6 @@
 import { connectionMongo, getMongoModel } from '../../common/mongo';
 const { Schema } = connectionMongo;
-import { type ChatItemDBSchemaType } from '@fastgpt/global/core/chat/type';
+import { ChatSourceTypeSchema, type ChatItemDBSchemaType } from '@fastgpt/global/core/chat/type';
 import { ChatRoleMap } from '@fastgpt/global/core/chat/constants';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import {
@@ -45,6 +45,8 @@ const ChatItemSchema = new Schema({
     type: Date,
     default: () => new Date()
   },
+  sourceType: { type: String, enum: ChatSourceTypeSchema.options },
+  sourceId: Schema.Types.ObjectId,
   hideInUI: {
     type: Boolean,
     default: false

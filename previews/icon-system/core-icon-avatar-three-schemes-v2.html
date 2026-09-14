@@ -1,0 +1,1832 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniCockpit 核心资源图标与头像 · 六套方案预览 v2</title>
+    <style>
+      :root {
+        --graphite: #27364a;
+        --ink: #1f2937;
+        --muted: #667085;
+        --subtle: #8a95a6;
+        --brand: #1d4ed8;
+        --brand-strong: #1e40af;
+        --blue-soft: #eef4ff;
+        --canvas: #f8fafc;
+        --panel: #ffffff;
+        --nav: #f5f7fa;
+        --border: #dfe5ee;
+        --dark: #0b1526;
+        --font-sans: 'Avenir Next', 'SF Pro Text', 'PingFang SC', 'Microsoft YaHei',
+          ui-sans-serif, sans-serif;
+        --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        color-scheme: light;
+        background: var(--canvas);
+      }
+
+      body {
+        margin: 0;
+        min-width: 1120px;
+        color: var(--ink);
+        background: linear-gradient(rgba(39, 54, 74, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(39, 54, 74, 0.025) 1px, transparent 1px), var(--canvas);
+        background-size: 32px 32px;
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page-shell {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 24px 72px;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px;
+        background: rgba(248, 250, 252, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .topbar .brand {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        color: var(--graphite);
+      }
+
+      .topbar .meta {
+        font-size: 12px;
+        color: var(--subtle);
+        font-family: var(--font-mono);
+      }
+
+      header.intro {
+        padding: 40px 0 8px;
+      }
+
+      header.intro h1 {
+        margin: 0 0 10px;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      header.intro .subtitle {
+        margin: 0 0 18px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .principles {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+
+      .principle {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+      }
+
+      .principle b {
+        display: block;
+        font-size: 12.5px;
+        margin-bottom: 4px;
+      }
+
+      .principle span {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .segmented {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        background: var(--nav);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        margin: 26px 0 22px;
+      }
+
+      .segmented a {
+        padding: 7px 16px;
+        font-size: 13px;
+        color: var(--muted);
+        text-decoration: none;
+        border-radius: 6px;
+      }
+
+      .segmented a:hover {
+        color: var(--ink);
+        background: #fff;
+      }
+
+      section.scheme {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 26px 26px 30px;
+        margin-bottom: 30px;
+        scroll-margin-top: 80px;
+      }
+
+      .scheme-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 6px;
+      }
+
+      .scheme-head h2 {
+        margin: 0 0 6px;
+        font-size: 19px;
+      }
+
+      .scheme-head .tagline {
+        margin: 0;
+        font-size: 13px;
+        color: var(--muted);
+        max-width: 560px;
+        line-height: 1.7;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-end;
+        max-width: 380px;
+      }
+
+      .chip {
+        font-size: 11.5px;
+        font-family: var(--font-mono);
+        color: var(--graphite);
+        background: var(--nav);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 3px 10px;
+        white-space: nowrap;
+      }
+
+      h3.block-title {
+        margin: 28px 0 12px;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: var(--graphite);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      h3.block-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .glyph-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .glyph-card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px 12px;
+        background: #fff;
+      }
+
+      .glyph-card .name-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .glyph-card .name-row b {
+        font-size: 13.5px;
+      }
+
+      .glyph-card .name-row code {
+        font-size: 11px;
+        color: var(--subtle);
+        font-family: var(--font-mono);
+      }
+
+      .size-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 18px;
+        color: var(--brand);
+        margin-bottom: 10px;
+      }
+
+      .size-row .dark-cell {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        color: #fff;
+        background: var(--dark);
+        border-radius: 7px;
+        padding: 6px 10px;
+        margin-left: auto;
+      }
+
+      .glyph-card .semantics {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted);
+        margin: 0;
+      }
+
+      .glyph-card .v2-note {
+        margin-top: 6px;
+        font-size: 11.5px;
+        color: var(--brand-strong);
+        background: var(--blue-soft);
+        border-radius: 5px;
+        padding: 4px 8px;
+        display: inline-block;
+      }
+
+      .mock-cols {
+        display: grid;
+        grid-template-columns: 1.5fr 220px 1fr;
+        gap: 12px;
+      }
+
+      .mock-panel {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+      }
+
+      .mock-panel .panel-cap {
+        font-size: 11.5px;
+        letter-spacing: 0.05em;
+        color: var(--subtle);
+        background: var(--nav);
+        border-bottom: 1px solid var(--border);
+        padding: 7px 14px;
+      }
+
+      .res-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 14px;
+        border-bottom: 1px solid #eef1f6;
+        color: var(--graphite);
+      }
+
+      .res-row:last-child {
+        border-bottom: none;
+      }
+
+      .res-row:hover {
+        background: #f6f8fc;
+        box-shadow: inset 0 0 0 1px #d9e3f7;
+      }
+
+      .res-avatar {
+        flex: none;
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        color: var(--brand);
+        border-radius: 9px;
+      }
+
+      .res-row:hover .res-avatar {
+        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.08);
+      }
+
+      .res-info {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .res-info .title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .res-info .meta {
+        font-size: 11.5px;
+        color: var(--subtle);
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .type-tag {
+        font-size: 10.5px;
+        font-weight: 500;
+        color: var(--brand-strong);
+        background: var(--blue-soft);
+        border-radius: 4px;
+        padding: 1px 6px;
+      }
+
+      .side-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        font-size: 12.5px;
+        color: var(--graphite);
+        border-bottom: 1px solid #eef1f6;
+      }
+
+      .side-row svg {
+        color: var(--brand);
+        flex: none;
+      }
+
+      .side-row.active {
+        background: var(--blue-soft);
+        font-weight: 600;
+      }
+
+      .detail-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 16px 12px;
+      }
+
+      .detail-head .big-avatar {
+        width: 46px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        color: var(--brand);
+      }
+
+      .detail-head .dh-info b {
+        font-size: 14px;
+        display: block;
+      }
+
+      .detail-head .dh-info span {
+        font-size: 11.5px;
+        color: var(--subtle);
+      }
+
+      .detail-head .actions {
+        margin-left: auto;
+        display: flex;
+        gap: 6px;
+      }
+
+      .fake-btn {
+        font-size: 11.5px;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 6px;
+        padding: 5px 10px;
+        color: var(--muted);
+      }
+
+      .fake-btn.primary {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
+      }
+
+      .detail-body {
+        padding: 0 16px 16px;
+        font-size: 12px;
+        color: var(--subtle);
+        line-height: 1.7;
+      }
+
+      table.compare {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      table.compare th,
+      table.compare td {
+        border-bottom: 1px solid var(--border);
+        padding: 14px 16px;
+        text-align: center;
+        font-size: 13px;
+      }
+
+      table.compare th {
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        color: var(--graphite);
+        background: var(--nav);
+      }
+
+      table.compare td:first-child {
+        text-align: left;
+        font-weight: 600;
+        color: var(--ink);
+        width: 180px;
+      }
+
+      table.compare td:first-child small {
+        display: block;
+        font-weight: 400;
+        color: var(--subtle);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+
+      table.compare td svg {
+        color: var(--brand);
+      }
+
+      table.compare tr:last-child td {
+        border-bottom: none;
+      }
+
+      .landing {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 22px 26px;
+        margin-top: 30px;
+      }
+
+      .landing h2 {
+        margin: 0 0 12px;
+        font-size: 15px;
+      }
+
+      .landing ol {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 13px;
+        line-height: 1.9;
+        color: var(--muted);
+      }
+
+      .landing ol code {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--graphite);
+        background: var(--nav);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 0 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ======================= SVG 符号库 ======================= -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <!-- 方案 A · 精线单色 -->
+        <symbol id="a-workflow" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="10" cy="4.5" r="2.3" />
+            <circle cx="4.4" cy="15.2" r="2.3" />
+            <circle cx="15.6" cy="15.2" r="2.3" />
+            <path d="M10 6.8v2.1" />
+            <path d="M10 8.9c0 2.4-5.6 1.5-5.6 4" />
+            <path d="M10 8.9c0 2.4 5.6 1.5 5.6 4" />
+          </g>
+        </symbol>
+        <symbol id="a-agent" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 4h7A2.5 2.5 0 0 1 16 6.5v5a2.5 2.5 0 0 1-2.5 2.5H13v2.7l-3.2-2.7H6.5A2.5 2.5 0 0 1 4 11.5v-5A2.5 2.5 0 0 1 6.5 4z" />
+            <circle cx="8" cy="9" r="1" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="9" r="1" fill="currentColor" stroke="none" />
+          </g>
+        </symbol>
+        <symbol id="a-agent-v2" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4.6" y="7" width="10.8" height="8.4" rx="2.6" />
+            <path d="M10 7V5.2" />
+            <circle cx="10" cy="3.8" r="1.25" />
+            <path d="M3.2 11.2h1.4M15.4 11.2h1.4" />
+            <circle cx="8.1" cy="10.9" r="1" fill="currentColor" stroke="none" />
+            <circle cx="11.9" cy="10.9" r="1" fill="currentColor" stroke="none" />
+            <path d="M8.2 13.3h3.6" />
+          </g>
+        </symbol>
+        <symbol id="a-dataset" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5.4C8.6 4.2 6.3 3.9 3.8 4.4v11.2c2.5-.5 4.8-.2 6.2 1 1.4-1.2 3.7-1.5 6.2-1V4.4c-2.5-.5-4.8-.2-6.2 1z" />
+            <path d="M10 5.4v11.2" />
+            <path d="M5.9 7.9c1.1-.2 2.2-.15 3 .2" />
+            <path d="M11.1 8.1c.8-.35 1.9-.4 3-.2" />
+          </g>
+        </symbol>
+        <symbol id="a-tool" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </g>
+        </symbol>
+        <symbol id="a-plugin" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 1.998c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02z" />
+          </g>
+        </symbol>
+
+        <!-- 方案 B · 蓝图双色调：线稿 + 12~18% currentColor 铺底 -->
+        <symbol id="b-workflow" viewBox="0 0 20 20">
+          <circle cx="10" cy="4.5" r="2.3" fill="currentColor" opacity="0.18" />
+          <circle cx="4.4" cy="15.2" r="2.3" fill="currentColor" opacity="0.12" />
+          <circle cx="15.6" cy="15.2" r="2.3" fill="currentColor" opacity="0.12" />
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="10" cy="4.5" r="2.3" />
+            <circle cx="4.4" cy="15.2" r="2.3" />
+            <circle cx="15.6" cy="15.2" r="2.3" />
+            <path d="M10 6.8v2.1" />
+            <path d="M10 8.9c0 2.4-5.6 1.5-5.6 4" />
+            <path d="M10 8.9c0 2.4 5.6 1.5 5.6 4" />
+          </g>
+        </symbol>
+        <symbol id="b-agent" viewBox="0 0 20 20">
+          <path d="M6.5 4h7A2.5 2.5 0 0 1 16 6.5v5a2.5 2.5 0 0 1-2.5 2.5H13v2.7l-3.2-2.7H6.5A2.5 2.5 0 0 1 4 11.5v-5A2.5 2.5 0 0 1 6.5 4z" fill="currentColor" opacity="0.15" />
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 4h7A2.5 2.5 0 0 1 16 6.5v5a2.5 2.5 0 0 1-2.5 2.5H13v2.7l-3.2-2.7H6.5A2.5 2.5 0 0 1 4 11.5v-5A2.5 2.5 0 0 1 6.5 4z" />
+          </g>
+          <circle cx="8" cy="9" r="1" fill="currentColor" />
+          <circle cx="12" cy="9" r="1" fill="currentColor" />
+        </symbol>
+        <symbol id="b-agent-v2" viewBox="0 0 20 20">
+          <rect x="4.6" y="7" width="10.8" height="8.4" rx="2.6" fill="currentColor" opacity="0.15" />
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4.6" y="7" width="10.8" height="8.4" rx="2.6" />
+            <path d="M10 7V5.2" />
+            <circle cx="10" cy="3.8" r="1.25" />
+            <path d="M3.2 11.2h1.4M15.4 11.2h1.4" />
+            <path d="M8.2 13.3h3.6" />
+          </g>
+          <circle cx="8.1" cy="10.9" r="1" fill="currentColor" />
+          <circle cx="11.9" cy="10.9" r="1" fill="currentColor" />
+        </symbol>
+        <symbol id="b-dataset" viewBox="0 0 20 20">
+          <path d="M10 5.4C8.6 4.2 6.3 3.9 3.8 4.4v11.2c2.5-.5 4.8-.2 6.2 1z" fill="currentColor" opacity="0.15" />
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5.4C8.6 4.2 6.3 3.9 3.8 4.4v11.2c2.5-.5 4.8-.2 6.2 1 1.4-1.2 3.7-1.5 6.2-1V4.4c-2.5-.5-4.8-.2-6.2 1z" />
+            <path d="M10 5.4v11.2" />
+            <path d="M11.1 8.1c.8-.35 1.9-.4 3-.2" />
+          </g>
+        </symbol>
+        <symbol id="b-tool" viewBox="0 0 20 20">
+          <path transform="translate(1.667 1.667) scale(0.8333)" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" fill="currentColor" opacity="0.12" />
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </g>
+        </symbol>
+        <symbol id="b-plugin" viewBox="0 0 20 20">
+          <path transform="translate(1.667 1.667) scale(0.8333)" d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 1.998c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02z" fill="currentColor" opacity="0.12" />
+          <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 1.998c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02z" />
+          </g>
+        </symbol>
+
+        <!-- 方案 C · 节点实点：1.75 主线 + 实心几何点 -->
+        <symbol id="c-workflow" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="4.4" cy="15.2" r="2.5" />
+            <circle cx="15.6" cy="15.2" r="2.5" />
+            <path d="M10 6.6v2.3" />
+            <path d="M10 8.9c0 2.4-5.6 1.5-5.6 3.8" />
+            <path d="M10 8.9c0 2.4 5.6 1.5 5.6 3.8" />
+          </g>
+          <circle cx="10" cy="4.4" r="2.1" fill="currentColor" />
+          <circle cx="4.4" cy="15.2" r="0.9" fill="currentColor" />
+          <circle cx="15.6" cy="15.2" r="0.9" fill="currentColor" />
+        </symbol>
+        <symbol id="c-agent" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 4h7A2.5 2.5 0 0 1 16 6.5v5a2.5 2.5 0 0 1-2.5 2.5H13v2.7l-3.2-2.7H6.5A2.5 2.5 0 0 1 4 11.5v-5A2.5 2.5 0 0 1 6.5 4z" />
+          </g>
+          <circle cx="8" cy="9" r="1.15" fill="currentColor" />
+          <circle cx="12" cy="9" r="1.15" fill="currentColor" />
+        </symbol>
+        <symbol id="c-agent-v2" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4.6" y="7" width="10.8" height="8.4" rx="2.6" />
+            <path d="M10 7V5.2" />
+            <path d="M3.2 11.2h1.4M15.4 11.2h1.4" />
+            <path d="M8.2 13.3h3.6" />
+          </g>
+          <circle cx="10" cy="3.7" r="1.3" fill="currentColor" />
+          <circle cx="8.1" cy="10.9" r="1.15" fill="currentColor" />
+          <circle cx="11.9" cy="10.9" r="1.15" fill="currentColor" />
+        </symbol>
+        <symbol id="c-dataset" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5.4C8.6 4.2 6.3 3.9 3.8 4.4v11.2c2.5-.5 4.8-.2 6.2 1 1.4-1.2 3.7-1.5 6.2-1V4.4c-2.5-.5-4.8-.2-6.2 1z" />
+            <path d="M10 5.4v11.2" />
+            <path d="M13.2 4.2v2.5l1-.7 1 .7V4.4" />
+          </g>
+          <circle cx="6.7" cy="8" r="0.9" fill="currentColor" />
+        </symbol>
+        <symbol id="c-tool" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </g>
+        </symbol>
+        <symbol id="c-plugin" viewBox="0 0 20 20">
+          <g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 1.998c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02z" />
+          </g>
+        </symbol>
+        <!-- 方案 D · 多彩线稿（方案 I 延伸：资源专属色线稿 + 深色实点） -->
+        <symbol id="d-workflow" viewBox="0 0 20 20">
+          <g fill="none" stroke="#5B7CFA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="10" cy="4.5" r="2.3" />
+            <circle cx="4.4" cy="15.2" r="2.3" />
+            <circle cx="15.6" cy="15.2" r="2.3" />
+            <path d="M10 6.8v2.1" />
+            <path d="M10 8.9c0 2.4-5.6 1.5-5.6 4" />
+            <path d="M10 8.9c0 2.4 5.6 1.5 5.6 4" />
+          </g>
+          <circle cx="10" cy="4.5" r="1" fill="#2B4FD8" />
+          <circle cx="4.4" cy="15.2" r="1" fill="#2B4FD8" />
+          <circle cx="15.6" cy="15.2" r="1" fill="#2B4FD8" />
+        </symbol>
+        <symbol id="d-agent" viewBox="0 0 20 20">
+          <g fill="none" stroke="#7479FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 4h7A2.5 2.5 0 0 1 16 6.5v5a2.5 2.5 0 0 1-2.5 2.5H13v2.7l-3.2-2.7H6.5A2.5 2.5 0 0 1 4 11.5v-5A2.5 2.5 0 0 1 6.5 4z" />
+          </g>
+          <circle cx="8" cy="9" r="1" fill="#4348D6" />
+          <circle cx="12" cy="9" r="1" fill="#4348D6" />
+        </symbol>
+        <symbol id="d-agent-v2" viewBox="0 0 20 20">
+          <g fill="none" stroke="#7479FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4.6" y="7" width="10.8" height="8.4" rx="2.6" />
+            <path d="M10 7V5.2" />
+            <circle cx="10" cy="3.8" r="1.25" />
+            <path d="M3.2 11.2h1.4M15.4 11.2h1.4" />
+            <path d="M8.2 13.3h3.6" />
+          </g>
+          <circle cx="8.1" cy="10.9" r="1" fill="#4348D6" />
+          <circle cx="11.9" cy="10.9" r="1" fill="#4348D6" />
+        </symbol>
+        <symbol id="d-dataset" viewBox="0 0 20 20">
+          <g fill="none" stroke="#0091FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5.4C8.6 4.2 6.3 3.9 3.8 4.4v11.2c2.5-.5 4.8-.2 6.2 1 1.4-1.2 3.7-1.5 6.2-1V4.4c-2.5-.5-4.8-.2-6.2 1z" />
+            <path d="M10 5.4v11.2" />
+            <path d="M5.9 7.9c1.1-.2 2.2-.15 3 .2" />
+            <path d="M11.1 8.1c.8-.35 1.9-.4 3-.2" />
+          </g>
+          <circle cx="6.7" cy="8" r="0.9" fill="#0369C9" />
+        </symbol>
+        <symbol id="d-tool" viewBox="0 0 20 20">
+          <g fill="none" stroke="#EBA33C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </g>
+        </symbol>
+        <symbol id="d-plugin" viewBox="0 0 20 20">
+          <g fill="none" stroke="#F97355" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 1.998c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02z" />
+          </g>
+        </symbol>
+        <!-- 方案 E · 多彩软铺：专属色线稿 + 12~22% 同族色铺底 -->
+        <symbol id="e-workflow" viewBox="0 0 20 20">
+          <circle cx="10" cy="4.5" r="2.3" fill="#5B7CFA" opacity="0.22" />
+          <circle cx="4.4" cy="15.2" r="2.3" fill="#5B7CFA" opacity="0.14" />
+          <circle cx="15.6" cy="15.2" r="2.3" fill="#5B7CFA" opacity="0.14" />
+          <g fill="none" stroke="#5B7CFA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="10" cy="4.5" r="2.3" />
+            <circle cx="4.4" cy="15.2" r="2.3" />
+            <circle cx="15.6" cy="15.2" r="2.3" />
+            <path d="M10 6.8v2.1" />
+            <path d="M10 8.9c0 2.4-5.6 1.5-5.6 4" />
+            <path d="M10 8.9c0 2.4 5.6 1.5 5.6 4" />
+          </g>
+          <circle cx="10" cy="4.5" r="1" fill="#2B4FD8" />
+        </symbol>
+        <symbol id="e-agent" viewBox="0 0 20 20">
+          <path d="M6.5 4h7A2.5 2.5 0 0 1 16 6.5v5a2.5 2.5 0 0 1-2.5 2.5H13v2.7l-3.2-2.7H6.5A2.5 2.5 0 0 1 4 11.5v-5A2.5 2.5 0 0 1 6.5 4z" fill="#7479FF" opacity="0.18" />
+          <g fill="none" stroke="#7479FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 4h7A2.5 2.5 0 0 1 16 6.5v5a2.5 2.5 0 0 1-2.5 2.5H13v2.7l-3.2-2.7H6.5A2.5 2.5 0 0 1 4 11.5v-5A2.5 2.5 0 0 1 6.5 4z" />
+          </g>
+          <circle cx="8" cy="9" r="1" fill="#4348D6" />
+          <circle cx="12" cy="9" r="1" fill="#4348D6" />
+        </symbol>
+        <symbol id="e-agent-v2" viewBox="0 0 20 20">
+          <rect x="4.6" y="7" width="10.8" height="8.4" rx="2.6" fill="#7479FF" opacity="0.18" />
+          <g fill="none" stroke="#7479FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4.6" y="7" width="10.8" height="8.4" rx="2.6" />
+            <path d="M10 7V5.2" />
+            <circle cx="10" cy="3.8" r="1.25" />
+            <path d="M3.2 11.2h1.4M15.4 11.2h1.4" />
+            <path d="M8.2 13.3h3.6" />
+          </g>
+          <circle cx="8.1" cy="10.9" r="1" fill="#4348D6" />
+          <circle cx="11.9" cy="10.9" r="1" fill="#4348D6" />
+        </symbol>
+        <symbol id="e-dataset" viewBox="0 0 20 20">
+          <path d="M10 5.4C8.6 4.2 6.3 3.9 3.8 4.4v11.2c2.5-.5 4.8-.2 6.2 1z" fill="#0091FF" opacity="0.18" />
+          <g fill="none" stroke="#0091FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5.4C8.6 4.2 6.3 3.9 3.8 4.4v11.2c2.5-.5 4.8-.2 6.2 1 1.4-1.2 3.7-1.5 6.2-1V4.4c-2.5-.5-4.8-.2-6.2 1z" />
+            <path d="M10 5.4v11.2" />
+            <path d="M11.1 8.1c.8-.35 1.9-.4 3-.2" />
+          </g>
+          <circle cx="6.7" cy="8" r="0.9" fill="#0369C9" />
+        </symbol>
+        <symbol id="e-tool" viewBox="0 0 20 20">
+          <path transform="translate(1.667 1.667) scale(0.8333)" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" fill="#EBA33C" opacity="0.12" />
+          <g fill="none" stroke="#EBA33C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </g>
+        </symbol>
+        <symbol id="e-plugin" viewBox="0 0 20 20">
+          <path transform="translate(1.667 1.667) scale(0.8333)" d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 1.998c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02z" fill="#F97355" opacity="0.12" />
+          <g fill="none" stroke="#F97355" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 1.998c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02z" />
+          </g>
+        </symbol>
+        <!-- 方案 F · 深浅双色：主体浅资源色 + 关键元素深资源色 -->
+        <symbol id="f-workflow" viewBox="0 0 20 20">
+          <g fill="none" stroke="#8FA5FC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 6.8v2.1" />
+            <path d="M10 8.9c0 2.4-5.6 1.5-5.6 4" />
+            <path d="M10 8.9c0 2.4 5.6 1.5 5.6 4" />
+          </g>
+          <circle cx="10" cy="4.5" r="2.3" fill="#2B4FD8" />
+          <circle cx="4.4" cy="15.2" r="2.3" fill="#2B4FD8" />
+          <circle cx="15.6" cy="15.2" r="2.3" fill="#2B4FD8" />
+        </symbol>
+        <symbol id="f-agent" viewBox="0 0 20 20">
+          <g fill="none" stroke="#A5A8FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 4h7A2.5 2.5 0 0 1 16 6.5v5a2.5 2.5 0 0 1-2.5 2.5H13v2.7l-3.2-2.7H6.5A2.5 2.5 0 0 1 4 11.5v-5A2.5 2.5 0 0 1 6.5 4z" />
+          </g>
+          <circle cx="8" cy="9" r="1" fill="#4348D6" />
+          <circle cx="12" cy="9" r="1" fill="#4348D6" />
+        </symbol>
+        <symbol id="f-agent-v2" viewBox="0 0 20 20">
+          <g fill="none" stroke="#4348D6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4.6" y="7" width="10.8" height="8.4" rx="2.6" />
+            <path d="M10 7V5.2" />
+            <circle cx="10" cy="3.8" r="1.25" />
+            <path d="M3.2 11.2h1.4M15.4 11.2h1.4" />
+            <path d="M8.2 13.3h3.6" />
+          </g>
+          <circle cx="8.1" cy="10.9" r="1" fill="#A5A8FF" />
+          <circle cx="11.9" cy="10.9" r="1" fill="#A5A8FF" />
+        </symbol>
+        <symbol id="f-dataset" viewBox="0 0 20 20">
+          <g fill="none" stroke="#66C2FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5.4C8.6 4.2 6.3 3.9 3.8 4.4v11.2c2.5-.5 4.8-.2 6.2 1 1.4-1.2 3.7-1.5 6.2-1V4.4c-2.5-.5-4.8-.2-6.2 1z" />
+            <path d="M10 5.4v11.2" />
+          </g>
+          <g fill="none" stroke="#0369C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5.9 7.9c1.1-.2 2.2-.15 3 .2" />
+            <path d="M11.1 8.1c.8-.35 1.9-.4 3-.2" />
+          </g>
+          <circle cx="6.7" cy="8" r="0.9" fill="#0369C9" />
+        </symbol>
+        <symbol id="f-tool" viewBox="0 0 20 20">
+          <g fill="none" stroke="#C77F14" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </g>
+        </symbol>
+        <symbol id="f-plugin" viewBox="0 0 20 20">
+          <g fill="none" stroke="#FBA492" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path transform="translate(1.667 1.667) scale(0.8333)" d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 1.998c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02z" />
+          </g>
+          <circle cx="10" cy="10" r="1.1" fill="#E5533C" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="topbar">
+      <span class="brand">OMNICOCKPIT · ICON / AVATAR SYSTEM</span>
+      <span class="meta">portal_rebuild · previews/icon-system · v2 · 2026-08-23</span>
+    </div>
+
+    <div class="page-shell">
+      <header class="intro">
+        <h1>核心资源图标与头像 · 六套方案预览</h1>
+        <p class="subtitle">
+          工作流 / 对话 Agent / 对话 Agent V2 / 知识库 / 工具 / 插件 —— A/B/C 基于 <b>currentColor
+          单色体系</b>；D/E/F 为<b>彩色方向</b>，延续工作流节点方案 I（多彩）的资源专属色语言。
+        </p>
+        <p class="subtitle" style="font-size: 12.5px">
+          说明：彩色三套为工作流节点多彩例外的延伸探索，图形内为固定色值，不随 currentColor 变化；生产采纳时按交接文档登记例外执行，单色规范仍以 A/B/C 为准。
+        </p>
+        <div class="principles">
+          <div class="principle">
+            <b>20×20 viewBox · round cap</b>
+            <span>与已替换的 12 个配置图标同一规格，可无缝落入 MyIcon 现有调用。</span>
+          </div>
+          <div class="principle">
+            <b>currentColor 单色</b>
+            <span>双色调/实点层全部使用透明度而非固定颜色，亮暗模式、主题色切换自动生效。</span>
+          </div>
+          <div class="principle">
+            <b>V1 / V2 靠形态区分</b>
+            <span>不依赖颜色或角标：V1 = 对话气泡点眼，V2 = 机器人头，小尺寸依然可分辨。</span>
+          </div>
+          <div class="principle">
+            <b>头像无底色</b>
+            <span>图形直接裸露呈现，不加暖金/渐变底块；hover 仅允许品牌蓝 8% 光环提示。</span>
+          </div>
+        </div>
+      </header>
+
+      <nav class="segmented" aria-label="方案导航">
+        <a href="#scheme-a">方案 A · 精线单色</a>
+        <a href="#scheme-b">方案 B · 蓝图双色调</a>
+        <a href="#scheme-c">方案 C · 节点实点</a>
+        <a href="#scheme-d">方案 D · 多彩线稿</a>
+        <a href="#scheme-e">方案 E · 多彩软铺</a>
+        <a href="#scheme-f">方案 F · 深浅双色</a>
+        <a href="#compare">六方案对照</a>
+      </nav>
+
+      <!-- ======================= 方案 A ======================= -->
+      <section class="scheme" id="scheme-a">
+        <div class="scheme-head">
+          <div>
+            <h2>方案 A · 精线单色（Line Mono）</h2>
+            <p class="tagline">
+              纯 1.5px 线稿，无任何填充层。与当前已上线的 12 个配置图标语言完全一致，是最稳妥的延续方案：
+              安静、克制，在高密度列表中最不易产生视觉噪音。
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip">stroke 1.5</span>
+            <span class="chip">currentColor</span>
+            <span class="chip">无填充层</span>
+            <span class="chip">现有体系延续</span>
+          </div>
+        </div>
+
+        <h3 class="block-title">六个资源图形 · 16 / 20 / 24 / 32px 与深色反白</h3>
+        <div class="glyph-grid">
+          <div class="glyph-card">
+            <div class="name-row"><b>工作流</b><code>workflow.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#a-workflow" /></svg>
+              <svg width="20" height="20"><use href="#a-workflow" /></svg>
+              <svg width="24" height="24"><use href="#a-workflow" /></svg>
+              <svg width="32" height="32"><use href="#a-workflow" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#a-workflow" /></svg></span>
+            </div>
+            <p class="semantics">单入口节点向下分叉为两个执行分支，表达“编排与分发”，与旧版“链式节点”拉开差异。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent（V1）</b><code>agent.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#a-agent" /></svg>
+              <svg width="20" height="20"><use href="#a-agent" /></svg>
+              <svg width="24" height="24"><use href="#a-agent" /></svg>
+              <svg width="32" height="32"><use href="#a-agent" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#a-agent" /></svg></span>
+            </div>
+            <p class="semantics">对话气泡内嵌两点眼神，强调“对话”属性，替代旧版立方体/盒子意象。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent V2</b><code>agentV2.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#a-agent-v2" /></svg>
+              <svg width="20" height="20"><use href="#a-agent-v2" /></svg>
+              <svg width="24" height="24"><use href="#a-agent-v2" /></svg>
+              <svg width="32" height="32"><use href="#a-agent-v2" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#a-agent-v2" /></svg></span>
+            </div>
+            <p class="semantics">机器人头部：天线、侧轴、口线，是 V1 的“进化形态”而非角标补丁。</p>
+            <span class="v2-note">V1 → V2：气泡 → 机器人，形态级区分</span>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>知识库</b><code>dataset.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#a-dataset" /></svg>
+              <svg width="20" height="20"><use href="#a-dataset" /></svg>
+              <svg width="24" height="24"><use href="#a-dataset" /></svg>
+              <svg width="32" height="32"><use href="#a-dataset" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#a-dataset" /></svg></span>
+            </div>
+            <p class="semantics">展开书本 + 中缝 + 页面索引线，表达“沉淀与检索”，区别于文件夹式的旧图形。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>工具</b><code>mcpTools.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#a-tool" /></svg>
+              <svg width="20" height="20"><use href="#a-tool" /></svg>
+              <svg width="24" height="24"><use href="#a-tool" /></svg>
+              <svg width="32" height="32"><use href="#a-tool" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#a-tool" /></svg></span>
+            </div>
+            <p class="semantics">单扳手斜置，开口朝向右上，线条收细后保留高识别度，覆盖 HTTP / MCP 工具。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>插件</b><code>plugin.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#a-plugin" /></svg>
+              <svg width="20" height="20"><use href="#a-plugin" /></svg>
+              <svg width="24" height="24"><use href="#a-plugin" /></svg>
+              <svg width="32" height="32"><use href="#a-plugin" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#a-plugin" /></svg></span>
+            </div>
+            <p class="semantics">四向咬合拼图，表达“可插拔扩展”，与工具的“扳手”形成能力/扩展二元语义。</p>
+          </div>
+        </div>
+
+        <h3 class="block-title">应用场景 · 列表头像 / 侧栏导航 / 详情头部</h3>
+        <div class="mock-cols">
+          <div class="mock-panel">
+            <div class="panel-cap">资源列表 · 头像无底色</div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#a-agent" /></svg></span>
+              <div class="res-info">
+                <div class="title">客服助手-标准版 <span class="type-tag">Agent</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/25 07:39:26</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#a-agent-v2" /></svg></span>
+              <div class="res-info">
+                <div class="title">销售顾问-Agent V2 <span class="type-tag">Agent V2</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/27 09:40:54</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#a-workflow" /></svg></span>
+              <div class="res-info">
+                <div class="title">订单审核自动化 <span class="type-tag">工作流</span></div>
+                <div class="meta">ops@corp.com · 编辑时间：2025/4/02 15:26:03</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#a-dataset" /></svg></span>
+              <div class="res-info">
+                <div class="title">产品手册库 <span class="type-tag">知识库</span></div>
+                <div class="meta">18197501387@139.com · 328 条数据 · 更新 2 天前</div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-panel">
+            <div class="panel-cap">侧栏导航 · 20px</div>
+            <div class="side-row active"><svg width="20" height="20"><use href="#a-agent" /></svg>对话 Agent</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#a-agent-v2" /></svg>对话 Agent V2</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#a-workflow" /></svg>工作流</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#a-dataset" /></svg>知识库</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#a-tool" /></svg>工具</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#a-plugin" /></svg>插件</div>
+          </div>
+          <div class="mock-panel">
+            <div class="panel-cap">详情页头部 · 46px 头像</div>
+            <div class="detail-head">
+              <span class="big-avatar"><svg width="42" height="42"><use href="#a-agent-v2" /></svg></span>
+              <div class="dh-info">
+                <b>销售顾问-Agent V2</b>
+                <span>Agent V2 · 发布 2 个渠道 · 今日 1.2k 次调用</span>
+              </div>
+              <div class="actions">
+                <span class="fake-btn">发布</span>
+                <span class="fake-btn primary">保存</span>
+              </div>
+            </div>
+            <div class="detail-body">头像直接以品牌蓝呈现，无底块、无光晕；仅列表行 hover 时出现 8% 蓝色光环作为可点提示。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= 方案 B ======================= -->
+      <section class="scheme" id="scheme-b">
+        <div class="scheme-head">
+          <div>
+            <h2>方案 B · 蓝图双色调（Blueprint Duotone）</h2>
+            <p class="tagline">
+              在方案 A 的线稿之下叠加一层 12–18% 透明度的 currentColor 填充，形成“蓝图晒印”般的双色调层次。
+              仍是严格单色：换主题色、进深色模式时双层同步变化，在空列表里比纯线稿更饱满。
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip">stroke 1.5</span>
+            <span class="chip">双层 currentColor</span>
+            <span class="chip">opacity 12–18%</span>
+            <span class="chip">饱满但不花</span>
+          </div>
+        </div>
+
+        <h3 class="block-title">六个资源图形 · 16 / 20 / 24 / 32px 与深色反白</h3>
+        <div class="glyph-grid">
+          <div class="glyph-card">
+            <div class="name-row"><b>工作流</b><code>workflow.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#b-workflow" /></svg>
+              <svg width="20" height="20"><use href="#b-workflow" /></svg>
+              <svg width="24" height="24"><use href="#b-workflow" /></svg>
+              <svg width="32" height="32"><use href="#b-workflow" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#b-workflow" /></svg></span>
+            </div>
+            <p class="semantics">入口节点以 18% 实层强调“起点”，两个分支节点 12% 轻铺，形成层级暗示。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent（V1）</b><code>agent.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#b-agent" /></svg>
+              <svg width="20" height="20"><use href="#b-agent" /></svg>
+              <svg width="24" height="24"><use href="#b-agent" /></svg>
+              <svg width="32" height="32"><use href="#b-agent" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#b-agent" /></svg></span>
+            </div>
+            <p class="semantics">气泡内部 15% 铺底，像“被点亮的对话框”，眼神点保持实色锚定视线。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent V2</b><code>agentV2.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#b-agent-v2" /></svg>
+              <svg width="20" height="20"><use href="#b-agent-v2" /></svg>
+              <svg width="24" height="24"><use href="#b-agent-v2" /></svg>
+              <svg width="32" height="32"><use href="#b-agent-v2" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#b-agent-v2" /></svg></span>
+            </div>
+            <p class="semantics">机头面罩 15% 铺底，天线环保持线稿；与 V1 的差别在形态而非色彩权重。</p>
+            <span class="v2-note">双色调只加层次，不加新颜色</span>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>知识库</b><code>dataset.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#b-dataset" /></svg>
+              <svg width="20" height="20"><use href="#b-dataset" /></svg>
+              <svg width="24" height="24"><use href="#b-dataset" /></svg>
+              <svg width="32" height="32"><use href="#b-dataset" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#b-dataset" /></svg></span>
+            </div>
+            <p class="semantics">左页 15% 铺底模拟“已写入的一面”，右页留白只留索引线，隐喻“正在沉淀”。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>工具</b><code>mcpTools.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#b-tool" /></svg>
+              <svg width="20" height="20"><use href="#b-tool" /></svg>
+              <svg width="24" height="24"><use href="#b-tool" /></svg>
+              <svg width="32" height="32"><use href="#b-tool" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#b-tool" /></svg></span>
+            </div>
+            <p class="semantics">扳手本体 12% 轻铺，避免大面积实心扳手带来的厚重感，小尺寸下仍保持轮廓清晰。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>插件</b><code>plugin.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#b-plugin" /></svg>
+              <svg width="20" height="20"><use href="#b-plugin" /></svg>
+              <svg width="24" height="24"><use href="#b-plugin" /></svg>
+              <svg width="32" height="32"><use href="#b-plugin" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#b-plugin" /></svg></span>
+            </div>
+            <p class="semantics">拼图块 12% 铺底强化“模块实体感”，是六者中铺底面积最大的图形，仍保持单色。</p>
+          </div>
+        </div>
+
+        <h3 class="block-title">应用场景 · 列表头像 / 侧栏导航 / 详情头部</h3>
+        <div class="mock-cols">
+          <div class="mock-panel">
+            <div class="panel-cap">资源列表 · 头像无底色</div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#b-agent" /></svg></span>
+              <div class="res-info">
+                <div class="title">客服助手-标准版 <span class="type-tag">Agent</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/25 07:39:26</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#b-agent-v2" /></svg></span>
+              <div class="res-info">
+                <div class="title">销售顾问-Agent V2 <span class="type-tag">Agent V2</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/27 09:40:54</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#b-workflow" /></svg></span>
+              <div class="res-info">
+                <div class="title">订单审核自动化 <span class="type-tag">工作流</span></div>
+                <div class="meta">ops@corp.com · 编辑时间：2025/4/02 15:26:03</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#b-dataset" /></svg></span>
+              <div class="res-info">
+                <div class="title">产品手册库 <span class="type-tag">知识库</span></div>
+                <div class="meta">18197501387@139.com · 328 条数据 · 更新 2 天前</div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-panel">
+            <div class="panel-cap">侧栏导航 · 20px</div>
+            <div class="side-row active"><svg width="20" height="20"><use href="#b-agent" /></svg>对话 Agent</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#b-agent-v2" /></svg>对话 Agent V2</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#b-workflow" /></svg>工作流</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#b-dataset" /></svg>知识库</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#b-tool" /></svg>工具</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#b-plugin" /></svg>插件</div>
+          </div>
+          <div class="mock-panel">
+            <div class="panel-cap">详情页头部 · 46px 头像</div>
+            <div class="detail-head">
+              <span class="big-avatar"><svg width="42" height="42"><use href="#b-workflow" /></svg></span>
+              <div class="dh-info">
+                <b>订单审核自动化</b>
+                <span>工作流 · 24 个节点 · 上次运行 6 分钟前</span>
+              </div>
+              <div class="actions">
+                <span class="fake-btn">运行日志</span>
+                <span class="fake-btn primary">编辑</span>
+              </div>
+            </div>
+            <div class="detail-body">双色调在大尺寸头像上层次更明显；铺底层始终随 currentColor 变化，不固定为某个蓝色值。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= 方案 C ======================= -->
+      <section class="scheme" id="scheme-c">
+        <div class="scheme-head">
+          <div>
+            <h2>方案 C · 节点实点（Solid Node）</h2>
+            <p class="tagline">
+              主线加粗到 1.75，并把“关键元素”转化为实心圆点：工作流的起点、Agent 的天线端、知识库的索引点。
+              实点是 OmniCockpit 的签名语法，传达“节点已就绪/已激活”，性格比 A/B 更鲜明、更工作台化。
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip">stroke 1.75</span>
+            <span class="chip">currentColor</span>
+            <span class="chip">实心几何点</span>
+            <span class="chip">品牌签名语法</span>
+          </div>
+        </div>
+
+        <h3 class="block-title">六个资源图形 · 16 / 20 / 24 / 32px 与深色反白</h3>
+        <div class="glyph-grid">
+          <div class="glyph-card">
+            <div class="name-row"><b>工作流</b><code>workflow.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#c-workflow" /></svg>
+              <svg width="20" height="20"><use href="#c-workflow" /></svg>
+              <svg width="24" height="24"><use href="#c-workflow" /></svg>
+              <svg width="32" height="32"><use href="#c-workflow" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#c-workflow" /></svg></span>
+            </div>
+            <p class="semantics">入口为实心圆（“已激活的起点”），分支为空心圆内含实点，粗细对比制造执行方向感。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent（V1）</b><code>agent.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#c-agent" /></svg>
+              <svg width="20" height="20"><use href="#c-agent" /></svg>
+              <svg width="24" height="24"><use href="#c-agent" /></svg>
+              <svg width="32" height="32"><use href="#c-agent" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#c-agent" /></svg></span>
+            </div>
+            <p class="semantics">加粗气泡 + 放大的实心眼神点，在 16px 导航尺寸下眼神点成为识别锚点。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent V2</b><code>agentV2.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#c-agent-v2" /></svg>
+              <svg width="20" height="20"><use href="#c-agent-v2" /></svg>
+              <svg width="24" height="24"><use href="#c-agent-v2" /></svg>
+              <svg width="32" height="32"><use href="#c-agent-v2" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#c-agent-v2" /></svg></span>
+            </div>
+            <p class="semantics">天线顶端变为实心信号点（“在线/已升级”），双眼同为实点，整体比 V1 更有“机器感”。</p>
+            <span class="v2-note">实心天线点 = V2 的升级信号</span>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>知识库</b><code>dataset.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#c-dataset" /></svg>
+              <svg width="20" height="20"><use href="#c-dataset" /></svg>
+              <svg width="24" height="24"><use href="#c-dataset" /></svg>
+              <svg width="32" height="32"><use href="#c-dataset" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#c-dataset" /></svg></span>
+            </div>
+            <p class="semantics">左页索引点改为实心圆（“已收录”），右上叠加书签凸耳，增加大尺寸下的细节密度。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>工具</b><code>mcpTools.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#c-tool" /></svg>
+              <svg width="20" height="20"><use href="#c-tool" /></svg>
+              <svg width="24" height="24"><use href="#c-tool" /></svg>
+              <svg width="32" height="32"><use href="#c-tool" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#c-tool" /></svg></span>
+            </div>
+            <p class="semantics">扳手保持纯线稿，仅随体系加粗到 1.75；实点语法留给资源类图形，工具保持“器具感”。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>插件</b><code>plugin.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#c-plugin" /></svg>
+              <svg width="20" height="20"><use href="#c-plugin" /></svg>
+              <svg width="24" height="24"><use href="#c-plugin" /></svg>
+              <svg width="32" height="32"><use href="#c-plugin" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#c-plugin" /></svg></span>
+            </div>
+            <p class="semantics">拼图同为纯线稿加粗，与工具形成同族但异形的二元组，避免实点过多导致页面噪点。</p>
+          </div>
+        </div>
+
+        <h3 class="block-title">应用场景 · 列表头像 / 侧栏导航 / 详情头部</h3>
+        <div class="mock-cols">
+          <div class="mock-panel">
+            <div class="panel-cap">资源列表 · 头像无底色</div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#c-agent" /></svg></span>
+              <div class="res-info">
+                <div class="title">客服助手-标准版 <span class="type-tag">Agent</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/25 07:39:26</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#c-agent-v2" /></svg></span>
+              <div class="res-info">
+                <div class="title">销售顾问-Agent V2 <span class="type-tag">Agent V2</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/27 09:40:54</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#c-workflow" /></svg></span>
+              <div class="res-info">
+                <div class="title">订单审核自动化 <span class="type-tag">工作流</span></div>
+                <div class="meta">ops@corp.com · 编辑时间：2025/4/02 15:26:03</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#c-dataset" /></svg></span>
+              <div class="res-info">
+                <div class="title">产品手册库 <span class="type-tag">知识库</span></div>
+                <div class="meta">18197501387@139.com · 328 条数据 · 更新 2 天前</div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-panel">
+            <div class="panel-cap">侧栏导航 · 20px</div>
+            <div class="side-row active"><svg width="20" height="20"><use href="#c-agent" /></svg>对话 Agent</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#c-agent-v2" /></svg>对话 Agent V2</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#c-workflow" /></svg>工作流</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#c-dataset" /></svg>知识库</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#c-tool" /></svg>工具</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#c-plugin" /></svg>插件</div>
+          </div>
+          <div class="mock-panel">
+            <div class="panel-cap">详情页头部 · 46px 头像</div>
+            <div class="detail-head">
+              <span class="big-avatar"><svg width="42" height="42"><use href="#c-dataset" /></svg></span>
+              <div class="dh-info">
+                <b>产品手册库</b>
+                <span>知识库 · 328 条数据 · 索引已就绪</span>
+              </div>
+              <div class="actions">
+                <span class="fake-btn">检索测试</span>
+                <span class="fake-btn primary">导入</span>
+              </div>
+            </div>
+            <div class="detail-body">实心点在大尺寸下成为视觉重心；后续可将实点复用为“状态已就绪”的全局语义。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= 方案 D ======================= -->
+      <section class="scheme" id="scheme-d">
+        <div class="scheme-head">
+          <div>
+            <h2>方案 D · 多彩线稿（Palette Line）</h2>
+            <p class="tagline">
+              与工作流节点方案 I 同源：每类资源一条专属色线稿，关键实点加深一档同族色锚定视线。
+              蓝=工作流、紫=Agent、青=知识库、琥珀=工具、珊瑚=插件，无底块、无渐变，彩色但克制。
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip">stroke 1.5</span>
+            <span class="chip">资源专属色</span>
+            <span class="chip">深色实点</span>
+            <span class="chip">方案 I 同源</span>
+          </div>
+        </div>
+
+        <h3 class="block-title">六个资源图形 · 16 / 20 / 24 / 32px 与深色底</h3>
+        <div class="glyph-grid">
+          <div class="glyph-card">
+            <div class="name-row"><b>工作流</b><code>workflow.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#d-workflow" /></svg>
+              <svg width="20" height="20"><use href="#d-workflow" /></svg>
+              <svg width="24" height="24"><use href="#d-workflow" /></svg>
+              <svg width="32" height="32"><use href="#d-workflow" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#d-workflow" /></svg></span>
+            </div>
+            <p class="semantics">浅蓝分叉线 + 深蓝节点实点，与画布内工作流节点同色同源，语义呼应。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent（V1）</b><code>agent.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#d-agent" /></svg>
+              <svg width="20" height="20"><use href="#d-agent" /></svg>
+              <svg width="24" height="24"><use href="#d-agent" /></svg>
+              <svg width="32" height="32"><use href="#d-agent" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#d-agent" /></svg></span>
+            </div>
+            <p class="semantics">淡紫气泡 + 深紫眼神点，与画布「AI 对话」节点同族，对话属性一眼可辨。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent V2</b><code>agentV2.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#d-agent-v2" /></svg>
+              <svg width="20" height="20"><use href="#d-agent-v2" /></svg>
+              <svg width="24" height="24"><use href="#d-agent-v2" /></svg>
+              <svg width="32" height="32"><use href="#d-agent-v2" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#d-agent-v2" /></svg></span>
+            </div>
+            <p class="semantics">同族紫的机器人头，天线环保持线稿；V1/V2 依然靠形态（气泡→机器人）区分。</p>
+            <span class="v2-note">彩色不介入 V1/V2 区分，只服务资源类型识别</span>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>知识库</b><code>dataset.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#d-dataset" /></svg>
+              <svg width="20" height="20"><use href="#d-dataset" /></svg>
+              <svg width="24" height="24"><use href="#d-dataset" /></svg>
+              <svg width="32" height="32"><use href="#d-dataset" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#d-dataset" /></svg></span>
+            </div>
+            <p class="semantics">青色书本 + 深青索引点，与画布「知识库搜索」节点同色。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>工具</b><code>mcpTools.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#d-tool" /></svg>
+              <svg width="20" height="20"><use href="#d-tool" /></svg>
+              <svg width="24" height="24"><use href="#d-tool" /></svg>
+              <svg width="32" height="32"><use href="#d-tool" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#d-tool" /></svg></span>
+            </div>
+            <p class="semantics">琥珀色扳手，暖色在蓝紫主调中形成工具专属的辨识度。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>插件</b><code>plugin.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#d-plugin" /></svg>
+              <svg width="20" height="20"><use href="#d-plugin" /></svg>
+              <svg width="24" height="24"><use href="#d-plugin" /></svg>
+              <svg width="32" height="32"><use href="#d-plugin" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#d-plugin" /></svg></span>
+            </div>
+            <p class="semantics">珊瑚色拼图，与工具琥珀形成暖色二元组，扩展属性醒目。</p>
+          </div>
+        </div>
+
+        <h3 class="block-title">应用场景 · 列表头像 / 侧栏导航</h3>
+        <div class="mock-cols">
+          <div class="mock-panel">
+            <div class="panel-cap">资源列表 · 头像无底色（彩色线稿裸露呈现）</div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#d-agent" /></svg></span>
+              <div class="res-info">
+                <div class="title">客服助手-标准版 <span class="type-tag">Agent</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/25 07:39:26</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#d-agent-v2" /></svg></span>
+              <div class="res-info">
+                <div class="title">销售顾问-Agent V2 <span class="type-tag">Agent V2</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/27 09:40:54</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#d-workflow" /></svg></span>
+              <div class="res-info">
+                <div class="title">订单审核自动化 <span class="type-tag">工作流</span></div>
+                <div class="meta">ops@corp.com · 编辑时间：2025/4/02 15:26:03</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#d-dataset" /></svg></span>
+              <div class="res-info">
+                <div class="title">产品手册库 <span class="type-tag">知识库</span></div>
+                <div class="meta">18197501387@139.com · 328 条数据 · 更新 2 天前</div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-panel">
+            <div class="panel-cap">侧栏导航 · 20px</div>
+            <div class="side-row active"><svg width="20" height="20"><use href="#d-agent" /></svg>对话 Agent</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#d-agent-v2" /></svg>对话 Agent V2</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#d-workflow" /></svg>工作流</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#d-dataset" /></svg>知识库</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#d-tool" /></svg>工具</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#d-plugin" /></svg>插件</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= 方案 E ======================= -->
+      <section class="scheme" id="scheme-e">
+        <div class="scheme-head">
+          <div>
+            <h2>方案 E · 多彩软铺（Palette Soft）</h2>
+            <p class="tagline">
+              在方案 D 的彩色线稿之下叠加一层 12~22% 透明度的同族色铺底，像水彩晕染一样把图形「托」起来。
+              依然无底块容器：铺底严格贴合图形轮廓，不是背景方块，比 D 更饱满，适合空列表与大头像场景。
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip">stroke 1.5</span>
+            <span class="chip">同族色铺底 12~22%</span>
+            <span class="chip">无底块容器</span>
+            <span class="chip">饱满不花</span>
+          </div>
+        </div>
+
+        <h3 class="block-title">六个资源图形 · 16 / 20 / 24 / 32px 与深色底</h3>
+        <div class="glyph-grid">
+          <div class="glyph-card">
+            <div class="name-row"><b>工作流</b><code>workflow.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#e-workflow" /></svg>
+              <svg width="20" height="20"><use href="#e-workflow" /></svg>
+              <svg width="24" height="24"><use href="#e-workflow" /></svg>
+              <svg width="32" height="32"><use href="#e-workflow" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#e-workflow" /></svg></span>
+            </div>
+            <p class="semantics">入口节点 22% 强调「起点」，分支节点 14% 轻铺，形成层级暗示。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent（V1）</b><code>agent.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#e-agent" /></svg>
+              <svg width="20" height="20"><use href="#e-agent" /></svg>
+              <svg width="24" height="24"><use href="#e-agent" /></svg>
+              <svg width="32" height="32"><use href="#e-agent" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#e-agent" /></svg></span>
+            </div>
+            <p class="semantics">气泡内 18% 淡紫铺底，像「被点亮的对话框」，眼神点保持深紫锚定视线。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent V2</b><code>agentV2.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#e-agent-v2" /></svg>
+              <svg width="20" height="20"><use href="#e-agent-v2" /></svg>
+              <svg width="24" height="24"><use href="#e-agent-v2" /></svg>
+              <svg width="32" height="32"><use href="#e-agent-v2" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#e-agent-v2" /></svg></span>
+            </div>
+            <p class="semantics">机头面罩 18% 铺底，天线环保持纯线稿；与 V1 的差别仍在形态。</p>
+            <span class="v2-note">软铺只加层次，不改变形态区分规则</span>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>知识库</b><code>dataset.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#e-dataset" /></svg>
+              <svg width="20" height="20"><use href="#e-dataset" /></svg>
+              <svg width="24" height="24"><use href="#e-dataset" /></svg>
+              <svg width="32" height="32"><use href="#e-dataset" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#e-dataset" /></svg></span>
+            </div>
+            <p class="semantics">左页 18% 铺底模拟「已写入的一面」，右页留白只留索引点，隐喻「正在沉淀」。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>工具</b><code>mcpTools.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#e-tool" /></svg>
+              <svg width="20" height="20"><use href="#e-tool" /></svg>
+              <svg width="24" height="24"><use href="#e-tool" /></svg>
+              <svg width="32" height="32"><use href="#e-tool" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#e-tool" /></svg></span>
+            </div>
+            <p class="semantics">扳手 12% 轻铺避免大面积实心过重，小尺寸下轮廓依然清晰。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>插件</b><code>plugin.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#e-plugin" /></svg>
+              <svg width="20" height="20"><use href="#e-plugin" /></svg>
+              <svg width="24" height="24"><use href="#e-plugin" /></svg>
+              <svg width="32" height="32"><use href="#e-plugin" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#e-plugin" /></svg></span>
+            </div>
+            <p class="semantics">拼图 12% 铺底强化「模块实体感」，是六者中铺底面积最大的图形。</p>
+          </div>
+        </div>
+
+        <h3 class="block-title">应用场景 · 列表头像 / 侧栏导航</h3>
+        <div class="mock-cols">
+          <div class="mock-panel">
+            <div class="panel-cap">资源列表 · 头像无底色（软铺贴合轮廓）</div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#e-agent" /></svg></span>
+              <div class="res-info">
+                <div class="title">客服助手-标准版 <span class="type-tag">Agent</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/25 07:39:26</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#e-agent-v2" /></svg></span>
+              <div class="res-info">
+                <div class="title">销售顾问-Agent V2 <span class="type-tag">Agent V2</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/27 09:40:54</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#e-workflow" /></svg></span>
+              <div class="res-info">
+                <div class="title">订单审核自动化 <span class="type-tag">工作流</span></div>
+                <div class="meta">ops@corp.com · 编辑时间：2025/4/02 15:26:03</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#e-dataset" /></svg></span>
+              <div class="res-info">
+                <div class="title">产品手册库 <span class="type-tag">知识库</span></div>
+                <div class="meta">18197501387@139.com · 328 条数据 · 更新 2 天前</div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-panel">
+            <div class="panel-cap">侧栏导航 · 20px</div>
+            <div class="side-row active"><svg width="20" height="20"><use href="#e-agent" /></svg>对话 Agent</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#e-agent-v2" /></svg>对话 Agent V2</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#e-workflow" /></svg>工作流</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#e-dataset" /></svg>知识库</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#e-tool" /></svg>工具</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#e-plugin" /></svg>插件</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= 方案 F ======================= -->
+      <section class="scheme" id="scheme-f">
+        <div class="scheme-head">
+          <div>
+            <h2>方案 F · 深浅双色（Tint &amp; Tone）</h2>
+            <p class="tagline">
+              主体用资源色的浅档（Tint），关键元素用同族深档（Tone），靠同族两档深浅建立视觉权重：
+              比 D 更安静、比 E 更锐利，是最耐看的彩色版本，高密度列表下噪点最低。
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip">stroke 1.5</span>
+            <span class="chip">同族深浅两档</span>
+            <span class="chip">无铺底层</span>
+            <span class="chip">低噪点彩色</span>
+          </div>
+        </div>
+
+        <h3 class="block-title">六个资源图形 · 16 / 20 / 24 / 32px 与深色底</h3>
+        <div class="glyph-grid">
+          <div class="glyph-card">
+            <div class="name-row"><b>工作流</b><code>workflow.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#f-workflow" /></svg>
+              <svg width="20" height="20"><use href="#f-workflow" /></svg>
+              <svg width="24" height="24"><use href="#f-workflow" /></svg>
+              <svg width="32" height="32"><use href="#f-workflow" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#f-workflow" /></svg></span>
+            </div>
+            <p class="semantics">连线浅蓝、节点深蓝实心，执行方向由浅入深自然呈现。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent（V1）</b><code>agent.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#f-agent" /></svg>
+              <svg width="20" height="20"><use href="#f-agent" /></svg>
+              <svg width="24" height="24"><use href="#f-agent" /></svg>
+              <svg width="32" height="32"><use href="#f-agent" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#f-agent" /></svg></span>
+            </div>
+            <p class="semantics">气泡浅紫、眼神点深紫，浅深对位制造「前景/背景」层次。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>对话 Agent V2</b><code>agentV2.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#f-agent-v2" /></svg>
+              <svg width="20" height="20"><use href="#f-agent-v2" /></svg>
+              <svg width="24" height="24"><use href="#f-agent-v2" /></svg>
+              <svg width="32" height="32"><use href="#f-agent-v2" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#f-agent-v2" /></svg></span>
+            </div>
+            <p class="semantics">与 V1 反转权重：机头深紫、天线环与眼睛浅色，形态与色彩权重双重区分。</p>
+            <span class="v2-note">V2 权重反转：浅深对调即升级信号</span>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>知识库</b><code>dataset.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#f-dataset" /></svg>
+              <svg width="20" height="20"><use href="#f-dataset" /></svg>
+              <svg width="24" height="24"><use href="#f-dataset" /></svg>
+              <svg width="32" height="32"><use href="#f-dataset" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#f-dataset" /></svg></span>
+            </div>
+            <p class="semantics">书体轮廓浅青，索引线与索引点深青，「内容比封面重要」的隐喻。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>工具</b><code>mcpTools.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#f-tool" /></svg>
+              <svg width="20" height="20"><use href="#f-tool" /></svg>
+              <svg width="24" height="24"><use href="#f-tool" /></svg>
+              <svg width="32" height="32"><use href="#f-tool" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#f-tool" /></svg></span>
+            </div>
+            <p class="semantics">扳手整体取深琥珀档，强调「器具的分量」，与浅档资源形成权重差。</p>
+          </div>
+          <div class="glyph-card">
+            <div class="name-row"><b>插件</b><code>plugin.svg</code></div>
+            <div class="size-row">
+              <svg width="16" height="16"><use href="#f-plugin" /></svg>
+              <svg width="20" height="20"><use href="#f-plugin" /></svg>
+              <svg width="24" height="24"><use href="#f-plugin" /></svg>
+              <svg width="32" height="32"><use href="#f-plugin" /></svg>
+              <span class="dark-cell"><svg width="20" height="20"><use href="#f-plugin" /></svg></span>
+            </div>
+            <p class="semantics">拼图浅珊瑚保持「扩展是轻盈的」，中心深珊瑚点提示插槽位。</p>
+          </div>
+        </div>
+
+        <h3 class="block-title">应用场景 · 列表头像 / 侧栏导航</h3>
+        <div class="mock-cols">
+          <div class="mock-panel">
+            <div class="panel-cap">资源列表 · 头像无底色（深浅双色裸露呈现）</div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#f-agent" /></svg></span>
+              <div class="res-info">
+                <div class="title">客服助手-标准版 <span class="type-tag">Agent</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/25 07:39:26</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#f-agent-v2" /></svg></span>
+              <div class="res-info">
+                <div class="title">销售顾问-Agent V2 <span class="type-tag">Agent V2</span></div>
+                <div class="meta">18197501387@139.com · 编辑时间：2025/3/27 09:40:54</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#f-workflow" /></svg></span>
+              <div class="res-info">
+                <div class="title">订单审核自动化 <span class="type-tag">工作流</span></div>
+                <div class="meta">ops@corp.com · 编辑时间：2025/4/02 15:26:03</div>
+              </div>
+            </div>
+            <div class="res-row">
+              <span class="res-avatar"><svg width="30" height="30"><use href="#f-dataset" /></svg></span>
+              <div class="res-info">
+                <div class="title">产品手册库 <span class="type-tag">知识库</span></div>
+                <div class="meta">18197501387@139.com · 328 条数据 · 更新 2 天前</div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-panel">
+            <div class="panel-cap">侧栏导航 · 20px</div>
+            <div class="side-row active"><svg width="20" height="20"><use href="#f-agent" /></svg>对话 Agent</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#f-agent-v2" /></svg>对话 Agent V2</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#f-workflow" /></svg>工作流</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#f-dataset" /></svg>知识库</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#f-tool" /></svg>工具</div>
+            <div class="side-row"><svg width="20" height="20"><use href="#f-plugin" /></svg>插件</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= 三方案对照 ======================= -->
+      <section class="scheme" id="compare">
+        <div class="scheme-head">
+          <div>
+            <h2>六方案对照</h2>
+            <p class="tagline">同一语义、同一尺寸（28px）下的六套语言并排对比，便于在同一视线内做出取舍。</p>
+          </div>
+        </div>
+        <table class="compare">
+          <thead>
+            <tr>
+              <th>资源类型</th>
+              <th>方案 A · 精线单色</th>
+              <th>方案 B · 蓝图双色调</th>
+              <th>方案 C · 节点实点</th>
+              <th>方案 D · 多彩线稿</th>
+              <th>方案 E · 多彩软铺</th>
+              <th>方案 F · 深浅双色</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>工作流<small>workflow.svg</small></td>
+              <td><svg width="28" height="28"><use href="#a-workflow" /></svg></td>
+              <td><svg width="28" height="28"><use href="#b-workflow" /></svg></td>
+              <td><svg width="28" height="28"><use href="#c-workflow" /></svg></td>
+              <td><svg width="28" height="28"><use href="#d-workflow" /></svg></td>
+              <td><svg width="28" height="28"><use href="#e-workflow" /></svg></td>
+              <td><svg width="28" height="28"><use href="#f-workflow" /></svg></td>
+            </tr>
+            <tr>
+              <td>对话 Agent V1<small>agent.svg</small></td>
+              <td><svg width="28" height="28"><use href="#a-agent" /></svg></td>
+              <td><svg width="28" height="28"><use href="#b-agent" /></svg></td>
+              <td><svg width="28" height="28"><use href="#c-agent" /></svg></td>
+              <td><svg width="28" height="28"><use href="#d-agent" /></svg></td>
+              <td><svg width="28" height="28"><use href="#e-agent" /></svg></td>
+              <td><svg width="28" height="28"><use href="#f-agent" /></svg></td>
+            </tr>
+            <tr>
+              <td>对话 Agent V2<small>agentV2.svg</small></td>
+              <td><svg width="28" height="28"><use href="#a-agent-v2" /></svg></td>
+              <td><svg width="28" height="28"><use href="#b-agent-v2" /></svg></td>
+              <td><svg width="28" height="28"><use href="#c-agent-v2" /></svg></td>
+              <td><svg width="28" height="28"><use href="#d-agent-v2" /></svg></td>
+              <td><svg width="28" height="28"><use href="#e-agent-v2" /></svg></td>
+              <td><svg width="28" height="28"><use href="#f-agent-v2" /></svg></td>
+            </tr>
+            <tr>
+              <td>知识库<small>dataset.svg</small></td>
+              <td><svg width="28" height="28"><use href="#a-dataset" /></svg></td>
+              <td><svg width="28" height="28"><use href="#b-dataset" /></svg></td>
+              <td><svg width="28" height="28"><use href="#c-dataset" /></svg></td>
+              <td><svg width="28" height="28"><use href="#d-dataset" /></svg></td>
+              <td><svg width="28" height="28"><use href="#e-dataset" /></svg></td>
+              <td><svg width="28" height="28"><use href="#f-dataset" /></svg></td>
+            </tr>
+            <tr>
+              <td>工具<small>mcpTools.svg</small></td>
+              <td><svg width="28" height="28"><use href="#a-tool" /></svg></td>
+              <td><svg width="28" height="28"><use href="#b-tool" /></svg></td>
+              <td><svg width="28" height="28"><use href="#c-tool" /></svg></td>
+              <td><svg width="28" height="28"><use href="#d-tool" /></svg></td>
+              <td><svg width="28" height="28"><use href="#e-tool" /></svg></td>
+              <td><svg width="28" height="28"><use href="#f-tool" /></svg></td>
+            </tr>
+            <tr>
+              <td>插件<small>plugin.svg</small></td>
+              <td><svg width="28" height="28"><use href="#a-plugin" /></svg></td>
+              <td><svg width="28" height="28"><use href="#b-plugin" /></svg></td>
+              <td><svg width="28" height="28"><use href="#c-plugin" /></svg></td>
+              <td><svg width="28" height="28"><use href="#d-plugin" /></svg></td>
+              <td><svg width="28" height="28"><use href="#e-plugin" /></svg></td>
+              <td><svg width="28" height="28"><use href="#f-plugin" /></svg></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ======================= 落地说明 ======================= -->
+      <div class="landing">
+        <h2>定稿后的落地路径（遵循交接文档约定）</h2>
+        <ol>
+          <li>
+            选中方案后，直接替换共享 SVG 资产：<code>packages/web/components/common/Icon/icons/core/app/type/</code>
+            下的 <code>workflow.svg / agent.svg / simple.svg / plugin.svg / httpPlugin.svg / mcpTools.svg</code> 及对应
+            <code>Fill</code> 版本，既有 <code>MyIcon</code> 调用自动生效，不在页面局部复制图标。
+          </li>
+          <li>
+            Agent V2 需新增资产并接入应用类型选择器；V1/V2 区分只靠形态（气泡 → 机器人），不靠颜色或角标。
+          </li>
+          <li>
+            方案 B 的双色调层必须用 <code>fill="currentColor" + opacity</code> 实现，禁止写死色值，
+            确保主题色与深色模式自动适配。
+          </li>
+          <li>
+            头像保持无底色：资源默认头像直接裸露呈现图形，不加暖金/渐变底块；如需容器只允许 1px 描边或
+            hover 时 8% 品牌蓝光环，避免误伤占位头像与聊天角色状态。
+          </li>
+          <li>
+            命名建议 <code>icon-{type}-{variant}</code>（如 <code>icon-agent-v2</code>）；替换后对 Dashboard、
+            应用轨、工作流节点坞等高曝光面做一轮截图 QA。</li>
+        </ol>
+      </div>
+    </div>
+  </body>
+</html>

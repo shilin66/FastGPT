@@ -17,6 +17,7 @@ import { getTmbInfoByTmbId } from '../../user/team/controller';
 import { parseHeaderCert } from '../auth/common';
 import { getTmbPermission } from '../controller';
 import { sumPer } from '@fastgpt/global/support/permission/utils';
+import { assertTeamWritable } from '../../user/team/status';
 
 export type AuthSkillResponse = AuthResponseType<SkillPermission> & {
   skill: AgentSkillSchemaType & { permission: SkillPermission };
@@ -52,6 +53,8 @@ export const authSkillByTmbId = async ({
     if (!skill) {
       return Promise.reject(SkillErrEnum.unExist);
     }
+
+    await assertTeamWritable(teamId, per);
 
     if (isRoot) {
       return {

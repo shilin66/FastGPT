@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>方案 C - 节点坞、连线与参数配置预览</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      body {
+        background:
+          linear-gradient(rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+          #edf3fb;
+        background-size: 28px 28px;
+      }
+
+      .preview-page {
+        min-width: 1260px;
+        padding: 28px;
+      }
+
+      .preview-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        max-width: 1440px;
+        margin: 0 auto 18px;
+      }
+
+      .preview-head h1 {
+        margin: 8px 0 8px;
+        font-size: 30px;
+        line-height: 1.16;
+      }
+
+      .preview-head p {
+        max-width: 780px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .jump-links {
+        display: flex;
+        gap: 10px;
+      }
+
+      .mockup {
+        max-width: 1440px;
+        margin: 18px auto 30px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.1);
+      }
+
+      .mockup-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        height: 68px;
+        padding: 0 20px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(248, 250, 252, 0.92);
+      }
+
+      .mockup-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .mockup-title h2,
+      .mockup-title p {
+        margin: 0;
+      }
+
+      .mockup-title h2 {
+        font-size: 18px;
+      }
+
+      .mockup-title p {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .stage {
+        position: relative;
+        height: 730px;
+        background:
+          linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+          linear-gradient(rgba(37, 99, 235, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.035) 1px, transparent 1px),
+          #f8fbff;
+        background-size:
+          80px 80px,
+          80px 80px,
+          16px 16px,
+          16px 16px;
+      }
+
+      .palette {
+        position: absolute;
+        z-index: 4;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(16px);
+      }
+
+      .palette-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 14px 10px;
+      }
+
+      .palette-head strong {
+        font-size: 13px;
+      }
+
+      .palette-head span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .search-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 36px;
+        margin: 0 14px 12px;
+        padding: 0 11px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 12px;
+        color: var(--muted);
+        background: #f8fafc;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .node-group {
+        padding: 0 10px 12px;
+      }
+
+      .group-label {
+        margin: 10px 4px 8px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .node-tool {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        min-height: 48px;
+        margin-bottom: 8px;
+        padding: 8px 9px;
+        border: 1px solid rgba(37, 99, 235, 0.12);
+        border-radius: 14px;
+        background: white;
+      }
+
+      .node-tool strong,
+      .node-tool small {
+        display: block;
+      }
+
+      .node-tool strong {
+        font-size: 12px;
+      }
+
+      .node-tool small {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .tool-code {
+        color: var(--soft);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .tool-icon {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        border-radius: 11px;
+        color: white;
+        background: linear-gradient(135deg, var(--blue), var(--navy));
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .tool-icon.soft {
+        color: var(--blue);
+        background: rgba(37, 99, 235, 0.1);
+        box-shadow: none;
+      }
+
+      .flow-node {
+        position: absolute;
+        z-index: 2;
+        width: 224px;
+        min-height: 116px;
+        padding: 15px;
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+      }
+
+      .flow-node.active {
+        border-color: rgba(37, 99, 235, 0.72);
+        box-shadow:
+          0 22px 54px rgba(37, 99, 235, 0.18),
+          0 0 0 4px rgba(37, 99, 235, 0.08);
+      }
+
+      .flow-node h3,
+      .flow-node p {
+        margin: 0;
+      }
+
+      .flow-node h3 {
+        font-size: 15px;
+      }
+
+      .flow-node p {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .node-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .node-tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .node-tag {
+        display: inline-flex;
+        height: 24px;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0 9px;
+        color: var(--blue);
+        background: rgba(37, 99, 235, 0.08);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .port {
+        position: absolute;
+        z-index: 5;
+        width: 12px;
+        height: 12px;
+        border: 3px solid white;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.5);
+      }
+
+      .port.in {
+        top: 52px;
+        left: -7px;
+      }
+
+      .port.out {
+        top: 52px;
+        right: -7px;
+      }
+
+      .connector-svg {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      .edge {
+        fill: none;
+        stroke: rgba(37, 99, 235, 0.46);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2.5;
+      }
+
+      .edge.ghost {
+        stroke: rgba(37, 99, 235, 0.13);
+        stroke-width: 8;
+      }
+
+      .edge.active {
+        stroke: var(--blue);
+        stroke-width: 3.5;
+        stroke-dasharray: 12 10;
+        animation: dash 1.8s linear infinite;
+      }
+
+      @keyframes dash {
+        to {
+          stroke-dashoffset: -44;
+        }
+      }
+
+      .inspector-panel {
+        position: absolute;
+        z-index: 4;
+        width: 374px;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 24px 64px rgba(15, 23, 42, 0.12);
+        backdrop-filter: blur(18px);
+      }
+
+      .inspector-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 16px 13px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.96));
+      }
+
+      .inspector-head h3,
+      .inspector-head p {
+        margin: 0;
+      }
+
+      .inspector-head h3 {
+        font-size: 16px;
+      }
+
+      .inspector-head p {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .inspector-body {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .seg-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 13px;
+        background: #f8fafc;
+      }
+
+      .seg-tabs span {
+        display: grid;
+        height: 32px;
+        place-items: center;
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .seg-tabs .active {
+        color: white;
+        background: var(--blue);
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+      }
+
+      .config-field {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+        background: white;
+      }
+
+      .config-field label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .fake-control {
+        min-height: 38px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 11px;
+        background:
+          linear-gradient(90deg, rgba(37, 99, 235, 0.08), transparent 42%),
+          #f8fafc;
+      }
+
+      .fake-control.tall {
+        min-height: 84px;
+      }
+
+      .hint-box {
+        padding: 12px;
+        border: 1px dashed rgba(37, 99, 235, 0.28);
+        border-radius: 14px;
+        color: var(--muted);
+        background: rgba(37, 99, 235, 0.05);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .option-a .palette {
+        top: 26px;
+        left: 26px;
+        width: 286px;
+      }
+
+      .option-a .inspector-panel {
+        top: 26px;
+        right: 26px;
+      }
+
+      .option-a .n1 {
+        top: 165px;
+        left: 390px;
+      }
+
+      .option-a .n2 {
+        top: 104px;
+        left: 690px;
+      }
+
+      .option-a .n3 {
+        top: 300px;
+        left: 690px;
+      }
+
+      .option-a .n4 {
+        top: 205px;
+        left: 990px;
+      }
+
+      .rail-mini {
+        position: absolute;
+        top: 28px;
+        left: 28px;
+        z-index: 5;
+        display: grid;
+        gap: 9px;
+        width: 58px;
+        padding: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+      }
+
+      .rail-mini span {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 13px;
+        color: var(--blue);
+        background: rgba(37, 99, 235, 0.08);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .rail-mini span.active {
+        color: white;
+        background: var(--blue);
+        box-shadow: 0 12px 26px rgba(37, 99, 235, 0.2);
+      }
+
+      .floating-library {
+        position: absolute;
+        top: 28px;
+        left: 98px;
+        z-index: 4;
+        width: 248px;
+        padding: 12px;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+      }
+
+      .option-b .inspector-panel {
+        right: 28px;
+        bottom: 28px;
+        width: 430px;
+      }
+
+      .option-b .n1 {
+        top: 155px;
+        left: 420px;
+      }
+
+      .option-b .n2 {
+        top: 155px;
+        left: 690px;
+      }
+
+      .option-b .n3 {
+        top: 340px;
+        left: 690px;
+      }
+
+      .option-b .n4 {
+        top: 250px;
+        left: 980px;
+      }
+
+      .option-c-layout {
+        display: grid;
+        grid-template-columns: 70px 1fr 440px;
+        height: 730px;
+      }
+
+      .option-c-layout .rail-mini {
+        position: static;
+        width: auto;
+        height: 100%;
+        border-width: 0 1px 0 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .option-c-canvas {
+        position: relative;
+      }
+
+      .option-c-canvas .n1 {
+        top: 150px;
+        left: 94px;
+      }
+
+      .option-c-canvas .n2 {
+        top: 100px;
+        left: 370px;
+      }
+
+      .option-c-canvas .n3 {
+        top: 306px;
+        left: 370px;
+      }
+
+      .option-c-canvas .n4 {
+        top: 203px;
+        left: 646px;
+      }
+
+      .option-c-inspector {
+        border-left: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .option-c-inspector .inspector-panel {
+        position: static;
+        width: auto;
+        height: 100%;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .metrics-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .metric {
+        padding: 11px;
+        border: 1px solid rgba(37, 99, 235, 0.14);
+        border-radius: 13px;
+        background: #f8fafc;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 16px;
+      }
+
+      .compact-bottom {
+        position: absolute;
+        right: 26px;
+        bottom: 26px;
+        left: 26px;
+        z-index: 4;
+        display: grid;
+        grid-template-columns: 220px 1fr 180px;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="preview-page">
+      <header class="preview-head">
+        <div>
+          <span class="index-badge">Blueprint Console Detail</span>
+          <h1>节点坞、连线和节点参数配置预览</h1>
+          <p>
+            当前节点坞乱，是因为缺少固定容器、分组、搜索和按钮密度控制。下面三套方案都延续方案 C 的高饱和蓝，
+            同时分别探索“节点库效率”“连线可读性”“参数检查器”三个重心。
+          </p>
+        </div>
+        <nav class="jump-links">
+          <a class="btn" href="#option-a">方案 A</a>
+          <a class="btn" href="#option-b">方案 B</a>
+          <a class="btn primary" href="#option-c">方案 C</a>
+        </nav>
+      </header>
+
+      <section id="option-a" class="mockup option-a">
+        <header class="mockup-bar">
+          <div class="mockup-title">
+            <span class="brand-mark">A</span>
+            <div>
+              <h2>方案 A：紧凑节点库 + 贝塞尔连线</h2>
+              <p>适合节点类型多、需要频繁拖拽新增节点的工作流编辑。</p>
+            </div>
+          </div>
+          <div class="top-actions">
+            <span class="btn">自动排布</span>
+            <span class="btn primary">运行调试</span>
+          </div>
+        </header>
+        <div class="stage">
+          <aside class="palette">
+            <div class="palette-head">
+              <strong>节点坞</strong>
+              <span>拖拽到画布</span>
+            </div>
+            <div class="search-box">
+              <span>搜索节点、工具、变量</span>
+              <span>/</span>
+            </div>
+            <div class="node-group">
+              <div class="group-label">核心节点</div>
+              <div class="node-tool">
+                <span class="tool-icon">AI</span>
+                <span><strong>AI 对话</strong><small>模型、提示词、上下文</small></span>
+                <span class="tool-code">A</span>
+              </div>
+              <div class="node-tool">
+                <span class="tool-icon">KB</span>
+                <span><strong>知识库检索</strong><small>数据集、Top K、引用</small></span>
+                <span class="tool-code">K</span>
+              </div>
+              <div class="node-tool">
+                <span class="tool-icon">IF</span>
+                <span><strong>条件分支</strong><small>规则判断、兜底路径</small></span>
+                <span class="tool-code">C</span>
+              </div>
+              <div class="group-label">集成节点</div>
+              <div class="node-tool">
+                <span class="tool-icon soft">API</span>
+                <span><strong>HTTP 工具</strong><small>接口请求与参数映射</small></span>
+                <span class="tool-code">H</span>
+              </div>
+              <div class="node-tool">
+                <span class="tool-icon soft">MCP</span>
+                <span><strong>MCP 工具</strong><small>远程工具与服务调用</small></span>
+                <span class="tool-code">M</span>
+              </div>
+            </div>
+          </aside>
+
+          <svg class="connector-svg" viewBox="0 0 1440 730" aria-hidden="true">
+            <defs>
+              <marker id="arrow-a" markerHeight="10" markerWidth="10" orient="auto" refX="8" refY="5">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#2563eb"></path>
+              </marker>
+            </defs>
+            <path class="edge ghost" d="M614 223 C664 223 656 163 690 163"></path>
+            <path class="edge active" marker-end="url(#arrow-a)" d="M614 223 C664 223 656 163 690 163"></path>
+            <path class="edge" marker-end="url(#arrow-a)" d="M614 223 C662 223 652 356 690 356"></path>
+            <path class="edge" marker-end="url(#arrow-a)" d="M914 163 C956 163 942 262 990 262"></path>
+            <path class="edge" marker-end="url(#arrow-a)" d="M914 356 C956 356 942 262 990 262"></path>
+          </svg>
+
+          <article class="flow-node n1">
+            <span class="port out"></span>
+            <div class="node-top"><span class="tool-icon soft">IN</span><h3>开始节点</h3></div>
+            <p>用户输入、附件、会话变量进入工作流。</p>
+            <div class="node-tag-row"><span class="node-tag">Trigger</span></div>
+          </article>
+          <article class="flow-node active n2">
+            <span class="port in"></span><span class="port out"></span>
+            <div class="node-top"><span class="tool-icon">KB</span><h3>知识库检索</h3></div>
+            <p>命中产品知识库与售后策略。</p>
+            <div class="node-tag-row"><span class="node-tag">Running</span><span class="node-tag">87%</span></div>
+          </article>
+          <article class="flow-node n3">
+            <span class="port in"></span><span class="port out"></span>
+            <div class="node-top"><span class="tool-icon">MCP</span><h3>MCP 工具</h3></div>
+            <p>查询订单、库存和物流状态。</p>
+            <div class="node-tag-row"><span class="node-tag">Waiting</span></div>
+          </article>
+          <article class="flow-node n4">
+            <span class="port in"></span>
+            <div class="node-top"><span class="tool-icon soft">AI</span><h3>最终回复</h3></div>
+            <p>输出带引用、带下一步建议的回复。</p>
+            <div class="node-tag-row"><span class="node-tag">Answer</span></div>
+          </article>
+
+          <aside class="inspector-panel">
+            <header class="inspector-head">
+              <div>
+                <h3>节点参数：知识库检索</h3>
+                <p>右侧检查器承载配置，避免弹窗遮挡画布。</p>
+              </div>
+              <span class="badge">已选中</span>
+            </header>
+            <div class="inspector-body">
+              <div class="seg-tabs"><span class="active">基础</span><span>召回</span><span>输出</span></div>
+              <div class="config-field"><label>知识库范围</label><div class="fake-control"></div></div>
+              <div class="config-field"><label>检索问题</label><div class="fake-control tall"></div></div>
+              <div class="metrics-row">
+                <div class="metric"><span>Top K</span><strong>8</strong></div>
+                <div class="metric"><span>阈值</span><strong>0.62</strong></div>
+                <div class="metric"><span>引用</span><strong>开</strong></div>
+              </div>
+              <div class="hint-box">建议把“未命中知识库”直接连到兜底回复，避免调试时误判工具节点失败。</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="option-b" class="mockup option-b">
+        <header class="mockup-bar">
+          <div class="mockup-title">
+            <span class="brand-mark">B</span>
+            <div>
+              <h2>方案 B：窄图标栏 + 正交连线</h2>
+              <p>把节点坞收成左侧工具条，连线走直角路径，更像工程蓝图。</p>
+            </div>
+          </div>
+          <div class="top-actions">
+            <span class="btn">显示端口</span>
+            <span class="btn primary">运行当前链路</span>
+          </div>
+        </header>
+        <div class="stage">
+          <aside class="rail-mini">
+            <span class="active">AI</span>
+            <span>KB</span>
+            <span>API</span>
+            <span>IF</span>
+            <span>MCP</span>
+          </aside>
+          <aside class="floating-library">
+            <div class="palette-head" style="padding: 2px 2px 10px">
+              <strong>AI 与知识节点</strong>
+              <span>5 个</span>
+            </div>
+            <div class="node-tool">
+              <span class="tool-icon">AI</span>
+              <span><strong>AI 对话</strong><small>生成回复</small></span>
+              <span class="tool-code">A</span>
+            </div>
+            <div class="node-tool">
+              <span class="tool-icon">KB</span>
+              <span><strong>知识库检索</strong><small>引用知识片段</small></span>
+              <span class="tool-code">K</span>
+            </div>
+            <div class="node-tool">
+              <span class="tool-icon soft">SUM</span>
+              <span><strong>文本总结</strong><small>压缩上下文</small></span>
+              <span class="tool-code">S</span>
+            </div>
+          </aside>
+
+          <svg class="connector-svg" viewBox="0 0 1440 730" aria-hidden="true">
+            <defs>
+              <marker id="arrow-b" markerHeight="10" markerWidth="10" orient="auto" refX="8" refY="5">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#2563eb"></path>
+              </marker>
+            </defs>
+            <path class="edge ghost" d="M644 213 H668 V213 H690"></path>
+            <path class="edge active" marker-end="url(#arrow-b)" d="M644 213 H668 V213 H690"></path>
+            <path class="edge" marker-end="url(#arrow-b)" d="M644 213 H668 V398 H690"></path>
+            <path class="edge" marker-end="url(#arrow-b)" d="M914 213 H948 V308 H980"></path>
+            <path class="edge" marker-end="url(#arrow-b)" d="M914 398 H948 V308 H980"></path>
+          </svg>
+
+          <article class="flow-node n1">
+            <span class="port out"></span>
+            <div class="node-top"><span class="tool-icon soft">IN</span><h3>开始节点</h3></div>
+            <p>输入标准化和变量预处理。</p>
+            <div class="node-tag-row"><span class="node-tag">Start</span></div>
+          </article>
+          <article class="flow-node active n2">
+            <span class="port in"></span><span class="port out"></span>
+            <div class="node-top"><span class="tool-icon">KB</span><h3>知识库检索</h3></div>
+            <p>当前运行路径，高亮主链路。</p>
+            <div class="node-tag-row"><span class="node-tag">1.84s</span><span class="node-tag">3 hits</span></div>
+          </article>
+          <article class="flow-node n3">
+            <span class="port in"></span><span class="port out"></span>
+            <div class="node-top"><span class="tool-icon">API</span><h3>HTTP 工具</h3></div>
+            <p>分支路径保持低对比度，降低干扰。</p>
+            <div class="node-tag-row"><span class="node-tag">Branch</span></div>
+          </article>
+          <article class="flow-node n4">
+            <span class="port in"></span>
+            <div class="node-top"><span class="tool-icon soft">AI</span><h3>回复生成</h3></div>
+            <p>聚合引用、工具结果和兜底建议。</p>
+            <div class="node-tag-row"><span class="node-tag">Final</span></div>
+          </article>
+
+          <aside class="inspector-panel">
+            <header class="inspector-head">
+              <div>
+                <h3>参数面板：抽屉式</h3>
+                <p>底部右侧展开，适合画布可视区域优先。</p>
+              </div>
+              <span class="badge">可拖拽高度</span>
+            </header>
+            <div class="inspector-body">
+              <div class="seg-tabs"><span>变量</span><span class="active">参数</span><span>测试</span></div>
+              <div class="config-field"><label>输出变量名</label><div class="fake-control"></div></div>
+              <div class="config-field"><label>命中后处理</label><div class="fake-control tall"></div></div>
+              <div class="hint-box">适合复杂工作流：画布主视图保持干净，选中节点才展开参数抽屉。</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="option-c" class="mockup option-c">
+        <header class="mockup-bar">
+          <div class="mockup-title">
+            <span class="brand-mark">C</span>
+            <div>
+              <h2>方案 C：固定检查器 + 链路端口</h2>
+              <p>推荐方向：左侧只保留节点类型图标，右侧固定参数检查器，适合长期配置和调试。</p>
+            </div>
+          </div>
+          <div class="top-actions">
+            <span class="btn">展开节点坞</span>
+            <span class="btn primary">保存配置</span>
+          </div>
+        </header>
+        <div class="option-c-layout">
+          <aside class="rail-mini">
+            <span class="active">AI</span>
+            <span>KB</span>
+            <span>IF</span>
+            <span>API</span>
+            <span>MCP</span>
+            <span>VAR</span>
+          </aside>
+          <section class="stage option-c-canvas">
+            <svg class="connector-svg" viewBox="0 0 930 730" aria-hidden="true">
+              <defs>
+                <marker id="arrow-c" markerHeight="10" markerWidth="10" orient="auto" refX="8" refY="5">
+                  <path d="M0,0 L10,5 L0,10 Z" fill="#2563eb"></path>
+                </marker>
+              </defs>
+              <path class="edge ghost" d="M318 208 C360 208 338 158 370 158"></path>
+              <path class="edge active" marker-end="url(#arrow-c)" d="M318 208 C360 208 338 158 370 158"></path>
+              <path class="edge" marker-end="url(#arrow-c)" d="M318 208 C360 208 338 364 370 364"></path>
+              <path class="edge" marker-end="url(#arrow-c)" d="M594 158 C632 158 608 261 646 261"></path>
+              <path class="edge" marker-end="url(#arrow-c)" d="M594 364 C632 364 608 261 646 261"></path>
+            </svg>
+
+            <article class="flow-node n1">
+              <span class="port out"></span>
+              <div class="node-top"><span class="tool-icon soft">IN</span><h3>开始节点</h3></div>
+              <p>接收用户问题和会话上下文。</p>
+              <div class="node-tag-row"><span class="node-tag">Input</span></div>
+            </article>
+            <article class="flow-node active n2">
+              <span class="port in"></span><span class="port out"></span>
+              <div class="node-top"><span class="tool-icon">KB</span><h3>知识库检索</h3></div>
+              <p>配置范围、召回策略和引用格式。</p>
+              <div class="node-tag-row"><span class="node-tag">Selected</span><span class="node-tag">3 datasets</span></div>
+            </article>
+            <article class="flow-node n3">
+              <span class="port in"></span><span class="port out"></span>
+              <div class="node-top"><span class="tool-icon">MCP</span><h3>MCP 工具</h3></div>
+              <p>订单、库存、物流查询。</p>
+              <div class="node-tag-row"><span class="node-tag">Optional</span></div>
+            </article>
+            <article class="flow-node n4">
+              <span class="port in"></span>
+              <div class="node-top"><span class="tool-icon soft">AI</span><h3>最终回复</h3></div>
+              <p>综合知识引用与工具结果。</p>
+              <div class="node-tag-row"><span class="node-tag">Output</span></div>
+            </article>
+            <footer class="compact-bottom">
+              <div class="config-field"><label>当前链路</label><strong>开始 → 知识库 → 回复</strong></div>
+              <div class="config-field"><label>快速调试输入</label><div class="fake-control"></div></div>
+              <a class="btn primary" style="height: auto" href="./option-c-debug-chat.html">运行</a>
+            </footer>
+          </section>
+          <aside class="option-c-inspector">
+            <section class="inspector-panel">
+              <header class="inspector-head">
+                <div>
+                  <h3>知识库检索</h3>
+                  <p>节点参数、问题提示、测试样例统一在检查器内完成。</p>
+                </div>
+                <span class="badge">KB</span>
+              </header>
+              <div class="inspector-body">
+                <div class="seg-tabs"><span class="active">配置</span><span>输入</span><span>输出</span></div>
+                <div class="metrics-row">
+                  <div class="metric"><span>数据集</span><strong>3</strong></div>
+                  <div class="metric"><span>Top K</span><strong>8</strong></div>
+                  <div class="metric"><span>阈值</span><strong>0.62</strong></div>
+                </div>
+                <div class="config-field"><label>知识库选择</label><div class="fake-control"></div></div>
+                <div class="config-field"><label>检索问题模板</label><div class="fake-control tall"></div></div>
+                <div class="config-field"><label>引用格式</label><div class="fake-control"></div></div>
+                <div class="hint-box">
+                  参数配置页建议采用固定检查器：切节点不丢上下文，调试时不用频繁打开弹窗，后续也容易承接“展开检查器”的拖拽宽度能力。
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

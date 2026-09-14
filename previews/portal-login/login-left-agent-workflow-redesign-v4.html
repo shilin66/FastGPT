@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>登录页左侧重设计 · Agentic × Workflow 第四轮</title>
+    <style>
+      :root {
+        --graphite-950: #172033;
+        --graphite-900: #1f2a3a;
+        --graphite-800: #27364a;
+        --graphite-700: #31445e;
+        --blue: #2563eb;
+        --blue-light: #8eb1ff;
+        --gold: #c69b4a;
+        --green: #43ca40;
+        --page: #e7edf5;
+        --surface: #ffffff;
+        --border: #dfe5ee;
+        --ink: #1f2937;
+        --muted: #667085;
+        --font: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--page);
+        font-family: var(--font);
+      }
+
+      .preview-bar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: minmax(340px, 1fr) auto minmax(280px, 1fr);
+        align-items: center;
+        gap: 24px;
+        min-height: 76px;
+        padding: 12px 24px;
+        background: rgba(255, 255, 255, 0.96);
+        border-bottom: 1px solid #ccd6e3;
+        backdrop-filter: blur(14px);
+      }
+      .preview-title strong {
+        display: block;
+        font-size: 17px;
+      }
+      .preview-title span,
+      .preview-note {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .preview-note {
+        text-align: right;
+      }
+      .scheme-nav {
+        display: flex;
+        gap: 8px;
+      }
+      .scheme-nav a {
+        padding: 8px 13px;
+        color: var(--ink);
+        background: #f5f7fa;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 650;
+        text-decoration: none;
+      }
+      .scheme-nav a:hover {
+        color: #1d4ed8;
+        background: #dbeafe;
+        border-color: #bfdbfe;
+      }
+
+      .option {
+        padding: 34px 24px 54px;
+      }
+      .option + .option {
+        border-top: 1px solid #d3dce8;
+      }
+      .option-head {
+        width: min(1180px, 100%);
+        margin: 0 auto 16px;
+      }
+      .option-head h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .option-head p {
+        max-width: 760px;
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .tag {
+        display: inline-flex;
+        margin-left: 8px;
+        padding: 3px 9px;
+        color: #1d4ed8;
+        background: #dbeafe;
+        border-radius: 999px;
+        vertical-align: 3px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .login-preview {
+        display: grid;
+        grid-template-columns: 1.12fr 0.88fr;
+        width: min(1180px, 100%);
+        min-height: 660px;
+        margin: 0 auto;
+        overflow: hidden;
+        background: var(--surface);
+        border: 1px solid #ccd6e3;
+        border-radius: 18px;
+        box-shadow: 0 28px 64px -46px rgba(23, 32, 51, 0.62);
+      }
+
+      .brand-panel {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+        padding: 64px 62px;
+        overflow: hidden;
+        color: #fff;
+        background: linear-gradient(
+          150deg,
+          var(--graphite-900),
+          var(--graphite-800) 55%,
+          var(--graphite-700)
+        );
+      }
+      .brand-panel::before {
+        content: '';
+        position: absolute;
+        top: -230px;
+        right: -190px;
+        width: 520px;
+        height: 520px;
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.36), transparent 68%);
+        border-radius: 50%;
+      }
+      .brand-panel::after {
+        content: '';
+        position: absolute;
+        left: -150px;
+        bottom: -220px;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(198, 155, 74, 0.15), transparent 68%);
+        border-radius: 50%;
+      }
+      .brand-content {
+        position: relative;
+        z-index: 1;
+      }
+      .eyebrow {
+        color: var(--blue-light);
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: 0.15em;
+      }
+      .brand-name {
+        margin-top: 13px;
+        font-size: 38px;
+        font-weight: 820;
+        letter-spacing: -0.025em;
+      }
+      .brand-copy {
+        margin: 12px 0 0;
+        color: rgba(255, 255, 255, 0.66);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .visual-cap {
+        margin-top: 32px;
+        color: rgba(255, 255, 255, 0.35);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.13em;
+      }
+
+      .login-side {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 54px;
+        background: linear-gradient(180deg, #fff, #f8fafc 62%, #dbeafe 135%);
+      }
+      .language {
+        position: absolute;
+        top: 24px;
+        right: 28px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .login-form {
+        width: 330px;
+      }
+      .logo-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        color: var(--blue);
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+      }
+      .logo svg {
+        width: 24px;
+        height: 24px;
+      }
+      .product-name {
+        font-size: 15px;
+        font-weight: 750;
+      }
+      .login-form h3 {
+        margin: 26px 0 0;
+        font-size: 25px;
+      }
+      .login-form > p {
+        margin: 8px 0 25px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .field {
+        margin-bottom: 13px;
+      }
+      .field label {
+        display: block;
+        margin-bottom: 6px;
+        color: #475467;
+        font-size: 11px;
+        font-weight: 650;
+      }
+      .input {
+        height: 44px;
+        padding: 0 13px;
+        color: #98a2b3;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        font-size: 12px;
+        line-height: 44px;
+      }
+      .login-button {
+        height: 44px;
+        margin-top: 5px;
+        color: #fff;
+        background: var(--graphite-800);
+        border-radius: 9px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 44px;
+      }
+      .login-links {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 13px;
+        color: #1d4ed8;
+        font-size: 11px;
+      }
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 22px 0 15px;
+        color: #98a2b3;
+        font-size: 10px;
+      }
+      .divider::before,
+      .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+      .oauth {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+      .oauth span {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        color: #667085;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        font-size: 11px;
+        font-weight: 750;
+      }
+
+      .visual-shell {
+        position: relative;
+        min-height: 238px;
+        margin-top: 12px;
+        padding: 18px;
+        background: rgba(12, 22, 36, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 16px;
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.055);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+      }
+      .spark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        color: var(--gold);
+        background: rgba(198, 155, 74, 0.13);
+        border: 1px solid rgba(198, 155, 74, 0.25);
+        border-radius: 10px;
+      }
+      .spark svg {
+        width: 18px;
+        height: 18px;
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 2px;
+      }
+
+      /* A · 双通道 */
+      .lane-visual {
+        display: grid;
+        grid-template-columns: 158px 1fr 190px;
+        gap: 14px;
+        align-items: center;
+        min-height: 200px;
+      }
+      .agent-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 150px;
+        border-color: rgba(198, 155, 74, 0.44);
+      }
+      .agent-card b,
+      .workflow-card b {
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 13px;
+      }
+      .agent-card span {
+        color: rgba(255, 255, 255, 0.38);
+        font-size: 9px;
+        letter-spacing: 0.08em;
+      }
+      .lane-lines {
+        display: flex;
+        height: 150px;
+        flex-direction: column;
+        justify-content: space-around;
+      }
+      .lane-line {
+        display: flex;
+        align-items: center;
+      }
+      .lane-line.reverse {
+        flex-direction: row-reverse;
+      }
+      .lane-line i {
+        flex: 1;
+        border-top: 1.5px solid rgba(198, 155, 74, 0.88);
+      }
+      .lane-line.reverse i {
+        border-top-style: dashed;
+      }
+      .lane-line em {
+        width: 0;
+        height: 0;
+        border-top: 4px solid transparent;
+        border-bottom: 4px solid transparent;
+        border-left: 7px solid var(--gold);
+      }
+      .lane-line.reverse em {
+        border-left: 0;
+        border-right: 7px solid var(--gold);
+      }
+      .lane-step {
+        align-self: center;
+        color: rgba(232, 206, 156, 0.48);
+        font-size: 8px;
+        letter-spacing: 0.1em;
+      }
+      .workflow-card {
+        padding: 13px;
+        border-color: rgba(142, 177, 255, 0.25);
+      }
+      .workflow-head {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .workflow-mark {
+        display: flex;
+        gap: 3px;
+      }
+      .workflow-mark i {
+        width: 4px;
+        height: 4px;
+        background: rgba(142, 177, 255, 0.48);
+        border-radius: 50%;
+      }
+      .workflow-mark i:nth-child(2) {
+        background: var(--blue-light);
+      }
+      .node-list {
+        display: grid;
+        gap: 7px;
+        margin-top: 11px;
+      }
+      .node {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 31px;
+        padding: 7px 9px;
+        color: rgba(255, 255, 255, 0.55);
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 7px;
+        font-size: 9.5px;
+      }
+
+      /* B · 核心轨道 */
+      .orbit-visual {
+        position: relative;
+        min-height: 250px;
+        overflow: hidden;
+      }
+      .orbit-visual > svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .agent-core {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        display: flex;
+        width: 126px;
+        height: 126px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transform: translate(-50%, -50%);
+        border-color: rgba(198, 155, 74, 0.44);
+        border-radius: 50%;
+        box-shadow: 0 0 42px rgba(198, 155, 74, 0.09);
+      }
+      .agent-core b {
+        font-size: 13px;
+      }
+      .orbit-node {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 10px;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 9px;
+      }
+      .orbit-node.n1 {
+        left: 24px;
+        top: 28px;
+      }
+      .orbit-node.n2 {
+        right: 20px;
+        top: 40px;
+      }
+      .orbit-node.n3 {
+        right: 28px;
+        bottom: 25px;
+      }
+      .orbit-node.n4 {
+        left: 22px;
+        bottom: 38px;
+      }
+      .orbit-label {
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        color: rgba(142, 177, 255, 0.42);
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: 0.13em;
+        transform: rotate(90deg) translateY(-50%);
+      }
+
+      /* C · 编织路径 */
+      .weave-visual {
+        position: relative;
+        min-height: 240px;
+      }
+      .weave-visual > svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .track-title {
+        position: absolute;
+        top: 7px;
+        color: rgba(255, 255, 255, 0.52);
+        font-size: 9px;
+        font-weight: 750;
+        letter-spacing: 0.09em;
+      }
+      .track-title.agent {
+        left: 54px;
+      }
+      .track-title.flow {
+        right: 53px;
+      }
+      .track-card {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 10px;
+        color: rgba(255, 255, 255, 0.63);
+        font-size: 9px;
+      }
+      .track-card.agent {
+        left: 18px;
+        width: 150px;
+        border-color: rgba(198, 155, 74, 0.32);
+      }
+      .track-card.flow {
+        right: 18px;
+        width: 166px;
+        border-color: rgba(142, 177, 255, 0.2);
+      }
+      .track-card.r1 {
+        top: 46px;
+      }
+      .track-card.r2 {
+        top: 104px;
+      }
+      .track-card.r3 {
+        top: 162px;
+      }
+      .port {
+        width: 6px;
+        height: 6px;
+        flex: none;
+        background: var(--gold);
+        border-radius: 50%;
+        box-shadow: 0 0 0 3px rgba(198, 155, 74, 0.09);
+      }
+      .flow .port {
+        background: var(--blue-light);
+        box-shadow: 0 0 0 3px rgba(142, 177, 255, 0.08);
+      }
+
+      @media (max-width: 900px) {
+        .preview-bar {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .preview-note {
+          display: none;
+        }
+        .login-preview {
+          grid-template-columns: 1fr;
+        }
+        .brand-panel {
+          display: none;
+        }
+        .login-side {
+          min-height: 660px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="preview-bar">
+      <div class="preview-title">
+        <strong>登录页左侧重设计 · 第四轮</strong>
+        <span>保留登录页的克制感：无案例、无结果叙事、无调用说明文案。</span>
+      </div>
+      <nav class="scheme-nav">
+        <a href="#lanes">A · 双通道</a>
+        <a href="#orbit">B · 核心轨道</a>
+        <a href="#weave">C · 编织路径</a>
+      </nav>
+      <div class="preview-note">
+        三套方案均放回完整登录页中比较<br />双向关系只由线条、箭头与端口表达
+      </div>
+    </header>
+
+    <section class="option" id="lanes">
+      <div class="option-head">
+        <h2>方案 A · 双通道 <span class="tag">Reciprocal Lanes</span></h2>
+        <p>
+          Agentic 与 Workflow
+          保持清晰的两个单元，以一实一虚的双向通道建立关系。最稳定、最克制，也最适合直接落地到当前登录页。
+        </p>
+      </div>
+      <div class="login-preview">
+        <aside class="brand-panel">
+          <div class="brand-content">
+            <div class="eyebrow">INTELLIGENT WORKSPACE</div>
+            <div class="brand-name">OmniCockpit</div>
+            <p class="brand-copy">让判断、执行与反馈自然衔接。</p>
+            <div class="visual-cap">AGENTIC / WORKFLOW</div>
+            <div class="visual-shell lane-visual">
+              <div class="agent-card card">
+                <span class="spark"
+                  ><svg viewBox="0 0 24 24">
+                    <path
+                      d="M12 2C13 8 16 11 22 12C16 13 13 16 12 22C11 16 8 13 2 12C8 11 11 8 12 2Z"
+                      fill="currentColor"
+                    /></svg
+                ></span>
+                <b>Agentic</b><span>REASONING</span>
+              </div>
+              <div class="lane-lines">
+                <span class="lane-step">01</span>
+                <div class="lane-line"><i></i><em></em></div>
+                <div class="lane-line reverse"><i></i><em></em></div>
+                <span class="lane-step">02</span>
+              </div>
+              <div class="workflow-card card">
+                <div class="workflow-head">
+                  <span class="workflow-mark"><i></i><i></i><i></i></span><b>Workflow</b>
+                </div>
+                <div class="node-list">
+                  <div class="node"><i class="dot" style="background: #0091ff"></i>Knowledge</div>
+                  <div class="node"><i class="dot" style="background: #43ca40"></i>Condition</div>
+                  <div class="node"><i class="dot" style="background: #7479ff"></i>Action</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+        <main class="login-side">
+          <span class="language">简体中文⌄</span>
+          <div class="login-form">
+            <div class="logo-row">
+              <span class="logo"
+                ><svg viewBox="0 0 24 24">
+                  <path
+                    d="M12 3L20 8V16L12 21L4 16V8L12 3Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                  />
+                  <path
+                    d="M8 10L12 7.5L16 10V14L12 16.5L8 14V10Z"
+                    fill="currentColor"
+                    opacity=".25"
+                  /></svg></span
+              ><span class="product-name">OmniCockpit</span>
+            </div>
+            <h3>欢迎回来</h3>
+            <p>登录以继续使用你的智能工作空间</p>
+            <div class="field">
+              <label>用户名</label>
+              <div class="input">请输入用户名</div>
+            </div>
+            <div class="field">
+              <label>密码</label>
+              <div class="input">请输入密码</div>
+            </div>
+            <div class="login-button">登录</div>
+            <div class="login-links"><span>注册账号</span><span>忘记密码？</span></div>
+            <div class="divider">其他登录方式</div>
+            <div class="oauth"><span>W</span><span>G</span></div>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <section class="option" id="orbit">
+      <div class="option-head">
+        <h2>方案 B · 核心轨道 <span class="tag">Shared Orbit</span></h2>
+        <p>
+          Agentic 位于中心，Workflow
+          节点在同一轨道上运行；两段反向弧线表现信息往返。更抽象、更具品牌识别度，文案最少。
+        </p>
+      </div>
+      <div class="login-preview">
+        <aside class="brand-panel">
+          <div class="brand-content">
+            <div class="eyebrow">INTELLIGENT WORKSPACE</div>
+            <div class="brand-name">OmniCockpit</div>
+            <p class="brand-copy">让智能能力在同一空间持续运转。</p>
+            <div class="visual-cap">AGENTIC / WORKFLOW</div>
+            <div class="visual-shell orbit-visual">
+              <svg viewBox="0 0 560 250" fill="none" aria-hidden="true">
+                <defs>
+                  <marker id="oa" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M1 1L7 4L1 7Z" fill="#C69B4A" />
+                  </marker>
+                  <marker id="ob" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M1 1L7 4L1 7Z" fill="#8EB1FF" />
+                  </marker>
+                </defs>
+                <ellipse
+                  cx="280"
+                  cy="125"
+                  rx="206"
+                  ry="91"
+                  stroke="rgba(142,177,255,.17)"
+                  stroke-dasharray="3 5"
+                />
+                <path
+                  d="M104 79C168 16 376 16 454 74"
+                  stroke="rgba(198,155,74,.82)"
+                  stroke-width="1.7"
+                  marker-end="url(#oa)"
+                />
+                <path
+                  d="M453 173C377 234 176 233 106 177"
+                  stroke="rgba(142,177,255,.72)"
+                  stroke-width="1.7"
+                  stroke-dasharray="5 5"
+                  marker-end="url(#ob)"
+                />
+              </svg>
+              <div class="agent-core card">
+                <span class="spark"
+                  ><svg viewBox="0 0 24 24">
+                    <path
+                      d="M12 2C13 8 16 11 22 12C16 13 13 16 12 22C11 16 8 13 2 12C8 11 11 8 12 2Z"
+                      fill="currentColor"
+                    /></svg></span
+                ><b>Agentic</b>
+              </div>
+              <div class="orbit-node n1 card">
+                <i class="dot" style="background: #0091ff"></i>Knowledge
+              </div>
+              <div class="orbit-node n2 card">
+                <i class="dot" style="background: #43ca40"></i>Condition
+              </div>
+              <div class="orbit-node n3 card">
+                <i class="dot" style="background: #7479ff"></i>Action
+              </div>
+              <div class="orbit-node n4 card">
+                <i class="dot" style="background: #5b7cfa"></i>Context
+              </div>
+              <span class="orbit-label">WORKFLOW</span>
+            </div>
+          </div>
+        </aside>
+        <main class="login-side">
+          <span class="language">简体中文⌄</span>
+          <div class="login-form">
+            <div class="logo-row">
+              <span class="logo"
+                ><svg viewBox="0 0 24 24">
+                  <path
+                    d="M12 3L20 8V16L12 21L4 16V8L12 3Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                  />
+                  <path
+                    d="M8 10L12 7.5L16 10V14L12 16.5L8 14V10Z"
+                    fill="currentColor"
+                    opacity=".25"
+                  /></svg></span
+              ><span class="product-name">OmniCockpit</span>
+            </div>
+            <h3>欢迎回来</h3>
+            <p>登录以继续使用你的智能工作空间</p>
+            <div class="field">
+              <label>用户名</label>
+              <div class="input">请输入用户名</div>
+            </div>
+            <div class="field">
+              <label>密码</label>
+              <div class="input">请输入密码</div>
+            </div>
+            <div class="login-button">登录</div>
+            <div class="login-links"><span>注册账号</span><span>忘记密码？</span></div>
+            <div class="divider">其他登录方式</div>
+            <div class="oauth"><span>W</span><span>G</span></div>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <section class="option" id="weave">
+      <div class="option-head">
+        <h2>方案 C · 编织路径 <span class="tag">Interwoven Paths</span></h2>
+        <p>
+          Agentic 与 Workflow
+          作为两条并行轨道，多条连接路径在不同节点交叉往返。更像真实编排画布，但仍保持登录页所需的低信息密度。
+        </p>
+      </div>
+      <div class="login-preview">
+        <aside class="brand-panel">
+          <div class="brand-content">
+            <div class="eyebrow">INTELLIGENT WORKSPACE</div>
+            <div class="brand-name">OmniCockpit</div>
+            <p class="brand-copy">让复杂能力彼此连接，保持顺畅。</p>
+            <div class="visual-cap">AGENTIC / WORKFLOW</div>
+            <div class="visual-shell weave-visual">
+              <svg viewBox="0 0 560 240" fill="none" aria-hidden="true">
+                <defs>
+                  <marker id="wa" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M1 1L7 4L1 7Z" fill="#C69B4A" />
+                  </marker>
+                  <marker id="wb" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M1 1L7 4L1 7Z" fill="#8EB1FF" />
+                  </marker>
+                </defs>
+                <line
+                  x1="94"
+                  y1="42"
+                  x2="94"
+                  y2="208"
+                  stroke="rgba(198,155,74,.24)"
+                  stroke-dasharray="3 5"
+                />
+                <line
+                  x1="466"
+                  y1="42"
+                  x2="466"
+                  y2="208"
+                  stroke="rgba(142,177,255,.22)"
+                  stroke-dasharray="3 5"
+                />
+                <path
+                  d="M168 66C254 66 302 122 390 122"
+                  stroke="rgba(198,155,74,.82)"
+                  stroke-width="1.7"
+                  marker-end="url(#wa)"
+                />
+                <path
+                  d="M390 180C300 180 251 122 168 122"
+                  stroke="rgba(142,177,255,.72)"
+                  stroke-width="1.7"
+                  stroke-dasharray="5 5"
+                  marker-end="url(#wb)"
+                />
+                <path
+                  d="M168 180C250 180 306 66 390 66"
+                  stroke="rgba(198,155,74,.55)"
+                  stroke-width="1.4"
+                  marker-end="url(#wa)"
+                />
+              </svg>
+              <span class="track-title agent">AGENTIC</span
+              ><span class="track-title flow">WORKFLOW</span>
+              <div class="track-card agent r1 card"><i class="port"></i>Reason</div>
+              <div class="track-card flow r1 card"><i class="port"></i>Knowledge</div>
+              <div class="track-card agent r2 card"><i class="port"></i>Decide</div>
+              <div class="track-card flow r2 card"><i class="port"></i>Condition</div>
+              <div class="track-card agent r3 card"><i class="port"></i>Adapt</div>
+              <div class="track-card flow r3 card"><i class="port"></i>Action</div>
+            </div>
+          </div>
+        </aside>
+        <main class="login-side">
+          <span class="language">简体中文⌄</span>
+          <div class="login-form">
+            <div class="logo-row">
+              <span class="logo"
+                ><svg viewBox="0 0 24 24">
+                  <path
+                    d="M12 3L20 8V16L12 21L4 16V8L12 3Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                  />
+                  <path
+                    d="M8 10L12 7.5L16 10V14L12 16.5L8 14V10Z"
+                    fill="currentColor"
+                    opacity=".25"
+                  /></svg></span
+              ><span class="product-name">OmniCockpit</span>
+            </div>
+            <h3>欢迎回来</h3>
+            <p>登录以继续使用你的智能工作空间</p>
+            <div class="field">
+              <label>用户名</label>
+              <div class="input">请输入用户名</div>
+            </div>
+            <div class="field">
+              <label>密码</label>
+              <div class="input">请输入密码</div>
+            </div>
+            <div class="login-button">登录</div>
+            <div class="login-links"><span>注册账号</span><span>忘记密码？</span></div>
+            <div class="divider">其他登录方式</div>
+            <div class="oauth"><span>W</span><span>G</span></div>
+          </div>
+        </main>
+      </div>
+    </section>
+  </body>
+</html>

@@ -1,7 +1,47 @@
 // Pure utility functions with minimal imports.
 // Kept separate so server.ts (tsx CJS mode) can import without triggering
 // the ESM-only @fastgpt-sdk/otel dependency chain.
-import { randomBytes } from 'crypto';
+import { randomBytes, timingSafeEqual } from 'crypto';
+import type { SkillSandboxEndpointType } from '@fastgpt/global/core/agentSkills/type';
+import type { IncomingHttpHeaders } from 'http';
+import { SANDBOX_PROXY_COOKIE } from '@fastgpt/global/core/ai/sandbox/proxy';
+
+export function stripFastGPTCredentials(headers: IncomingHttpHeaders): void {
+  delete headers.authorization;
+  delete headers.token;
+  delete headers.rootkey;
+  delete headers['proxy-authorization'];
+  delete headers['x-fastgpt-proxy-internal'];
+  if (headers.cookie) {
+    headers.cookie = headers.cookie
+      .split(';')
+      .map((cookie) => cookie.trim())
+      .filter((cookie) => !['fastgpt_token', SANDBOX_PROXY_COOKIE].includes(cookie.split('=')[0]))
+      .join('; ');
+    if (!headers.cookie) delete headers.cookie;
+  }
+}
+
+export function resolveSandboxProxyTarget(
+  endpoint: SkillSandboxEndpointType | undefined,
+  targetPort: number
+): string {
+  if (!Number.isInteger(targetPort) || targetPort < 1 || targetPort > 65535) {
+    throw Object.assign(new Error('Invalid port'), { statusCode: 400 });
+  }
+  if (!endpoint?.url) {
+    throw Object.assign(new Error('Sandbox endpoint unavailable'), { statusCode: 503 });
+  }
+
+  const target = new URL(endpoint.url);
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+    throw Object.assign(new Error('Invalid endpoint protocol'), { statusCode: 503 });
+  }
+  if (targetPort !== endpoint.port) {
+    throw Object.assign(new Error('Unsupported proxy port'), { statusCode: 400 });
+  }
+  return target.toString().replace(/\/$/, '');
+}
 
 // Parse subdomain proxy from Host header.
 // Formats: {port}--{sandboxId-with-hyphens}.{domain} or {port}-{sandboxId-alphanumeric}.{domain}
@@ -13,8 +53,8 @@ export function parseSubdomainProxy(
   const hostname = host.split(':')[0];
 
   // New format: {port}--{sandboxId-with-hyphens}.{domain}
-  // sandboxId: starts/ends with alnum, may contain hyphens, 8–36 chars
-  let match = hostname.match(/^(\d+)--([a-zA-Z0-9][a-zA-Z0-9-]{6,34}[a-zA-Z0-9])\./);
+  // sandboxId: starts/ends with alnum, may contain hyphens, 8–64 chars.
+  let match = hostname.match(/^(\d+)--([a-zA-Z0-9][a-zA-Z0-9-]{6,62}[a-zA-Z0-9])\./);
   if (!match) {
     // Legacy format: {port}-{sandboxId-alphanumeric}.{domain}
     match = hostname.match(/^(\d+)-([a-zA-Z0-9]{8,32})\./);
@@ -26,196 +66,235 @@ export function parseSubdomainProxy(
   return { port, sandboxId: match[2] };
 }
 
-// In-process relay token store for cross-domain proxy cookie hand-off.
-// Uses globalThis so the Map is shared between server.ts (dynamic import) and
-// Next.js API routes (webpack bundle) running in the same Node.js process.
-const _relayStore = (): Map<string, { fastgptToken: string; exp: number }> => {
-  const g = globalThis as any;
-  if (!g.__proxyRelayStore) g.__proxyRelayStore = new Map();
-  return g.__proxyRelayStore;
-};
+type ProxyOriginInput = { sandboxId: string; targetPort: number; host?: string; next?: string };
 
-// Create a one-time relay token (60 s TTL).
-// The token is an opaque nonce; the actual fastgptToken is stored server-side.
-export function createRelayToken(fastgptToken: string): string {
-  const store = _relayStore();
-  const nonce = randomBytes(16).toString('hex');
-  store.set(nonce, { fastgptToken, exp: Date.now() + 60_000 });
-  // Prune expired entries on each write
-  for (const [k, v] of store) if (v.exp < Date.now()) store.delete(k);
-  return nonce;
+export function getSandboxProxyContentSecurityPolicy(appOrigin: string): string {
+  return `frame-ancestors 'self' ${appOrigin}; object-src 'none'; base-uri 'self'`;
 }
 
-// Redeem a relay token (one-time use). Returns fastgptToken or null if not found / expired.
-export function redeemRelayToken(nonce: string): string | null {
-  const store = _relayStore();
-  const entry = store.get(nonce);
-  if (!entry || entry.exp < Date.now()) {
-    store.delete(nonce);
-    return null;
+export function getSandboxProxyOrigins({ sandboxId, targetPort, host }: ProxyOriginInput) {
+  const configuredApp = process.env.AGENT_SANDBOX_PROXY_APP_ORIGIN?.trim() || undefined;
+  const configuredProxy = process.env.AGENT_SANDBOX_PROXY_BASE_URL?.trim() || undefined;
+  const localHost = `localhost:${process.env.PORT ?? '3000'}`;
+  const isLocal =
+    process.env.NODE_ENV !== 'production' &&
+    [localHost, `${targetPort}--${sandboxId}.${localHost}`].includes(host ?? '');
+  if ((!configuredApp || !configuredProxy) && !isLocal) {
+    throw Object.assign(new Error('Proxy origin configuration required'), { statusCode: 503 });
   }
-  store.delete(nonce);
-  return entry.fastgptToken;
+  const app = new URL(configuredApp ?? `http://${localHost}`);
+  const preview = new URL(configuredProxy ?? `http://${localHost}`);
+  if (
+    app.username ||
+    app.password ||
+    app.pathname !== '/' ||
+    app.search ||
+    app.hash ||
+    preview.username ||
+    preview.password ||
+    preview.pathname !== '/' ||
+    preview.search ||
+    preview.hash ||
+    (!isLocal && (app.protocol !== 'https:' || preview.protocol !== 'https:')) ||
+    !['http:', 'https:'].includes(app.protocol) ||
+    !['http:', 'https:'].includes(preview.protocol)
+  )
+    throw Object.assign(new Error('Invalid proxy origin configuration'), { statusCode: 503 });
+  const label = `${targetPort}--${sandboxId}`;
+  if (label.length > 63)
+    throw Object.assign(new Error('Invalid sandbox hostname'), { statusCode: 400 });
+  preview.hostname = `${label}.${preview.hostname}`;
+  if (preview.origin === app.origin)
+    throw Object.assign(new Error('Proxy requires an independent origin'), { statusCode: 503 });
+  return { appOrigin: app.origin, audience: preview.origin };
 }
 
-// Proxy session store — keyed by sandboxId.
-// Populated on first cookie-authenticated request so that subsequent requests
-// from a sandboxed iframe (opaque origin, no cookies) are still authorised.
-// TTL is refreshed on every access; idle sessions expire after 2 hours.
-const PROXY_SESSION_TTL = 2 * 60 * 60 * 1000;
-const MAX_SESSION_STORE_SIZE = 1000;
+export function getSandboxProxyRedirect(input: ProxyOriginInput): URL {
+  const { audience } = getSandboxProxyOrigins(input);
+  const target = new URL(input.next ?? '/proxy/8080/', audience);
+  if (
+    target.origin !== audience ||
+    target.username ||
+    target.password ||
+    target.hash ||
+    /[\x00-\x1f\\]/.test(input.next ?? '')
+  ) {
+    throw Object.assign(new Error('Invalid next URL'), { statusCode: 400 });
+  }
+  target.searchParams.delete('__pt');
+  return target;
+}
 
-type ProxySession = {
-  teamId: string;
-  host: string;
-  protocol: string;
-  exp: number;
-};
+export function assertSandboxProxyPath(input: { target: string; path: string }) {
+  if (new URL(input.target).pathname === '/') return;
+  const rawPath = input.path.split('?')[0];
+  if (
+    !rawPath.startsWith('/proxy/8080/') ||
+    /[%\\\x00-\x20]/.test(rawPath) ||
+    rawPath.split('/').some((segment) => segment === '.' || segment === '..')
+  )
+    throw Object.assign(new Error('Unsupported proxy path'), { statusCode: 403 });
+}
 
-const _sessionStore = (): Map<string, ProxySession> => {
-  const g = globalThis as any;
-  if (!g.__proxySessionStore) g.__proxySessionStore = new Map();
-  return g.__proxySessionStore;
-};
-
-export function upsertProxySession(
-  sandboxId: string,
-  teamId: string,
-  host: string,
-  protocol: string
-): void {
-  const store = _sessionStore();
-  // Enforce capacity cap: evict the soonest-to-expire entry before adding a new one
-  if (!store.has(sandboxId) && store.size >= MAX_SESSION_STORE_SIZE) {
-    let evictKey: string | null = null;
-    let minExp = Infinity;
-    for (const [k, v] of store) {
-      if (v.exp < minExp) {
-        minExp = v.exp;
-        evictKey = k;
-      }
+export function watchSandboxProxySession(input: {
+  verify: () => Promise<unknown>;
+  close: () => void;
+}) {
+  let verifying = false;
+  const timer = setInterval(async () => {
+    if (verifying) return;
+    verifying = true;
+    try {
+      await input.verify();
+    } catch {
+      clearInterval(timer);
+      input.close();
+    } finally {
+      verifying = false;
     }
-    if (evictKey) store.delete(evictKey);
-  }
-  store.set(sandboxId, { teamId, host, protocol, exp: Date.now() + PROXY_SESSION_TTL });
-  // Prune expired entries on each write
-  for (const [k, v] of store) if (v.exp < Date.now()) store.delete(k);
+  }, 10_000);
+  timer.unref?.();
+  return () => clearInterval(timer);
 }
 
-// Returns the session if active, refreshing its TTL; returns null if absent/expired.
-export function getProxySession(sandboxId: string): ProxySession | null {
-  const store = _sessionStore();
-  const s = store.get(sandboxId);
-  if (!s || s.exp < Date.now()) {
-    store.delete(sandboxId);
-    return null;
-  }
-  s.exp = Date.now() + PROXY_SESSION_TTL;
-  return s;
+const internalKey = Symbol.for('fastgpt.sandbox.proxy.internal');
+const internalState = globalThis as typeof globalThis & { [internalKey]?: string };
+
+export function getSandboxProxyInternalSecret(): string {
+  return (internalState[internalKey] ??= randomBytes(32).toString('hex'));
 }
 
-export function deleteProxySession(sandboxId: string): void {
-  _sessionStore().delete(sandboxId);
-  deleteCsSession(sandboxId);
-}
-
-// Remove all proxy sessions belonging to a given team.
-// Called on user logout to prevent stale sessions from surviving after sign-out.
-export function deleteProxySessionsByTeam(teamId: string): void {
-  const store = _sessionStore();
-  for (const [k, v] of store) {
-    if (v.teamId === teamId) {
-      store.delete(k);
-      deleteCsSession(k);
-    }
-  }
+export function assertSandboxProxyInternalRequest(input: {
+  headers: IncomingHttpHeaders;
+  remoteAddress?: string;
+}) {
+  const provided = input.headers['x-fastgpt-proxy-internal'];
+  const secret = getSandboxProxyInternalSecret();
+  if (
+    !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(input.remoteAddress ?? '') ||
+    typeof provided !== 'string' ||
+    provided.length !== secret.length ||
+    !timingSafeEqual(Buffer.from(provided), Buffer.from(secret))
+  )
+    throw Object.assign(new Error('Unauthorized'), { statusCode: 401 });
 }
 
 // ---- code-server session store ----
-// Keyed by sandboxId; stores the `key` cookie value returned by code-server /login.
-// TTL matches ProxySession so both expire around the same time.
+// This is only an upstream login cache; every browser request still needs a resource ticket.
 const CS_SESSION_TTL = 2 * 60 * 60 * 1000; // 2 h
+const CS_COOKIE_LESS_TTL = 60_000;
+const CS_REQUEST_TIMEOUT = 5_000;
 const MAX_CS_SESSION_STORE_SIZE = 1000;
 
-type CsSession = { keyCookie: string; exp: number };
+type CsSession = { target: string; keyCookie: string | null; exp: number };
+type CsPending = { target: string; token: symbol; promise: Promise<string | null> };
 
 const _csStore = (): Map<string, CsSession> => {
-  const g = globalThis as any;
+  const g = globalThis as typeof globalThis & { __csSessionStore?: Map<string, CsSession> };
   if (!g.__csSessionStore) g.__csSessionStore = new Map();
   return g.__csSessionStore;
 };
 
-export function getCsSession(sandboxId: string): string | null {
+const _csPending = (): Map<string, CsPending> => {
+  const g = globalThis as typeof globalThis & { __csSessionPending?: Map<string, CsPending> };
+  return (g.__csSessionPending ??= new Map());
+};
+
+function getCsSession(sandboxId: string, target: string): CsSession | undefined {
   const entry = _csStore().get(sandboxId);
-  if (!entry || entry.exp < Date.now()) {
+  if (!entry || entry.target !== target || entry.exp <= Date.now()) {
     _csStore().delete(sandboxId);
-    return null;
+    return;
   }
-  entry.exp = Date.now() + CS_SESSION_TTL;
-  return entry.keyCookie;
+  if (entry.keyCookie) entry.exp = Date.now() + CS_SESSION_TTL;
+  return entry;
 }
 
 export function deleteCsSession(sandboxId: string): void {
   _csStore().delete(sandboxId);
+  _csPending().delete(sandboxId);
 }
 
-/**
- * Ensure a valid code-server session exists for the given sandbox.
- * Checks the in-process cache first; on miss invokes getPassword() and POSTs /login.
- * Returns the `key` cookie value on success, or null on failure.
- */
-export async function ensureCodeServerSession(
-  sandboxId: string,
-  target: string, // e.g. "http://10.0.0.5:8080"
-  getPassword: () => Promise<string | null>
-): Promise<string | null> {
-  const cached = getCsSession(sandboxId);
-  if (cached) return cached;
-
-  const password = await getPassword();
-  if (!password) return null;
-
-  let resp: Response;
+async function withCsRequestTimeout<T>(run: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const expired = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error('Code-server login request timed out'));
+    }, CS_REQUEST_TIMEOUT);
+  });
   try {
-    resp = await fetch(`${target}/login`, {
+    return await Promise.race([run(controller.signal), expired]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function isCookieLessLoginRedirect(response: Response, target: string): boolean {
+  const location = response.headers.get('location');
+  if (
+    ![301, 302].includes(response.status) ||
+    response.headers.has('set-cookie') ||
+    !location ||
+    /[%\\\x00-\x20]/.test(location)
+  )
+    return false;
+  try {
+    const root = new URL(`${target}/`);
+    return new URL(location, `${target}/login`).href === root.href;
+  } catch {
+    return false;
+  }
+}
+
+async function loadCsSession(
+  target: string,
+  getPassword: (signal: AbortSignal) => Promise<string | null>
+): Promise<CsSession | undefined> {
+  const probe = await withCsRequestTimeout((signal) =>
+    fetch(`${target}/login`, { method: 'GET', redirect: 'manual', signal })
+  );
+  void probe.body?.cancel().catch(() => {});
+  if (isCookieLessLoginRedirect(probe, target)) {
+    return { target, keyCookie: null, exp: Date.now() + CS_COOKIE_LESS_TTL };
+  }
+  if (probe.status !== 200) return;
+  const password = await withCsRequestTimeout(getPassword);
+  if (!password) return;
+
+  const response = await withCsRequestTimeout((signal) =>
+    fetch(`${target}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        origin: new URL(target).origin // scheme://host:port only, no path component
+        origin: new URL(target).origin
       },
       body: `password=${encodeURIComponent(password)}`,
-      redirect: 'manual' // success → 302; wrong password → 200
-    });
-  } catch (e) {
-    console.error(`[csLogin] fetch error sandboxId=${sandboxId}: ${(e as Error).message}`);
-    return null;
-  }
+      redirect: 'manual',
+      signal
+    })
+  );
+  void response.body?.cancel().catch(() => {});
+  if (![301, 302].includes(response.status)) return;
 
-  if (resp.status !== 302 && resp.status !== 301) {
-    console.warn(`[csLogin] unexpected status=${resp.status} sandboxId=${sandboxId}`);
-    return null;
-  }
-
-  // Extract key=<value> from Set-Cookie header(s)
-  const setCookies: string[] = (resp.headers as any).getSetCookie?.() ?? [
-    resp.headers.get('set-cookie') ?? ''
+  const setCookies = response.headers.getSetCookie?.() ?? [
+    response.headers.get('set-cookie') ?? ''
   ];
-  let keyCookie: string | null = null;
-  for (const h of setCookies) {
-    const m = (h as string).match(/(?:^|;\s*)code-server-session=([^;]+)/i);
-    if (m) {
-      keyCookie = m[1].trim();
-      break;
+  for (const cookie of setCookies) {
+    const match = cookie.match(/(?:^|;\s*)code-server-session=([^;]+)/i);
+    const keyCookie = match?.[1].trim();
+    if (keyCookie) {
+      return { target, keyCookie, exp: Date.now() + CS_SESSION_TTL };
     }
   }
+}
 
-  if (!keyCookie) {
-    console.warn(`[csLogin] no key cookie in response sandboxId=${sandboxId}`);
-    return null;
-  }
-
+function storeCsSession(sandboxId: string, session: CsSession) {
   const csStore = _csStore();
-  // Enforce capacity cap: evict the soonest-to-expire entry before adding a new one
+  for (const [key, value] of csStore) {
+    if (value.exp <= Date.now()) csStore.delete(key);
+  }
   if (!csStore.has(sandboxId) && csStore.size >= MAX_CS_SESSION_STORE_SIZE) {
     let evictKey: string | null = null;
     let minExp = Infinity;
@@ -227,10 +306,39 @@ export async function ensureCodeServerSession(
     }
     if (evictKey) csStore.delete(evictKey);
   }
-  csStore.set(sandboxId, { keyCookie, exp: Date.now() + CS_SESSION_TTL });
-  // Prune expired entries on each write
-  for (const [k, v] of csStore) if (v.exp < Date.now()) csStore.delete(k);
-  return keyCookie;
+  csStore.set(sandboxId, session);
+}
+
+export async function ensureCodeServerSession(
+  sandboxId: string,
+  target: string,
+  getPassword: (signal: AbortSignal) => Promise<string | null>
+): Promise<string | null> {
+  const cached = getCsSession(sandboxId, target);
+  if (cached) return cached.keyCookie;
+  const pendingStore = _csPending();
+  const pending = pendingStore.get(sandboxId);
+  if (pending?.target === target) return pending.promise;
+  if (pending) pendingStore.delete(sandboxId);
+  if (pendingStore.size >= MAX_CS_SESSION_STORE_SIZE) return null;
+
+  const token = Symbol();
+  const promise = Promise.resolve()
+    .then(() => loadCsSession(target, getPassword))
+    .then((session) => {
+      if (pendingStore.get(sandboxId)?.token !== token) return null;
+      if (session) storeCsSession(sandboxId, session);
+      return session?.keyCookie ?? null;
+    })
+    .catch(() => {
+      console.warn(`[csLogin] upstream login unavailable sandboxId=${sandboxId}`);
+      return null;
+    })
+    .finally(() => {
+      if (pendingStore.get(sandboxId)?.token === token) pendingStore.delete(sandboxId);
+    });
+  pendingStore.set(sandboxId, { target, token, promise });
+  return promise;
 }
 
 // Rewrite absolute paths in HTML for the absproxy mode

@@ -8,6 +8,7 @@ import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
 import { createSkillFolder } from '@fastgpt/service/core/agentSkills/controller';
 import { authSkill } from '@fastgpt/service/support/permission/agentSkill/auth';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
+import { assertTeamWritable } from '@fastgpt/service/support/user/team/status';
 import { createResourceDefaultCollaborators } from '@fastgpt/service/support/permission/controller';
 import type { ApiRequestProps } from '@fastgpt/service/type/next';
 import type { CreateSkillFolderBody } from '@fastgpt/global/core/agentSkills/api';
@@ -37,6 +38,7 @@ async function handler(req: ApiRequestProps<CreateSkillFolderBody>) {
         authApiKey: true,
         per: TeamSkillCreatePermissionVal
       });
+  await assertTeamWritable(teamId, WritePermissionVal);
 
   // Create the folder within a transaction and copy collaborators from parent
   const folderId = await mongoSessionRun(async (session) => {

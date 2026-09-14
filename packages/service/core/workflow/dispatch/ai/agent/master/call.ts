@@ -44,6 +44,8 @@ import {
 } from '@fastgpt/global/core/ai/sandbox/constants';
 import { dispatchSandboxShell, dispatchSandboxGetFileUrl } from '../sub/sandbox';
 import type { CapabilityToolCallHandlerType } from '../capability/type';
+import { isFatalAgentError } from '../sub/sandbox/errors';
+import { SandboxToolIds } from '@fastgpt/global/core/workflow/node/agent/skillTools';
 
 type Response = {
   stepResponse?: {
@@ -70,6 +72,7 @@ export const masterCall = async ({
   steps,
   step,
   capabilityToolCallHandler,
+  sandboxState = { unavailable: false },
   ...props
 }: DispatchAgentModuleProps & {
   masterMessages: ChatCompletionMessageParam[];
@@ -87,6 +90,7 @@ export const masterCall = async ({
 
   // Capability tool call handler
   capabilityToolCallHandler?: CapabilityToolCallHandlerType;
+  sandboxState?: { unavailable: boolean };
 }): Promise<Response> => {
   const {
     checkIsStopping,
@@ -315,6 +319,23 @@ export const masterCall = async ({
         stop = false
       } = await (async () => {
         try {
+          if (
+            sandboxState.unavailable &&
+            [
+              SANDBOX_TOOL_NAME,
+              SANDBOX_GET_FILE_URL_TOOL_NAME,
+              ...Object.values(SandboxToolIds)
+            ].some((id) => id === toolId)
+          ) {
+            return {
+              response: JSON.stringify({
+                code: 'sandbox_unavailable',
+                status: 'degraded',
+                retryable: false
+              }),
+              usages: []
+            };
+          }
           if (toolId === SubAppIds.fileRead) {
             const toolParams = ReadFileToolSchema.safeParse(parseJsonArgs(call.function.arguments));
             if (!toolParams.success) {
@@ -407,6 +428,7 @@ export const masterCall = async ({
             }
 
             const result = await dispatchSandboxShell({
+              requireSandbox: !!props.params.skills?.length || !!props.params.useEditDebugSandbox,
               command: toolParams.data.command,
               timeout: toolParams.data.timeout,
               appId: runningAppInfo.id,
@@ -416,6 +438,11 @@ export const masterCall = async ({
             });
 
             childrenResponses.push(result.nodeResponse);
+            if (result.assistantResponses)
+              capabilityAssistantResponses.push(...result.assistantResponses);
+            sandboxState.unavailable ||= !!result.assistantResponses?.some(
+              (value) => value.sandboxEvent?.status === 'degraded'
+            );
 
             return {
               response: result.response,
@@ -434,6 +461,7 @@ export const masterCall = async ({
             }
 
             const result = await dispatchSandboxGetFileUrl({
+              requireSandbox: !!props.params.skills?.length || !!props.params.useEditDebugSandbox,
               paths: toolParams.data.paths,
               appId: runningAppInfo.id,
               userId: props.uid,
@@ -442,6 +470,11 @@ export const masterCall = async ({
             });
 
             childrenResponses.push(result.nodeResponse);
+            if (result.assistantResponses)
+              capabilityAssistantResponses.push(...result.assistantResponses);
+            sandboxState.unavailable ||= !!result.assistantResponses?.some(
+              (value) => value.sandboxEvent?.status === 'degraded'
+            );
 
             return {
               response: result.response,
@@ -496,6 +529,9 @@ export const masterCall = async ({
             callId
           );
           if (capResult != null) {
+            sandboxState.unavailable ||= !!capResult.assistantResponses?.some(
+              (value) => value.sandboxEvent?.status === 'degraded'
+            );
             if (capResult.assistantResponses?.length) {
               capabilityAssistantResponses.push(...capResult.assistantResponses);
             }
@@ -573,7 +609,12 @@ export const masterCall = async ({
           } else if (tool.type === 'workflow') {
             const { userChatInput, ...params } = requestParams;
 
-            const { response, runningTime, usages } = await dispatchApp({
+            const {
+              response,
+              runningTime,
+              usages,
+              assistantResponses: childResponses
+            } = await dispatchApp({
               appId: tool.id,
               userChatInput: userChatInput,
               customAppVariables: params,
@@ -591,6 +632,7 @@ export const masterCall = async ({
               variables: props.variables
             });
 
+            if (childResponses) capabilityAssistantResponses.push(...childResponses);
             childrenResponses.push({
               nodeId: callId,
               id: callId,
@@ -609,7 +651,13 @@ export const masterCall = async ({
               runningTime
             };
           } else if (tool.type === 'toolWorkflow') {
-            const { response, result, runningTime, usages } = await dispatchPlugin({
+            const {
+              response,
+              result,
+              runningTime,
+              usages,
+              assistantResponses: childResponses
+            } = await dispatchPlugin({
               appId: tool.id,
               userChatInput: '',
               customAppVariables: requestParams,
@@ -627,6 +675,7 @@ export const masterCall = async ({
               variables: props.variables
             });
 
+            if (childResponses) capabilityAssistantResponses.push(...childResponses);
             childrenResponses.push({
               nodeId: callId,
               id: callId,
@@ -651,6 +700,10 @@ export const masterCall = async ({
             };
           }
         } catch (error) {
+          if (isFatalAgentError(error)) {
+            error.assistantResponses.unshift(...capabilityAssistantResponses);
+            throw error;
+          }
           return {
             response: `Tool error: ${getErrText(error)}`,
             usages: []

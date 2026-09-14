@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { authChatCrud } from '@/service/support/permission/auth/chat';
@@ -26,12 +27,7 @@ async function handler(
 
   await mongoSessionRun(async (session) => {
     await MongoChatItem.updateOne(
-      {
-        appId,
-        chatId,
-        dataId,
-        obj: ChatRoleEnum.AI
-      },
+      { ...getChatSourceFilter(), appId, chatId, dataId, obj: ChatRoleEnum.AI },
       {
         $set: {
           isFeedbackRead: isRead

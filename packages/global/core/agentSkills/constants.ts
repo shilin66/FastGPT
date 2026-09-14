@@ -89,6 +89,16 @@ export enum AgentSkillTypeEnum {
   skill = 'skill'
 }
 
+export const AgentSkillSchemaVersion = 2;
+
+export enum AgentSkillCreationStatusEnum {
+  pending = 'pending',
+  initializing = 'initializing',
+  ready = 'ready',
+  failed = 'failed',
+  deleting = 'deleting'
+}
+
 export const AgentSkillFolderTypeList = [AgentSkillTypeEnum.folder];
 
 // Sandbox types

@@ -1,4 +1,9 @@
-import type { ChatHistoryItemResType, ChatItemMiniType } from '@fastgpt/global/core/chat/type';
+import type {
+  ChatHistoryItemResType,
+  ChatItemMiniType,
+  ChatSourceScope
+} from '@fastgpt/global/core/chat/type';
+import { getChatSourceFilter } from './source';
 import { MongoChatItem } from './chatItemSchema';
 import { MongoChat } from './chatSchema';
 import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
@@ -16,6 +21,7 @@ export async function getChatItems({
   includeDeleted = false,
   appId,
   chatId,
+  sourceScope,
   field,
   limit,
 
@@ -27,6 +33,7 @@ export async function getChatItems({
   includeDeleted?: boolean;
   appId: string;
   chatId?: string;
+  sourceScope?: ChatSourceScope;
   field: string;
   limit: number;
 
@@ -46,7 +53,13 @@ export async function getChatItems({
 
   // Extend dataId
   field = `dataId ${field}`;
-  const baseCondition = includeDeleted ? { appId, chatId } : { appId, chatId, deleteTime: null };
+  const sourceFilter = getChatSourceFilter(sourceScope);
+  const baseCondition = {
+    appId,
+    chatId,
+    ...sourceFilter,
+    ...(!includeDeleted && { deleteTime: null })
+  };
 
   const { histories, total, hasMorePrev, hasMoreNext } = await (async () => {
     // Mode 1: offset pagination (original logic)
@@ -171,7 +184,7 @@ export async function getChatItems({
 
     if (chatItemDataIds.length > 0) {
       const chatItemResponsesMap = await MongoChatItemResponse.find(
-        { appId, chatId, chatItemDataId: { $in: chatItemDataIds } },
+        { appId, chatId, ...sourceFilter, chatItemDataId: { $in: chatItemDataIds } },
         { chatItemDataId: 1, data: 1 }
       )
         .lean()
@@ -220,6 +233,7 @@ export async function updateChatFeedbackCount({
       [
         {
           $match: {
+            ...getChatSourceFilter(),
             appId: new Types.ObjectId(appId),
             chatId,
             obj: ChatRoleEnum.AI
@@ -328,7 +342,8 @@ export async function updateChatFeedbackCount({
     await MongoChat.updateOne(
       {
         appId,
-        chatId
+        chatId,
+        ...getChatSourceFilter()
       },
       updateQuery,
       {

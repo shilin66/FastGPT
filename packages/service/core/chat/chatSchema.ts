@@ -1,7 +1,7 @@
 import { connectionMongo, getMongoModel } from '../../common/mongo';
 import { getLogger, LogCategories } from '../../common/logger';
 const { Schema } = connectionMongo;
-import { type ChatSchemaType } from '@fastgpt/global/core/chat/type';
+import { ChatSourceTypeSchema, type ChatSchemaType } from '@fastgpt/global/core/chat/type';
 import { ChatGenerateStatusEnum, ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
 import {
   TeamCollectionName,
@@ -35,6 +35,8 @@ const ChatSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: AppVersionCollectionName
   },
+  sourceType: { type: String, enum: ChatSourceTypeSchema.options },
+  sourceId: Schema.Types.ObjectId,
   createTime: {
     type: Date,
     default: () => new Date()

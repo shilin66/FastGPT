@@ -6,6 +6,9 @@ import { initTeamDeleteWorker } from '@fastgpt/service/support/user/team/delete'
 import { initCollectionUpdateWorker } from '@fastgpt/service/core/dataset/collection/mq';
 import { initWechatPollWorker } from '@fastgpt/service/support/outLink/wechat/mq';
 import { initAdminOperationWorker } from '@fastgpt/service/admin/operation/queue';
+import { initAgentSkillInitializeWorker } from '@fastgpt/service/core/agentSkills/initialize';
+import { initAgentSkillVersionCleanupWorker } from '@fastgpt/service/core/agentSkills/version/cleanup';
+import { initAgentSkillDeleteWorker } from '@fastgpt/service/core/agentSkills/delete';
 
 const logger = getLogger(LogCategories.INFRA.QUEUE);
 
@@ -18,6 +21,9 @@ export const initBullMQWorkers = () => {
     initTeamDeleteWorker(),
     initCollectionUpdateWorker(),
     initWechatPollWorker(),
-    initAdminOperationWorker()
+    initAdminOperationWorker(),
+    initAgentSkillInitializeWorker(),
+    initAgentSkillVersionCleanupWorker(),
+    initAgentSkillDeleteWorker()
   ]);
 };

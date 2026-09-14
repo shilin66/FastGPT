@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import { NextAPI } from '@/service/middleware/entry';
 import { authChatCrud, authCollectionInChat } from '@/service/support/permission/auth/chat';
 import { MongoDatasetData } from '@fastgpt/service/core/dataset/data/schema';
@@ -37,7 +38,10 @@ async function handler(req: ApiRequestProps): Promise<GetQuoteResponseType> {
       teamId,
       teamToken
     }),
-    MongoChatItem.findOne({ appId, chatId, dataId: chatItemDataId }, 'time').lean(),
+    MongoChatItem.findOne(
+      { ...getChatSourceFilter(), appId, chatId, dataId: chatItemDataId },
+      'time'
+    ).lean(),
     authCollectionInChat({ appId, chatId, chatItemDataId, collectionIds: collectionIdList })
   ]);
   if (!chat || !chatItem || !showCite) return Promise.reject(ChatErrEnum.unAuthChat);

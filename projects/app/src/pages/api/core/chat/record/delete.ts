@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { NextApiResponse } from 'next';
 import { MongoChatItem } from '@fastgpt/service/core/chat/chatItemSchema';
 import { authChatCrud } from '@/service/support/permission/auth/chat';
@@ -26,11 +27,7 @@ async function handler(
   });
 
   await MongoChatItem.updateOne(
-    {
-      appId,
-      chatId,
-      dataId: contentId
-    },
+    { ...getChatSourceFilter(), appId, chatId, dataId: contentId },
     {
       $set: { deleteTime: new Date() }
     }

@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '../chat/source';
 import { type AppSchemaType } from '@fastgpt/global/core/app/type';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import {
@@ -160,17 +161,30 @@ export const deleteAppDataProcessor = async ({
     // 对话生成的
     await deleteSandboxesByAppId(appId);
     // 编辑 skill 生成的
-    const appChatIds = (await MongoChat.find({ appId }, { _id: 1 }).lean()).map((c) =>
-      String(c._id)
-    );
+    const appChatIds = (
+      await MongoChat.find({ ...getChatSourceFilter(), appId }, { _id: 1 }).lean()
+    ).map((c) => String(c._id));
     await deleteSandboxesByChatIds({ appId, chatIds: appChatIds });
   }
 
-  await getS3ChatSource().deleteChatFilesByPrefix({ appId });
+  const skillSource = { appId, sourceType: 'skillEdit' };
+  const hasSkillDebugFiles = (
+    await Promise.all([
+      MongoChat.exists(skillSource),
+      MongoChatItem.exists(skillSource),
+      MongoChatItemResponse.exists(skillSource)
+    ])
+  ).some(Boolean);
+  if (!hasSkillDebugFiles) {
+    await getS3ChatSource().deleteChatFilesByPrefix({ appId });
+  } else {
+    // S3 prefixes have no source discriminator, so mixed ownership cannot be safely deleted.
+    logger.warn('App deletion preserved a file prefix shared with Skill debug data', { appId });
+  }
   await MongoAppChatLog.deleteMany({ teamId, appId });
-  await MongoChatItemResponse.deleteMany({ appId });
-  await MongoChatItem.deleteMany({ appId });
-  await MongoChat.deleteMany({ appId });
+  await MongoChatItemResponse.deleteMany({ ...getChatSourceFilter(), appId });
+  await MongoChatItem.deleteMany({ ...getChatSourceFilter(), appId });
+  await MongoChat.deleteMany({ ...getChatSourceFilter(), appId });
 
   // 3. 删除应用相关数据（使用事务）
   {

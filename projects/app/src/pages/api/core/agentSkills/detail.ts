@@ -1,6 +1,8 @@
 import { NextAPI } from '@/service/middleware/entry';
 import { authSkill } from '@fastgpt/service/support/permission/agentSkill/auth';
-import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
+import { ReadPermissionVal, WritePermissionVal } from '@fastgpt/global/support/permission/constant';
+import { getEditWorkspaceState } from '@fastgpt/service/core/agentSkills/editWorkspace/service';
+import { GetSkillDetailResponseSchema } from '@fastgpt/global/openapi/core/agentSkills/api';
 import type {
   GetSkillDetailQuery,
   GetSkillDetailResponse
@@ -42,25 +44,39 @@ async function handler(
     }
   });
 
-  return {
-    _id: skill._id,
+  const workspace =
+    permission.checkPer(WritePermissionVal) && skill.teamId
+      ? await getEditWorkspaceState({
+          skillId,
+          teamId: String(skill.teamId),
+          currentVersionId: skill.currentVersionId ? String(skill.currentVersionId) : null
+        })
+      : undefined;
+  return GetSkillDetailResponseSchema.parse({
+    _id: String(skill._id),
     source: skill.source,
     type: skill.type,
-    parentId: skill.parentId,
+    parentId: skill.parentId ? String(skill.parentId) : skill.parentId,
     inheritPermission: skill.inheritPermission,
     name: skill.name,
     description: skill.description,
     author: skill.author,
     category: skill.category,
-    config: skill.config,
+    config: skill.config ?? {},
     avatar: skill.avatar,
-    teamId: skill.teamId,
-    tmbId: skill.tmbId,
+    teamId: skill.teamId ? String(skill.teamId) : undefined,
+    tmbId: skill.tmbId ? String(skill.tmbId) : undefined,
     createTime: skill.createTime?.toISOString() || new Date().toISOString(),
     updateTime: skill.updateTime?.toISOString() || new Date().toISOString(),
-    permission,
-    appCount
-  };
+    permission: permission.role,
+    appCount,
+    currentVersionId: skill.currentVersionId ? String(skill.currentVersionId) : undefined,
+    currentRuntimeSkills: skill.currentRuntimeSkills,
+    creationStatus: skill.creationStatus,
+    error: skill.error,
+    lastOperationId: skill.lastOperationId,
+    workspace
+  });
 }
 
 export default NextAPI(handler);

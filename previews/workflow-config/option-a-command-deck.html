@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>方案 A - Command Deck</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .app-a {
+        grid-template-rows: 74px 1fr;
+      }
+
+      .workspace-a {
+        position: relative;
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr) 340px;
+        gap: 16px;
+        min-height: calc(100vh - 74px);
+        padding: 16px;
+      }
+
+      .node-dock {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 18px;
+        background: var(--navy);
+        box-shadow: var(--shadow);
+      }
+
+      .dock-btn {
+        display: grid;
+        width: 54px;
+        height: 54px;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        color: white;
+        background: rgba(255, 255, 255, 0.08);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .dock-btn.active {
+        background: var(--blue);
+        box-shadow: 0 16px 28px rgba(37, 99, 235, 0.32);
+      }
+
+      .canvas-a {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+      }
+
+      .node-a1 {
+        top: 120px;
+        left: 120px;
+      }
+
+      .node-a2 {
+        top: 115px;
+        left: 420px;
+      }
+
+      .node-a3 {
+        top: 310px;
+        left: 420px;
+      }
+
+      .node-a4 {
+        top: 210px;
+        left: 720px;
+      }
+
+      .line-a1 {
+        top: 175px;
+        left: 340px;
+        width: 80px;
+      }
+
+      .line-a2 {
+        top: 230px;
+        left: 332px;
+        width: 140px;
+        transform: rotate(38deg);
+      }
+
+      .line-a3 {
+        top: 168px;
+        left: 640px;
+        width: 105px;
+        transform: rotate(25deg);
+      }
+
+      .line-a4 {
+        top: 340px;
+        left: 640px;
+        width: 110px;
+        transform: rotate(-32deg);
+      }
+
+      .canvas-tools {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .search-card {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        display: flex;
+        align-items: center;
+        width: 300px;
+        height: 42px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow);
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .inspector {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .panel-card {
+        padding: 18px;
+      }
+
+      .node-list {
+        display: grid;
+        gap: 9px;
+        margin-top: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app app-a">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">OC</div>
+          <div>
+            <h1>客户服务工作流</h1>
+            <p>OmniCockpit Workflow Studio</p>
+          </div>
+        </div>
+        <nav class="tabs">
+          <span class="tab active">应用配置</span>
+          <span class="tab">发布渠道</span>
+          <span class="tab">对话日志</span>
+        </nav>
+        <div class="top-actions">
+          <span class="icon-btn">H</span>
+          <span class="btn">调试运行</span>
+          <span class="btn primary">保存</span>
+        </div>
+      </header>
+
+      <section class="workspace-a">
+        <aside class="node-dock">
+          <span class="dock-btn active">+</span>
+          <span class="dock-btn">AI</span>
+          <span class="dock-btn">KB</span>
+          <span class="dock-btn">IF</span>
+          <span class="dock-btn">API</span>
+          <span class="dock-btn">LOG</span>
+        </aside>
+
+        <section class="canvas-a blueprint">
+          <div class="canvas-tools">
+            <span class="btn dark">添加节点</span>
+            <span class="btn">自动排版</span>
+          </div>
+          <div class="search-card">搜索节点，快捷键 ⌘F</div>
+          <span class="connector line-a1"></span>
+          <span class="connector line-a2"></span>
+          <span class="connector line-a3"></span>
+          <span class="connector line-a4"></span>
+          <article class="node node-a1">
+            <h3>流程开始</h3>
+            <p>接收用户问题、文件和上下文变量。</p>
+            <div class="meta"><span class="badge">Input</span><span class="badge">Ready</span></div>
+          </article>
+          <article class="node node-a2">
+            <h3>知识库搜索</h3>
+            <p>检索产品说明、售后政策和 FAQ。</p>
+            <div class="meta"><span class="badge">KB</span><span class="badge">3 refs</span></div>
+          </article>
+          <article class="node node-a3">
+            <h3>意图分类</h3>
+            <p>识别咨询、投诉、转人工等路径。</p>
+            <div class="meta"><span class="badge">Route</span><span class="badge">4 branches</span></div>
+          </article>
+          <article class="node node-a4">
+            <h3>AI 回复</h3>
+            <p>整合检索结果并生成可追溯答复。</p>
+            <div class="meta"><span class="badge">Qwen</span><span class="badge">Stream</span></div>
+          </article>
+        </section>
+
+        <aside class="inspector">
+          <section class="panel-card">
+            <span class="badge">当前节点</span>
+            <h2 style="margin-top: 12px">知识库搜索</h2>
+            <p>右侧常驻检查器展示当前节点的关键配置和问题提示，减少反复打开弹窗。</p>
+          </section>
+          <section class="panel-card">
+            <p class="rail-title">配置摘要</p>
+            <div class="kpi-row">
+              <div class="kpi"><span>知识库</span><strong>3</strong></div>
+              <div class="kpi"><span>Top K</span><strong>8</strong></div>
+              <div class="kpi"><span>阈值</span><strong>0.62</strong></div>
+            </div>
+          </section>
+          <section class="panel-card">
+            <p class="rail-title">节点列表</p>
+            <div class="node-list">
+              <div class="rail-item active"><span class="dot-icon">KB</span>知识库搜索</div>
+              <div class="rail-item"><span class="dot-icon">AI</span>AI 回复</div>
+              <div class="rail-item"><span class="dot-icon">IF</span>意图分类</div>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

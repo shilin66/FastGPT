@@ -18,15 +18,11 @@ import type {
   WorkflowInteractiveResponseType
 } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import { parseJsonArgs } from '../../../../../../ai/utils';
-import { AIAskAnswerSchema, AIAskTool } from './ask/constants';
+import { AIAskAnswerSchema, AIAskTool, formatAgentAsk } from './ask/constants';
 import { AgentPlanSchema, type AgentPlanType } from '@fastgpt/global/core/ai/agent/type';
 import type { GetSubAppInfoFnType } from '../../type';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
-import {
-  FlowNodeInputTypeEnum,
-  FlowNodeTypeEnum
-} from '@fastgpt/global/core/workflow/node/constant';
-import { WorkflowIOValueTypeEnum } from '@fastgpt/global/core/workflow/constants';
+import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { i18nT } from '../../../../../../../../web/i18n/utils';
 import { SubAppIds } from '@fastgpt/global/core/workflow/node/agent/constants';
 import type { PlanAgentParamsType } from './constants';
@@ -118,40 +114,7 @@ const parseAskInteractive = async (
   if (!tooCall) return;
   const params = await AIAskAnswerSchema.safeParseAsync(parseJsonArgs(tooCall.function.arguments));
   if (params.success) {
-    const data = params.data;
-
-    if (data.form && data.form.length > 0) {
-      return {
-        type: 'agentPlanAskUserForm',
-        params: {
-          description: data.question,
-          inputForm:
-            data.form?.map((item) => {
-              return {
-                type: item.type as FlowNodeInputTypeEnum,
-                key: item.label,
-                label: item.label,
-                value: '',
-                required: false,
-                valueType:
-                  item.type === FlowNodeInputTypeEnum.numberInput
-                    ? WorkflowIOValueTypeEnum.number
-                    : WorkflowIOValueTypeEnum.string,
-                list:
-                  'options' in item
-                    ? item.options?.map((option) => ({ label: option, value: option }))
-                    : undefined
-              };
-            }) || []
-        }
-      };
-    }
-    return {
-      type: 'agentPlanAskQuery',
-      params: {
-        content: data.question
-      }
-    };
+    return formatAgentAsk(params.data);
   } else {
     agentLogger.warn(`[Plan Agent] Ask tool params is not valid`, {
       tooCall

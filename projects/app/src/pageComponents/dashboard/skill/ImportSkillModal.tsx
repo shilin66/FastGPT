@@ -10,7 +10,7 @@ import { formatFileSize } from '@fastgpt/global/common/file/tools';
 import { importSkill } from '@/web/core/skill/api';
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
-const ACCEPT_TYPES = '.zip,.tar,.tar.gz';
+const ACCEPT_TYPES = '.zip';
 
 type Props = {
   parentId?: string | null;
@@ -19,13 +19,11 @@ type Props = {
 };
 
 const isValidFile = (file: File) => {
-  const name = file.name.toLowerCase();
-  return name.endsWith('.zip') || name.endsWith('.tar') || name.endsWith('.tar.gz');
+  return file.name.toLowerCase().endsWith('.zip');
 };
 
 const getFileExt = (file: File): string => {
   const name = file.name.toLowerCase();
-  if (name.endsWith('.tar.gz')) return '.tar.gz';
   const match = name.match(/\.[^.]+$/);
   return match ? match[0] : '';
 };

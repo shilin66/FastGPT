@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="OmniCockpit 平台 Logo 新一轮三方向桌面端比较预览" />
+    <title>OmniCockpit 平台 Logo 三方向预览</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --graphite: #27364a;
+        --blue: #2563eb;
+        --blue-soft: #dbeafe;
+        --gold: #c69b4a;
+        --canvas: #f8fafc;
+        --nav: #f5f7fa;
+        --panel: #ffffff;
+        --border: #dfe5ee;
+        --text: #1f2937;
+        --muted: #667085;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --font-ui: 'Avenir Next', 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        --font-mono: 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--text);
+        font-family: var(--font-ui);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      svg {
+        display: block;
+      }
+
+      .page {
+        min-width: 1180px;
+        min-height: 100dvh;
+      }
+
+      .topbar {
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 32px;
+        background: rgb(255 255 255 / 0.96);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .topbar-brand,
+      .token-strip,
+      .token,
+      .brand-lockup,
+      .label-line,
+      .decision-row,
+      .size-item,
+      .status-chip {
+        display: flex;
+        align-items: center;
+      }
+
+      .topbar-brand {
+        gap: 12px;
+      }
+
+      .baseline-mark {
+        width: 30px;
+        height: 30px;
+        flex: 0 0 auto;
+      }
+
+      .topbar-title {
+        font-size: 14px;
+        font-weight: 750;
+        letter-spacing: -0.015em;
+      }
+
+      .topbar-subtitle {
+        margin-top: 2px;
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.05em;
+      }
+
+      .token-strip {
+        gap: 10px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .token {
+        gap: 6px;
+      }
+
+      .swatch {
+        width: 12px;
+        height: 12px;
+        border: 1px solid rgb(31 41 55 / 0.12);
+        border-radius: 3px;
+      }
+
+      main {
+        width: min(1400px, calc(100vw - 64px));
+        margin: 0 auto;
+        padding: 34px 0 42px;
+      }
+
+      .intro {
+        display: grid;
+        grid-template-columns: minmax(0, 760px) 1fr;
+        gap: 64px;
+        align-items: end;
+        margin-bottom: 28px;
+      }
+
+      .intro h1 {
+        margin: 0;
+        max-width: 720px;
+        color: var(--graphite);
+        font-size: clamp(32px, 3.1vw, 48px);
+        font-weight: 760;
+        letter-spacing: -0.055em;
+        line-height: 1.04;
+      }
+
+      .intro p {
+        margin: 14px 0 0;
+        max-width: 660px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .criteria {
+        align-self: stretch;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-left: 1px solid var(--border);
+      }
+
+      .criterion {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 8px 18px 4px;
+        border-right: 1px solid var(--border);
+      }
+
+      .criterion strong {
+        color: var(--graphite);
+        font-family: var(--font-mono);
+        font-size: 18px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .criterion span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .comparison {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        overflow: hidden;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+      }
+
+      .direction {
+        min-width: 0;
+      }
+
+      .direction + .direction {
+        border-left: 1px solid var(--border);
+      }
+
+      .direction-head {
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 22px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .label-line {
+        gap: 10px;
+      }
+
+      .option-letter {
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        color: var(--blue);
+        background: var(--blue-soft);
+        border-radius: 7px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .direction-name {
+        color: var(--graphite);
+        font-size: 15px;
+        font-weight: 760;
+        letter-spacing: -0.02em;
+      }
+
+      .direction-code {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.05em;
+      }
+
+      .hero-specimen {
+        min-height: 262px;
+        display: grid;
+        place-items: center;
+        padding: 28px 22px;
+        background: radial-gradient(circle at 78% 16%, rgb(37 99 235 / 0.09), transparent 34%),
+          linear-gradient(180deg, #fbfdff, #f4f7fb);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .hero-specimen.dark {
+        background: radial-gradient(circle at 72% 20%, rgb(37 99 235 / 0.3), transparent 34%),
+          var(--graphite);
+      }
+
+      .hero-lockup {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 22px;
+      }
+
+      .logo-large {
+        width: 112px;
+        height: 112px;
+      }
+
+      .brand-lockup {
+        gap: 12px;
+      }
+
+      .lockup-mark {
+        width: 36px;
+        height: 36px;
+      }
+
+      .wordmark {
+        color: var(--graphite);
+        font-size: 23px;
+        font-weight: 780;
+        letter-spacing: -0.055em;
+        line-height: 1;
+      }
+
+      .wordmark small {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 8px;
+        font-weight: 650;
+        letter-spacing: 0.09em;
+      }
+
+      .dark .wordmark {
+        color: #ffffff;
+      }
+
+      .dark .wordmark small {
+        color: #dbeafe;
+      }
+
+      .application-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        min-height: 132px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .app-context,
+      .size-context {
+        padding: 18px 20px;
+      }
+
+      .size-context {
+        border-left: 1px solid var(--border);
+      }
+
+      .context-label {
+        margin-bottom: 14px;
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      .product-rail {
+        height: 48px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px;
+        background: var(--nav);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+      }
+
+      .product-rail svg {
+        width: 25px;
+        height: 25px;
+        flex: 0 0 auto;
+      }
+
+      .product-rail strong {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--graphite);
+        font-size: 12px;
+        font-weight: 750;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status-chip {
+        height: 21px;
+        margin-left: auto;
+        padding: 0 7px;
+        color: var(--blue);
+        background: var(--blue-soft);
+        border-radius: 6px;
+        font-family: var(--font-mono);
+        font-size: 8px;
+        font-weight: 750;
+      }
+
+      .size-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 9px;
+      }
+
+      .size-item {
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 7px;
+        min-height: 58px;
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 8px;
+      }
+
+      .size-32 {
+        width: 32px;
+        height: 32px;
+      }
+
+      .size-24 {
+        width: 24px;
+        height: 24px;
+      }
+
+      .size-16 {
+        width: 16px;
+        height: 16px;
+      }
+
+      .direction-notes {
+        min-height: 174px;
+        padding: 20px 22px 22px;
+      }
+
+      .direction-notes h2 {
+        margin: 0;
+        color: var(--graphite);
+        font-size: 16px;
+        font-weight: 760;
+        letter-spacing: -0.02em;
+      }
+
+      .direction-notes p {
+        margin: 8px 0 16px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.65;
+      }
+
+      .decision-row {
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .decision-tag {
+        padding: 5px 7px;
+        color: var(--graphite);
+        background: var(--nav);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 9px;
+        font-weight: 700;
+      }
+
+      .decision-tag.primary {
+        color: var(--blue);
+        background: var(--blue-soft);
+        border-color: rgb(37 99 235 / 0.14);
+      }
+
+      .footer-note {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.6;
+      }
+
+      .footer-note strong {
+        color: var(--graphite);
+      }
+
+      .footer-meta {
+        flex: 0 0 auto;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 0.04em;
+      }
+
+      .mark {
+        --mark-ink: var(--graphite);
+        --mark-blue: var(--blue);
+        --mark-gold: var(--gold);
+      }
+
+      .dark .mark {
+        --mark-ink: #ffffff;
+        --mark-blue: var(--blue-soft);
+        --mark-gold: var(--gold);
+      }
+
+      .mono-light {
+        --mark-ink: var(--graphite);
+        --mark-blue: var(--graphite);
+        --mark-gold: var(--graphite);
+      }
+
+      .mono-dark {
+        --mark-ink: #ffffff;
+        --mark-blue: #ffffff;
+        --mark-gold: #ffffff;
+      }
+
+      @media (max-width: 1260px) {
+        main {
+          width: calc(100vw - 40px);
+        }
+
+        .intro {
+          grid-template-columns: minmax(0, 1fr) 440px;
+          gap: 32px;
+        }
+
+        .hero-specimen {
+          min-height: 240px;
+        }
+
+        .application-row {
+          grid-template-columns: 1fr;
+        }
+
+        .size-context {
+          border-top: 1px solid var(--border);
+          border-left: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg aria-hidden="true" width="0" height="0" style="position: absolute">
+      <defs>
+        <symbol id="mark-aperture" viewBox="0 0 96 96">
+          <path fill="var(--mark-ink)" d="M15 29 29 15h18v15H35l-5 5v12H15V29Z" />
+          <path fill="var(--mark-blue)" d="M49 15h18l14 14v18H66V35l-5-5H49V15Z" />
+          <path fill="var(--mark-ink)" d="M81 49v18L67 81H49V66h12l5-5V49h15Z" />
+          <path fill="var(--mark-ink)" d="M47 81H29L15 67V49h15v12l5 5h12v15Z" />
+          <rect x="42" y="42" width="12" height="12" rx="3" fill="var(--mark-gold)" />
+        </symbol>
+
+        <symbol id="mark-twin-gate" viewBox="0 0 96 96">
+          <path
+            fill="var(--mark-ink)"
+            d="M17 31c0-9.94 8.06-18 18-18h13v17H36c-2.21 0-4 1.79-4 4v28c0 2.21 1.79 4 4 4h12v17H35c-9.94 0-18-8.06-18-18V31Z"
+          />
+          <path
+            fill="var(--mark-blue)"
+            d="M48 13h13c9.94 0 18 8.06 18 18v34c0 9.94-8.06 18-18 18H48V66h12c2.21 0 4-1.79 4-4V34c0-2.21-1.79-4-4-4H48V13Z"
+          />
+          <path fill="var(--mark-gold)" d="M43 42h10v12H43z" />
+        </symbol>
+
+        <symbol id="mark-convergence" viewBox="0 0 96 96">
+          <path fill="var(--mark-ink)" d="M14 18h30l19 19H33L14 30V18Z" />
+          <path fill="var(--mark-blue)" d="M14 39h52l17 9-17 9H14V39Z" />
+          <path fill="var(--mark-ink)" d="M14 66l19-12h30L44 78H14V66Z" />
+          <path fill="var(--mark-gold)" d="M82 40 92 48 82 56V40Z" />
+        </symbol>
+
+        <symbol id="baseline-mark" viewBox="0 0 96 96">
+          <rect x="8" y="8" width="80" height="80" rx="24" fill="#27364A" />
+          <path
+            d="M28 50C28 38.954 36.954 30 48 30s20 8.954 20 20-8.954 20-20 20-20-8.954-20-20Z"
+            stroke="#DBEAFE"
+            stroke-width="8"
+          />
+          <path d="M48 22v15" stroke="#2563EB" stroke-width="8" stroke-linecap="round" />
+          <path d="M48 63v15" stroke="#C69B4A" stroke-width="8" stroke-linecap="round" />
+          <path d="m27 28 10 10" stroke="#2563EB" stroke-width="7" stroke-linecap="round" />
+          <path d="m69 28-10 10" stroke="#C69B4A" stroke-width="7" stroke-linecap="round" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="page">
+      <header class="topbar">
+        <div class="topbar-brand">
+          <svg class="baseline-mark" role="img" aria-label="OmniCockpit 当前标识">
+            <use href="#baseline-mark"></use>
+          </svg>
+          <div>
+            <div class="topbar-title">OmniCockpit 平台标识探索</div>
+            <div class="topbar-subtitle">NEW LOGO DIRECTIONS / DESKTOP PREVIEW</div>
+          </div>
+        </div>
+        <div class="token-strip" aria-label="品牌颜色">
+          <span class="token"
+            ><i class="swatch" style="background: var(--graphite)"></i>Graphite</span
+          >
+          <span class="token"
+            ><i class="swatch" style="background: var(--blue)"></i>Atlas Blue</span
+          >
+          <span class="token"
+            ><i class="swatch" style="background: var(--gold)"></i>Signal Gold</span
+          >
+        </div>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <div>
+            <h1 id="page-title">三个全新的平台标识方向</h1>
+            <p>
+              本轮专注平台级识别，不复用仪表盘、轨道、网络节点、流程线与 AI
+              火花。三套标识均可脱离底板使用，并验证了横版组合和 16px 小尺寸。
+            </p>
+          </div>
+          <div class="criteria" aria-label="评估标准">
+            <div class="criterion"><strong>16px</strong><span>最小识别尺寸</span></div>
+            <div class="criterion"><strong>2 tone</strong><span>主色数量上限</span></div>
+            <div class="criterion"><strong>0 tile</strong><span>无需背景底板</span></div>
+          </div>
+        </section>
+
+        <section class="comparison" aria-label="三套 Logo 方案对比">
+          <article class="direction">
+            <header class="direction-head">
+              <div class="label-line">
+                <span class="option-letter">A</span>
+                <span class="direction-name">舱门切面</span>
+              </div>
+              <span class="direction-code">APERTURE</span>
+            </header>
+            <div class="hero-specimen">
+              <div class="hero-lockup">
+                <svg class="logo-large mark" role="img" aria-label="舱门切面 Logo">
+                  <use href="#mark-aperture"></use>
+                </svg>
+                <div class="brand-lockup">
+                  <svg class="lockup-mark mark" aria-hidden="true">
+                    <use href="#mark-aperture"></use>
+                  </svg>
+                  <div class="wordmark">
+                    OmniCockpit<small>AGENT AND KNOWLEDGE WORKSPACE</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="application-row">
+              <div class="app-context">
+                <div class="context-label">PRODUCT RAIL</div>
+                <div class="product-rail">
+                  <svg class="mark" aria-hidden="true"><use href="#mark-aperture"></use></svg>
+                  <strong>OmniCockpit</strong>
+                  <span class="status-chip">AI</span>
+                </div>
+              </div>
+              <div class="size-context">
+                <div class="context-label">SMALL SCALE</div>
+                <div class="size-grid">
+                  <div class="size-item">
+                    <svg class="size-32 mark"><use href="#mark-aperture"></use></svg><span>32</span>
+                  </div>
+                  <div class="size-item">
+                    <svg class="size-24 mark mono-light"><use href="#mark-aperture"></use></svg
+                    ><span>24</span>
+                  </div>
+                  <div class="size-item">
+                    <svg class="size-16 mark"><use href="#mark-aperture"></use></svg><span>16</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="direction-notes">
+              <h2>把驾驶舱变成一个可进入的界面</h2>
+              <p>
+                四个结构件围合出操作焦点，中心金色键表示被确认的任务。识别最稳，图形更偏企业平台与控制系统。
+              </p>
+              <div class="decision-row">
+                <span class="decision-tag primary">平台感最强</span>
+                <span class="decision-tag">结构稳定</span>
+                <span class="decision-tag">适合后台入口</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="direction">
+            <header class="direction-head">
+              <div class="label-line">
+                <span class="option-letter">B</span>
+                <span class="direction-name">双舱联字</span>
+              </div>
+              <span class="direction-code">TWIN GATE</span>
+            </header>
+            <div class="hero-specimen dark">
+              <div class="hero-lockup">
+                <svg class="logo-large mark" role="img" aria-label="双舱联字 Logo">
+                  <use href="#mark-twin-gate"></use>
+                </svg>
+                <div class="brand-lockup">
+                  <svg class="lockup-mark mark" aria-hidden="true">
+                    <use href="#mark-twin-gate"></use>
+                  </svg>
+                  <div class="wordmark">
+                    OmniCockpit<small>AGENT AND KNOWLEDGE WORKSPACE</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="application-row">
+              <div class="app-context">
+                <div class="context-label">PRODUCT RAIL</div>
+                <div class="product-rail">
+                  <svg class="mark" aria-hidden="true"><use href="#mark-twin-gate"></use></svg>
+                  <strong>OmniCockpit</strong>
+                  <span class="status-chip">AI</span>
+                </div>
+              </div>
+              <div class="size-context">
+                <div class="context-label">SMALL SCALE</div>
+                <div class="size-grid">
+                  <div class="size-item">
+                    <svg class="size-32 mark"><use href="#mark-twin-gate"></use></svg
+                    ><span>32</span>
+                  </div>
+                  <div class="size-item">
+                    <svg class="size-24 mark mono-light"><use href="#mark-twin-gate"></use></svg
+                    ><span>24</span>
+                  </div>
+                  <div class="size-item">
+                    <svg class="size-16 mark"><use href="#mark-twin-gate"></use></svg
+                    ><span>16</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="direction-notes">
+              <h2>两条控制轨合成专属字形</h2>
+              <p>
+                左右舱体共同构成抽象
+                O，中央缝隙形成指令轴。品牌记忆最独立，也最适合发展成产品家族联字。
+              </p>
+              <div class="decision-row">
+                <span class="decision-tag primary">品牌独特性最高</span>
+                <span class="decision-tag">适合国际化</span>
+                <span class="decision-tag">暗色表现佳</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="direction">
+            <header class="direction-head">
+              <div class="label-line">
+                <span class="option-letter">C</span>
+                <span class="direction-name">合流矢量</span>
+              </div>
+              <span class="direction-code">CONVERGENCE</span>
+            </header>
+            <div class="hero-specimen">
+              <div class="hero-lockup">
+                <svg class="logo-large mark" role="img" aria-label="合流矢量 Logo">
+                  <use href="#mark-convergence"></use>
+                </svg>
+                <div class="brand-lockup">
+                  <svg class="lockup-mark mark" aria-hidden="true">
+                    <use href="#mark-convergence"></use>
+                  </svg>
+                  <div class="wordmark">
+                    OmniCockpit<small>AGENT AND KNOWLEDGE WORKSPACE</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="application-row">
+              <div class="app-context">
+                <div class="context-label">PRODUCT RAIL</div>
+                <div class="product-rail">
+                  <svg class="mark" aria-hidden="true"><use href="#mark-convergence"></use></svg>
+                  <strong>OmniCockpit</strong>
+                  <span class="status-chip">AI</span>
+                </div>
+              </div>
+              <div class="size-context">
+                <div class="context-label">SMALL SCALE</div>
+                <div class="size-grid">
+                  <div class="size-item">
+                    <svg class="size-32 mark"><use href="#mark-convergence"></use></svg
+                    ><span>32</span>
+                  </div>
+                  <div class="size-item">
+                    <svg class="size-24 mark mono-light"><use href="#mark-convergence"></use></svg
+                    ><span>24</span>
+                  </div>
+                  <div class="size-item">
+                    <svg class="size-16 mark"><use href="#mark-convergence"></use></svg
+                    ><span>16</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="direction-notes">
+              <h2>把多路能力压缩成一个执行方向</h2>
+              <p>
+                三条输入带向右汇聚，金色端点表示可交付结果。速度感最强，适合强调工作流执行和资源调度。
+              </p>
+              <div class="decision-row">
+                <span class="decision-tag primary">产品叙事直接</span>
+                <span class="decision-tag">横向动势</span>
+                <span class="decision-tag">适合启动画面</span>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <footer class="footer-note">
+          <span
+            ><strong>选择建议：</strong>A 偏企业控制台，B 偏独立品牌资产，C
+            偏工作流执行平台。确认方向后再展开黑白版、反白版、favicon 与正式 SVG 资产。</span
+          >
+          <span class="footer-meta">STEEL ATLAS / VECTOR FIRST</span>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

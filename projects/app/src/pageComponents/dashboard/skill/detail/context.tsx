@@ -3,10 +3,20 @@ import { createContext } from 'use-context-selector';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import type { AgentSkillDetailType } from '@fastgpt/global/core/agentSkills/type';
+import type { SkillEditWorkspace } from '@fastgpt/global/core/agentSkills/workspace';
+import { getSkillEditorEntryUrl, hasSkillEditorWorkspaceChanged } from './workspace';
 import type { SandboxStatusItemType, SandboxStatusPhase } from '@fastgpt/global/core/chat/type';
-import { AgentSkillTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
+import {
+  AgentSkillCreationStatusEnum,
+  AgentSkillTypeEnum
+} from '@fastgpt/global/core/agentSkills/constants';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
-import { getSkillDetail, streamCreateEditDebugSandbox } from '@/web/core/skill/api';
+import {
+  getSkillDetail,
+  postRetrySkillInitialization,
+  postResetSkillWorkspace,
+  streamCreateEditDebugSandbox
+} from '@/web/core/skill/api';
 import { SkillPermission } from '@fastgpt/global/support/permission/agentSkill/controller';
 
 export enum TabEnum {
@@ -14,7 +24,7 @@ export enum TabEnum {
   preview = 'preview'
 }
 
-export type SandboxState = 'idle' | 'loading' | 'ready' | 'failed';
+export type SandboxState = 'idle' | 'loading' | 'ready' | 'failed' | 'replaced';
 
 export type SandboxLogEntry = {
   timestamp: string;
@@ -24,8 +34,9 @@ export type SandboxLogEntry = {
 
 type SkillDetailContextType = {
   skillId: string;
-  skillDetail: AgentSkillDetailType | undefined;
+  skillDetail: (AgentSkillDetailType & { workspace?: SkillEditWorkspace }) | undefined;
   isFetchingSkillDetail: boolean;
+  skillDetailError?: string;
   refreshSkillDetail: () => void;
   currentTab: TabEnum;
   setCurrentTab: (tab: TabEnum) => void;
@@ -36,6 +47,8 @@ type SkillDetailContextType = {
   sandboxEndpointUrl: string | null;
   sandboxError: string | null;
   startSandbox: () => void;
+  resetWorkspace: (workspace: SkillEditWorkspace) => Promise<void>;
+  isResettingWorkspace: boolean;
 };
 
 export const SkillDetailContext = createContext<SkillDetailContextType>({
@@ -51,7 +64,9 @@ export const SkillDetailContext = createContext<SkillDetailContextType>({
   sandboxLogs: [],
   sandboxEndpointUrl: null,
   sandboxError: null,
-  startSandbox: () => {}
+  startSandbox: () => {},
+  resetWorkspace: async () => {},
+  isResettingWorkspace: false
 });
 
 const formatTimestamp = () => {
@@ -76,6 +91,7 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
   const [sandboxError, setSandboxError] = useState<string | null>(null);
   const abortCtrlRef = useRef<AbortController | null>(null);
   const hasStartedRef = useRef(false);
+  const [isResettingWorkspace, setIsResettingWorkspace] = useState(false);
 
   const phaseToMessage = useCallback(
     (status: SandboxStatusItemType): string => {
@@ -98,68 +114,17 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
     [t]
   );
 
-  const startSandbox = useCallback(() => {
-    if (!skillId) return;
-
-    // Abort previous if any
-    abortCtrlRef.current?.abort();
-
-    const abortCtrl = new AbortController();
-    abortCtrlRef.current = abortCtrl;
-
-    setSandboxState('idle');
-    setSandboxLogs([]);
-    setSandboxEndpointUrl(null);
-    setSandboxError(null);
-
-    let hasReceivedFirstEvent = false;
-
-    streamCreateEditDebugSandbox({
-      data: { skillId },
-      onStatus: (status) => {
-        // 收到第一条 SSE 消息后才从 idle 切到 loading（终端日志）
-        if (!hasReceivedFirstEvent) {
-          hasReceivedFirstEvent = true;
-          setSandboxState('loading');
-        }
-
-        const entry: SandboxLogEntry = {
-          timestamp: formatTimestamp(),
-          message: phaseToMessage(status),
-          phase: status.phase
-        };
-        setSandboxLogs((prev) => [...prev, entry]);
-
-        if (status.phase === 'ready' && status.providerSandboxId && status.endpoint?.port) {
-          setSandboxEndpointUrl(`/proxy/${status.providerSandboxId}/${status.endpoint.port}/`);
-          setSandboxState('ready');
-        } else if (status.phase === 'failed') {
-          setSandboxError(status.message || t('skill:sandbox_error_title'));
-          setSandboxState('failed');
-        }
-      },
-      onError: (err) => {
-        setSandboxError(err);
-        setSandboxState('failed');
-      },
-      abortCtrl
-    }).catch((err) => {
-      if (abortCtrl.signal.aborted) return;
-      setSandboxError(typeof err === 'string' ? err : err?.message || String(err));
-      setSandboxState('failed');
-    });
-  }, [skillId, phaseToMessage, t]);
-
-  // Skill detail fetch
   const {
     data: skillDetail,
     loading: isFetchingSkillDetail,
-    run: refreshSkillDetail
+    error: skillDetailRequestError,
+    run: refreshSkillDetail,
+    runAsync: loadSkillDetail
   } = useRequest(
     () => {
       if (!skillId) return Promise.resolve(undefined);
       return getSkillDetail({ skillId }).then((res) => {
-        const detail: AgentSkillDetailType = {
+        const detail: AgentSkillDetailType & { workspace?: SkillEditWorkspace } = {
           ...res,
           type: AgentSkillTypeEnum.skill,
           config: res.config ?? {},
@@ -177,17 +142,179 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       manual: false,
+      ready: !!skillId,
       refreshDeps: [skillId]
     }
   );
 
-  // Auto-start sandbox when skillId is ready
+  const startSandbox = useCallback(() => {
+    if (!skillId || !skillDetail?.permission.hasWritePer) return;
+    if (skillDetail.workspace?.operation?.failureDisposition === 'unknown') {
+      setSandboxError(t('skill:workspace_recovery_required'));
+      setSandboxState('failed');
+      return;
+    }
+    if (skillDetail?.creationStatus === AgentSkillCreationStatusEnum.failed) {
+      setSandboxState('idle');
+      setSandboxError(null);
+      postRetrySkillInitialization({ skillId })
+        .then(() => router.replace(router.asPath))
+        .catch((error) => {
+          setSandboxError(error instanceof Error ? error.message : String(error));
+          setSandboxState('failed');
+        });
+      return;
+    }
+    if (
+      skillDetail?.creationStatus &&
+      skillDetail.creationStatus !== AgentSkillCreationStatusEnum.ready
+    ) {
+      return;
+    }
+
+    // Abort previous if any
+    abortCtrlRef.current?.abort();
+
+    const abortCtrl = new AbortController();
+    abortCtrlRef.current = abortCtrl;
+
+    setSandboxState('idle');
+    setSandboxLogs([]);
+    setSandboxEndpointUrl(null);
+    setSandboxError(null);
+
+    let hasReceivedFirstEvent = false;
+
+    streamCreateEditDebugSandbox({
+      data: { skillId },
+      onStatus: (status) => {
+        if (abortCtrl.signal.aborted) return;
+        // 收到第一条 SSE 消息后才从 idle 切到 loading（终端日志）
+        if (!hasReceivedFirstEvent) {
+          hasReceivedFirstEvent = true;
+          setSandboxState('loading');
+        }
+
+        const entry: SandboxLogEntry = {
+          timestamp: formatTimestamp(),
+          message: phaseToMessage(status),
+          phase: status.phase
+        };
+        setSandboxLogs((prev) => [...prev, entry]);
+
+        if (status.phase === 'ready' && status.providerSandboxId && status.endpoint?.port) {
+          const targetPort = status.endpoint.port;
+          loadSkillDetail()
+            .then((detail) => {
+              if (abortCtrl.signal.aborted) return;
+              const entryUrl = getSkillEditorEntryUrl({ workspace: detail?.workspace, targetPort });
+              if (!entryUrl) throw new Error(t('skill:workspace_unavailable'));
+              setSandboxEndpointUrl(entryUrl);
+              setSandboxState('ready');
+            })
+            .catch((error) => {
+              if (abortCtrl.signal.aborted) return;
+              setSandboxError(error instanceof Error ? error.message : String(error));
+              setSandboxState('failed');
+            });
+        } else if (status.phase === 'failed') {
+          setSandboxError(status.message || t('skill:sandbox_error_title'));
+          setSandboxState('failed');
+        }
+      },
+      onError: (err) => {
+        if (abortCtrl.signal.aborted) return;
+        setSandboxError(err);
+        setSandboxState('failed');
+      },
+      abortCtrl
+    }).catch((err) => {
+      if (abortCtrl.signal.aborted) return;
+      setSandboxError(typeof err === 'string' ? err : err?.message || String(err));
+      setSandboxState('failed');
+    });
+  }, [
+    router,
+    skillDetail?.creationStatus,
+    skillDetail?.permission.hasWritePer,
+    skillDetail?.workspace?.operation?.failureDisposition,
+    skillId,
+    phaseToMessage,
+    loadSkillDetail,
+    t
+  ]);
+
+  const resetWorkspace = useCallback(
+    async (workspace: SkillEditWorkspace) => {
+      if (!workspace.currentVersionId || !workspace.resetAvailable || isResettingWorkspace) return;
+      abortCtrlRef.current?.abort();
+      setSandboxEndpointUrl(null);
+      setSandboxState('loading');
+      setSandboxLogs([]);
+      setIsResettingWorkspace(true);
+      try {
+        await postResetSkillWorkspace({
+          skillId,
+          expectedCurrentVersionId: workspace.currentVersionId,
+          expectedBaseVersionId: workspace.baseVersionId,
+          expectedOperationId: workspace.operation?.id ?? null,
+          confirmDiscard: true
+        });
+        await loadSkillDetail();
+        setSandboxState('replaced');
+      } catch (error) {
+        setSandboxError(error instanceof Error ? error.message : String(error));
+        setSandboxState('failed');
+        throw error;
+      } finally {
+        setIsResettingWorkspace(false);
+        refreshSkillDetail();
+      }
+    },
+    [skillId, isResettingWorkspace, loadSkillDetail, refreshSkillDetail]
+  );
+
   useEffect(() => {
+    if (hasSkillEditorWorkspaceChanged(skillDetail?.workspace, sandboxEndpointUrl)) {
+      abortCtrlRef.current?.abort();
+      setSandboxEndpointUrl(null);
+      setSandboxState('replaced');
+    }
+  }, [skillDetail?.workspace, sandboxEndpointUrl]);
+
+  useEffect(() => {
+    if (!skillDetail?.permission.hasWritePer) return;
+    const timer = setInterval(refreshSkillDetail, 10000);
+    window.addEventListener('focus', refreshSkillDetail);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', refreshSkillDetail);
+    };
+  }, [skillDetail?.permission.hasWritePer, refreshSkillDetail]);
+
+  useEffect(() => {
+    hasStartedRef.current = false;
+  }, [skillId]);
+
+  useEffect(() => {
+    if (!skillDetail?.permission.hasWritePer) return;
+    if (
+      skillDetail.creationStatus === AgentSkillCreationStatusEnum.pending ||
+      skillDetail.creationStatus === AgentSkillCreationStatusEnum.initializing
+    ) {
+      const timer = setTimeout(refreshSkillDetail, 1000);
+      return () => clearTimeout(timer);
+    }
+    if (skillDetail.creationStatus === AgentSkillCreationStatusEnum.failed) {
+      setSandboxError(skillDetail.error?.message || t('skill:sandbox_error_title'));
+      setSandboxState('failed');
+      return;
+    }
     if (skillId && !hasStartedRef.current) {
       hasStartedRef.current = true;
       startSandbox();
     }
-  }, [skillId, startSandbox]);
+  }, [refreshSkillDetail, skillDetail, skillId, startSandbox, t]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -201,6 +328,7 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
       skillId,
       skillDetail,
       isFetchingSkillDetail,
+      skillDetailError: skillDetailRequestError?.message,
       refreshSkillDetail,
       currentTab,
       setCurrentTab,
@@ -210,12 +338,15 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
       sandboxLogs,
       sandboxEndpointUrl,
       sandboxError,
-      startSandbox
+      startSandbox,
+      resetWorkspace,
+      isResettingWorkspace
     }),
     [
       skillId,
       skillDetail,
       isFetchingSkillDetail,
+      skillDetailRequestError,
       refreshSkillDetail,
       currentTab,
       showHistories,
@@ -223,7 +354,9 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
       sandboxLogs,
       sandboxEndpointUrl,
       sandboxError,
-      startSandbox
+      startSandbox,
+      resetWorkspace,
+      isResettingWorkspace
     ]
   );
 

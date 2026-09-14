@@ -14,8 +14,23 @@ import {
   SandboxGetHtmlPreviewLinkBodySchema,
   SandboxGetHtmlPreviewLinkResponseSchema
 } from './api';
+import { SandboxProxyAuthQuerySchema } from './api';
 
 export const SandboxPath: OpenAPIPath = {
+  '/core/sandbox/proxyAuth': {
+    get: {
+      summary: '打开 Sandbox 独立源编辑器',
+      description:
+        '校验当前成员资源写权限，签发 Redis 短期单次票据并跳转到独立 origin。不转移主站登录凭据。',
+      tags: [TagsMap.sandbox],
+      requestParams: { query: SandboxProxyAuthQuerySchema },
+      responses: {
+        302: { description: '跳转到当前资源绑定的编辑器地址' },
+        403: { description: '资源权限不足或跳转 origin 不匹配' },
+        503: { description: 'Sandbox 或独立 origin 配置不可用' }
+      }
+    }
+  },
   '/core/ai/sandbox/list': {
     post: {
       summary: '列出沙盒目录',

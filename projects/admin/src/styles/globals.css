@@ -1,0 +1,28 @@
+:root {
+  --admin-canvas: #f8fafc;
+  --admin-panel: #ffffff;
+  --admin-navigation: #f5f7fa;
+  --admin-border: #dfe5ee;
+  --admin-text: #1f2937;
+  --admin-muted: #667085;
+  --admin-graphite: #27364a;
+  --admin-blue: #2563eb;
+}
+
+html,
+body,
+#__next {
+  width: 100%;
+  min-width: 1280px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  color: var(--admin-text);
+  background: var(--admin-canvas);
+}
+
+* {
+  box-sizing: border-box;
+}

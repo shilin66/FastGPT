@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniCockpit 工作流节点三方案预览</title>
+    <style>
+      :root {
+        --oc-blue: #2563eb;
+        --oc-blue-2: #4f7ff2;
+        --oc-blue-dark: #173a8a;
+        --oc-ink: #172033;
+        --oc-muted: #637083;
+        --oc-soft: #8b99ad;
+        --oc-line: #d8e1ee;
+        --oc-line-2: #c7d4e6;
+        --oc-paper: #f5f8fc;
+        --oc-panel: #ffffff;
+        --oc-navy: #1f2c43;
+        --oc-cyan: #0ea5e9;
+        --oc-green: #10b981;
+        --oc-amber: #c89f45;
+        --oc-red: #e5484d;
+        --shadow-sm: 0 8px 22px rgba(23, 32, 51, 0.06);
+        --shadow-md: 0 18px 48px rgba(23, 32, 51, 0.12);
+        --shadow-blue: 0 16px 38px rgba(37, 99, 235, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--oc-ink);
+        background:
+          radial-gradient(circle at 14% 0%, rgba(37, 99, 235, 0.12), transparent 32%),
+          linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+          #edf3fb;
+        background-size: auto, 26px 26px, 26px 26px, auto;
+        font-family:
+          "Avenir Next",
+          "Helvetica Neue",
+          Arial,
+          "PingFang SC",
+          "Microsoft YaHei",
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      a {
+        font: inherit;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .page {
+        max-width: 1760px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 28px;
+        align-items: end;
+        margin-bottom: 20px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 30px;
+        padding: 0 11px;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 10px;
+        color: var(--oc-blue);
+        background: rgba(255, 255, 255, 0.74);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .eyebrow::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 2px;
+        background: var(--oc-blue);
+        content: "";
+      }
+
+      h1 {
+        margin: 12px 0 8px;
+        font-size: clamp(30px, 3vw, 48px);
+        line-height: 1.08;
+      }
+
+      .hero p {
+        max-width: 860px;
+        margin: 0;
+        color: var(--oc-muted);
+        font-size: 15px;
+        line-height: 1.8;
+      }
+
+      .jump {
+        display: flex;
+        gap: 10px;
+        padding: 7px;
+        border: 1px solid rgba(199, 212, 230, 0.74);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .jump a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 13px;
+        color: var(--oc-muted);
+        font-size: 13px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .jump a:hover {
+        color: white;
+        background: var(--oc-blue);
+      }
+
+      .compare {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 22px;
+      }
+
+      .brief {
+        min-height: 126px;
+        padding: 16px;
+        border: 1px solid rgba(199, 212, 230, 0.8);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .brief strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 15px;
+      }
+
+      .brief p {
+        margin: 0;
+        color: var(--oc-muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .stage {
+        margin-top: 24px;
+        overflow: hidden;
+        border: 1px solid rgba(199, 212, 230, 0.86);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 30px 90px rgba(23, 32, 51, 0.1);
+      }
+
+      .stage-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 22px;
+        align-items: center;
+        padding: 18px 22px;
+        border-bottom: 1px solid rgba(199, 212, 230, 0.7);
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .stage-title {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 14px;
+      }
+
+      .scheme-mark {
+        display: grid;
+        width: 46px;
+        height: 46px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 15px;
+        color: white;
+        background: var(--oc-blue);
+        font-weight: 1000;
+        box-shadow: var(--shadow-blue);
+      }
+
+      .stage-title h2 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.15;
+      }
+
+      .stage-title p {
+        margin: 5px 0 0;
+        color: var(--oc-muted);
+        font-size: 13px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid rgba(37, 99, 235, 0.16);
+        border-radius: 10px;
+        color: var(--oc-blue-dark);
+        background: rgba(37, 99, 235, 0.07);
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 230px minmax(960px, 1fr) 310px;
+        min-height: 650px;
+      }
+
+      .dock,
+      .inspector {
+        background: rgba(255, 255, 255, 0.82);
+      }
+
+      .dock {
+        border-right: 1px solid rgba(199, 212, 230, 0.72);
+      }
+
+      .inspector {
+        border-left: 1px solid rgba(199, 212, 230, 0.72);
+      }
+
+      .dock-inner,
+      .inspector-inner {
+        padding: 18px;
+      }
+
+      .dock-label,
+      .inspector-kicker {
+        margin-bottom: 10px;
+        color: var(--oc-soft);
+        font-size: 10px;
+        font-weight: 1000;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .dock-search {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 38px;
+        margin-bottom: 14px;
+        padding: 0 12px;
+        border: 1px solid var(--oc-line);
+        border-radius: 12px;
+        color: var(--oc-muted);
+        background: #f8fafc;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .dock-item {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 58px;
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid var(--oc-line);
+        border-radius: 15px;
+        background: white;
+      }
+
+      .dock-icon,
+      .node-icon,
+      .mini-icon {
+        display: grid;
+        place-items: center;
+        color: white;
+        background: var(--oc-blue);
+        font-size: 12px;
+        font-weight: 1000;
+      }
+
+      .dock-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
+      }
+
+      .dock-item strong {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+      }
+
+      .dock-item span {
+        display: block;
+        margin-top: 2px;
+        overflow: hidden;
+        color: var(--oc-muted);
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .dock-hotkey {
+        color: var(--oc-soft);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .canvas {
+        position: relative;
+        min-height: 650px;
+        overflow: hidden;
+        background:
+          linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+          #f8fbff;
+        background-size: 24px 24px;
+      }
+
+      .wire-layer {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      .inspector-card {
+        border: 1px solid var(--oc-line);
+        border-radius: 18px;
+        background: #fbfdff;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .inspector-card + .inspector-card {
+        margin-top: 12px;
+      }
+
+      .inspector-main {
+        padding: 15px;
+      }
+
+      .inspector-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 13px;
+      }
+
+      .mini-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+      }
+
+      .inspector-title strong {
+        display: block;
+        font-size: 15px;
+      }
+
+      .inspector-title span {
+        display: block;
+        margin-top: 2px;
+        color: var(--oc-muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .metric {
+        padding: 10px;
+        border: 1px solid var(--oc-line);
+        border-radius: 13px;
+        background: white;
+      }
+
+      .metric span {
+        display: block;
+        color: var(--oc-muted);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 5px;
+        font-size: 18px;
+      }
+
+      .param-list {
+        padding: 8px;
+      }
+
+      .param-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 38px;
+        padding: 0 10px;
+        border-radius: 12px;
+        color: var(--oc-ink);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .param-row + .param-row {
+        margin-top: 4px;
+      }
+
+      .param-row:nth-child(odd) {
+        background: white;
+      }
+
+      .param-row em {
+        color: var(--oc-blue);
+        font-style: normal;
+      }
+
+      .port {
+        position: absolute;
+        z-index: 5;
+        width: 14px;
+        height: 14px;
+        border: 3px solid white;
+        border-radius: 50%;
+        background: var(--oc-blue);
+        box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.55);
+      }
+
+      .port.left {
+        left: -7px;
+        top: calc(50% - 7px);
+      }
+
+      .port.right {
+        right: -7px;
+        top: calc(50% - 7px);
+      }
+
+      .port.bottom {
+        right: 34px;
+        bottom: -7px;
+      }
+
+      .type-pill {
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 8px;
+        color: var(--oc-blue);
+        background: rgba(37, 99, 235, 0.08);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      /* Scheme A: Command Tile */
+      .scheme-a .node {
+        position: absolute;
+        overflow: visible;
+        border: 1px solid var(--oc-line-2);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 14px 36px rgba(23, 32, 51, 0.1);
+      }
+
+      .scheme-a .node::before {
+        position: absolute;
+        top: 13px;
+        bottom: 13px;
+        left: -1px;
+        width: 4px;
+        border-radius: 0 6px 6px 0;
+        background: var(--oc-blue);
+        content: "";
+      }
+
+      .scheme-a .node.selected {
+        border-color: rgba(37, 99, 235, 0.62);
+        box-shadow:
+          0 0 0 2px rgba(37, 99, 235, 0.16),
+          0 18px 46px rgba(37, 99, 235, 0.16);
+      }
+
+      .scheme-a .node-head {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 16px 10px 18px;
+      }
+
+      .scheme-a .node-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26);
+      }
+
+      .scheme-a .node h3,
+      .scheme-b .node h3,
+      .scheme-c .node h3 {
+        margin: 0;
+        overflow: hidden;
+        color: var(--oc-ink);
+        font-size: 16px;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .scheme-a .node small,
+      .scheme-b .node small,
+      .scheme-c .node small {
+        display: block;
+        margin-top: 4px;
+        overflow: hidden;
+        color: var(--oc-muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .scheme-a .node-body {
+        padding: 8px 16px 16px 18px;
+      }
+
+      .summary-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-bottom: 10px;
+      }
+
+      .summary-token {
+        display: inline-flex;
+        align-items: center;
+        height: 25px;
+        padding: 0 9px;
+        border: 1px solid rgba(199, 212, 230, 0.86);
+        border-radius: 9px;
+        background: #f8fafc;
+        color: var(--oc-muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .summary-token strong {
+        margin-left: 4px;
+        color: var(--oc-ink);
+      }
+
+      .field-strip {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field-line {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 10px;
+        border: 1px solid rgba(216, 225, 238, 0.86);
+        border-radius: 10px;
+        background: linear-gradient(180deg, #ffffff, #f9fbff);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .field-line span {
+        overflow: hidden;
+        color: var(--oc-muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .field-line b {
+        color: var(--oc-blue);
+        font-size: 11px;
+      }
+
+      .scheme-a .node-start {
+        top: 204px;
+        left: 96px;
+        width: 248px;
+      }
+
+      .scheme-a .node-http {
+        top: 122px;
+        left: 464px;
+        width: 358px;
+      }
+
+      .scheme-a .node-kb {
+        top: 352px;
+        left: 470px;
+        width: 300px;
+      }
+
+      .scheme-a .node-answer {
+        top: 238px;
+        left: 884px;
+        width: 258px;
+      }
+
+      /* Scheme B: Data Strip */
+      .scheme-b .workspace {
+        grid-template-columns: 210px minmax(1040px, 1fr) 280px;
+      }
+
+      .scheme-b .dock-item {
+        min-height: 48px;
+        border-radius: 8px;
+        box-shadow: none;
+      }
+
+      .scheme-b .canvas {
+        background:
+          linear-gradient(rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+          #f7f9fd;
+        background-size: 22px 22px;
+      }
+
+      .scheme-b .node {
+        position: absolute;
+        overflow: visible;
+        border: 1px solid var(--oc-line-2);
+        border-radius: 10px;
+        background: white;
+        box-shadow: 0 10px 24px rgba(23, 32, 51, 0.07);
+      }
+
+      .scheme-b .node.selected {
+        border-color: var(--oc-blue);
+        box-shadow:
+          0 0 0 1px rgba(37, 99, 235, 0.42),
+          0 16px 36px rgba(37, 99, 235, 0.12);
+      }
+
+      .scheme-b .node-head {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(216, 225, 238, 0.85);
+        background: #fbfdff;
+      }
+
+      .scheme-b .node-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: var(--oc-navy);
+      }
+
+      .strip-table {
+        padding: 10px 12px 12px;
+      }
+
+      .strip-row {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr) 74px;
+        min-height: 32px;
+        border-bottom: 1px solid rgba(216, 225, 238, 0.78);
+        color: var(--oc-muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .strip-row:last-child {
+        border-bottom: 0;
+      }
+
+      .strip-row span {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .strip-row b {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        color: var(--oc-blue);
+        font-size: 11px;
+      }
+
+      .scheme-b .node-start {
+        top: 212px;
+        left: 78px;
+        width: 300px;
+      }
+
+      .scheme-b .node-http {
+        top: 126px;
+        left: 478px;
+        width: 410px;
+      }
+
+      .scheme-b .node-kb {
+        top: 362px;
+        left: 490px;
+        width: 330px;
+      }
+
+      .scheme-b .node-answer {
+        top: 242px;
+        left: 964px;
+        width: 300px;
+      }
+
+      /* Scheme C: Minimal Circuit */
+      .scheme-c .workspace {
+        grid-template-columns: 198px minmax(1040px, 1fr) 286px;
+      }
+
+      .scheme-c .canvas {
+        background:
+          radial-gradient(circle at center, rgba(37, 99, 235, 0.07) 1px, transparent 1px),
+          #f8fbff;
+        background-size: 20px 20px;
+      }
+
+      .scheme-c .node {
+        position: absolute;
+        overflow: visible;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 16px 44px rgba(23, 32, 51, 0.08);
+      }
+
+      .scheme-c .node::after {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background:
+          linear-gradient(90deg, rgba(37, 99, 235, 0.12), transparent 32%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent);
+        pointer-events: none;
+        content: "";
+      }
+
+      .scheme-c .node.selected {
+        border-color: rgba(37, 99, 235, 0.66);
+        box-shadow:
+          0 0 0 2px rgba(37, 99, 235, 0.16),
+          0 22px 50px rgba(37, 99, 235, 0.14);
+      }
+
+      .scheme-c .node-head,
+      .scheme-c .node-body {
+        position: relative;
+        z-index: 1;
+      }
+
+      .scheme-c .node-head {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 14px;
+      }
+
+      .scheme-c .node-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 16px 8px 16px 8px;
+      }
+
+      .scheme-c .node-body {
+        padding: 0 14px 14px;
+      }
+
+      .circuit-line {
+        height: 1px;
+        margin: 0 0 12px;
+        background: linear-gradient(90deg, rgba(37, 99, 235, 0.42), rgba(37, 99, 235, 0.08), transparent);
+      }
+
+      .circuit-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .circuit-stat {
+        min-height: 44px;
+        padding: 8px;
+        border: 1px solid rgba(216, 225, 238, 0.82);
+        border-radius: 13px;
+        background: rgba(248, 250, 252, 0.86);
+      }
+
+      .circuit-stat span {
+        display: block;
+        color: var(--oc-muted);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .circuit-stat strong {
+        display: block;
+        margin-top: 4px;
+        color: var(--oc-ink);
+        font-size: 13px;
+      }
+
+      .scheme-c .node-start {
+        top: 216px;
+        left: 90px;
+        width: 238px;
+      }
+
+      .scheme-c .node-http {
+        top: 128px;
+        left: 462px;
+        width: 338px;
+      }
+
+      .scheme-c .node-kb {
+        top: 366px;
+        left: 500px;
+        width: 282px;
+      }
+
+      .scheme-c .node-answer {
+        top: 244px;
+        left: 890px;
+        width: 238px;
+      }
+
+      .status-ok {
+        color: #047857;
+        background: rgba(16, 185, 129, 0.12);
+      }
+
+      .status-warn {
+        color: #a16207;
+        background: rgba(200, 159, 69, 0.14);
+      }
+
+      .status-blue {
+        color: var(--oc-blue);
+        background: rgba(37, 99, 235, 0.09);
+      }
+
+      @media (max-width: 1180px) {
+        .page {
+          padding: 18px;
+        }
+
+        .hero,
+        .stage-head {
+          grid-template-columns: 1fr;
+        }
+
+        .jump,
+        .chips {
+          justify-content: flex-start;
+          overflow-x: auto;
+        }
+
+        .compare {
+          grid-template-columns: 1fr;
+        }
+
+        .stage {
+          overflow-x: auto;
+        }
+
+        .workspace {
+          min-width: 1460px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <span class="eyebrow">OmniCockpit node visual exploration</span>
+          <h1>工作流节点视觉三方案预览</h1>
+          <p>
+            这三个方案都不沿用当前 FastGPT 风格节点：去掉粗蓝大包边、减少嵌套卡片、连接点避开圆角冲突，并把画布节点从“表单容器”重新定义为 OmniCockpit 的工作流模块。
+          </p>
+        </div>
+        <nav class="jump" aria-label="方案跳转">
+          <a href="#scheme-a">方案 A</a>
+          <a href="#scheme-b">方案 B</a>
+          <a href="#scheme-c">方案 C</a>
+        </nav>
+      </header>
+
+      <section class="compare" aria-label="方案摘要">
+        <article class="brief">
+          <strong>A：Command Tile / 指令舱节点</strong>
+          <p>推荐方向。节点像控制台指令模块，信息摘要清晰，蓝色只用于状态轨、选中态和连接端口。</p>
+        </article>
+        <article class="brief">
+          <strong>B：Data Strip / 数据条节点</strong>
+          <p>最高密度方案。更像工程表格和流水线条目，适合复杂工作流，但视觉温度更低。</p>
+        </article>
+        <article class="brief">
+          <strong>C：Minimal Circuit / 极简电路节点</strong>
+          <p>最轻量、最不像原项目。强调连线和端口，画布很干净，但复杂配置需要依赖右侧检查器。</p>
+        </article>
+      </section>
+
+      <section class="stage scheme-a" id="scheme-a">
+        <div class="stage-head">
+          <div class="stage-title">
+            <span class="scheme-mark">A</span>
+            <div>
+              <h2>Command Tile / 指令舱节点</h2>
+              <p>适合最终落地：功能信息够完整，改动可以控制在节点渲染层和右侧检查器层。</p>
+            </div>
+          </div>
+          <div class="chips">
+            <span class="chip">低 FastGPT 痕迹</span>
+            <span class="chip">中等密度</span>
+            <span class="chip">适合当前重构</span>
+          </div>
+        </div>
+        <div class="workspace">
+          <aside class="dock">
+            <div class="dock-inner">
+              <div class="dock-label">Node dock</div>
+              <div class="dock-search"><span>搜索节点</span><b>/</b></div>
+              <div class="dock-item"><span class="dock-icon">AI</span><div><strong>AI 对话</strong><span>模型与提示词</span></div><span class="dock-hotkey">A</span></div>
+              <div class="dock-item"><span class="dock-icon" style="background:#0ea5e9">KB</span><div><strong>知识库搜索</strong><span>召回与引用</span></div><span class="dock-hotkey">K</span></div>
+              <div class="dock-item"><span class="dock-icon" style="background:#1f2c43">API</span><div><strong>HTTP 请求</strong><span>外部服务接口</span></div><span class="dock-hotkey">H</span></div>
+              <div class="dock-item"><span class="dock-icon" style="background:#7c3aed">IF</span><div><strong>条件判断</strong><span>分支与规则</span></div><span class="dock-hotkey">C</span></div>
+            </div>
+          </aside>
+          <section class="canvas">
+            <svg class="wire-layer" viewBox="0 0 1260 650" preserveAspectRatio="none">
+              <path d="M344 262 C 410 262, 416 211, 464 211" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+              <path d="M344 262 C 412 328, 426 421, 470 421" fill="none" stroke="#6b8df7" stroke-width="2.5" stroke-linecap="round" />
+              <path d="M822 211 C 862 211, 842 303, 884 303" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+              <path d="M770 421 C 840 421, 836 303, 884 303" fill="none" stroke="#6b8df7" stroke-width="2.5" stroke-linecap="round" />
+            </svg>
+            <article class="node node-start">
+              <span class="port right"></span>
+              <div class="node-head">
+                <span class="node-icon">IN</span>
+                <div><h3>开始节点</h3><small>接收用户问题、附件和会话上下文</small></div>
+                <span class="type-pill">Trigger</span>
+              </div>
+              <div class="node-body">
+                <div class="summary-row"><span class="summary-token">输出 <strong>1</strong></span><span class="summary-token">全局变量 <strong>8</strong></span></div>
+                <div class="field-strip"><div class="field-line"><span>用户问题</span><b>String</b></div></div>
+              </div>
+            </article>
+            <article class="node node-http selected">
+              <span class="port left"></span><span class="port right"></span><span class="port bottom"></span>
+              <div class="node-head">
+                <span class="node-icon" style="background:#1f2c43">API</span>
+                <div><h3>EXT-02/03 网内异常日志查询</h3><small>HTTP 请求 · 统一后的复杂节点摘要模式</small></div>
+                <span class="type-pill status-blue">Selected</span>
+              </div>
+              <div class="node-body">
+                <div class="summary-row">
+                  <span class="summary-token">POST</span>
+                  <span class="summary-token">输入 <strong>10</strong></span>
+                  <span class="summary-token">输出 <strong>3</strong></span>
+                  <span class="summary-token">已配置 <strong>4</strong></span>
+                </div>
+                <div class="field-strip">
+                  <div class="field-line"><span>/ext-02-03/inner-relay-alarm-log</span><b>30 s</b></div>
+                  <div class="field-line"><span>请求方法</span><b>已配置</b></div>
+                  <div class="field-line"><span>原始响应</span><b>Any</b></div>
+                </div>
+              </div>
+            </article>
+            <article class="node node-kb">
+              <span class="port left"></span><span class="port right"></span>
+              <div class="node-head">
+                <span class="node-icon" style="background:#0ea5e9">KB</span>
+                <div><h3>知识库检索</h3><small>命中产品知识与售后策略</small></div>
+                <span class="type-pill status-ok">3 hits</span>
+              </div>
+              <div class="node-body">
+                <div class="summary-row"><span class="summary-token">Top K <strong>8</strong></span><span class="summary-token">阈值 <strong>0.62</strong></span></div>
+                <div class="field-strip"><div class="field-line"><span>跨区域换货知识库</span><b>引用</b></div></div>
+              </div>
+            </article>
+            <article class="node node-answer">
+              <span class="port left"></span>
+              <div class="node-head">
+                <span class="node-icon" style="background:#10b981">OUT</span>
+                <div><h3>最终回复</h3><small>输出带引用、限制条件和建议</small></div>
+                <span class="type-pill status-ok">Ready</span>
+              </div>
+              <div class="node-body">
+                <div class="summary-row"><span class="summary-token">输入 <strong>2</strong></span><span class="summary-token">格式 <strong>Markdown</strong></span></div>
+              </div>
+            </article>
+          </section>
+          <aside class="inspector">
+            <div class="inspector-inner">
+              <div class="inspector-kicker">Inspector</div>
+              <div class="inspector-card inspector-main">
+                <div class="inspector-title">
+                  <span class="mini-icon" style="background:#1f2c43">API</span>
+                  <div><strong>网内异常日志查询</strong><span>workflow:intro_http_request</span></div>
+                </div>
+                <div class="metric-grid">
+                  <div class="metric"><span>输入</span><strong>10</strong></div>
+                  <div class="metric"><span>输出</span><strong>3</strong></div>
+                  <div class="metric"><span>状态</span><strong>正常</strong></div>
+                </div>
+              </div>
+              <div class="inspector-card param-list">
+                <div class="param-row"><span>请求方法</span><em>已配置</em></div>
+                <div class="param-row"><span>超时时长</span><em>已配置</em></div>
+                <div class="param-row"><span>密钥请求头</span><em>可选</em></div>
+                <div class="param-row"><span>原始响应</span><em>any</em></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="stage scheme-b" id="scheme-b">
+        <div class="stage-head">
+          <div class="stage-title">
+            <span class="scheme-mark" style="background:var(--oc-navy)">B</span>
+            <div>
+              <h2>Data Strip / 数据条节点</h2>
+              <p>把节点压成工程数据条，减少视觉装饰；适合超大工作流，但会更偏技术人员。</p>
+            </div>
+          </div>
+          <div class="chips">
+            <span class="chip">最高密度</span>
+            <span class="chip">表格化信息</span>
+            <span class="chip">更冷静克制</span>
+          </div>
+        </div>
+        <div class="workspace">
+          <aside class="dock">
+            <div class="dock-inner">
+              <div class="dock-label">Catalog</div>
+              <div class="dock-search"><span>filter node</span><b>/</b></div>
+              <div class="dock-item"><span class="dock-icon">AI</span><div><strong>AI 对话</strong><span>model prompt</span></div><span class="dock-hotkey">A</span></div>
+              <div class="dock-item"><span class="dock-icon" style="background:#0ea5e9">KB</span><div><strong>知识库搜索</strong><span>retrieval</span></div><span class="dock-hotkey">K</span></div>
+              <div class="dock-item"><span class="dock-icon" style="background:#1f2c43">API</span><div><strong>HTTP 请求</strong><span>request</span></div><span class="dock-hotkey">H</span></div>
+              <div class="dock-item"><span class="dock-icon" style="background:#7c3aed">IF</span><div><strong>条件判断</strong><span>branch</span></div><span class="dock-hotkey">C</span></div>
+            </div>
+          </aside>
+          <section class="canvas">
+            <svg class="wire-layer" viewBox="0 0 1260 650" preserveAspectRatio="none">
+              <path d="M378 276 C 430 276, 430 205, 478 205" fill="none" stroke="#1f2c43" stroke-width="2.5" stroke-linecap="square" />
+              <path d="M378 276 C 430 366, 436 426, 490 426" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="square" />
+              <path d="M888 205 C 934 205, 920 306, 964 306" fill="none" stroke="#1f2c43" stroke-width="2.5" stroke-linecap="square" />
+              <path d="M820 426 C 912 426, 910 306, 964 306" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="square" />
+            </svg>
+            <article class="node node-start">
+              <span class="port right"></span>
+              <div class="node-head"><span class="node-icon">IN</span><div><h3>开始节点</h3><small>user input context</small></div><span class="type-pill">TRG</span></div>
+              <div class="strip-table">
+                <div class="strip-row"><span>output</span><span>userChatInput</span><b>string</b></div>
+                <div class="strip-row"><span>globals</span><span>userId, appId, chatId</span><b>8</b></div>
+              </div>
+            </article>
+            <article class="node node-http selected">
+              <span class="port left"></span><span class="port right"></span><span class="port bottom"></span>
+              <div class="node-head"><span class="node-icon">API</span><div><h3>EXT-02/03 网内异常日志查询</h3><small>POST /inner-relay-alarm-log</small></div><span class="type-pill status-blue">RUN</span></div>
+              <div class="strip-table">
+                <div class="strip-row"><span>inputs</span><span>method, timeout, url, headers</span><b>10</b></div>
+                <div class="strip-row"><span>configured</span><span>请求方法、请求地址、超时时长</span><b>4</b></div>
+                <div class="strip-row"><span>outputs</span><span>raw_response, error_text, evidence</span><b>3</b></div>
+              </div>
+            </article>
+            <article class="node node-kb">
+              <span class="port left"></span><span class="port right"></span>
+              <div class="node-head"><span class="node-icon" style="background:#0ea5e9">KB</span><div><h3>知识库检索</h3><small>cross-region return policy</small></div><span class="type-pill status-ok">OK</span></div>
+              <div class="strip-table">
+                <div class="strip-row"><span>dataset</span><span>售后策略知识库</span><b>3</b></div>
+                <div class="strip-row"><span>score</span><span>threshold 0.62</span><b>0.91</b></div>
+              </div>
+            </article>
+            <article class="node node-answer">
+              <span class="port left"></span>
+              <div class="node-head"><span class="node-icon" style="background:#10b981">OUT</span><div><h3>最终回复</h3><small>answer composer</small></div><span class="type-pill status-ok">END</span></div>
+              <div class="strip-table">
+                <div class="strip-row"><span>format</span><span>Markdown with citations</span><b>2 in</b></div>
+              </div>
+            </article>
+          </section>
+          <aside class="inspector">
+            <div class="inspector-inner">
+              <div class="inspector-kicker">Selected row</div>
+              <div class="inspector-card param-list">
+                <div class="param-row"><span>node</span><em>HTTP 请求</em></div>
+                <div class="param-row"><span>input ready</span><em>4 / 6</em></div>
+                <div class="param-row"><span>output fields</span><em>3</em></div>
+                <div class="param-row"><span>validation</span><em>passed</em></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="stage scheme-c" id="scheme-c">
+        <div class="stage-head">
+          <div class="stage-title">
+            <span class="scheme-mark" style="background:linear-gradient(135deg,#2563eb,#0ea5e9)">C</span>
+            <div>
+              <h2>Minimal Circuit / 极简电路节点</h2>
+              <p>节点最轻，连线存在感最强；适合彻底摆脱原项目观感，但复杂节点需要更依赖右侧检查器。</p>
+            </div>
+          </div>
+          <div class="chips">
+            <span class="chip">最不像原项目</span>
+            <span class="chip">轻量画布</span>
+            <span class="chip">检查器驱动</span>
+          </div>
+        </div>
+        <div class="workspace">
+          <aside class="dock">
+            <div class="dock-inner">
+              <div class="dock-label">Circuit kit</div>
+              <div class="dock-search"><span>搜索模块</span><b>/</b></div>
+              <div class="dock-item"><span class="dock-icon">AI</span><div><strong>AI 对话</strong><span>生成</span></div><span class="dock-hotkey">A</span></div>
+              <div class="dock-item"><span class="dock-icon" style="background:#0ea5e9">KB</span><div><strong>知识库</strong><span>检索</span></div><span class="dock-hotkey">K</span></div>
+              <div class="dock-item"><span class="dock-icon" style="background:#1f2c43">API</span><div><strong>HTTP</strong><span>接口</span></div><span class="dock-hotkey">H</span></div>
+              <div class="dock-item"><span class="dock-icon" style="background:#7c3aed">IF</span><div><strong>条件</strong><span>判断</span></div><span class="dock-hotkey">C</span></div>
+            </div>
+          </aside>
+          <section class="canvas">
+            <svg class="wire-layer" viewBox="0 0 1260 650" preserveAspectRatio="none">
+              <path d="M328 275 C 390 275, 398 209, 462 209" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" />
+              <path d="M328 275 C 402 338, 420 426, 500 426" fill="none" stroke="#93b4ff" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="8 8" />
+              <path d="M800 209 C 852 209, 830 304, 890 304" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" />
+              <path d="M782 426 C 846 426, 838 304, 890 304" fill="none" stroke="#93b4ff" stroke-width="2.5" stroke-linecap="round" />
+            </svg>
+            <article class="node node-start">
+              <span class="port right"></span>
+              <div class="node-head"><span class="node-icon">IN</span><div><h3>开始节点</h3><small>会话入口</small></div><span class="type-pill">Trigger</span></div>
+              <div class="node-body"><div class="circuit-line"></div><div class="circuit-stats"><div class="circuit-stat"><span>Out</span><strong>1</strong></div><div class="circuit-stat"><span>Vars</span><strong>8</strong></div><div class="circuit-stat"><span>Req</span><strong>6</strong></div></div></div>
+            </article>
+            <article class="node node-http selected">
+              <span class="port left"></span><span class="port right"></span><span class="port bottom"></span>
+              <div class="node-head"><span class="node-icon" style="background:#1f2c43">API</span><div><h3>EXT-02/03 网内异常日志查询</h3><small>HTTP · 复杂配置收敛到检查器</small></div><span class="type-pill status-blue">Selected</span></div>
+              <div class="node-body"><div class="circuit-line"></div><div class="circuit-stats"><div class="circuit-stat"><span>Method</span><strong>POST</strong></div><div class="circuit-stat"><span>Input</span><strong>10</strong></div><div class="circuit-stat"><span>Output</span><strong>3</strong></div></div></div>
+            </article>
+            <article class="node node-kb">
+              <span class="port left"></span><span class="port right"></span>
+              <div class="node-head"><span class="node-icon" style="background:#0ea5e9">KB</span><div><h3>知识库检索</h3><small>售后策略召回</small></div><span class="type-pill status-ok">3 hits</span></div>
+              <div class="node-body"><div class="circuit-line"></div><div class="circuit-stats"><div class="circuit-stat"><span>Top K</span><strong>8</strong></div><div class="circuit-stat"><span>Score</span><strong>0.91</strong></div><div class="circuit-stat"><span>Mode</span><strong>引用</strong></div></div></div>
+            </article>
+            <article class="node node-answer">
+              <span class="port left"></span>
+              <div class="node-head"><span class="node-icon" style="background:#10b981">OUT</span><div><h3>最终回复</h3><small>生成回答</small></div><span class="type-pill status-ok">Ready</span></div>
+              <div class="node-body"><div class="circuit-line"></div><div class="circuit-stats"><div class="circuit-stat"><span>Input</span><strong>2</strong></div><div class="circuit-stat"><span>Style</span><strong>引用</strong></div><div class="circuit-stat"><span>End</span><strong>OK</strong></div></div></div>
+            </article>
+          </section>
+          <aside class="inspector">
+            <div class="inspector-inner">
+              <div class="inspector-kicker">Module inspector</div>
+              <div class="inspector-card inspector-main">
+                <div class="inspector-title">
+                  <span class="mini-icon" style="background:#1f2c43">API</span>
+                  <div><strong>HTTP 请求</strong><span>检查器成为主要配置面</span></div>
+                </div>
+                <div class="metric-grid">
+                  <div class="metric"><span>已配</span><strong>4</strong></div>
+                  <div class="metric"><span>可选</span><strong>2</strong></div>
+                  <div class="metric"><span>输出</span><strong>3</strong></div>
+                </div>
+              </div>
+              <div class="inspector-card param-list">
+                <div class="param-row"><span>请求地址</span><em>已配置</em></div>
+                <div class="param-row"><span>密钥请求头</span><em>可选</em></div>
+                <div class="param-row"><span>错误文本</span><em>object</em></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

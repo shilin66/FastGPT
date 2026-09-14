@@ -1,0 +1,102 @@
+services:
+  opensandbox-server:
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/opensandbox-server:v0.1.9
+    container_name: fastgpt-opensandbox-server
+    restart: always
+    networks:
+      - opensandbox
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '8090:8090'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    configs:
+      - source: opensandbox-config
+        target: /etc/opensandbox/config.toml
+    environment:
+      SANDBOX_CONFIG_PATH: /etc/opensandbox/config.toml
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          'import urllib.request,sys; sys.exit(0 if urllib.request.urlopen("http://localhost:8090/health",timeout=3).status==200 else 1)'
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fastgpt-volume-manager:
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-agent-volume-manager:v0.1
+    container_name: fastgpt-volume-manager
+    restart: always
+    networks:
+      - opensandbox
+    ports:
+      - '3005:3000'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      PORT: 3000
+      VM_RUNTIME: docker
+      VM_AUTH_TOKEN: ${VM_AUTH_TOKEN:-vmtoken}
+      VM_VOLUME_NAME_PREFIX: fastgpt-session
+      VM_LOG_LEVEL: info
+      VM_DOCKER_API_VERSION: v1.44
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'bun',
+          '-e',
+          "fetch('http://localhost:3000/health').then((res) => { if (!res.ok) throw new Error(String(res.status)); })"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  opensandbox-agent-sandbox-image:
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt-agent-sandbox:v0.1
+    profiles:
+      - prepull
+
+  opensandbox-execd-image:
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/opensandbox-execd:v1.0.7
+    profiles:
+      - prepull
+
+  opensandbox-egress-image:
+    image: registry.cn-hangzhou.aliyuncs.com/fastgpt/opensandbox-egress:v1.0.3
+    profiles:
+      - prepull
+
+networks:
+  opensandbox:
+    name: fastgpt_opensandbox
+
+configs:
+  opensandbox-config:
+    content: |
+      [server]
+      host = "0.0.0.0"
+      port = 8090
+      log_level = "INFO"
+
+      [runtime]
+      type = "docker"
+      execd_image = "registry.cn-hangzhou.aliyuncs.com/fastgpt/opensandbox-execd:v1.0.7"
+
+      [egress]
+      image = "registry.cn-hangzhou.aliyuncs.com/fastgpt/opensandbox-egress:v1.0.3"
+
+      [docker]
+      network_mode = "fastgpt_opensandbox"
+      host_ip = "${SANDBOX_HOST_IP:-host.docker.internal}"
+      drop_capabilities = ["AUDIT_WRITE", "MKNOD", "NET_ADMIN", "NET_RAW", "SYS_ADMIN", "SYS_MODULE", "SYS_PTRACE", "SYS_TIME", "SYS_TTY_CONFIG"]
+      no_new_privileges = true
+      pids_limit = 512
+
+      [ingress]
+      mode = "direct"

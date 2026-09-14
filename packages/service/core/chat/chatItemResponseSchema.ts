@@ -1,6 +1,9 @@
 import { connectionMongo, getMongoModel } from '../../common/mongo';
 const { Schema } = connectionMongo;
-import type { ChatItemResponseSchemaType } from '@fastgpt/global/core/chat/type';
+import {
+  ChatSourceTypeSchema,
+  type ChatItemResponseSchemaType
+} from '@fastgpt/global/core/chat/type';
 import { TeamCollectionName } from '@fastgpt/global/support/user/team/constant';
 import { AppCollectionName } from '../app/schema';
 import { ChatItemResponseCollectionName } from './constants';
@@ -20,6 +23,8 @@ const ChatItemResponseSchema = new Schema({
     type: String,
     require: true
   },
+  sourceType: { type: String, enum: ChatSourceTypeSchema.options },
+  sourceId: Schema.Types.ObjectId,
   chatItemDataId: {
     type: String,
     require: true

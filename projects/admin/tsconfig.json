@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "../../packages/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts",
+    "../../packages/**/vitest.config.ts",
+    "../../packages/**/vitest.integration.config.ts",
+    "../../packages/**/test/**"
+  ]
+}

@@ -55,7 +55,7 @@ describe('debugSession/list', () => {
   });
 
   // ── Normal list ───────────────────────────────
-  it('should return only ChatSourceEnum.test sessions for the skill', async () => {
+  it('should return only explicitly sourced Skill sessions', async () => {
     const chatId1 = getNanoid();
     const chatId2 = getNanoid();
 
@@ -66,6 +66,8 @@ describe('debugSession/list', () => {
         appId: skillId,
         chatId: chatId1,
         source: ChatSourceEnum.test,
+        sourceType: 'skillEdit',
+        sourceId: skillId,
         title: 'Debug Session 1'
       }),
       MongoChat.create({
@@ -97,6 +99,8 @@ describe('debugSession/list', () => {
       appId: skillId,
       chatId,
       source: ChatSourceEnum.test,
+      sourceType: 'skillEdit',
+      sourceId: skillId,
       title: 'Deleted Session',
       deleteTime: new Date()
     });
@@ -119,6 +123,8 @@ describe('debugSession/list', () => {
       appId: skillId,
       chatId,
       source: ChatSourceEnum.test,
+      sourceType: 'skillEdit',
+      sourceId: skillId,
       title: 'Session With Fields'
     });
 
@@ -146,6 +152,8 @@ describe('debugSession/list', () => {
           appId: skillId,
           chatId: getNanoid(),
           source: ChatSourceEnum.test,
+          sourceType: 'skillEdit',
+          sourceId: skillId,
           title: `Session ${i}`
         })
       )
@@ -178,6 +186,8 @@ describe('debugSession/list', () => {
       appId: skillId,
       chatId: chatId1,
       source: ChatSourceEnum.test,
+      sourceType: 'skillEdit',
+      sourceId: skillId,
       title: 'Older',
       updateTime: new Date('2024-01-01')
     });
@@ -187,6 +197,8 @@ describe('debugSession/list', () => {
       appId: skillId,
       chatId: chatId2,
       source: ChatSourceEnum.test,
+      sourceType: 'skillEdit',
+      sourceId: skillId,
       title: 'Newer',
       updateTime: new Date('2024-06-01')
     });
@@ -214,6 +226,8 @@ describe('debugSession/list', () => {
       appId: String(otherSkill._id),
       chatId: getNanoid(),
       source: ChatSourceEnum.test,
+      sourceType: 'skillEdit',
+      sourceId: skillId,
       title: 'Other Skill Session'
     });
 

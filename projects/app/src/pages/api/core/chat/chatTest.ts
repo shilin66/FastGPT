@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSseErrorResponse, sseErrRes } from '@fastgpt/service/common/response';
 import {
@@ -144,7 +145,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         limit,
         field: `obj value memories`
       }),
-      MongoChat.findOne({ appId: app._id, chatId }, 'source variableList variables')
+      MongoChat.findOne(
+        { ...getChatSourceFilter(), appId: app._id, chatId },
+        'source variableList variables'
+      )
       // auth balance
     ]);
 

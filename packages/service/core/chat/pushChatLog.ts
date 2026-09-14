@@ -1,5 +1,6 @@
 import { MongoChatItem } from './chatItemSchema';
 import { MongoChat } from './chatSchema';
+import { getChatSourceFilter } from './source';
 import { axios } from '../../common/api/axios';
 import { type AIChatItemType, type UserChatItemType } from '@fastgpt/global/core/chat/type';
 import { getLogger, LogCategories } from '../../common/logger';
@@ -73,15 +74,25 @@ const pushChatLogInternal = async ({
 }) => {
   try {
     const [chatItemHuman, chatItemAi] = await Promise.all([
-      MongoChatItem.findById(chatItemIdHuman).lean() as Promise<UserChatItemType>,
-      MongoChatItem.findById(chatItemIdAi).lean() as Promise<AIChatItemType>
+      MongoChatItem.findOne({
+        _id: chatItemIdHuman,
+        appId,
+        chatId,
+        ...getChatSourceFilter()
+      }).lean() as Promise<UserChatItemType>,
+      MongoChatItem.findOne({
+        _id: chatItemIdAi,
+        appId,
+        chatId,
+        ...getChatSourceFilter()
+      }).lean() as Promise<AIChatItemType>
     ]);
 
     if (!chatItemHuman || !chatItemAi) {
       return;
     }
 
-    const chat = await MongoChat.findOne({ chatId }).lean();
+    const chat = await MongoChat.findOne({ appId, chatId, ...getChatSourceFilter() }).lean();
 
     if (!chat) {
       return;

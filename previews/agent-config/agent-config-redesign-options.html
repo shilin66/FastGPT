@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniCockpit Agent 配置重构方案</title>
+  <style>
+    :root {
+      --blue: #2563eb;
+      --blue-strong: #174dcc;
+      --blue-soft: #eaf1ff;
+      --ink: #202b3c;
+      --muted: #68758a;
+      --line: #dbe2ec;
+      --line-strong: #c9d3e1;
+      --canvas: #f4f7fb;
+      --paper: #ffffff;
+      --graphite: #27364b;
+      --green: #148766;
+      --green-soft: #e7f6f0;
+      --amber: #9b6819;
+      --amber-soft: #fff5df;
+      --danger: #c83e3e;
+      --shadow: 0 12px 32px rgba(31, 46, 70, 0.1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      color: var(--ink);
+      background: #e9eef5;
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+    button, input, textarea, select { font: inherit; letter-spacing: 0; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .preview-head {
+      min-height: 78px;
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) auto minmax(280px, 1fr);
+      align-items: center;
+      gap: 22px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--line-strong);
+      background: var(--paper);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .preview-title strong { display: block; font-size: 17px; }
+    .preview-title span { display: block; color: var(--muted); margin-top: 4px; }
+    .scheme-switch {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      min-width: 570px;
+      border: 1px solid var(--line-strong);
+      background: #f5f7fa;
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .scheme-switch button {
+      border: 0;
+      background: transparent;
+      color: #4d5a6e;
+      border-radius: 6px;
+      min-height: 44px;
+      padding: 7px 14px;
+      text-align: left;
+    }
+    .scheme-switch button span { display: block; font-size: 12px; color: #778398; margin-top: 2px; }
+    .scheme-switch button.active { background: var(--graphite); color: white; box-shadow: 0 3px 10px rgba(31, 46, 70, 0.18); }
+    .scheme-switch button.active span { color: #d6dfec; }
+    .scheme-note { justify-self: end; color: var(--muted); text-align: right; line-height: 1.45; }
+    .scheme-note b { color: var(--blue); }
+
+    .option { display: none; padding: 16px; }
+    .option.active { display: block; }
+    .mock-app {
+      height: calc(100vh - 110px);
+      min-height: 720px;
+      min-width: 1180px;
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      overflow: hidden;
+      background: var(--canvas);
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .global-rail {
+      background: #f7f9fc;
+      border-right: 1px solid var(--line);
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: var(--graphite);
+      border: 2px solid #6a82ad;
+      border-radius: 8px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .rail-ico {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      color: #59667a;
+      border: 0;
+      background: transparent;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .rail-ico.active { color: var(--blue); background: var(--blue-soft); box-shadow: inset 3px 0 0 var(--blue); }
+    .rail-divider { width: 30px; border-top: 1px solid var(--line); margin: 5px 0; }
+    .rail-spacer { flex: 1; }
+
+    .workspace { min-width: 0; display: grid; grid-template-rows: 56px minmax(0, 1fr); }
+    .appbar {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
+      align-items: center;
+      gap: 18px;
+      padding: 0 18px;
+      background: rgba(255,255,255,0.98);
+      border-bottom: 1px solid var(--line);
+    }
+    .app-identity { display: flex; min-width: 0; align-items: center; gap: 10px; }
+    .app-mark { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 7px; background: var(--blue); color: white; font-weight: 800; }
+    .app-name { min-width: 0; }
+    .app-name strong, .app-name small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app-name small { color: var(--muted); margin-top: 2px; }
+    .saved { color: var(--green); background: var(--green-soft); border-radius: 5px; padding: 3px 7px; font-size: 12px; }
+    .top-tabs { display: flex; height: 100%; align-items: stretch; }
+    .top-tab { min-width: 112px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #566378; font-weight: 650; }
+    .top-tab.active { color: var(--blue); border-bottom-color: var(--blue); background: #f7faff; }
+    .actions { justify-self: end; display: flex; gap: 8px; }
+    .btn {
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      padding: 7px 13px;
+      background: white;
+      color: #344156;
+      font-weight: 650;
+    }
+    .btn.primary { background: var(--blue); border-color: var(--blue); color: white; }
+    .btn.dark { background: var(--graphite); border-color: var(--graphite); color: white; }
+    .btn.icon { width: 34px; padding: 0; }
+
+    .eyebrow { color: var(--blue); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .muted { color: var(--muted); }
+    .field-label { display: flex; justify-content: space-between; align-items: center; color: #455167; font-size: 12px; font-weight: 700; margin-bottom: 7px; }
+    .field-label span { color: var(--muted); font-weight: 500; }
+    .control, .textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: white;
+      color: var(--ink);
+    }
+    .control { height: 38px; padding: 0 11px; }
+    .textarea { min-height: 116px; resize: vertical; padding: 10px 11px; line-height: 1.55; }
+    .micro-tag { border: 1px solid #cdd8e8; background: #f7f9fc; color: #526078; border-radius: 5px; padding: 3px 7px; font-size: 11px; white-space: nowrap; }
+    .micro-tag.blue { border-color: #c4d5ff; background: var(--blue-soft); color: var(--blue-strong); }
+    .micro-tag.green { border-color: #c8e9dc; background: var(--green-soft); color: var(--green); }
+    .micro-tag.amber { border-color: #f0d7a9; background: var(--amber-soft); color: var(--amber); }
+    .section-title { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 750; }
+    .section-title i { width: 4px; height: 18px; background: var(--blue); border-radius: 2px; }
+    .section-copy { color: var(--muted); margin: 5px 0 0 13px; font-size: 12px; }
+    .toggle { width: 36px; height: 20px; border-radius: 10px; background: #cfd7e3; padding: 2px; }
+    .toggle::after { content: ""; display: block; width: 16px; height: 16px; border-radius: 50%; background: white; }
+    .toggle.on { background: var(--blue); }
+    .toggle.on::after { margin-left: 16px; }
+
+    /* A: compact rail workbench */
+    .a-layout { min-height: 0; display: grid; grid-template-columns: 82px minmax(480px, 1fr) 420px; }
+    .config-rail {
+      background: #f8fafc;
+      border-right: 1px solid var(--line);
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .config-step {
+      min-height: 58px;
+      border: 0;
+      border-left: 3px solid transparent;
+      border-radius: 5px;
+      background: transparent;
+      padding: 7px 4px;
+      color: #627086;
+      text-align: center;
+      font-size: 11px;
+    }
+    .config-step b { position: relative; width: 28px; height: 25px; margin: 0 auto 4px; display: grid; place-items: center; border: 1px solid #ccd7e5; border-radius: 6px; color: #46536a; background: white; }
+    .config-step.active { background: var(--blue-soft); color: var(--blue); border-left-color: var(--blue); }
+    .config-step.active b { background: var(--blue); color: white; border-color: var(--blue); }
+    .config-step.done b::after { content: ""; width: 6px; height: 6px; border: 2px solid white; border-radius: 50%; background: var(--green); position: absolute; right: -4px; bottom: -4px; }
+    .editor { min-width: 0; overflow: auto; background: white; }
+    .editor-head { padding: 22px 26px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 20px; }
+    .editor-head h2 { font-size: 21px; margin: 3px 0 5px; }
+    .editor-body { padding: 0 26px 40px; }
+    .flat-section { padding: 22px 0; border-bottom: 1px solid var(--line); }
+    .flat-section:last-child { border-bottom: 0; }
+    .form-grid { margin-top: 17px; display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 18px; }
+    .form-intro p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .inline-fields { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 10px; }
+    .resource-row { display: flex; align-items: center; gap: 8px; min-height: 42px; border-top: 1px solid var(--line); }
+    .resource-row:first-child { border-top: 0; }
+    .resource-row strong { flex: 1; }
+    .resource-dot { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; background: #edf2f7; color: #40516a; font-size: 10px; font-weight: 800; }
+
+    .debug-pane { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: #f8fafc; border-left: 1px solid var(--line); }
+    .debug-head { padding: 15px 16px 12px; border-bottom: 1px solid var(--line); background: white; }
+    .debug-head-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .debug-head h3 { margin: 0; font-size: 16px; }
+    .debug-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+    .conversation { overflow: auto; padding: 22px 18px 30px; }
+    .bubble-row { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 9px; margin-bottom: 18px; }
+    .bubble-row.human { grid-template-columns: minmax(0, 1fr) 30px; }
+    .avatar { width: 30px; height: 30px; display: grid; place-items: center; background: var(--graphite); color: white; border-radius: 7px; font-size: 10px; font-weight: 800; }
+    .human .avatar { grid-column: 2; background: var(--blue); }
+    .bubble { border-left: 3px solid var(--blue); background: white; border-radius: 0 6px 6px 0; padding: 12px 13px; line-height: 1.55; box-shadow: 0 3px 12px rgba(36, 50, 70, 0.06); }
+    .human .bubble { grid-row: 1; border: 0; border-right: 3px solid var(--blue); border-radius: 6px 0 0 6px; background: var(--blue-soft); }
+    .bubble-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+    .message-actions { display: flex; gap: 5px; margin-top: 9px; }
+    .message-actions button { width: 25px; height: 25px; border: 1px solid var(--line); border-radius: 5px; background: white; color: #657187; font-size: 10px; }
+    .debug-input { padding: 12px; background: white; border-top: 1px solid var(--line); }
+    .composer { border: 1px solid var(--line-strong); border-radius: 7px; padding: 10px; background: white; }
+    .composer textarea { width: 100%; min-height: 54px; border: 0; resize: none; outline: 0; color: var(--ink); }
+    .composer-foot { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 11px; }
+
+    /* B: configuration ledger */
+    .b-workspace { grid-template-rows: 56px minmax(0, 1fr) 218px; }
+    .b-main { min-height: 0; display: grid; grid-template-columns: 224px minmax(0, 1fr); }
+    .outline { background: #f8fafc; border-right: 1px solid var(--line); padding: 18px 12px; overflow: auto; }
+    .outline h3 { margin: 0 8px 14px; font-size: 13px; }
+    .outline-item { border: 0; width: 100%; background: transparent; border-radius: 6px; padding: 10px 9px; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; text-align: left; color: #556277; }
+    .outline-item b:first-child { width: 25px; height: 25px; display: grid; place-items: center; background: white; border: 1px solid var(--line); border-radius: 5px; font-size: 9px; }
+    .outline-item.active { color: var(--blue); background: var(--blue-soft); }
+    .outline-item small { color: var(--green); }
+    .ledger { min-width: 0; background: white; overflow: auto; padding: 20px 28px 44px; }
+    .ledger-header { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 2px solid var(--graphite); }
+    .ledger-header h2 { margin: 4px 0 0; font-size: 21px; }
+    .ledger-section { display: grid; grid-template-columns: 210px minmax(0, 1fr); border-bottom: 1px solid var(--line); }
+    .ledger-label { padding: 20px 20px 20px 0; }
+    .ledger-label strong { display: block; }
+    .ledger-label span { color: var(--muted); display: block; margin-top: 5px; line-height: 1.45; font-size: 12px; }
+    .ledger-fields { padding: 20px 0; display: grid; gap: 12px; }
+    .ledger-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .ledger-row > label { padding-top: 10px; font-weight: 650; color: #4d596d; }
+    .debug-dock { display: grid; grid-template-columns: 230px minmax(0, 1fr) 310px; min-height: 0; background: var(--graphite); color: white; border-top: 3px solid var(--blue); }
+    .dock-summary { padding: 18px; border-right: 1px solid #40516a; }
+    .dock-summary h3 { margin: 0 0 7px; }
+    .dock-summary p { margin: 0; color: #b8c4d6; line-height: 1.5; font-size: 12px; }
+    .dock-messages { padding: 14px 18px; overflow: auto; }
+    .dock-line { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; padding: 8px 0; border-bottom: 1px solid #40516a; line-height: 1.45; }
+    .dock-line b { color: #9bbcff; font-size: 11px; }
+    .dock-line span:last-child { color: #9aa9be; font-size: 11px; }
+    .dock-input { padding: 14px; background: #202d40; }
+    .dock-input textarea { width: 100%; min-height: 80px; resize: none; border: 1px solid #52627a; border-radius: 6px; background: #27364b; color: white; padding: 10px; }
+    .dock-input .btn { float: right; margin-top: 8px; }
+
+    /* C: focus canvas */
+    .c-workspace { grid-template-rows: 56px 54px minmax(0, 1fr); }
+    .step-strip { display: grid; grid-template-columns: repeat(6, 1fr); background: white; border-bottom: 1px solid var(--line); padding: 0 14px; }
+    .strip-item { border: 0; border-bottom: 3px solid transparent; background: transparent; color: #647187; display: flex; align-items: center; justify-content: center; gap: 7px; }
+    .strip-item b { width: 24px; height: 24px; border: 1px solid var(--line-strong); border-radius: 5px; display: grid; place-items: center; font-size: 9px; }
+    .strip-item.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 700; }
+    .strip-item.active b { color: white; border-color: var(--blue); background: var(--blue); }
+    .c-main { min-height: 0; display: grid; grid-template-columns: minmax(600px, 1fr) 356px; }
+    .focus-editor { background: white; overflow: auto; }
+    .focus-width { max-width: 980px; margin: 0 auto; padding: 28px 38px 60px; }
+    .focus-head { display: flex; justify-content: space-between; align-items: end; padding-bottom: 20px; border-bottom: 2px solid var(--graphite); }
+    .focus-head h2 { margin: 4px 0 5px; font-size: 23px; }
+    .focus-block { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 22px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+    .focus-block h3 { margin: 0; font-size: 15px; }
+    .focus-block p { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .focus-controls { display: grid; gap: 12px; }
+    .focus-footer { display: flex; justify-content: space-between; padding-top: 24px; }
+    .test-rail { border-left: 1px solid var(--line); background: #f8fafc; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; }
+    .test-rail-head { padding: 15px; border-bottom: 1px solid var(--line); background: white; }
+    .test-rail-head h3 { margin: 0; }
+    .test-rail-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    .test-feed { padding: 16px; overflow: auto; }
+    .test-message { margin-bottom: 12px; padding: 11px 12px; background: white; border-left: 3px solid var(--blue); border-radius: 0 6px 6px 0; box-shadow: 0 2px 8px rgba(32,43,60,.06); line-height: 1.5; }
+    .test-message.human { background: var(--blue-soft); border-left-color: var(--graphite); }
+    .test-message small { display: block; color: var(--muted); margin-bottom: 5px; }
+    .test-compose { padding: 12px; border-top: 1px solid var(--line); background: white; }
+
+    @media (max-width: 1320px) {
+      .preview-head { grid-template-columns: 1fr; }
+      .scheme-switch { min-width: 0; width: 100%; }
+      .scheme-note { display: none; }
+      .option { overflow-x: auto; }
+      .a-layout { grid-template-columns: 76px minmax(500px, 1fr) 380px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="preview-head">
+    <div class="preview-title">
+      <strong>Agent 配置：无额外审查面板的三种工作台</strong>
+      <span>保留现有配置、保存、发布与调试能力，不增加后端接口。</span>
+    </div>
+    <nav class="scheme-switch" aria-label="方案选择">
+      <button type="button" data-option="a"><b>A 轨道工作台</b><span>推荐：配置与调试并行</span></button>
+      <button type="button" data-option="b"><b>B 配置总账</b><span>表单优先，底部调试坞</span></button>
+      <button type="button" data-option="c"><b>C 专注画布</b><span>单步骤编辑，右侧快测</span></button>
+    </nav>
+    <div class="scheme-note">品牌基调：<b>Steel Atlas / 饱和蓝图谱</b><br />三套方案均移除额外审查入口与状态。</div>
+  </header>
+
+  <main>
+    <section class="option" id="option-a" aria-label="方案 A 轨道工作台">
+      <div class="mock-app">
+        <aside class="global-rail" aria-label="主导航">
+          <div class="brand">OC</div><button class="rail-ico">首页</button><button class="rail-ico active">AI</button><button class="rail-ico">知识</button><button class="rail-ico">工具</button><div class="rail-divider"></div><button class="rail-ico">资源</button><button class="rail-ico">团队</button><div class="rail-spacer"></div><button class="rail-ico">我的</button>
+        </aside>
+        <div class="workspace">
+          <div class="appbar">
+            <div class="app-identity"><div class="app-mark">A</div><div class="app-name"><strong>TestBotApp</strong><small>对话 Agent</small></div><span class="saved">已保存</span></div>
+            <div class="top-tabs"><button class="top-tab active">应用配置</button><button class="top-tab">发布渠道</button><button class="top-tab">对话日志</button></div>
+            <div class="actions"><button class="btn">版本记录</button><button class="btn">仅保存</button><button class="btn primary">保存并发布</button></div>
+          </div>
+          <div class="a-layout">
+            <nav class="config-rail" aria-label="配置章节">
+              <button class="config-step done"><b>OV</b>概览</button><button class="config-step active"><b>AI</b>模型</button><button class="config-step done"><b>KB</b>知识</button><button class="config-step"><b>TL</b>技能</button><button class="config-step"><b>IO</b>交互</button><button class="config-step"><b>RT</b>运行</button>
+            </nav>
+            <article class="editor">
+              <header class="editor-head"><div><span class="eyebrow">Agent Strategy</span><h2>AI 配置</h2><div class="muted">选择模型并定义 Agent 的回复策略。</div></div><div><span class="micro-tag blue">模型 Agents-A1</span></div></header>
+              <div class="editor-body">
+                <section class="flat-section">
+                  <div class="section-title"><i></i>模型与生成策略</div><div class="section-copy">配置对话模型、采样参数与回复边界。</div>
+                  <div class="form-grid"><div class="form-intro"><strong>AI 模型</strong><p>影响生成质量、速度与计费。</p></div><div><div class="inline-fields"><select class="control" aria-label="AI 模型"><option>Agents-A1</option></select><button class="btn">高级参数</button></div></div></div>
+                  <div class="form-grid"><div class="form-intro"><strong>系统提示词</strong><p>可使用变量和知识库上下文。</p></div><div><div class="field-label">提示词 <span>输入 “/” 选择变量</span></div><textarea class="textarea">你是 OmniCockpit 售后服务 Agent。优先基于已选择的知识库回答，并清晰说明政策边界与下一步操作。</textarea></div></div>
+                </section>
+                <section class="flat-section">
+                  <div class="section-title"><i></i>知识与工具</div><div class="section-copy">直接管理当前 Agent 的能力来源，无需离开配置上下文。</div>
+                  <div class="form-grid"><div class="form-intro"><strong>已连接资源</strong><p>2 个知识库，3 个工具。</p></div><div><div class="resource-row"><span class="resource-dot">KB</span><strong>售后政策知识库</strong><span class="micro-tag green">可用</span><button class="btn icon">...</button></div><div class="resource-row"><span class="resource-dot">TL</span><strong>订单查询与库存工具</strong><span class="micro-tag blue">3 项</span><button class="btn icon">...</button></div></div></div>
+                </section>
+                <section class="flat-section">
+                  <div class="section-title"><i></i>本章节提示</div><div class="section-copy">字段校验紧邻对应配置展示，不占用额外面板。</div>
+                  <div class="form-grid"><div class="form-intro"><strong>准备状态</strong><p>保存前仍可继续编辑。</p></div><div style="display:flex; gap:8px; flex-wrap:wrap"><span class="micro-tag green">模型可用</span><span class="micro-tag green">提示词已填写</span><span class="micro-tag amber">建议设置回复长度</span></div></div>
+                </section>
+              </div>
+            </article>
+            <aside class="debug-pane" aria-label="调试预览">
+              <header class="debug-head"><div class="debug-head-line"><h3>调试预览</h3><button class="btn">清空</button></div><div class="debug-summary"><span class="micro-tag blue">Agents-A1</span><span class="micro-tag">知识库 2</span><span class="micro-tag">工具 3</span><span class="micro-tag">文件开启</span></div></header>
+              <div class="conversation"><div class="bubble-row human"><div class="bubble"><div class="bubble-meta"><b>你</b><span>13:08</span></div>请基于售后知识库说明跨区域换货条件。</div><div class="avatar">ME</div></div><div class="bubble-row"><div class="avatar">AI</div><div class="bubble"><div class="bubble-meta"><b>TestBotApp</b><span>0.54s</span></div>跨区域换货需要订单处于可换货周期内，并由目标门店确认库存。特殊商品需联系人工客服复核。<div class="message-actions"><button>复</button><button>读</button><button>赞</button><button>踩</button></div></div></div></div>
+              <footer class="debug-input"><div class="composer"><textarea placeholder="输入调试问题..."></textarea><div class="composer-foot"><span>支持文件与变量</span><button class="btn primary">发送</button></div></div></footer>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="option" id="option-b" aria-label="方案 B 配置总账">
+      <div class="mock-app">
+        <aside class="global-rail"><div class="brand">OC</div><button class="rail-ico">首页</button><button class="rail-ico active">AI</button><button class="rail-ico">知识</button><button class="rail-ico">工具</button><div class="rail-divider"></div><button class="rail-ico">资源</button><button class="rail-ico">团队</button><div class="rail-spacer"></div><button class="rail-ico">我的</button></aside>
+        <div class="workspace b-workspace">
+          <div class="appbar"><div class="app-identity"><div class="app-mark">A</div><div class="app-name"><strong>TestBotApp</strong><small>配置总账</small></div><span class="saved">已保存</span></div><div class="top-tabs"><button class="top-tab active">应用配置</button><button class="top-tab">发布渠道</button><button class="top-tab">对话日志</button></div><div class="actions"><button class="btn">版本记录</button><button class="btn">仅保存</button><button class="btn primary">保存并发布</button></div></div>
+          <div class="b-main">
+            <nav class="outline"><h3>CONFIGURATION</h3><button class="outline-item"><b>OV</b><span>Agent 概览</span><small>完成</small></button><button class="outline-item active"><b>AI</b><span>AI 配置</span><small>当前</small></button><button class="outline-item"><b>KB</b><span>知识库</span><small>2</small></button><button class="outline-item"><b>TL</b><span>技能与工具</span><small>3</small></button><button class="outline-item"><b>IO</b><span>输入与交互</span><small>完成</small></button><button class="outline-item"><b>RT</b><span>运行环境</span><small>1 项</small></button></nav>
+            <article class="ledger"><header class="ledger-header"><div><span class="eyebrow">Configuration Ledger</span><h2>AI 配置总账</h2></div><span class="micro-tag green">自动保存开启</span></header>
+              <section class="ledger-section"><div class="ledger-label"><strong>模型</strong><span>负责语言理解与回复生成。</span></div><div class="ledger-fields"><div class="ledger-row"><label>AI 模型</label><select class="control"><option>Agents-A1</option></select></div><div class="ledger-row"><label>生成参数</label><div class="inline-fields"><input class="control" value="温度 0.7" /><input class="control" value="最大 2048" /></div></div></div></section>
+              <section class="ledger-section"><div class="ledger-label"><strong>指令</strong><span>定义身份、边界和回复方式。</span></div><div class="ledger-fields"><div class="ledger-row"><label>系统提示词</label><textarea class="textarea">你是 OmniCockpit 售后服务 Agent。优先引用知识库，并向用户说明可执行的下一步。</textarea></div></div></section>
+              <section class="ledger-section"><div class="ledger-label"><strong>上下文来源</strong><span>配置检索数据和可调用能力。</span></div><div class="ledger-fields"><div class="ledger-row"><label>知识库</label><div class="resource-row"><span class="resource-dot">KB</span><strong>售后政策知识库等 2 项</strong><button class="btn">管理</button></div></div><div class="ledger-row"><label>工具</label><div class="resource-row"><span class="resource-dot">TL</span><strong>订单查询、库存查询等 3 项</strong><button class="btn">管理</button></div></div></div></section>
+            </article>
+          </div>
+          <section class="debug-dock" aria-label="底部调试坞"><div class="dock-summary"><span class="eyebrow" style="color:#8eb1ff">INLINE EXECUTION</span><h3>运行调试</h3><p>调试结果固定在底部，不压缩配置表单宽度。可拖动上边缘调整高度。</p></div><div class="dock-messages"><div class="dock-line"><b>USER</b><span>请说明跨区域换货条件。</span><span>13:08</span></div><div class="dock-line"><b>AGENT</b><span>需要满足换货周期、目标门店库存及特殊商品复核条件。</span><span>0.54s</span></div></div><div class="dock-input"><textarea placeholder="继续输入调试问题..."></textarea><button class="btn primary">发送</button></div></section>
+        </div>
+      </div>
+    </section>
+
+    <section class="option" id="option-c" aria-label="方案 C 专注画布">
+      <div class="mock-app">
+        <aside class="global-rail"><div class="brand">OC</div><button class="rail-ico">首页</button><button class="rail-ico active">AI</button><button class="rail-ico">知识</button><button class="rail-ico">工具</button><div class="rail-divider"></div><button class="rail-ico">资源</button><button class="rail-ico">团队</button><div class="rail-spacer"></div><button class="rail-ico">我的</button></aside>
+        <div class="workspace c-workspace">
+          <div class="appbar"><div class="app-identity"><div class="app-mark">A</div><div class="app-name"><strong>TestBotApp</strong><small>专注配置模式</small></div><span class="saved">已保存</span></div><div class="top-tabs"><button class="top-tab active">应用配置</button><button class="top-tab">发布渠道</button><button class="top-tab">对话日志</button></div><div class="actions"><button class="btn">版本记录</button><button class="btn">仅保存</button><button class="btn primary">保存并发布</button></div></div>
+          <nav class="step-strip"><button class="strip-item"><b>OV</b>概览</button><button class="strip-item active"><b>AI</b>AI 配置</button><button class="strip-item"><b>KB</b>知识库</button><button class="strip-item"><b>TL</b>技能与工具</button><button class="strip-item"><b>IO</b>输入与交互</button><button class="strip-item"><b>RT</b>运行环境</button></nav>
+          <div class="c-main"><article class="focus-editor"><div class="focus-width"><header class="focus-head"><div><span class="eyebrow">Step 2 of 6</span><h2>定义 Agent 的回复策略</h2><div class="muted">本页只呈现 AI 配置，减少长页面滚动。</div></div><span class="micro-tag green">本节已保存</span></header>
+            <section class="focus-block"><div><h3>选择模型</h3><p>模型决定语言能力、响应速度和成本。</p></div><div class="focus-controls"><div class="field-label">AI 模型 <span>必填</span></div><select class="control"><option>Agents-A1</option></select><div class="inline-fields"><input class="control" value="温度 0.7" /><input class="control" value="最大长度 2048" /></div></div></section>
+            <section class="focus-block"><div><h3>编写系统指令</h3><p>描述角色、知识边界与回答规范。</p></div><div class="focus-controls"><div class="field-label">系统提示词 <span>输入 “/” 选择变量</span></div><textarea class="textarea" style="min-height:180px">你是 OmniCockpit 售后服务 Agent。
+
+1. 优先根据知识库回答。
+2. 明确说明跨区域服务限制。
+3. 信息不足时引导用户补充订单编号。</textarea><div style="display:flex;gap:8px"><span class="micro-tag green">指令完整</span><span class="micro-tag blue">已引用 2 个变量</span></div></div></section>
+            <footer class="focus-footer"><button class="btn">上一步：概览</button><button class="btn primary">下一步：知识库</button></footer></div></article>
+            <aside class="test-rail"><header class="test-rail-head"><h3>即时试跑</h3><p>始终使用当前未保存配置。</p><div class="debug-summary"><span class="micro-tag blue">Agents-A1</span><span class="micro-tag">知识 2</span><span class="micro-tag">工具 3</span></div></header><div class="test-feed"><div class="test-message human"><small>你 · 13:08</small>请说明跨区域换货条件。</div><div class="test-message"><small>TestBotApp · 0.54s</small>需要满足换货周期、目标门店库存，以及特殊商品复核条件。建议提供订单编号继续核验。</div></div><footer class="test-compose"><div class="composer"><textarea placeholder="输入调试问题..."></textarea><div class="composer-foot"><span>Enter 发送</span><button class="btn primary">发送</button></div></div></footer></aside></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const buttons = [...document.querySelectorAll('[data-option]')];
+    const options = [...document.querySelectorAll('.option')];
+    const showOption = (key) => {
+      const safeKey = ['a', 'b', 'c'].includes(key) ? key : 'a';
+      buttons.forEach((button) => button.classList.toggle('active', button.dataset.option === safeKey));
+      options.forEach((option) => option.classList.toggle('active', option.id === `option-${safeKey}`));
+      if (location.hash !== `#${safeKey}`) history.replaceState(null, '', `#${safeKey}`);
+    };
+    buttons.forEach((button) => button.addEventListener('click', () => showOption(button.dataset.option)));
+    window.addEventListener('hashchange', () => showOption(location.hash.slice(1)));
+    showOption(location.hash.slice(1));
+  </script>
+</body>
+</html>

@@ -19,3 +19,18 @@ export const AgentPlanSchema = z.object({
   steps: z.array(AgentStepItemSchema)
 });
 export type AgentPlanType = z.infer<typeof AgentPlanSchema>;
+
+export const AgentPlanEventSchema = z.object({
+  nodeId: z.string(),
+  type: z.enum(['create', 'update', 'completed']),
+  plan: AgentPlanSchema.nullable()
+});
+export type AgentPlanEvent = z.infer<typeof AgentPlanEventSchema>;
+
+export const AgentMemorySchema = z.object({
+  schemaVersion: z.literal(1),
+  engine: z.enum(['default', 'pi']),
+  status: z.enum(['paused', 'completed', 'failed']),
+  providerState: z.record(z.string(), z.unknown()).optional()
+});
+export type AgentMemory = z.infer<typeof AgentMemorySchema>;

@@ -32,12 +32,12 @@ This is the documentation.`;
       const zip = await JSZip.loadAsync(zipBuffer);
       const files = Object.keys(zip.files);
 
-      expect(files).toContain(`${name}/SKILL.md`);
+      expect(files).toContain(`skills/${name}/SKILL.md`);
       // JSZip may or may not include directory entries depending on how it's called
       // but SKILL.md should definitely be there with the prefix
 
       // Verify SKILL.md content
-      const skillMdContent = await zip.file(`${name}/SKILL.md`)?.async('string');
+      const skillMdContent = await zip.file(`skills/${name}/SKILL.md`)?.async('string');
       expect(skillMdContent).toBe(skillMd);
     });
 
@@ -64,18 +64,18 @@ description: A test skill
       const zip = await JSZip.loadAsync(zipBuffer);
       const files = Object.keys(zip.files);
 
-      expect(files).toContain(`${name}/SKILL.md`);
-      expect(files).toContain(`${name}/assets/icon.png`);
-      expect(files).toContain(`${name}/assets/README.md`);
+      expect(files).toContain(`skills/${name}/SKILL.md`);
+      expect(files).toContain(`skills/${name}/assets/icon.png`);
+      expect(files).toContain(`skills/${name}/assets/README.md`);
 
       // Verify file contents
-      const skillMdContent = await zip.file(`${name}/SKILL.md`)?.async('string');
+      const skillMdContent = await zip.file(`skills/${name}/SKILL.md`)?.async('string');
       expect(skillMdContent).toBe(skillMd);
 
-      const iconContent = await zip.file(`${name}/assets/icon.png`)?.async('uint8array');
+      const iconContent = await zip.file(`skills/${name}/assets/icon.png`)?.async('uint8array');
       expect(Buffer.from(iconContent!)).toEqual(iconPng);
 
-      const readmeContent = await zip.file(`${name}/assets/README.md`)?.async('string');
+      const readmeContent = await zip.file(`skills/${name}/assets/README.md`)?.async('string');
       expect(readmeContent).toBe(readmeMd);
     });
 
@@ -88,7 +88,7 @@ description: A test skill
       const zip = await JSZip.loadAsync(zipBuffer);
       const files = Object.keys(zip.files);
 
-      expect(files).toContain('test-skill/SKILL.md');
+      expect(files).toContain('skills/test-skill/SKILL.md');
     });
 
     it('should handle large markdown content', async () => {
@@ -105,7 +105,7 @@ ${largeMarkdown}`;
       const zipBuffer = await createSkillPackage({ name, skillMd });
 
       const zip = await JSZip.loadAsync(zipBuffer);
-      const skillMdContent = await zip.file('large-skill/SKILL.md')?.async('string');
+      const skillMdContent = await zip.file('skills/large-skill/SKILL.md')?.async('string');
 
       expect(skillMdContent).toBe(skillMd);
       expect(skillMdContent!.length).toBeGreaterThan(10000);

@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { authCert } from '@fastgpt/service/support/permission/auth/common';
@@ -218,7 +219,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         field: `obj value nodeOutputs`
       }),
       getAppLatestVersion(app._id, app),
-      MongoChat.findOne({ appId: app._id, chatId }, 'source variableList variables')
+      MongoChat.findOne(
+        { ...getChatSourceFilter(), appId: app._id, chatId },
+        'source variableList variables'
+      )
     ]);
 
     // Get store variables(Api variable precedence)
@@ -543,6 +547,7 @@ const authShareChat = async ({
 
   // get chat
   const chat = await MongoChat.findOne({ appId, chatId }).lean();
+  if (chat?.sourceType === 'skillEdit') return Promise.reject(ChatErrEnum.unAuthChat);
   if (chat && (chat.shareId !== data.shareId || chat.outLinkUid !== uid)) {
     return Promise.reject(ChatErrEnum.unAuthChat);
   }
@@ -588,6 +593,7 @@ const authTeamSpaceChat = async ({
   }
 
   const chat = chatId ? await MongoChat.findOne({ appId, chatId }).lean() : null;
+  if (chat?.sourceType === 'skillEdit') return Promise.reject(ChatErrEnum.unAuthChat);
 
   if (chat && (String(chat.teamId) !== teamId || chat.outLinkUid !== uid)) {
     return Promise.reject(ChatErrEnum.unAuthChat);
@@ -665,6 +671,7 @@ const authHeaderRequest = async ({
   })();
 
   const chat = await MongoChat.findOne({ appId, chatId }).lean();
+  if (chat?.sourceType === 'skillEdit') return Promise.reject(ChatErrEnum.unAuthChat);
 
   if (
     chat &&

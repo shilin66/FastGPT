@@ -1,6 +1,7 @@
 import type { RuntimeNodeItemType } from '@fastgpt/global/core/workflow/runtime/type';
 import type { JSONSchemaInputType } from '@fastgpt/global/core/app/jsonschema';
 import type { ChatNodeUsageType } from '@fastgpt/global/support/wallet/bill/type';
+import type { AIChatItemValueItemType } from '@fastgpt/global/core/chat/type';
 import z from 'zod';
 import { NodeToolConfigTypeSchema } from '@fastgpt/global/core/workflow/type/node';
 
@@ -14,6 +15,7 @@ export type DispatchSubAppResponse = {
   result?: any;
   runningTime: number;
   usages?: ChatNodeUsageType[];
+  assistantResponses?: AIChatItemValueItemType[];
 };
 
 export const SubAppRuntimeSchema = z.object({

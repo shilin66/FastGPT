@@ -8,6 +8,8 @@
 import { S3PrivateBucket } from '../../common/s3/buckets/private';
 import type { ClientSession } from '../../common/mongo';
 import { getSkillSizeLimits } from './sandboxConfig';
+import { MongoS3TTL } from '../../common/s3/models/ttl';
+import { addHours } from 'date-fns';
 
 export type SkillStorageInfo = {
   bucket: string;
@@ -22,6 +24,14 @@ export type UploadSkillPackageParams = {
   version: number;
   zipBuffer: Buffer;
   checksum?: string;
+};
+
+export type StageSkillPackageParams = {
+  teamId: string;
+  skillId: string;
+  versionId: string;
+  zipBuffer: Buffer;
+  checksum: string;
 };
 
 export type DownloadSkillPackageParams = {
@@ -39,6 +49,70 @@ export type GetSkillStorageInfoParams = {
  */
 export function getSkillStorageKey(teamId: string, skillId: string, version: number): string {
   return `agent-skills/${teamId}/${skillId}/v${version}/package.zip`;
+}
+
+function assertStorageKeySegment(value: string, label: string): void {
+  if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+    throw new Error(`Invalid ${label} for Skill storage key`);
+  }
+}
+
+export function getSkillCandidateStorageKey(
+  teamId: string,
+  skillId: string,
+  versionId: string
+): string {
+  assertStorageKeySegment(teamId, 'teamId');
+  assertStorageKeySegment(skillId, 'skillId');
+  assertStorageKeySegment(versionId, 'versionId');
+  return `agent-skills/${teamId}/${skillId}/versions/${versionId}/package.zip`;
+}
+
+export async function stageSkillPackage(
+  params: StageSkillPackageParams
+): Promise<SkillStorageInfo> {
+  const { teamId, skillId, versionId, zipBuffer, checksum } = params;
+  const bucket = new S3PrivateBucket();
+  const key = getSkillCandidateStorageKey(teamId, skillId, versionId);
+
+  await MongoS3TTL.create({
+    bucketName: bucket.bucketName,
+    minioKey: key,
+    expiredTime: addHours(new Date(), 24)
+  });
+  await bucket.client.uploadObject({
+    key,
+    body: zipBuffer,
+    contentType: 'application/zip',
+    metadata: {
+      'x-amz-meta-team-id': teamId,
+      'x-amz-meta-skill-id': skillId,
+      'x-amz-meta-version-id': versionId,
+      'x-amz-meta-checksum': checksum
+    }
+  });
+
+  return {
+    bucket: bucket.bucketName,
+    key,
+    size: zipBuffer.length,
+    checksum
+  };
+}
+
+export async function finalizeStagedSkillPackage(
+  storageInfo: SkillStorageInfo,
+  session?: ClientSession
+): Promise<void> {
+  const query = {
+    bucketName: storageInfo.bucket,
+    minioKey: storageInfo.key
+  };
+  if (session) {
+    await MongoS3TTL.deleteOne(query, { session });
+    return;
+  }
+  await MongoS3TTL.deleteOne(query);
 }
 
 /**
@@ -162,6 +236,12 @@ export async function checkSkillPackageExists(storageInfo: SkillStorageInfo): Pr
   } catch {
     return false;
   }
+}
+
+export async function probeSkillPackageExists(storageInfo: SkillStorageInfo): Promise<boolean> {
+  const bucket = new S3PrivateBucket();
+  const { exists } = await bucket.client.checkObjectExists({ key: storageInfo.key });
+  return exists ?? false;
 }
 
 /**

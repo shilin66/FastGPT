@@ -6,7 +6,8 @@ import {
 } from '@fastgpt/global/core/ai/sandbox/constants';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { parseJsonArgs } from '../utils';
-import { getSandboxClient } from './controller';
+import { getSandboxClient, type SandboxClient } from './controller';
+import { isSandboxInfrastructureError } from './errors';
 import { getS3ChatSource } from '../../../common/s3/sources/chat';
 import path from 'path';
 import { jwtSignS3ObjectKey } from '../../../common/s3/utils';
@@ -14,6 +15,7 @@ import { addHours } from 'date-fns';
 import { Readable } from 'stream';
 import { getLogger } from '@fastgpt-sdk/otel';
 import { LogCategories } from '../../../common/logger';
+import { assertSandboxWorkspacePath } from './workspace';
 
 type SandboxToolCallParams = {
   toolName: string;
@@ -27,6 +29,7 @@ export type SandboxToolCallResult = {
   input: Record<string, any>;
   response: string;
   durationSeconds: number;
+  errorCode?: 'sandbox_unavailable';
 };
 
 /**
@@ -49,9 +52,9 @@ export const callSandboxTool = async ({
       return { input: {}, response: parsed.error.message, durationSeconds: getDuration() };
     }
     const { command, timeout } = parsed.data;
-
+    let instance: SandboxClient | undefined;
     try {
-      const instance = await getSandboxClient({ appId, userId, chatId });
+      instance = await getSandboxClient({ appId, userId, chatId });
       const result = await instance.exec(command, timeout);
 
       return {
@@ -63,7 +66,20 @@ export const callSandboxTool = async ({
         }),
         durationSeconds: getDuration()
       };
-    } catch (error: any) {
+    } catch (error) {
+      if (!instance || isSandboxInfrastructureError(error)) {
+        getLogger(LogCategories.MODULE.AI.AGENT).error('Sandbox unavailable', {
+          appId,
+          chatId,
+          code: 'sandbox_unavailable'
+        });
+        return {
+          input: { command, timeout },
+          response: JSON.stringify({ code: 'sandbox_unavailable', retryable: false }),
+          errorCode: 'sandbox_unavailable',
+          durationSeconds: getDuration()
+        };
+      }
       getLogger(LogCategories.MODULE.AI.AGENT).error('[Sandbox Shell] Execution failed', { error });
       return {
         input: { command, timeout },
@@ -80,14 +96,17 @@ export const callSandboxTool = async ({
     }
 
     const { paths } = parsed.data;
-
+    let instance: SandboxClient | undefined;
     try {
-      const instance = await getSandboxClient({ appId, userId, chatId });
-
+      instance = await getSandboxClient({ appId, userId, chatId });
+      const sandbox = instance.provider;
+      const safePaths = await Promise.all(
+        paths.map((path) => assertSandboxWorkspacePath({ provider: sandbox, path }))
+      );
       const result = await Promise.all(
-        paths.map(async (url) => {
+        safePaths.map(async (url) => {
           const filename = path.basename(url);
-          const stream = instance.provider.readFileStream(url);
+          const stream = sandbox.readFileStream(url);
           const readable = Readable.from(stream); // AsyncIterable<Uint8Array> → Readable
 
           const chatBucket = getS3ChatSource();
@@ -115,6 +134,19 @@ export const callSandboxTool = async ({
         durationSeconds: getDuration()
       };
     } catch (error) {
+      if (!instance || isSandboxInfrastructureError(error)) {
+        getLogger(LogCategories.MODULE.AI.AGENT).error('Sandbox unavailable', {
+          appId,
+          chatId,
+          code: 'sandbox_unavailable'
+        });
+        return {
+          input: { paths },
+          response: JSON.stringify({ code: 'sandbox_unavailable', retryable: false }),
+          errorCode: 'sandbox_unavailable',
+          durationSeconds: getDuration()
+        };
+      }
       getLogger(LogCategories.MODULE.AI.AGENT).error('[Sandbox Get File URL] failed', { error });
 
       return {

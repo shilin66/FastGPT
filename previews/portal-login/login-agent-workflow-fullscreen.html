@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniCockpit 登录 · 全屏预览</title>
+    <style>
+      :root {
+        --graphite-900: #1f2a3a;
+        --graphite-800: #27364a;
+        --graphite-700: #31445e;
+        --blue: #2563eb;
+        --blue-light: #8eb1ff;
+        --gold: #c69b4a;
+        --page: #e7edf5;
+        --surface: #ffffff;
+        --surface-soft: #f8fafc;
+        --surface-blue: #dbeafe;
+        --border: #dfe5ee;
+        --ink: #1f2937;
+        --muted: #667085;
+        --label: #475467;
+        --placeholder: #98a2b3;
+        --link: #1d4ed8;
+        --focus-ring: rgba(37, 99, 235, 0.1);
+        --panel-border: #ccd6e3;
+        --panel-shadow: rgba(23, 32, 51, 0.62);
+        --glow-blue: rgba(37, 99, 235, 0.36);
+        --glow-gold: rgba(198, 155, 74, 0.15);
+        --glow-blue-soft: rgba(37, 99, 235, 0.28);
+        --on-panel-88: rgba(255, 255, 255, 0.88);
+        --on-panel-70: rgba(255, 255, 255, 0.7);
+        --on-panel-66: rgba(255, 255, 255, 0.66);
+        --on-panel-40: rgba(255, 255, 255, 0.4);
+        --on-panel-28: rgba(255, 255, 255, 0.28);
+        --glass-12: rgba(255, 255, 255, 0.12);
+        --glass-065: rgba(255, 255, 255, 0.065);
+        --glass-055: rgba(255, 255, 255, 0.055);
+        --glass-05: rgba(255, 255, 255, 0.05);
+        --glass-border-14: rgba(255, 255, 255, 0.14);
+        --glass-border-13: rgba(255, 255, 255, 0.13);
+        --glass-highlight: rgba(255, 255, 255, 0.06);
+        --agent-blue-92: rgba(142, 177, 255, 0.92);
+        --agent-blue-88: rgba(142, 177, 255, 0.88);
+        --agent-blue-75: rgba(142, 177, 255, 0.75);
+        --agent-blue-38: rgba(142, 177, 255, 0.38);
+        --agent-blue-32: rgba(142, 177, 255, 0.32);
+        --agent-blue-09: rgba(142, 177, 255, 0.09);
+        --agent-blue-08: rgba(142, 177, 255, 0.08);
+        --gold-54: rgba(198, 155, 74, 0.54);
+        --gold-45: rgba(198, 155, 74, 0.45);
+        --gold-35: rgba(198, 155, 74, 0.35);
+        --gold-12: rgba(198, 155, 74, 0.12);
+        --gold-08: rgba(198, 155, 74, 0.08);
+        --gold-text: #e8ce9c;
+        --gold-text-92: rgba(232, 206, 156, 0.92);
+        --node-blue: #0091ff;
+        --node-blue-22: rgba(0, 145, 255, 0.22);
+        --node-violet: #7479ff;
+        --node-violet-22: rgba(116, 121, 255, 0.22);
+        --node-green: #43ca40;
+        --node-green-25: rgba(67, 202, 64, 0.25);
+        --node-orange: #eba33c;
+        --node-orange-25: rgba(235, 163, 60, 0.25);
+        --node-shadow: rgba(0, 0, 0, 0.8);
+        --type-display: 38px;
+        --type-heading: 25px;
+        --type-brand: 15px;
+        --type-body: 13px;
+        --type-control: 12px;
+        --type-label: 11px;
+        --type-meta: 10px;
+        --type-micro: 9px;
+        --radius-frame: 18px;
+        --radius-core: 16px;
+        --radius-logo: 11px;
+        --radius-node: 10px;
+        --radius-control: 9px;
+        --radius-pill: 999px;
+        --radius-round: 50%;
+        --size-control: 44px;
+        --size-logo: 42px;
+        --size-oauth: 38px;
+        --size-node-dot: 8px;
+        --size-flow-chip: 34px;
+        --size-flow-icon: 20px;
+        --space-page: 32px;
+        --space-panel-top: 54px;
+        --space-panel-x: 58px;
+        --space-panel-bottom: 46px;
+        --space-login: 54px;
+        --space-copy-top: 12px;
+        --space-title-top: 13px;
+        --space-caption-top: 27px;
+        --space-form-title-top: 26px;
+        --space-form-subtitle: 8px 0 25px;
+        --space-field: 13px;
+        --space-label: 6px;
+        --space-button-top: 5px;
+        --space-divider: 22px 0 15px;
+        --font: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-width: 1120px;
+        min-height: 100%;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        padding: var(--space-page);
+        place-items: center;
+        color: var(--ink);
+        background: var(--page);
+        font-family: var(--font);
+      }
+
+      .login-preview {
+        display: grid;
+        grid-template-columns: 1.12fr 0.88fr;
+        width: 1180px;
+        min-height: 660px;
+        overflow: hidden;
+        background: var(--surface);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius-frame);
+        box-shadow: 0 28px 64px -46px var(--panel-shadow);
+      }
+
+      .brand-panel {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        padding: var(--space-panel-top) var(--space-panel-x) var(--space-panel-bottom);
+        overflow: hidden;
+        color: var(--surface);
+        background: linear-gradient(
+          150deg,
+          var(--graphite-900),
+          var(--graphite-800) 55%,
+          var(--graphite-700)
+        );
+      }
+
+      .brand-panel::before {
+        position: absolute;
+        top: -230px;
+        right: -190px;
+        width: 520px;
+        height: 520px;
+        background: radial-gradient(circle, var(--glow-blue), transparent 68%);
+        border-radius: 50%;
+        content: '';
+      }
+
+      .brand-panel::after {
+        position: absolute;
+        bottom: -220px;
+        left: -150px;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, var(--glow-gold), transparent 68%);
+        border-radius: 50%;
+        content: '';
+      }
+
+      .brand-content {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+      }
+
+      .eyebrow {
+        color: var(--blue-light);
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: 0.15em;
+      }
+
+      .brand-name {
+        margin-top: var(--space-title-top);
+        font-size: var(--type-display);
+        font-weight: 820;
+        letter-spacing: -0.025em;
+      }
+
+      .brand-copy {
+        margin: var(--space-copy-top) 0 0;
+        color: var(--on-panel-66);
+        font-size: var(--type-body);
+        line-height: 1.7;
+      }
+
+      .visual-cap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: var(--space-caption-top);
+        color: var(--on-panel-40);
+        font-size: var(--type-micro);
+        font-weight: 700;
+        letter-spacing: 0.13em;
+      }
+
+      .visual-cap::before {
+        width: 6px;
+        height: 6px;
+        background: var(--gold);
+        border-radius: 50%;
+        content: '';
+      }
+
+      .visual {
+        position: relative;
+        width: 544px;
+        height: 320px;
+      }
+
+      .lines {
+        position: absolute;
+        z-index: 0;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .node-card {
+        position: absolute;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 36px;
+        padding: 0 14px;
+        color: var(--on-panel-88);
+        background: var(--glass-065);
+        border: 1px solid var(--glass-border-14);
+        border-radius: var(--radius-node);
+        box-shadow: 0 10px 22px -18px var(--node-shadow);
+        font-size: var(--type-control);
+        white-space: nowrap;
+      }
+
+      .node-card .dot {
+        width: var(--size-node-dot);
+        height: var(--size-node-dot);
+        flex: none;
+        border-radius: 50%;
+        box-shadow: 0 0 10px currentcolor;
+      }
+
+      .dot.blue {
+        color: var(--node-blue);
+        background: currentcolor;
+      }
+
+      .dot.violet {
+        color: var(--node-violet);
+        background: currentcolor;
+      }
+
+      .dot.green {
+        color: var(--node-green);
+        background: currentcolor;
+      }
+
+      .dot.orange {
+        color: var(--node-orange);
+        background: currentcolor;
+      }
+
+      .glass-core {
+        position: absolute;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(160deg, var(--glass-12), var(--glass-05));
+        border: 1px solid var(--agent-blue-38);
+        border-radius: var(--radius-core);
+        box-shadow:
+          0 0 46px var(--glow-blue-soft),
+          inset 0 1px var(--glass-highlight);
+      }
+
+      .spark {
+        width: 25px;
+        height: 25px;
+        color: var(--gold);
+      }
+
+      .core-title {
+        margin-top: 5px;
+        font-size: var(--type-brand);
+        font-weight: 700;
+      }
+
+      .layer-agent {
+        top: 34px;
+        left: 204px;
+        width: 136px;
+        height: 94px;
+        border-color: var(--gold-45);
+        box-shadow:
+          0 0 42px var(--gold-12),
+          inset 0 1px var(--glass-highlight);
+      }
+
+      .layer-workflow {
+        top: 204px;
+        left: 184px;
+        width: 176px;
+        height: 82px;
+      }
+
+      .workflow-core-icon {
+        width: 25px;
+        height: 25px;
+        color: var(--blue-light);
+      }
+
+      .layer-workflow .core-title {
+        margin-top: 5px;
+      }
+
+      .f-n1 {
+        top: 126px;
+        left: 18px;
+        width: 108px;
+      }
+
+      .f-n2 {
+        top: 126px;
+        right: 12px;
+        width: 90px;
+      }
+
+      .f-n3 {
+        top: 245px;
+        left: 46px;
+        width: 100px;
+      }
+
+      .f-n4 {
+        top: 245px;
+        right: 42px;
+        width: 82px;
+      }
+
+      .flow-chips {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .fchip {
+        display: inline-flex;
+        height: var(--size-flow-chip);
+        align-items: center;
+        gap: 7px;
+        padding: 0 12px 0 7px;
+        color: var(--on-panel-88);
+        background: linear-gradient(180deg, var(--glass-065), var(--glass-05));
+        border: 1px solid var(--glass-border-14);
+        border-radius: var(--radius-pill);
+        box-shadow:
+          inset 0 1px var(--glass-highlight),
+          0 8px 18px -16px var(--node-shadow);
+        font-size: var(--type-label);
+      }
+
+      .fchip.agentic {
+        border-color: var(--gold-45);
+      }
+
+      .fchip.workflow {
+        border-color: var(--agent-blue-38);
+      }
+
+      .fchip-icon {
+        display: grid;
+        width: var(--size-flow-icon);
+        height: var(--size-flow-icon);
+        flex: none;
+        place-items: center;
+        border-radius: 7px;
+      }
+
+      .fchip.agentic .fchip-icon {
+        color: var(--gold-text);
+        background: var(--gold-12);
+      }
+
+      .fchip.workflow .fchip-icon {
+        color: var(--blue-light);
+        background: var(--agent-blue-09);
+      }
+
+      .fchip-icon svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      .exchange-mark {
+        display: grid;
+        width: 24px;
+        height: var(--size-flow-chip);
+        place-items: center;
+      }
+
+      .exchange-mark svg {
+        width: 20px;
+        height: 28px;
+        overflow: visible;
+      }
+
+      .login-side {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-login);
+        background: linear-gradient(
+          180deg,
+          var(--surface),
+          var(--surface-soft) 62%,
+          var(--surface-blue) 135%
+        );
+      }
+
+      .language {
+        position: absolute;
+        top: 24px;
+        right: 28px;
+        color: var(--muted);
+        font-size: var(--type-label);
+      }
+
+      .login-form {
+        width: 330px;
+      }
+
+      .logo-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        color: var(--blue);
+        background: var(--surface-soft);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-logo);
+      }
+
+      .logo svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .product-name {
+        font-size: var(--type-brand);
+        font-weight: 750;
+      }
+
+      .login-form h1 {
+        margin: var(--space-form-title-top) 0 0;
+        font-size: var(--type-heading);
+      }
+
+      .login-form > p {
+        margin: var(--space-form-subtitle);
+        color: var(--muted);
+        font-size: var(--type-control);
+      }
+
+      .field {
+        margin-bottom: var(--space-field);
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: var(--space-label);
+        color: var(--label);
+        font-size: var(--type-label);
+        font-weight: 650;
+      }
+
+      .input {
+        width: 100%;
+        height: var(--size-control);
+        padding: 0 13px;
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-control);
+        outline: none;
+        font: var(--type-control) var(--font);
+      }
+
+      .input::placeholder {
+        color: var(--placeholder);
+      }
+
+      .input:focus {
+        border-color: var(--blue-light);
+        box-shadow: 0 0 0 3px var(--focus-ring);
+      }
+
+      .login-button {
+        width: 100%;
+        height: var(--size-control);
+        margin-top: var(--space-button-top);
+        color: var(--surface);
+        background: var(--graphite-800);
+        border: 0;
+        border-radius: var(--radius-control);
+        font: 700 var(--type-body) var(--font);
+        cursor: pointer;
+      }
+
+      .login-button:hover {
+        background: var(--graphite-700);
+      }
+
+      .login-links {
+        display: flex;
+        justify-content: space-between;
+        margin-top: var(--space-field);
+        font-size: var(--type-label);
+      }
+
+      .login-links a {
+        color: var(--link);
+        text-decoration: none;
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: var(--space-divider);
+        color: var(--placeholder);
+        font-size: var(--type-meta);
+      }
+
+      .divider::before,
+      .divider::after {
+        height: 1px;
+        flex: 1;
+        background: var(--border);
+        content: '';
+      }
+
+      .oauth {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .oauth button {
+        display: grid;
+        width: var(--size-oauth);
+        height: var(--size-oauth);
+        padding: 0;
+        place-items: center;
+        color: var(--muted);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-round);
+        font: 750 var(--type-label) var(--font);
+        cursor: pointer;
+      }
+
+      /* Full-viewport preview variant: preserve the approved visual grammar, remove the card shell. */
+      :root {
+        --fullscreen-content-scale: 1;
+        --fullscreen-brand-axis: 544px;
+        --fullscreen-min-height: 640px;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        display: block;
+        padding: 0;
+      }
+
+      .login-preview {
+        width: 100vw;
+        height: 100vh;
+        min-height: var(--fullscreen-min-height);
+        grid-template-columns: 56% 44%;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .brand-panel {
+        align-items: center;
+        justify-content: center;
+      }
+
+      .brand-content {
+        width: var(--fullscreen-brand-axis);
+        flex: none;
+        transform: scale(var(--fullscreen-content-scale));
+        transform-origin: center;
+      }
+
+      .login-form {
+        transform: scale(var(--fullscreen-content-scale));
+        transform-origin: center;
+      }
+
+      @media (min-width: 1600px) and (min-height: 900px) {
+        :root {
+          --fullscreen-content-scale: 1.12;
+        }
+      }
+
+      @media (min-width: 2200px) and (min-height: 1200px) {
+        :root {
+          --fullscreen-content-scale: 1.28;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="login-preview" aria-label="OmniCockpit 登录">
+      <aside class="brand-panel">
+        <div class="brand-content">
+          <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+          <div class="brand-name">OmniCockpit</div>
+          <p class="brand-copy">让判断灵活发生，让执行稳定抵达</p>
+          <div class="visual-cap">COORDINATED INTELLIGENCE</div>
+
+          <div class="visual" aria-label="Agentic 与 Workflow 协同关系示意图">
+            <svg class="lines" viewBox="0 0 544 320" fill="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="top-left" x1="118" y1="144" x2="210" y2="92">
+                  <stop stop-color="var(--node-blue-22)" />
+                  <stop offset="1" stop-color="var(--agent-blue-88)" />
+                </linearGradient>
+                <linearGradient id="top-right" x1="432" y1="144" x2="334" y2="92">
+                  <stop stop-color="var(--node-violet-22)" />
+                  <stop offset="1" stop-color="var(--agent-blue-88)" />
+                </linearGradient>
+                <linearGradient id="bottom-left" x1="146" y1="263" x2="190" y2="243">
+                  <stop stop-color="var(--node-green-25)" />
+                  <stop offset="1" stop-color="var(--agent-blue-75)" />
+                </linearGradient>
+                <linearGradient id="bottom-right" x1="428" y1="263" x2="354" y2="243">
+                  <stop stop-color="var(--node-orange-25)" />
+                  <stop offset="1" stop-color="var(--agent-blue-75)" />
+                </linearGradient>
+                <linearGradient id="down-lane" x1="0" y1="128" x2="0" y2="199">
+                  <stop stop-color="var(--agent-blue-32)" />
+                  <stop offset="1" stop-color="var(--agent-blue-92)" />
+                </linearGradient>
+                <linearGradient id="up-lane" x1="0" y1="199" x2="0" y2="128">
+                  <stop stop-color="var(--gold-35)" />
+                  <stop offset="1" stop-color="var(--gold-text-92)" />
+                </linearGradient>
+                <filter id="soft-glow" x="-60%" y="-60%" width="220%" height="220%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+                <marker
+                  id="arrow-down"
+                  markerWidth="8"
+                  markerHeight="8"
+                  refX="6.5"
+                  refY="4"
+                  orient="auto"
+                >
+                  <path d="M0 0L7 3.5L0 7L1.7 3.5Z" fill="var(--blue-light)" />
+                </marker>
+                <marker
+                  id="arrow-up"
+                  markerWidth="8"
+                  markerHeight="8"
+                  refX="6.5"
+                  refY="4"
+                  orient="auto"
+                >
+                  <path d="M0 0L7 3.5L0 7L1.7 3.5Z" fill="var(--gold-text)" />
+                </marker>
+              </defs>
+
+              <g stroke-linecap="round">
+                <path
+                  d="M126 144C164 144 170 96 204 96"
+                  stroke="var(--agent-blue-09)"
+                  stroke-width="7"
+                />
+                <path
+                  d="M442 144C400 144 374 96 340 96"
+                  stroke="var(--agent-blue-09)"
+                  stroke-width="7"
+                />
+                <path
+                  d="M146 263C166 263 172 245 184 245"
+                  stroke="var(--agent-blue-08)"
+                  stroke-width="7"
+                />
+                <path
+                  d="M420 263C392 263 379 245 360 245"
+                  stroke="var(--agent-blue-08)"
+                  stroke-width="7"
+                />
+
+                <path
+                  d="M126 144C164 144 170 96 204 96"
+                  stroke="url(#top-left)"
+                  stroke-width="1.8"
+                />
+                <path
+                  d="M442 144C400 144 374 96 340 96"
+                  stroke="url(#top-right)"
+                  stroke-width="1.8"
+                />
+                <path
+                  d="M146 263C166 263 172 245 184 245"
+                  stroke="url(#bottom-left)"
+                  stroke-width="1.8"
+                />
+                <path
+                  d="M420 263C392 263 379 245 360 245"
+                  stroke="url(#bottom-right)"
+                  stroke-width="1.8"
+                />
+
+                <path
+                  d="M262 128C258 150 258 182 262 204"
+                  stroke="var(--agent-blue-09)"
+                  stroke-width="6"
+                />
+                <path
+                  d="M282 204C286 182 286 150 282 128"
+                  stroke="var(--gold-08)"
+                  stroke-width="6"
+                />
+                <path
+                  d="M262 128C258 150 258 182 262 204"
+                  stroke="url(#down-lane)"
+                  stroke-width="1.9"
+                  marker-end="url(#arrow-down)"
+                />
+                <path
+                  d="M282 204C286 182 286 150 282 128"
+                  stroke="url(#up-lane)"
+                  stroke-width="1.9"
+                  stroke-dasharray="3.5 5.5"
+                  marker-end="url(#arrow-up)"
+                />
+              </g>
+
+              <g filter="url(#soft-glow)">
+                <circle cx="126" cy="144" r="2.5" fill="var(--node-blue)" />
+                <circle cx="442" cy="144" r="2.5" fill="var(--node-violet)" />
+                <circle cx="146" cy="263" r="2.5" fill="var(--node-green)" />
+                <circle cx="420" cy="263" r="2.5" fill="var(--node-orange)" />
+                <circle cx="204" cy="96" r="2.5" fill="var(--blue-light)" />
+                <circle cx="340" cy="96" r="2.5" fill="var(--blue-light)" />
+                <circle cx="184" cy="245" r="2.5" fill="var(--blue-light)" />
+                <circle cx="360" cy="245" r="2.5" fill="var(--blue-light)" />
+                <circle cx="262" cy="128" r="2.2" fill="var(--blue-light)" />
+                <circle cx="282" cy="204" r="2.2" fill="var(--gold-text)" />
+              </g>
+            </svg>
+
+            <div class="glass-core layer-agent">
+              <svg class="spark" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 2C13 8 16 11 22 12C16 13 13 16 12 22C11 16 8 13 2 12C8 11 11 8 12 2Z"
+                  fill="currentColor"
+                />
+              </svg>
+              <span class="core-title">Agentic</span>
+            </div>
+            <div class="glass-core layer-workflow">
+              <svg class="workflow-core-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M6 6H18M6 6L12 18M18 6L12 18"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle cx="6" cy="6" r="2.5" fill="currentColor" />
+                <circle cx="18" cy="6" r="2.5" fill="currentColor" />
+                <circle cx="12" cy="18" r="2.5" fill="currentColor" />
+              </svg>
+              <span class="core-title">Workflow</span>
+            </div>
+            <div class="node-card f-n1"><i class="dot blue"></i>Knowledge</div>
+            <div class="node-card f-n2"><i class="dot violet"></i>Context</div>
+            <div class="node-card f-n3"><i class="dot green"></i>Condition</div>
+            <div class="node-card f-n4"><i class="dot orange"></i>Action</div>
+          </div>
+
+          <div class="flow-chips" aria-label="Agentic 与 Workflow 双向协同">
+            <span class="fchip agentic">
+              <span class="fchip-icon" aria-hidden="true">
+                <svg viewBox="0 0 12 12">
+                  <path
+                    d="M6 0.8C6.5 3.8 8.2 5.5 11.2 6C8.2 6.5 6.5 8.2 6 11.2C5.5 8.2 3.8 6.5 0.8 6C3.8 5.5 5.5 3.8 6 0.8Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              <span>Agentic</span>
+            </span>
+
+            <span class="exchange-mark" aria-hidden="true">
+              <svg viewBox="0 0 20 28" fill="none">
+                <path
+                  d="M6 3.5V21.5M3.5 19L6 21.5L8.5 19"
+                  stroke="var(--blue-light)"
+                  stroke-width="1.35"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M14 24.5V6.5M11.5 9L14 6.5L16.5 9"
+                  stroke="var(--gold-text)"
+                  stroke-width="1.35"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-dasharray="2.4 2.8"
+                />
+                <circle cx="6" cy="3.5" r="1.25" fill="var(--blue-light)" />
+                <circle cx="14" cy="24.5" r="1.25" fill="var(--gold-text)" />
+              </svg>
+            </span>
+
+            <span class="fchip workflow">
+              <span class="fchip-icon" aria-hidden="true">
+                <svg viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M3 3L9 3M3 3L6 9M9 3L6 9"
+                    stroke="currentColor"
+                    stroke-width="1.1"
+                    stroke-linecap="round"
+                  />
+                  <circle cx="3" cy="3" r="1.45" fill="currentColor" />
+                  <circle cx="9" cy="3" r="1.45" fill="currentColor" />
+                  <circle cx="6" cy="9" r="1.45" fill="currentColor" />
+                </svg>
+              </span>
+              <span>Workflow</span>
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="login-side">
+        <span class="language">简体中文⌄</span>
+        <form class="login-form">
+          <div class="logo-row">
+            <span class="logo">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 3L20 8V16L12 21L4 16V8L12 3Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                />
+                <path
+                  d="M8 10L12 7.5L16 10V14L12 16.5L8 14V10Z"
+                  fill="currentColor"
+                  opacity=".25"
+                />
+              </svg>
+            </span>
+            <span class="product-name">OmniCockpit</span>
+          </div>
+          <h1>欢迎回来</h1>
+          <p>登录以继续使用你的智能工作空间</p>
+          <div class="field">
+            <label for="username">用户名</label>
+            <input
+              class="input"
+              id="username"
+              name="username"
+              placeholder="请输入用户名"
+              autocomplete="username"
+            />
+          </div>
+          <div class="field">
+            <label for="password">密码</label>
+            <input
+              class="input"
+              id="password"
+              name="password"
+              type="password"
+              placeholder="请输入密码"
+              autocomplete="current-password"
+            />
+          </div>
+          <button class="login-button" type="button">登录</button>
+          <div class="login-links">
+            <a href="#register">注册账号</a><a href="#forgot">忘记密码？</a>
+          </div>
+          <div class="divider">其他登录方式</div>
+          <div class="oauth">
+            <button type="button" aria-label="使用企业微信登录">W</button>
+            <button type="button" aria-label="使用 Google 登录">G</button>
+          </div>
+        </form>
+      </main>
+    </section>
+  </body>
+</html>

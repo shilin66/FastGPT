@@ -6,9 +6,10 @@
  *
  * ZIP structure (multi-skill):
  *   package.zip/
- *   ├── skill-1/SKILL.md
- *   ├── skill-2/SKILL.md
- *   └── skill-3/SKILL.md
+ *   └── skills/
+ *       ├── skill-1/SKILL.md
+ *       ├── skill-2/SKILL.md
+ *       └── skill-3/SKILL.md
  *
  * Each top-level subdirectory that contains a SKILL.md is treated as one agent skill.
  */
@@ -55,8 +56,7 @@ export async function createSkillPackage(params: CreateSkillPackageParams): Prom
   const { name, skillMd, assets, additionalFiles } = params;
   const zip = new JSZip();
 
-  // Root directory name (default to skill name)
-  const rootDir = name.replace(/\/+$/, '').trim();
+  const rootDir = `skills/${name.replace(/\/+$/, '').trim()}`;
 
   // Add root directory explicitly
   zip.folder(rootDir);

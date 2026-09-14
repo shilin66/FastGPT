@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '../../core/chat/source';
 import { MongoChat } from '../../core/chat/chatSchema';
 import { getRedisCache, setRedisCache } from '../../common/redis/cache';
 
@@ -46,11 +47,7 @@ export const getOrCreateOutLinkChatId = async ({
   }
 
   const latestChat = await MongoChat.findOne(
-    {
-      appId,
-      shareId,
-      outLinkUid
-    },
+    { ...getChatSourceFilter(), appId, shareId, outLinkUid },
     'chatId'
   )
     .sort({ updateTime: -1 })

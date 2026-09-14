@@ -7,7 +7,7 @@ import type {
   DispatchNodeResultType,
   ModuleDispatchProps
 } from '@fastgpt/global/core/workflow/runtime/type';
-import { getNodeErrResponse, getHistories } from '../../utils';
+import { getNodeErrResponse } from '../../utils';
 import type {
   AIChatItemValueItemType,
   ChatHistoryItemResType,
@@ -28,7 +28,6 @@ import type { DispatchPlanAgentResponse } from './sub/plan';
 import { dispatchPlanAgent } from './sub/plan';
 
 import { formatFileInput } from './sub/file/utils';
-import type { ChatCompletionMessageParam } from '@fastgpt/global/core/ai/llm/type';
 import { masterCall } from './master/call';
 import type { SkillToolType } from '@fastgpt/global/core/ai/skill/type';
 import {
@@ -39,16 +38,22 @@ import { getSubapps } from './utils';
 import type { AgentCapability } from './capability/type';
 import { createCapabilityToolCallHandler } from './capability/type';
 import { createSandboxSkillsCapability } from './capability/sandboxSkills';
-import { type AgentPlanType } from '@fastgpt/global/core/ai/agent/type';
+import { type AgentPlanEvent } from '@fastgpt/global/core/ai/agent/type';
 import { getContinuePlanQuery, parseUserSystemPrompt } from './sub/plan/prompt';
-import type { PlanAgentParamsType } from './sub/plan/constants';
 import type { AppFormEditFormType } from '@fastgpt/global/core/app/formEdit/type';
 import { getLogger, LogCategories } from '../../../../../common/logger';
 import { env } from '../../../../../env';
 import { dispatchPiAgent } from './piAgent';
+import {
+  buildAgentMemory,
+  getAgentHistories,
+  readDefaultAgentState,
+  restoreAgentPlan
+} from './memory';
+import { isFatalAgentError, SandboxUnavailableError } from './sub/sandbox/errors';
 
 export type DispatchAgentModuleProps = ModuleDispatchProps<{
-  [NodeInputKeyEnum.history]?: ChatItemMiniType[];
+  [NodeInputKeyEnum.history]?: ChatItemMiniType[] | number;
   [NodeInputKeyEnum.userChatInput]: string;
 
   [NodeInputKeyEnum.aiChatVision]?: boolean;
@@ -116,7 +121,7 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
       useAgentSandbox = false
     }
   } = props;
-  const chatHistories = getHistories(history, histories);
+  const chatHistories = getAgentHistories({ history, histories, nodeId });
   const aiHistoryValues = chatHistories
     .filter((item) => item.obj === ChatRoleEnum.AI)
     .flatMap((item) => item.value);
@@ -130,18 +135,22 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
 
   let planIterationCount = 0; // 规划迭代计数器
 
-  const masterMessagesKey = `masterMessages-${nodeId}`;
-  const planMessagesKey = `planMessages-${nodeId}`;
-  const agentPlanKey = `agentPlan-${nodeId}`;
-  const planBufferKey = `planBuffer-${nodeId}`;
-
   // Get history messages
 
   const assistantResponses: AIChatItemValueItemType[] = [];
   const nodeResponses: ChatHistoryItemResType[] = [];
   const capabilities: AgentCapability[] = [];
+  const sandboxState = { unavailable: false };
+  const recordPlanEvent = (type: AgentPlanEvent['type'], plan: AgentPlanEvent['plan']) => {
+    assistantResponses.push({
+      planEvent: { nodeId, type, plan: plan ? structuredClone(plan) : null }
+    });
+  };
 
   try {
+    if (!env.SHOW_SKILL && (normalizedSkillIds.length > 0 || useEditDebugSandbox)) {
+      throw new SandboxUnavailableError();
+    }
     // Get files
     const fileUrlInput = inputs.find((item) => item.key === NodeInputKeyEnum.fileUrlList);
     if (!fileUrlInput || !fileUrlInput.value || fileUrlInput.value.length === 0) {
@@ -178,30 +187,12 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
       reserveId: false
     })[0];
 
-    let {
-      masterMessages: restoredMasterMessages,
-      planHistoryMessages,
-      agentPlan,
-      planBuffer
-    } = (() => {
-      const lastHistory = chatHistories[chatHistories.length - 1];
-      if (lastHistory && lastHistory.obj === ChatRoleEnum.AI) {
-        return {
-          masterMessages: lastHistory.memories?.[masterMessagesKey] as ChatCompletionMessageParam[],
-          planHistoryMessages: lastHistory.memories?.[
-            planMessagesKey
-          ] as ChatCompletionMessageParam[],
-          agentPlan: lastHistory.memories?.[agentPlanKey] as AgentPlanType,
-          planBuffer: lastHistory.memories?.[planBufferKey] as PlanAgentParamsType
-        };
-      }
-      return {
-        masterMessages: undefined,
-        planHistoryMessages: undefined,
-        agentPlan: undefined,
-        planBuffer: undefined
-      };
-    })();
+    const restoredState = readDefaultAgentState({ histories, nodeId });
+    const restoredMasterMessages = restoredState?.pendingMainContext;
+    let planHistoryMessages = restoredState?.pendingPlanContext;
+    let planBuffer = restoredState?.planBuffer;
+    let agentPlan = restoreAgentPlan({ histories, nodeId });
+    let sandboxSkillVersions = restoredState?.sandboxSkillVersions;
 
     let masterMessages = (() => {
       if (!restoredMasterMessages) {
@@ -214,9 +205,6 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
           : restoredMasterMessages;
       }
     })();
-    // Initialize capabilities — always create sandbox capability (lazy-init, no container yet)
-    // Skill capability is gated by SHOW_SKILL env: when disabled, we skip skill loading entirely
-    // (no MongoDB query, no sandbox init), even if existing apps still have skills configured.
     if (env.SHOW_SKILL) {
       const sandboxSessionId = mode === 'chat' ? chatId : `debug-${runningAppInfo.id}-${nodeId}`;
       const useEditDebugSandbox_flag = !!useEditDebugSandbox;
@@ -224,13 +212,19 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
 
       const sandboxCap = await createSandboxSkillsCapability({
         skillIds: normalizedSkillIds,
+        appId: runningAppInfo.id,
+        runtimeUserId: props.uid,
         teamId: runningAppInfo.teamId,
         tmbId: runningAppInfo.tmbId,
         sessionId: sandboxSessionId,
         mode: sandboxMode,
         workflowStreamResponse,
         showSkillReferences: showSkillReferences === true,
-        allFilesMap
+        allFilesMap,
+        expectedVersionIds: sandboxSkillVersions,
+        onResolvedVersionIds: (versions) => {
+          sandboxSkillVersions = versions;
+        }
       });
       capabilities.push(sandboxCap);
     }
@@ -358,16 +352,24 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
 
       planHistoryMessages = undefined;
       agentPlan = plan;
+      planBuffer = result.planBuffer;
+      if (plan) recordPlanEvent('create', plan);
 
       if (askInteractive) {
         return {
           [DispatchNodeResponseKeyEnum.assistantResponses]: assistantResponses,
-          [DispatchNodeResponseKeyEnum.memories]: {
-            [masterMessagesKey]: masterMessages,
-            [planMessagesKey]: filterMemoryMessages(completeMessages),
-            [agentPlanKey]: agentPlan,
-            [planBufferKey]: planBuffer
-          },
+          [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
+            nodeId,
+            engine: 'default',
+            status: 'paused',
+            providerState: {
+              pendingMainContext: masterMessages,
+              pendingPlanContext: filterMemoryMessages(completeMessages),
+              planBuffer,
+              sandboxSkillVersions
+            }
+          }),
+          [DispatchNodeResponseKeyEnum.nodeResponses]: nodeResponses,
           [DispatchNodeResponseKeyEnum.interactive]: askInteractive
         };
       }
@@ -405,24 +407,46 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
           ...agentPlan
         });
 
-        const { plan: continuePlan } = parsePlanCallResult(result);
+        const {
+          plan: continuePlan,
+          askInteractive,
+          completeMessages
+        } = parsePlanCallResult(result);
+        if (askInteractive) {
+          return {
+            [DispatchNodeResponseKeyEnum.assistantResponses]: assistantResponses,
+            [DispatchNodeResponseKeyEnum.nodeResponses]: nodeResponses,
+            [DispatchNodeResponseKeyEnum.interactive]: askInteractive,
+            [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
+              nodeId,
+              engine: 'default',
+              status: 'paused',
+              providerState: {
+                pendingMainContext: masterMessages,
+                pendingPlanContext: filterMemoryMessages(completeMessages),
+                planBuffer: result.planBuffer,
+                sandboxSkillVersions
+              }
+            })
+          };
+        }
 
         if (continuePlan && continuePlan.steps.length > 0) {
           getLogger(LogCategories.MODULE.AI.AGENT).debug(
             `Continue planning: adding ${continuePlan.steps.length} new steps， ${continuePlan.steps.map((item) => item.title)}`
           );
           agentPlan.steps.push(...continuePlan.steps);
+          recordPlanEvent('update', agentPlan);
         } else {
           getLogger(LogCategories.MODULE.AI.AGENT).debug(
             `Continue planning: no new steps, planning complete`
           );
           agentPlan = undefined;
+          recordPlanEvent('completed', null);
         }
       } catch (error) {
         getLogger(LogCategories.MODULE.AI.AGENT).error(`Continue planning failed`, { error });
-        // 规划失败时，清空 agentPlan，让任务正常结束
-        agentPlan = undefined;
-        return undefined;
+        throw error;
       }
     };
 
@@ -477,9 +501,11 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
               steps: agentPlan.steps, // 传入所有步骤，而不仅仅是未执行的步骤
               step,
               filesMap,
-              capabilityToolCallHandler
+              capabilityToolCallHandler,
+              sandboxState
             });
             nodeResponses.push(result.nodeResponse);
+            if (result.nodeResponse.errorText) throw new Error(result.nodeResponse.errorText);
 
             // Merge response
             const assistantResponse = GPTMessages2Chats({
@@ -506,6 +532,7 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
 
             step.response = result.stepResponse?.rawResponse;
             step.summary = result.stepResponse?.summary;
+            recordPlanEvent('update', agentPlan);
           }
         }
 
@@ -534,6 +561,7 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
             `Max plan iteration reached: ${MAX_PLAN_ITERATIONS}, stopping`
           );
           agentPlan = undefined; // 强制结束规划
+          recordPlanEvent('completed', null);
         } else {
           const continueResult = await continuePlanCallFn();
 
@@ -560,9 +588,11 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
           getSubApp,
           completionTools: agentCompletionTools,
           filesMap,
-          capabilityToolCallHandler
+          capabilityToolCallHandler,
+          sandboxState
         });
         nodeResponses.push(result.nodeResponse);
+        if (result.nodeResponse.errorText) throw new Error(result.nodeResponse.errorText);
         masterMessages = result.masterMessages;
 
         // Merge assistant responses
@@ -583,17 +613,23 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
           const { completeMessages, askInteractive, plan } = parsePlanCallResult(
             result.planResponse
           );
+          if (plan) recordPlanEvent('create', plan);
 
           // 收集用户信息，结束调用，等待用户反馈
           if (askInteractive) {
             return {
               [DispatchNodeResponseKeyEnum.assistantResponses]: assistantResponses,
-              [DispatchNodeResponseKeyEnum.memories]: {
-                [masterMessagesKey]: masterMessages,
-                [planMessagesKey]: filterMemoryMessages(completeMessages),
-                [agentPlanKey]: plan,
-                [planBufferKey]: result.planResponse.planBuffer
-              },
+              [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
+                nodeId,
+                engine: 'default',
+                status: 'paused',
+                providerState: {
+                  pendingMainContext: masterMessages,
+                  pendingPlanContext: filterMemoryMessages(completeMessages),
+                  planBuffer: result.planResponse.planBuffer,
+                  sandboxSkillVersions
+                }
+              }),
               [DispatchNodeResponseKeyEnum.interactive]: askInteractive,
               [DispatchNodeResponseKeyEnum.nodeResponses]: nodeResponses
             };
@@ -618,16 +654,16 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
       .map((item) => item.text!.content)
       .join('');
 
+    recordPlanEvent('completed', null);
     return {
       data: {
         [NodeOutputKeyEnum.answerText]: answerText
       },
-      [DispatchNodeResponseKeyEnum.memories]: {
-        [masterMessagesKey]: undefined,
-        [agentPlanKey]: undefined,
-        [planMessagesKey]: undefined,
-        [planBufferKey]: undefined
-      },
+      [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
+        nodeId,
+        engine: 'default',
+        status: checkIsStopping() ? 'failed' : 'completed'
+      }),
       [DispatchNodeResponseKeyEnum.assistantResponses]: assistantResponses,
       [DispatchNodeResponseKeyEnum.nodeResponses]: nodeResponses
     };
@@ -635,7 +671,29 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
     getLogger(LogCategories.MODULE.AI.AGENT).error(`[Agent Debug] dispatchRunAgent caught error`, {
       error
     });
-    return getNodeErrResponse({ error });
+    if (isFatalAgentError(error)) {
+      if (error.assistantResponses.length) assistantResponses.push(...error.assistantResponses);
+      else
+        assistantResponses.push({
+          sandboxEvent: {
+            id: nodeId,
+            status: 'failed',
+            code:
+              error instanceof SandboxUnavailableError ? 'sandbox_unavailable' : 'skill_unavailable'
+          }
+        });
+    }
+    recordPlanEvent('completed', null);
+    return {
+      ...getNodeErrResponse({ error }),
+      [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
+        nodeId,
+        engine: 'default',
+        status: 'failed'
+      }),
+      [DispatchNodeResponseKeyEnum.assistantResponses]: assistantResponses,
+      [DispatchNodeResponseKeyEnum.nodeResponses]: nodeResponses
+    };
   } finally {
     for (const cap of capabilities) {
       await cap.dispose?.();

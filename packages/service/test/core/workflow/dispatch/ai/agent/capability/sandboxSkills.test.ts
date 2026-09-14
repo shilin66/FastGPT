@@ -1,58 +1,24 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  isSandboxExpiredError,
-  collectSkillReferenceResponses
-} from '@fastgpt/service/core/workflow/dispatch/ai/agent/capability/sandboxSkills';
+import { collectSkillReferenceResponses } from '@fastgpt/service/core/workflow/dispatch/ai/agent/capability/sandboxSkills';
+import { isSandboxInfrastructureError } from '@fastgpt/service/core/ai/sandbox/errors';
 import type { AgentSandboxContext } from '@fastgpt/service/core/workflow/dispatch/ai/agent/sub/sandbox/types';
 import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 
-describe('isSandboxExpiredError', () => {
-  it('should return true for "not found" error', () => {
-    const error = new Error('Sandbox not found');
-    expect(isSandboxExpiredError(error)).toBe(true);
-  });
-
-  it('should return true for "not exist" error', () => {
-    const error = new Error('Container does not exist');
-    expect(isSandboxExpiredError(error)).toBe(true);
-  });
-
-  it('should return true for "connection" error', () => {
-    const error = new Error('Connection timeout');
-    expect(isSandboxExpiredError(error)).toBe(true);
-  });
-
-  it('should return true for "sandbox_not_found" error', () => {
-    const error = new Error('sandbox_not_found: instance expired');
-    expect(isSandboxExpiredError(error)).toBe(true);
-  });
-
-  it('should return true for "ECONNREFUSED" error', () => {
-    const error = new Error('connect ECONNREFUSED 127.0.0.1:8080');
-    expect(isSandboxExpiredError(error)).toBe(true);
-  });
-
-  it('should return true for "ECONNRESET" error', () => {
-    const error = new Error('read ECONNRESET');
-    expect(isSandboxExpiredError(error)).toBe(true);
-  });
-
-  it('should return false for unrelated error', () => {
-    const error = new Error('Permission denied');
-    expect(isSandboxExpiredError(error)).toBe(false);
-  });
-
-  it('should return false for non-Error types', () => {
-    expect(isSandboxExpiredError('string error')).toBe(false);
-    expect(isSandboxExpiredError(null)).toBe(false);
-    expect(isSandboxExpiredError(undefined)).toBe(false);
-    expect(isSandboxExpiredError({ message: 'not found' })).toBe(false);
-    expect(isSandboxExpiredError(123)).toBe(false);
-  });
-
-  it('should be case insensitive', () => {
-    const error = new Error('SANDBOX NOT FOUND');
-    expect(isSandboxExpiredError(error)).toBe(true);
+describe('Sandbox infrastructure classification', () => {
+  it.each(['not found', 'not exist', 'connection', 'Permission denied', 'ECONNRESET'])(
+    'does not infer infrastructure failure from user-controlled text: %s',
+    (message) => {
+      expect(isSandboxInfrastructureError(new Error(message))).toBe(false);
+    }
+  );
+  it.each(['SANDBOX_NOT_FOUND', 'ECONNREFUSED', 'ECONNRESET'])(
+    'recognizes explicit infrastructure code %s',
+    (code) => {
+      expect(isSandboxInfrastructureError(Object.assign(new Error('opaque'), { code }))).toBe(true);
+    }
+  );
+  it.each([null, undefined, 'not found', 123])('ignores unstructured values', (value) => {
+    expect(isSandboxInfrastructureError(value)).toBe(false);
   });
 });
 
@@ -63,10 +29,12 @@ describe('collectSkillReferenceResponses', () => {
     ({
       deployedSkills,
       workDirectory: '/work',
-      providerSandboxId: 'sandbox-123'
+      providerSandboxId: 'sandbox-123',
+      sandboxId: 'logical-123',
+      operationId: 'operation-123'
     }) as AgentSandboxContext;
 
-  it('should return empty array when showSkillReferences is false', () => {
+  it('retains the audit without exposing Skill references when showSkillReferences is false', () => {
     const context = createMockSandboxContext([
       {
         id: 'skill-1',
@@ -85,7 +53,18 @@ describe('collectSkillReferenceResponses', () => {
       toolCallId: 'call-1'
     });
 
-    expect(result).toEqual([]);
+    expect(result).toEqual([
+      {
+        sandboxEvent: {
+          id: 'call-1',
+          status: 'referenced',
+          skillId: 'skill-1',
+          versionId: undefined,
+          sandboxId: 'logical-123',
+          operationId: 'operation-123'
+        }
+      }
+    ]);
   });
 
   it('should skip paths that do not end with /SKILL.md', () => {
@@ -130,7 +109,7 @@ describe('collectSkillReferenceResponses', () => {
     });
 
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({
+    expect(result[0]).toMatchObject({
       skills: [
         {
           id: 'tool-call-123',

@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>方案 A+C - 工作流头部重构预览</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      body {
+        background:
+          linear-gradient(rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+          #edf3fb;
+        background-size: 28px 28px;
+      }
+
+      .hybrid-page {
+        min-width: 1320px;
+        padding: 28px;
+      }
+
+      .page-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        max-width: 1480px;
+        margin: 0 auto 18px;
+      }
+
+      .page-head h1 {
+        margin: 8px 0;
+        font-size: 30px;
+        line-height: 1.16;
+      }
+
+      .page-head p {
+        max-width: 780px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .jump-links {
+        display: flex;
+        gap: 10px;
+      }
+
+      .mockup {
+        max-width: 1480px;
+        margin: 18px auto 32px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.1);
+      }
+
+      .workflow-head {
+        position: relative;
+        z-index: 6;
+        display: grid;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(248, 250, 252, 0.94);
+        backdrop-filter: blur(16px);
+      }
+
+      .head-top {
+        display: grid;
+        grid-template-columns: minmax(340px, 1fr) auto auto;
+        align-items: center;
+        gap: 18px;
+        min-height: 76px;
+        padding: 12px 18px;
+      }
+
+      .app-identity {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .app-identity h2,
+      .app-identity p {
+        margin: 0;
+      }
+
+      .app-identity h2 {
+        font-size: 18px;
+      }
+
+      .app-identity p {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .status-strip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 32px;
+        padding: 0 11px;
+        border: 1px solid rgba(37, 99, 235, 0.14);
+        border-radius: 999px;
+        color: var(--ink);
+        background: white;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .status-pill.blue {
+        color: var(--blue);
+        background: rgba(37, 99, 235, 0.08);
+      }
+
+      .status-pill.green {
+        color: var(--green);
+        background: rgba(22, 163, 74, 0.08);
+      }
+
+      .head-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .head-tabs {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 18px 12px;
+      }
+
+      .head-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 38px;
+        padding: 0 14px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .head-tab.active {
+        border-color: rgba(37, 99, 235, 0.18);
+        color: white;
+        background: var(--blue);
+        box-shadow: 0 14px 30px rgba(37, 99, 235, 0.2);
+      }
+
+      .head-tab.muted {
+        border-color: rgba(148, 163, 184, 0.18);
+        background: white;
+      }
+
+      .progress-steps {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        padding: 0 18px 14px;
+      }
+
+      .progress-step {
+        min-height: 48px;
+        padding: 9px 11px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 13px;
+        background: white;
+      }
+
+      .progress-step strong,
+      .progress-step span {
+        display: block;
+      }
+
+      .progress-step strong {
+        font-size: 12px;
+      }
+
+      .progress-step span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .progress-step.active {
+        border-color: rgba(37, 99, 235, 0.36);
+        background: rgba(37, 99, 235, 0.08);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 410px;
+        height: 690px;
+      }
+
+      .node-dock {
+        z-index: 4;
+        border-right: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(255, 255, 255, 0.88);
+      }
+
+      .dock-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 16px 10px;
+      }
+
+      .dock-head strong {
+        font-size: 14px;
+      }
+
+      .dock-head span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .dock-search {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 38px;
+        margin: 0 16px 14px;
+        padding: 0 12px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 12px;
+        color: var(--muted);
+        background: #f8fafc;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .node-group {
+        padding: 0 12px 14px;
+      }
+
+      .group-label {
+        margin: 12px 4px 8px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .node-tool {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        min-height: 48px;
+        margin-bottom: 8px;
+        padding: 8px 9px;
+        border: 1px solid rgba(37, 99, 235, 0.12);
+        border-radius: 14px;
+        background: white;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+      }
+
+      .node-tool strong,
+      .node-tool small {
+        display: block;
+      }
+
+      .node-tool strong {
+        font-size: 12px;
+      }
+
+      .node-tool small {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .tool-icon {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        border-radius: 11px;
+        color: white;
+        background: linear-gradient(135deg, var(--blue), var(--navy));
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .tool-icon.soft {
+        color: var(--blue);
+        background: rgba(37, 99, 235, 0.1);
+        box-shadow: none;
+      }
+
+      .tool-code {
+        color: var(--soft);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .canvas {
+        position: relative;
+        overflow: hidden;
+        background:
+          linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+          linear-gradient(rgba(37, 99, 235, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.035) 1px, transparent 1px),
+          #f8fbff;
+        background-size:
+          80px 80px,
+          80px 80px,
+          16px 16px,
+          16px 16px;
+      }
+
+      .connector-svg {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      .edge {
+        fill: none;
+        stroke: rgba(37, 99, 235, 0.46);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2.5;
+      }
+
+      .edge.ghost {
+        stroke: rgba(37, 99, 235, 0.13);
+        stroke-width: 8;
+      }
+
+      .edge.active {
+        stroke: var(--blue);
+        stroke-dasharray: 12 10;
+        stroke-width: 3.5;
+        animation: dash 1.8s linear infinite;
+      }
+
+      @keyframes dash {
+        to {
+          stroke-dashoffset: -44;
+        }
+      }
+
+      .flow-node {
+        position: absolute;
+        z-index: 2;
+        width: 220px;
+        min-height: 112px;
+        padding: 15px;
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+      }
+
+      .flow-node.active {
+        border-color: rgba(37, 99, 235, 0.72);
+        box-shadow:
+          0 22px 54px rgba(37, 99, 235, 0.18),
+          0 0 0 4px rgba(37, 99, 235, 0.08);
+      }
+
+      .node-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .flow-node h3,
+      .flow-node p {
+        margin: 0;
+      }
+
+      .flow-node h3 {
+        font-size: 15px;
+      }
+
+      .flow-node p {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .node-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .node-tag {
+        display: inline-flex;
+        height: 24px;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0 9px;
+        color: var(--blue);
+        background: rgba(37, 99, 235, 0.08);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .port {
+        position: absolute;
+        z-index: 5;
+        width: 12px;
+        height: 12px;
+        border: 3px solid white;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.5);
+      }
+
+      .port.in {
+        top: 52px;
+        left: -7px;
+      }
+
+      .port.out {
+        top: 52px;
+        right: -7px;
+      }
+
+      .n1 {
+        top: 172px;
+        left: 80px;
+      }
+
+      .n2 {
+        top: 104px;
+        left: 358px;
+      }
+
+      .n3 {
+        top: 314px;
+        left: 358px;
+      }
+
+      .n4 {
+        top: 210px;
+        left: 640px;
+      }
+
+      .debug-bar {
+        position: absolute;
+        right: 18px;
+        bottom: 18px;
+        left: 18px;
+        z-index: 5;
+        display: grid;
+        grid-template-columns: 220px 1fr 150px;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+      }
+
+      .debug-cell {
+        display: grid;
+        gap: 6px;
+        padding: 10px 12px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 13px;
+        background: white;
+      }
+
+      .debug-cell label {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .fake-control {
+        min-height: 34px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 10px;
+        background:
+          linear-gradient(90deg, rgba(37, 99, 235, 0.08), transparent 44%),
+          #f8fafc;
+      }
+
+      .inspector {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        border-left: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(255, 255, 255, 0.93);
+      }
+
+      .inspector-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.96));
+      }
+
+      .inspector-head h3,
+      .inspector-head p {
+        margin: 0;
+      }
+
+      .inspector-head h3 {
+        font-size: 16px;
+      }
+
+      .inspector-head p {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .inspector-body {
+        display: grid;
+        align-content: start;
+        gap: 12px;
+        min-height: 0;
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .seg-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 13px;
+        background: #f8fafc;
+      }
+
+      .seg-tabs span {
+        display: grid;
+        height: 32px;
+        place-items: center;
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .seg-tabs .active {
+        color: white;
+        background: var(--blue);
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+      }
+
+      .metrics-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .metric,
+      .config-field,
+      .hint-box {
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+        background: white;
+      }
+
+      .metric {
+        padding: 11px;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 16px;
+      }
+
+      .config-field {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+      }
+
+      .config-field label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .fake-control.tall {
+        min-height: 82px;
+      }
+
+      .hint-box {
+        padding: 12px;
+        border-style: dashed;
+        border-color: rgba(37, 99, 235, 0.28);
+        color: var(--muted);
+        background: rgba(37, 99, 235, 0.05);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .variant-1 .workflow-head {
+        grid-template-rows: auto auto;
+      }
+
+      .variant-2 .workflow-head {
+        grid-template-rows: auto auto;
+      }
+
+      .variant-2 .head-top {
+        grid-template-columns: minmax(320px, 1fr) minmax(440px, auto) auto;
+      }
+
+      .variant-2 .head-tabs {
+        padding-top: 12px;
+        border-top: 1px solid rgba(148, 163, 184, 0.14);
+        background: rgba(255, 255, 255, 0.62);
+      }
+
+      .variant-3 .workflow-head {
+        grid-template-rows: auto;
+      }
+
+      .variant-3 .head-top {
+        grid-template-columns: minmax(300px, 1fr) minmax(520px, auto) auto;
+      }
+
+      .variant-3 .head-tabs {
+        padding: 4px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 15px;
+        background: white;
+      }
+
+      .variant-3 .head-tab {
+        height: 36px;
+      }
+
+      .variant-3 .workspace {
+        height: 710px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="hybrid-page">
+      <header class="page-head">
+        <div>
+          <span class="index-badge">A Dock + C Inspector</span>
+          <h1>工作流页面头部重构预览</h1>
+          <p>
+            三套方案都固定使用方案 A 的完整节点坞和方案 C 的固定参数检查器，
+            区别只在页面头部：如何像对话 Agent 配置页一样承载应用身份、配置阶段、发布入口和调试状态。
+          </p>
+        </div>
+        <nav class="jump-links">
+          <a class="btn" href="#variant-1">方案 1</a>
+          <a class="btn" href="#variant-2">方案 2</a>
+          <a class="btn primary" href="#variant-3">方案 3</a>
+          <a class="btn dark" href="./workflow-v3-header-redesign-previews.html">方案三重设计</a>
+        </nav>
+      </header>
+
+      <section id="variant-1" class="mockup variant-1">
+        <header class="workflow-head">
+          <div class="head-top">
+            <div class="app-identity">
+              <span class="brand-mark">WF</span>
+              <div>
+                <h2>售后咨询工作流</h2>
+                <p>Workflow Agent · 草稿未发布 · 最近保存 10:24</p>
+              </div>
+            </div>
+            <div class="status-strip">
+              <span class="status-pill blue">配置完整度 82%</span>
+              <span class="status-pill green">可运行</span>
+              <span class="status-pill">版本 v0.8</span>
+            </div>
+            <div class="head-actions">
+              <span class="btn">返回列表</span>
+              <span class="btn">运行检查</span>
+              <span class="btn primary">保存配置</span>
+            </div>
+          </div>
+          <nav class="head-tabs">
+            <span class="head-tab active">应用配置</span>
+            <span class="head-tab muted">发布渠道</span>
+            <span class="head-tab muted">对话日志</span>
+            <span class="head-tab muted">版本记录</span>
+          </nav>
+        </header>
+        <div class="workspace">
+          <aside class="node-dock">
+            <div class="dock-head"><strong>节点坞</strong><span>拖拽到画布</span></div>
+            <div class="dock-search"><span>搜索节点、工具、变量</span><span>/</span></div>
+            <div class="node-group">
+              <div class="group-label">核心节点</div>
+              <div class="node-tool"><span class="tool-icon">AI</span><span><strong>AI 对话</strong><small>模型、提示词、上下文</small></span><span class="tool-code">A</span></div>
+              <div class="node-tool"><span class="tool-icon">KB</span><span><strong>知识库检索</strong><small>数据集、Top K、引用</small></span><span class="tool-code">K</span></div>
+              <div class="node-tool"><span class="tool-icon">IF</span><span><strong>条件分支</strong><small>规则判断与兜底路径</small></span><span class="tool-code">C</span></div>
+              <div class="group-label">集成节点</div>
+              <div class="node-tool"><span class="tool-icon soft">API</span><span><strong>HTTP 工具</strong><small>接口请求与参数映射</small></span><span class="tool-code">H</span></div>
+              <div class="node-tool"><span class="tool-icon soft">MCP</span><span><strong>MCP 工具</strong><small>远程服务调用</small></span><span class="tool-code">M</span></div>
+            </div>
+          </aside>
+          <section class="canvas">
+            <svg class="connector-svg" viewBox="0 0 770 690" aria-hidden="true">
+              <defs><marker id="arrow-1" markerHeight="10" markerWidth="10" orient="auto" refX="8" refY="5"><path d="M0,0 L10,5 L0,10 Z" fill="#2563eb"></path></marker></defs>
+              <path class="edge ghost" d="M300 230 C348 230 328 162 358 162"></path>
+              <path class="edge active" marker-end="url(#arrow-1)" d="M300 230 C348 230 328 162 358 162"></path>
+              <path class="edge" marker-end="url(#arrow-1)" d="M300 230 C348 230 328 372 358 372"></path>
+              <path class="edge" marker-end="url(#arrow-1)" d="M578 162 C616 162 604 268 640 268"></path>
+              <path class="edge" marker-end="url(#arrow-1)" d="M578 372 C616 372 604 268 640 268"></path>
+            </svg>
+            <article class="flow-node n1"><span class="port out"></span><div class="node-top"><span class="tool-icon soft">IN</span><h3>开始节点</h3></div><p>用户问题、附件、会话变量进入工作流。</p><div class="node-tags"><span class="node-tag">Trigger</span></div></article>
+            <article class="flow-node active n2"><span class="port in"></span><span class="port out"></span><div class="node-top"><span class="tool-icon">KB</span><h3>知识库检索</h3></div><p>命中产品知识库与售后策略。</p><div class="node-tags"><span class="node-tag">Selected</span><span class="node-tag">3 datasets</span></div></article>
+            <article class="flow-node n3"><span class="port in"></span><span class="port out"></span><div class="node-top"><span class="tool-icon">MCP</span><h3>MCP 工具</h3></div><p>查询订单、库存和物流状态。</p><div class="node-tags"><span class="node-tag">Optional</span></div></article>
+            <article class="flow-node n4"><span class="port in"></span><div class="node-top"><span class="tool-icon soft">AI</span><h3>最终回复</h3></div><p>输出带引用、带下一步建议的回复。</p><div class="node-tags"><span class="node-tag">Output</span></div></article>
+            <footer class="debug-bar">
+              <div class="debug-cell"><label>当前链路</label><strong>开始 → 知识库 → 回复</strong></div>
+              <div class="debug-cell"><label>快速调试输入</label><div class="fake-control"></div></div>
+              <a class="btn primary" style="height: auto" href="./option-c-debug-chat.html">运行</a>
+            </footer>
+          </section>
+          <aside class="inspector">
+            <header class="inspector-head">
+              <div><h3>知识库检索</h3><p>固定参数检查器 · 配置不遮挡画布</p></div>
+              <span class="badge">KB</span>
+            </header>
+            <div class="inspector-body">
+              <div class="seg-tabs"><span class="active">配置</span><span>输入</span><span>输出</span></div>
+              <div class="metrics-row"><div class="metric"><span>数据集</span><strong>3</strong></div><div class="metric"><span>Top K</span><strong>8</strong></div><div class="metric"><span>阈值</span><strong>0.62</strong></div></div>
+              <div class="config-field"><label>知识库选择</label><div class="fake-control"></div></div>
+              <div class="config-field"><label>检索问题模板</label><div class="fake-control tall"></div></div>
+              <div class="config-field"><label>引用格式</label><div class="fake-control"></div></div>
+              <div class="hint-box">顶部保留应用身份和跨页入口，适合最接近对话 Agent 配置页的迁移版本。</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="variant-2" class="mockup variant-2">
+        <header class="workflow-head">
+          <div class="head-top">
+            <div class="app-identity">
+              <span class="brand-mark">WF</span>
+              <div>
+                <h2>售后咨询工作流</h2>
+                <p>管理节点、变量、知识检索与运行调试</p>
+              </div>
+            </div>
+            <div class="status-strip">
+              <span class="status-pill blue">草稿</span>
+              <span class="status-pill">14 个节点</span>
+              <span class="status-pill">2 个问题</span>
+              <span class="status-pill green">最近保存 10:24</span>
+            </div>
+            <div class="head-actions">
+              <span class="btn">发布渠道</span>
+              <span class="btn">查看日志</span>
+              <span class="btn primary">保存并运行</span>
+            </div>
+          </div>
+          <nav class="head-tabs">
+            <span class="head-tab active">工作流画布</span>
+            <span class="head-tab muted">基础信息</span>
+            <span class="head-tab muted">AI 配置</span>
+            <span class="head-tab muted">知识库</span>
+            <span class="head-tab muted">变量与输入</span>
+            <span class="head-tab muted">运行环境</span>
+          </nav>
+        </header>
+        <div class="workspace">
+          <aside class="node-dock">
+            <div class="dock-head"><strong>节点坞</strong><span>方案 A</span></div>
+            <div class="dock-search"><span>搜索节点、工具、变量</span><span>/</span></div>
+            <div class="node-group">
+              <div class="group-label">推荐节点</div>
+              <div class="node-tool"><span class="tool-icon">AI</span><span><strong>AI 对话</strong><small>生成回复与指令</small></span><span class="tool-code">A</span></div>
+              <div class="node-tool"><span class="tool-icon">KB</span><span><strong>知识库检索</strong><small>引用知识片段</small></span><span class="tool-code">K</span></div>
+              <div class="node-tool"><span class="tool-icon soft">SUM</span><span><strong>文本总结</strong><small>压缩上下文</small></span><span class="tool-code">S</span></div>
+              <div class="group-label">工具节点</div>
+              <div class="node-tool"><span class="tool-icon soft">API</span><span><strong>HTTP 工具</strong><small>接口请求</small></span><span class="tool-code">H</span></div>
+              <div class="node-tool"><span class="tool-icon soft">MCP</span><span><strong>MCP 工具</strong><small>服务调用</small></span><span class="tool-code">M</span></div>
+            </div>
+          </aside>
+          <section class="canvas">
+            <svg class="connector-svg" viewBox="0 0 770 690" aria-hidden="true">
+              <defs><marker id="arrow-2" markerHeight="10" markerWidth="10" orient="auto" refX="8" refY="5"><path d="M0,0 L10,5 L0,10 Z" fill="#2563eb"></path></marker></defs>
+              <path class="edge ghost" d="M300 230 C348 230 328 162 358 162"></path>
+              <path class="edge active" marker-end="url(#arrow-2)" d="M300 230 C348 230 328 162 358 162"></path>
+              <path class="edge" marker-end="url(#arrow-2)" d="M300 230 C348 230 328 372 358 372"></path>
+              <path class="edge" marker-end="url(#arrow-2)" d="M578 162 C616 162 604 268 640 268"></path>
+              <path class="edge" marker-end="url(#arrow-2)" d="M578 372 C616 372 604 268 640 268"></path>
+            </svg>
+            <article class="flow-node n1"><span class="port out"></span><div class="node-top"><span class="tool-icon soft">IN</span><h3>开始节点</h3></div><p>用户输入与上下文变量进入流程。</p><div class="node-tags"><span class="node-tag">Input</span></div></article>
+            <article class="flow-node active n2"><span class="port in"></span><span class="port out"></span><div class="node-top"><span class="tool-icon">KB</span><h3>知识库检索</h3></div><p>当前选中节点，右侧配置实时同步。</p><div class="node-tags"><span class="node-tag">Selected</span></div></article>
+            <article class="flow-node n3"><span class="port in"></span><span class="port out"></span><div class="node-top"><span class="tool-icon">MCP</span><h3>MCP 工具</h3></div><p>辅助查询订单和库存。</p><div class="node-tags"><span class="node-tag">Branch</span></div></article>
+            <article class="flow-node n4"><span class="port in"></span><div class="node-top"><span class="tool-icon soft">AI</span><h3>最终回复</h3></div><p>聚合引用、工具结果和兜底建议。</p><div class="node-tags"><span class="node-tag">Final</span></div></article>
+            <footer class="debug-bar">
+              <div class="debug-cell"><label>运行场景</label><strong>售后政策问答</strong></div>
+              <div class="debug-cell"><label>调试输入</label><div class="fake-control"></div></div>
+              <a class="btn primary" style="height: auto" href="./option-c-debug-chat.html">运行</a>
+            </footer>
+          </section>
+          <aside class="inspector">
+            <header class="inspector-head">
+              <div><h3>知识库检索</h3><p>固定参数检查器 · 分段配置</p></div>
+              <span class="badge">Selected</span>
+            </header>
+            <div class="inspector-body">
+              <div class="seg-tabs"><span class="active">配置</span><span>输入</span><span>输出</span></div>
+              <div class="config-field"><label>知识库范围</label><div class="fake-control"></div></div>
+              <div class="config-field"><label>召回策略</label><div class="fake-control"></div></div>
+              <div class="config-field"><label>结果重排</label><div class="fake-control tall"></div></div>
+              <div class="hint-box">顶部把配置项拆成横向二级导航，适合以后与对话 Agent 的配置分组保持一致。</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="variant-3" class="mockup variant-3">
+        <header class="workflow-head">
+          <div class="head-top">
+            <div class="app-identity">
+              <span class="brand-mark">WF</span>
+              <div>
+                <h2>售后咨询工作流</h2>
+                <p>Workflow Agent · 14 nodes · Draft</p>
+              </div>
+            </div>
+            <nav class="head-tabs">
+              <span class="head-tab active">配置</span>
+              <span class="head-tab muted">调试</span>
+              <span class="head-tab muted">发布</span>
+              <span class="head-tab muted">日志</span>
+            </nav>
+            <div class="head-actions">
+              <span class="status-pill green">可运行</span>
+              <span class="btn">运行检查</span>
+              <span class="btn primary">保存</span>
+            </div>
+          </div>
+        </header>
+        <div class="workspace">
+          <aside class="node-dock">
+            <div class="dock-head"><strong>节点坞</strong><span>拖拽新增</span></div>
+            <div class="dock-search"><span>搜索节点</span><span>/</span></div>
+            <div class="node-group">
+              <div class="group-label">核心</div>
+              <div class="node-tool"><span class="tool-icon">AI</span><span><strong>AI 对话</strong><small>模型与提示词</small></span><span class="tool-code">A</span></div>
+              <div class="node-tool"><span class="tool-icon">KB</span><span><strong>知识库</strong><small>检索与引用</small></span><span class="tool-code">K</span></div>
+              <div class="node-tool"><span class="tool-icon">IF</span><span><strong>条件</strong><small>分支判断</small></span><span class="tool-code">C</span></div>
+              <div class="group-label">集成</div>
+              <div class="node-tool"><span class="tool-icon soft">API</span><span><strong>HTTP</strong><small>接口调用</small></span><span class="tool-code">H</span></div>
+              <div class="node-tool"><span class="tool-icon soft">MCP</span><span><strong>MCP</strong><small>工具服务</small></span><span class="tool-code">M</span></div>
+            </div>
+          </aside>
+          <section class="canvas">
+            <svg class="connector-svg" viewBox="0 0 770 710" aria-hidden="true">
+              <defs><marker id="arrow-3" markerHeight="10" markerWidth="10" orient="auto" refX="8" refY="5"><path d="M0,0 L10,5 L0,10 Z" fill="#2563eb"></path></marker></defs>
+              <path class="edge ghost" d="M300 230 C348 230 328 162 358 162"></path>
+              <path class="edge active" marker-end="url(#arrow-3)" d="M300 230 C348 230 328 162 358 162"></path>
+              <path class="edge" marker-end="url(#arrow-3)" d="M300 230 C348 230 328 372 358 372"></path>
+              <path class="edge" marker-end="url(#arrow-3)" d="M578 162 C616 162 604 268 640 268"></path>
+              <path class="edge" marker-end="url(#arrow-3)" d="M578 372 C616 372 604 268 640 268"></path>
+            </svg>
+            <article class="flow-node n1"><span class="port out"></span><div class="node-top"><span class="tool-icon soft">IN</span><h3>开始节点</h3></div><p>接收用户问题和会话上下文。</p><div class="node-tags"><span class="node-tag">Input</span></div></article>
+            <article class="flow-node active n2"><span class="port in"></span><span class="port out"></span><div class="node-top"><span class="tool-icon">KB</span><h3>知识库检索</h3></div><p>配置范围、召回策略和引用格式。</p><div class="node-tags"><span class="node-tag">Selected</span><span class="node-tag">3 hits</span></div></article>
+            <article class="flow-node n3"><span class="port in"></span><span class="port out"></span><div class="node-top"><span class="tool-icon">MCP</span><h3>MCP 工具</h3></div><p>订单、库存、物流查询。</p><div class="node-tags"><span class="node-tag">Optional</span></div></article>
+            <article class="flow-node n4"><span class="port in"></span><div class="node-top"><span class="tool-icon soft">AI</span><h3>最终回复</h3></div><p>综合知识引用与工具结果。</p><div class="node-tags"><span class="node-tag">Output</span></div></article>
+            <footer class="debug-bar">
+              <div class="debug-cell"><label>运行模式</label><strong>Inline Execution</strong></div>
+              <div class="debug-cell"><label>快速调试</label><div class="fake-control"></div></div>
+              <a class="btn primary" style="height: auto" href="./option-c-debug-chat.html">运行</a>
+            </footer>
+          </section>
+          <aside class="inspector">
+            <header class="inspector-head">
+              <div><h3>知识库检索</h3><p>固定参数检查器 · 更强工作台感</p></div>
+              <span class="badge">KB</span>
+            </header>
+            <div class="inspector-body">
+              <div class="seg-tabs"><span class="active">配置</span><span>输入</span><span>输出</span></div>
+              <div class="metrics-row"><div class="metric"><span>数据集</span><strong>3</strong></div><div class="metric"><span>Top K</span><strong>8</strong></div><div class="metric"><span>阈值</span><strong>0.62</strong></div></div>
+              <div class="config-field"><label>知识库选择</label><div class="fake-control"></div></div>
+              <div class="config-field"><label>检索问题模板</label><div class="fake-control tall"></div></div>
+              <div class="config-field"><label>引用格式</label><div class="fake-control"></div></div>
+              <div class="hint-box">推荐用于最终落地：头部最轻，核心区域留给节点坞、画布和固定检查器，视觉上更不像原 FastGPT。</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>方案 C - Blueprint Console</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .app-c {
+        grid-template-rows: 74px 1fr;
+      }
+
+      .workspace-c {
+        position: relative;
+        min-height: calc(100vh - 74px);
+        padding: 16px 18px 18px;
+      }
+
+      .canvas-c {
+        position: absolute;
+        inset: 16px 18px 18px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .left-command {
+        position: absolute;
+        top: 34px;
+        left: 36px;
+        z-index: 3;
+        width: 256px;
+        padding: 14px;
+      }
+
+      .command-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .command-tile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 48px;
+        padding: 10px;
+        border: 1px solid rgba(37, 99, 235, 0.14);
+        border-radius: 13px;
+        background: white;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .right-inspector {
+        position: absolute;
+        top: 34px;
+        right: 36px;
+        z-index: 3;
+        width: 330px;
+        padding: 16px;
+      }
+
+      .bottom-runner {
+        position: absolute;
+        right: 36px;
+        bottom: 36px;
+        left: 36px;
+        z-index: 3;
+        display: grid;
+        grid-template-columns: 280px 1fr 220px;
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .node-c1 {
+        top: 185px;
+        left: 360px;
+      }
+
+      .node-c2 {
+        top: 130px;
+        left: 660px;
+      }
+
+      .node-c3 {
+        top: 320px;
+        left: 660px;
+      }
+
+      .node-c4 {
+        top: 224px;
+        left: 960px;
+      }
+
+      .line-c1 {
+        top: 240px;
+        left: 580px;
+        width: 90px;
+        transform: rotate(-18deg);
+      }
+
+      .line-c2 {
+        top: 250px;
+        left: 580px;
+        width: 115px;
+        transform: rotate(34deg);
+      }
+
+      .line-c3 {
+        top: 183px;
+        left: 880px;
+        width: 105px;
+        transform: rotate(28deg);
+      }
+
+      .line-c4 {
+        top: 350px;
+        left: 880px;
+        width: 110px;
+        transform: rotate(-34deg);
+      }
+
+      .health {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .health div {
+        padding: 12px;
+        border-radius: 12px;
+        background: var(--blue-soft);
+      }
+
+      .health strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app app-c">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">OC</div>
+          <div>
+            <h1>OmniCockpit Blueprint Console</h1>
+            <p>推荐方案：节点搭建、检查器、调试控制集中在一个工作台</p>
+          </div>
+        </div>
+        <nav class="tabs">
+          <span class="tab active">应用配置</span>
+          <span class="tab">发布渠道</span>
+          <span class="tab">对话日志</span>
+        </nav>
+        <div class="top-actions">
+          <span class="icon-btn">V</span>
+          <span class="btn">运行检查</span>
+          <span class="btn primary">保存</span>
+        </div>
+      </header>
+
+      <section class="workspace-c">
+        <section class="canvas-c blueprint">
+          <span class="connector line-c1"></span>
+          <span class="connector line-c2"></span>
+          <span class="connector line-c3"></span>
+          <span class="connector line-c4"></span>
+          <article class="node node-c1">
+            <h3>开始节点</h3>
+            <p>用户问题、附件、会话变量进入工作流。</p>
+            <div class="meta"><span class="badge">Trigger</span></div>
+          </article>
+          <article class="node node-c2">
+            <h3>知识库检索</h3>
+            <p>命中产品知识库与售后策略。</p>
+            <div class="meta"><span class="badge">KB</span><span class="badge">87%</span></div>
+          </article>
+          <article class="node node-c3">
+            <h3>MCP 工具</h3>
+            <p>同步查询订单、库存和物流状态。</p>
+            <div class="meta"><span class="badge">Tool</span></div>
+          </article>
+          <article class="node node-c4">
+            <h3>最终回复</h3>
+            <p>输出带引用、带下一步建议的回复。</p>
+            <div class="meta"><span class="badge">Answer</span></div>
+          </article>
+        </section>
+
+        <aside class="rail-card left-command">
+          <p class="rail-title">节点坞</p>
+          <div class="command-row">
+            <div class="command-tile"><span class="dot-icon">AI</span>AI 对话</div>
+            <div class="command-tile"><span class="dot-icon">KB</span>知识库</div>
+            <div class="command-tile"><span class="dot-icon">API</span>HTTP</div>
+            <div class="command-tile"><span class="dot-icon">IF</span>条件</div>
+          </div>
+          <div class="field" style="margin-top: 14px">
+            <label>搜索节点</label>
+            <div class="fake-input"></div>
+          </div>
+        </aside>
+
+        <aside class="rail-card right-inspector inspector">
+          <span class="badge">检查器</span>
+          <h2 style="margin-top: 12px">知识库检索</h2>
+          <p>选中节点后直接在右侧展开配置摘要、运行问题和快捷参数，避免旧式弹框打断画布。</p>
+          <div class="health">
+            <div><span>数据集</span><strong>3</strong></div>
+            <div><span>引用策略</span><strong>启用</strong></div>
+            <div><span>Top K</span><strong>8</strong></div>
+            <div><span>阈值</span><strong>0.62</strong></div>
+          </div>
+          <div class="field" style="margin-top: 14px">
+            <label>问题提示</label>
+            <p style="margin: 0">建议为未命中知识库增加兜底回复节点。</p>
+          </div>
+        </aside>
+
+        <footer class="dock bottom-runner">
+          <div class="field">
+            <label>当前版本</label>
+            <strong>草稿未发布</strong>
+          </div>
+          <div class="field">
+            <label>调试输入</label>
+            <div class="fake-input"></div>
+          </div>
+          <div class="field">
+            <label>执行</label>
+            <a class="btn primary" style="width: 100%" href="./option-c-debug-chat.html">
+              运行工作流
+            </a>
+          </div>
+        </footer>
+      </section>
+    </main>
+  </body>
+</html>

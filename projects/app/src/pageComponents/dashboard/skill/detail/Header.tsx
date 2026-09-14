@@ -75,10 +75,8 @@ const Header = () => {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const { skillDetail, refreshSkillDetail, showHistories, setShowHistories } = useContextSelector(
-    SkillDetailContext,
-    (v) => v
-  );
+  const { skillDetail, refreshSkillDetail, showHistories, setShowHistories, sandboxState } =
+    useContextSelector(SkillDetailContext, (v) => v);
 
   const [editedSkill, setEditedSkill] = useState<EditResourceInfoFormType>();
   const [showPermModal, setShowPermModal] = useState(false);
@@ -121,13 +119,29 @@ const Header = () => {
     }
   );
 
-  const { runAsync: onSaveDeploy, loading: isSaving } = useRequest(
-    (skillId: string) => postSaveDeploySkill({ skillId }),
-    {
-      successToast: t('skill:deploy_success'),
-      errorToast: t('skill:deploy_failed')
-    }
-  );
+  const { runAsync: onSaveDeploy, loading: isSaving } = useRequest(postSaveDeploySkill, {
+    onSuccess: refreshSkillDetail,
+    onError: refreshSkillDetail,
+    successToast: t('skill:deploy_success'),
+    errorToast: t('skill:deploy_failed')
+  });
+
+  const { openConfirm: confirmStalePublish, ConfirmModal: StalePublishModal } = useConfirm({
+    content: t('skill:workspace_stale_publish_confirm')
+  });
+
+  const saveWorkspace = () => {
+    const workspace = skillDetail?.workspace;
+    if (!skillDetail || !workspace || workspace.status !== 'running') return;
+    const publish = () =>
+      onSaveDeploy({
+        skillId: skillDetail._id,
+        expectedCurrentVersionId: workspace.currentVersionId,
+        expectedBaseVersionId: workspace.baseVersionId
+      });
+    if (workspace.stale) confirmStalePublish({ onConfirm: publish })();
+    else void publish().catch(() => undefined);
+  };
 
   const menuList = useMemo(
     () => [
@@ -237,7 +251,7 @@ const Header = () => {
         <HStack spacing={3}>
           <IconButton
             icon={<MyIcon name={'history'} w={'18px'} />}
-            aria-label={''}
+            aria-label={t('skill:history_versions')}
             size={'sm'}
             w={'34px'}
             h={'34px'}
@@ -250,7 +264,12 @@ const Header = () => {
             px={'14px'}
             variant={'primary'}
             isLoading={isSaving}
-            onClick={() => onSaveDeploy(skillDetail._id)}
+            isDisabled={
+              !skillDetail.permission.hasWritePer ||
+              sandboxState !== 'ready' ||
+              skillDetail.workspace?.status !== 'running'
+            }
+            onClick={saveWorkspace}
           >
             {t('common:Save')}
           </Button>
@@ -262,6 +281,7 @@ const Header = () => {
 
       {/* 删除确认弹窗 */}
       <DelConfirmModal />
+      <StalePublishModal />
 
       {/* 编辑信息弹窗 */}
       {!!editedSkill && (

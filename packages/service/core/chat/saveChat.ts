@@ -1,6 +1,7 @@
 import type {
   AIChatItemType,
   ChatHistoryItemResType,
+  ChatSourceScope,
   UserChatItemType
 } from '@fastgpt/global/core/chat/type';
 import type { ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
@@ -38,6 +39,7 @@ import { getFlatAppResponses } from '@fastgpt/global/core/chat/utils';
 import { sliceStrStartEnd } from '@fastgpt/global/common/string/tools';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
+import { getChatSourceFilter, assertChatSourceSession } from './source';
 
 export type Props = {
   chatId: string;
@@ -51,6 +53,7 @@ export type Props = {
   newTitle: string;
   source: `${ChatSourceEnum}`;
   sourceName?: string;
+  sourceScope?: ChatSourceScope;
   shareId?: string;
   outLinkUid?: string;
   userContent: UserChatItemType & { dataId?: string };
@@ -393,13 +396,22 @@ export type EnsurePendingChatRoundParams = {
 
 type PrepareChatRoundParams = Pick<
   Props,
-  'chatId' | 'appId' | 'teamId' | 'tmbId' | 'source' | 'sourceName' | 'shareId' | 'outLinkUid'
+  | 'chatId'
+  | 'appId'
+  | 'teamId'
+  | 'tmbId'
+  | 'source'
+  | 'sourceName'
+  | 'sourceScope'
+  | 'shareId'
+  | 'outLinkUid'
 > & {
   userContent: UserChatItemType & { dataId?: string };
   responseChatItemId: string;
 };
 
 type FailChatRoundParams = {
+  sourceScope?: ChatSourceScope;
   chatId: string;
   appId: string;
   responseChatItemId?: string;
@@ -460,6 +472,7 @@ export const prepareChatRound = async (params: PrepareChatRoundParams) => {
   } = params;
 
   if (isSkipSaveChatId(chatId)) return;
+  const sourceFilter = getChatSourceFilter(params.sourceScope);
 
   stripUserContentFileUrls(params.userContent);
   const humanDataId = ensurePreparedHumanDataId({
@@ -481,10 +494,12 @@ export const prepareChatRound = async (params: PrepareChatRoundParams) => {
   };
 
   await mongoSessionRun(async (session) => {
+    await assertChatSourceSession(params, session);
     await MongoChat.updateOne(
       {
         appId,
-        chatId
+        chatId,
+        ...sourceFilter
       },
       {
         $set: {
@@ -498,7 +513,8 @@ export const prepareChatRound = async (params: PrepareChatRoundParams) => {
           outLinkUid,
           updateTime: now,
           hasBeenRead: false,
-          chatGenerateStatus: ChatGenerateStatusEnum.generating
+          chatGenerateStatus: ChatGenerateStatusEnum.generating,
+          ...params.sourceScope
         },
         $setOnInsert: {
           createTime: now
@@ -516,27 +532,29 @@ export const prepareChatRound = async (params: PrepareChatRoundParams) => {
     };
 
     await MongoChatItem.updateOne(
-      { appId, chatId, dataId: humanDataId, obj: ChatRoleEnum.Human },
+      { appId, chatId, ...sourceFilter, dataId: humanDataId, obj: ChatRoleEnum.Human },
       {
         $setOnInsert: {
           teamId,
           tmbId,
           chatId,
           appId,
-          ...userPayload
+          ...userPayload,
+          ...params.sourceScope
         }
       },
       upsertOptions
     );
     await MongoChatItem.updateOne(
-      { appId, chatId, dataId: responseChatItemId, obj: ChatRoleEnum.AI },
+      { appId, chatId, ...sourceFilter, dataId: responseChatItemId, obj: ChatRoleEnum.AI },
       {
         $setOnInsert: {
           teamId,
           tmbId,
           chatId,
           appId,
-          ...aiPlaceholder
+          ...aiPlaceholder,
+          ...params.sourceScope
         }
       },
       upsertOptions
@@ -546,6 +564,7 @@ export const prepareChatRound = async (params: PrepareChatRoundParams) => {
 
 export const finalizeChatRound = async (props: Props) => {
   beforeProcess(props);
+  const sourceFilter = getChatSourceFilter(props.sourceScope);
 
   const {
     chatId,
@@ -595,7 +614,8 @@ export const finalizeChatRound = async (props: Props) => {
     const chat = await MongoChat.findOne(
       {
         appId,
-        chatId
+        chatId,
+        ...sourceFilter
       },
       '_id metadata'
     )
@@ -613,11 +633,12 @@ export const finalizeChatRound = async (props: Props) => {
 
     const [humanDoc, aiDoc] = await Promise.all([
       MongoChatItem.findOneAndUpdate(
-        { appId, chatId, dataId: humanDataId, obj: ChatRoleEnum.Human },
+        { appId, chatId, ...sourceFilter, dataId: humanDataId, obj: ChatRoleEnum.Human },
         {
           $set: {
             ...(processedContent[0] as Record<string, unknown>),
-            obj: ChatRoleEnum.Human
+            obj: ChatRoleEnum.Human,
+            ...props.sourceScope
           }
         },
         {
@@ -626,11 +647,12 @@ export const finalizeChatRound = async (props: Props) => {
         }
       ),
       MongoChatItem.findOneAndUpdate(
-        { appId, chatId, dataId: aiDataId, obj: ChatRoleEnum.AI },
+        { appId, chatId, ...sourceFilter, dataId: aiDataId, obj: ChatRoleEnum.AI },
         {
           $set: {
             ...(processedContent[1] as Record<string, unknown>),
-            obj: ChatRoleEnum.AI
+            obj: ChatRoleEnum.AI,
+            ...props.sourceScope
           }
         },
         {
@@ -645,7 +667,7 @@ export const finalizeChatRound = async (props: Props) => {
     }
 
     await MongoChatItemResponse.deleteMany(
-      { appId, chatId, chatItemDataId: aiDataId },
+      { appId, chatId, ...sourceFilter, chatItemDataId: aiDataId },
       { session }
     );
 
@@ -656,7 +678,8 @@ export const finalizeChatRound = async (props: Props) => {
           appId,
           chatId,
           chatItemDataId: aiDataId,
-          data: item
+          data: item,
+          ...props.sourceScope
         })),
         { session, ordered: true }
       );
@@ -665,7 +688,8 @@ export const finalizeChatRound = async (props: Props) => {
     await MongoChat.updateOne(
       {
         appId,
-        chatId
+        chatId,
+        ...sourceFilter
       },
       {
         $set: {
@@ -686,7 +710,8 @@ export const finalizeChatRound = async (props: Props) => {
           metadata: metadataUpdate,
           updateTime: now,
           hasBeenRead: false,
-          chatGenerateStatus: ChatGenerateStatusEnum.done
+          chatGenerateStatus: ChatGenerateStatusEnum.done,
+          ...props.sourceScope
         },
         ...(errorCount > 0 && { $inc: { errorCount: errorCount } })
       },
@@ -702,14 +727,17 @@ export const finalizeChatRound = async (props: Props) => {
       session
     });
 
-    pushChatLog({
-      chatId,
-      chatItemIdHuman: String(humanDoc._id),
-      chatItemIdAi: String(aiDoc._id),
-      appId
-    });
+    if (props.sourceScope?.sourceType !== 'skillEdit') {
+      pushChatLog({
+        chatId,
+        chatItemIdHuman: String(humanDoc._id),
+        chatItemIdAi: String(aiDoc._id),
+        appId
+      });
+    }
   });
 
+  if (props.sourceScope?.sourceType === 'skillEdit') return;
   try {
     const { fifteenMinutesAgo, errorCount, totalPoints, now } = await getChatDataLog({
       nodeResponses
@@ -765,6 +793,7 @@ export const finalizeChatRound = async (props: Props) => {
 
 export const failChatRound = async (params: FailChatRoundParams) => {
   const { chatId, appId, responseChatItemId, error } = params;
+  const sourceFilter = getChatSourceFilter(params.sourceScope);
 
   if (isSkipSaveChatId(chatId)) return;
 
@@ -774,7 +803,7 @@ export const failChatRound = async (params: FailChatRoundParams) => {
 
     await mongoSessionRun(async (session) => {
       await MongoChat.updateOne(
-        { appId, chatId },
+        { appId, chatId, ...sourceFilter },
         {
           $set: {
             chatGenerateStatus: ChatGenerateStatusEnum.error,
@@ -789,7 +818,7 @@ export const failChatRound = async (params: FailChatRoundParams) => {
 
       if (responseChatItemId) {
         await MongoChatItem.updateOne(
-          { appId, chatId, dataId: responseChatItemId, obj: ChatRoleEnum.AI },
+          { appId, chatId, ...sourceFilter, dataId: responseChatItemId, obj: ChatRoleEnum.AI },
           {
             $set: {
               errorMsg
@@ -808,6 +837,7 @@ export const failChatRound = async (params: FailChatRoundParams) => {
 
 export const pushChatRecords = async (props: Props) => {
   beforeProcess(props);
+  const sourceFilter = getChatSourceFilter(props.sourceScope);
 
   const {
     chatId,
@@ -836,7 +866,8 @@ export const pushChatRecords = async (props: Props) => {
     const chat = await MongoChat.findOne(
       {
         appId,
-        chatId
+        chatId,
+        ...sourceFilter
       },
       '_id metadata'
     );
@@ -865,13 +896,15 @@ export const pushChatRecords = async (props: Props) => {
     const processedContent = [userContent, aiResponse];
 
     await mongoSessionRun(async (session) => {
+      await assertChatSourceSession(props, session);
       const [{ _id: chatItemIdHuman }, { _id: chatItemIdAi, dataId }] = await MongoChatItem.create(
         processedContent.map((item) => ({
           chatId,
           teamId,
           tmbId,
           appId,
-          ...item
+          ...item,
+          ...props.sourceScope
         })),
         { session, ordered: true, ...writePrimary }
       );
@@ -883,7 +916,8 @@ export const pushChatRecords = async (props: Props) => {
             appId,
             chatId,
             chatItemDataId: dataId,
-            data: item
+            data: item,
+            ...props.sourceScope
           })),
           { session, ordered: true, ...writePrimary }
         );
@@ -892,7 +926,8 @@ export const pushChatRecords = async (props: Props) => {
       await MongoChat.updateOne(
         {
           appId,
-          chatId
+          chatId,
+          ...sourceFilter
         },
         {
           $set: {
@@ -911,7 +946,8 @@ export const pushChatRecords = async (props: Props) => {
             shareId,
             outLinkUid,
             metadata: metadataUpdate,
-            updateTime: new Date()
+            updateTime: new Date(),
+            ...props.sourceScope
           },
           $setOnInsert: {
             createTime: new Date()
@@ -932,14 +968,17 @@ export const pushChatRecords = async (props: Props) => {
         session
       });
 
-      pushChatLog({
-        chatId,
-        chatItemIdHuman: String(chatItemIdHuman),
-        chatItemIdAi: String(chatItemIdAi),
-        appId
-      });
+      if (props.sourceScope?.sourceType !== 'skillEdit') {
+        pushChatLog({
+          chatId,
+          chatItemIdHuman: String(chatItemIdHuman),
+          chatItemIdAi: String(chatItemIdAi),
+          appId
+        });
+      }
     });
 
+    if (props.sourceScope?.sourceType === 'skillEdit') return;
     // Create chat data log
     try {
       const { fifteenMinutesAgo, errorCount, totalPoints, now } = await getChatDataLog({
@@ -1009,6 +1048,7 @@ export const updateInteractiveChat = async ({
   interactive: WorkflowInteractiveResponseType;
 }) => {
   beforeProcess(props);
+  const sourceFilter = getChatSourceFilter(props.sourceScope);
 
   const {
     teamId,
@@ -1030,7 +1070,12 @@ export const updateInteractiveChat = async ({
     isPublicFetch: false
   });
 
-  const chatItem = await MongoChatItem.findOne({ appId, chatId, obj: ChatRoleEnum.AI }).sort({
+  const chatItem = await MongoChatItem.findOne({
+    appId,
+    chatId,
+    ...sourceFilter,
+    obj: ChatRoleEnum.AI
+  }).sort({
     _id: -1
   });
 
@@ -1175,7 +1220,8 @@ export const updateInteractiveChat = async ({
     await MongoChat.updateOne(
       {
         appId,
-        chatId
+        chatId,
+        ...sourceFilter
       },
       {
         $set: {
@@ -1198,6 +1244,7 @@ export const updateInteractiveChat = async ({
       const lastResponse = await MongoChatItemResponse.findOneAndDelete({
         appId,
         chatId,
+        ...sourceFilter,
         chatItemDataId: chatItem.dataId
       })
         .sort({
@@ -1216,7 +1263,8 @@ export const updateInteractiveChat = async ({
           appId,
           chatId,
           chatItemDataId: chatItem.dataId,
-          data: item
+          data: item,
+          ...props.sourceScope
         })),
         { session, ordered: true }
       );
@@ -1229,6 +1277,8 @@ export const updateInteractiveChat = async ({
       session
     });
   });
+
+  if (props.sourceScope?.sourceType === 'skillEdit') return;
 
   // Push chat data logs
   try {

@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
 import { MarkChatReadBodySchema } from '@fastgpt/global/openapi/core/chat/history/api';
 import { authChatCrud } from '@/service/support/permission/auth/chat';
@@ -18,7 +19,7 @@ export async function handler(req: ApiRequestProps, _res: ApiResponseType): Prom
   });
 
   await MongoChat.updateOne(
-    { appId: body.appId, chatId: body.chatId },
+    { ...getChatSourceFilter(), appId: body.appId, chatId: body.chatId },
     { $set: { hasBeenRead: true, updateTime: new Date() } }
   );
 }

@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>方案 C - 运行调试聊天框</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .app-debug {
+        grid-template-rows: 74px 1fr;
+      }
+
+      .debug-workspace {
+        position: relative;
+        min-height: calc(100vh - 74px);
+        padding: 16px 18px 18px;
+      }
+
+      .debug-canvas {
+        position: absolute;
+        inset: 16px 18px 18px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .debug-canvas::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+        pointer-events: none;
+        background: linear-gradient(90deg, transparent 0%, transparent 56%, rgba(248, 250, 252, 0.72) 76%);
+      }
+
+      .debug-node-1 {
+        top: 176px;
+        left: 274px;
+      }
+
+      .debug-node-2 {
+        top: 118px;
+        left: 548px;
+      }
+
+      .debug-node-3 {
+        top: 318px;
+        left: 548px;
+      }
+
+      .debug-node-4 {
+        top: 224px;
+        left: 822px;
+      }
+
+      .debug-line-1 {
+        top: 231px;
+        left: 494px;
+        width: 78px;
+        transform: rotate(-22deg);
+      }
+
+      .debug-line-2 {
+        top: 242px;
+        left: 494px;
+        width: 104px;
+        transform: rotate(40deg);
+      }
+
+      .debug-line-3 {
+        top: 172px;
+        left: 768px;
+        width: 88px;
+        transform: rotate(34deg);
+      }
+
+      .debug-line-4 {
+        top: 348px;
+        left: 768px;
+        width: 96px;
+        transform: rotate(-38deg);
+      }
+
+      .debug-node-active {
+        border-color: rgba(37, 99, 235, 0.72);
+        box-shadow:
+          0 20px 44px rgba(37, 99, 235, 0.18),
+          0 0 0 4px rgba(37, 99, 235, 0.08);
+      }
+
+      .run-panel {
+        position: absolute;
+        top: 32px;
+        right: 34px;
+        bottom: 32px;
+        z-index: 5;
+        display: grid;
+        width: 492px;
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+        overflow: hidden;
+        border: 1px solid rgba(37, 99, 235, 0.22);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow:
+          0 28px 70px rgba(15, 23, 42, 0.18),
+          0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+        backdrop-filter: blur(18px);
+      }
+
+      .run-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        background: linear-gradient(180deg, rgba(37, 99, 235, 0.1), rgba(255, 255, 255, 0.94));
+      }
+
+      .run-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .run-title h2 {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.2;
+      }
+
+      .run-title p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .run-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 30px;
+        padding: 0 11px;
+        border: 1px solid rgba(22, 163, 74, 0.18);
+        border-radius: 999px;
+        color: var(--green);
+        background: rgba(22, 163, 74, 0.08);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .live-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.12);
+      }
+
+      .run-steps {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        background: #f8fafc;
+      }
+
+      .run-step {
+        min-height: 58px;
+        padding: 9px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 13px;
+        background: white;
+      }
+
+      .run-step strong {
+        display: block;
+        color: var(--ink);
+        font-size: 12px;
+      }
+
+      .run-step span {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .run-step.active {
+        border-color: rgba(37, 99, 235, 0.42);
+        background: rgba(37, 99, 235, 0.08);
+      }
+
+      .run-body {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      .trace-rail {
+        padding: 14px 10px;
+        border-right: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(248, 250, 252, 0.72);
+      }
+
+      .trace-item {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        min-height: 74px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .trace-item::after {
+        position: absolute;
+        top: 30px;
+        bottom: 4px;
+        left: 50%;
+        width: 1px;
+        content: "";
+        background: rgba(37, 99, 235, 0.18);
+      }
+
+      .trace-item:last-child::after {
+        display: none;
+      }
+
+      .trace-icon {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 10px;
+        color: white;
+        background: var(--blue);
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.2);
+        font-size: 10px;
+      }
+
+      .chat-stream {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 14px;
+        overflow-y: auto;
+        padding: 16px;
+      }
+
+      .message {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+
+      .message.user {
+        justify-content: flex-end;
+      }
+
+      .avatar {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        flex: 0 0 30px;
+        place-items: center;
+        border-radius: 10px;
+        color: white;
+        background: var(--navy);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .bubble {
+        max-width: 310px;
+        padding: 12px 13px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 15px;
+        background: white;
+        color: #334155;
+        font-size: 13px;
+        line-height: 1.65;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+      }
+
+      .user .bubble {
+        border-color: rgba(37, 99, 235, 0.32);
+        color: white;
+        background: var(--blue);
+        box-shadow: var(--shadow-blue);
+      }
+
+      .bubble-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .user .bubble-head {
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      .source-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .source {
+        display: inline-flex;
+        height: 22px;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0 8px;
+        color: var(--blue);
+        background: rgba(37, 99, 235, 0.08);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .thinking-card {
+        padding: 11px;
+        border: 1px dashed rgba(37, 99, 235, 0.32);
+        border-radius: 13px;
+        background: rgba(37, 99, 235, 0.05);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .run-composer {
+        padding: 14px;
+        border-top: 1px solid rgba(148, 163, 184, 0.18);
+        background: #f8fafc;
+      }
+
+      .composer-shell {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        border-radius: 16px;
+        background: white;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
+      }
+
+      .composer-input {
+        min-height: 44px;
+        padding: 2px 4px;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .composer-tools {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+      }
+
+      .mini-btn {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 11px;
+        background: white;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .mini-btn.send {
+        border-color: var(--blue);
+        color: white;
+        background: var(--blue);
+        box-shadow: var(--shadow-blue);
+      }
+
+      .run-footer-note {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 9px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .left-command {
+        position: absolute;
+        top: 32px;
+        left: 32px;
+        z-index: 4;
+        display: grid;
+        width: 238px;
+        gap: 12px;
+        padding: 12px;
+        border-color: rgba(37, 99, 235, 0.18);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(14px);
+      }
+
+      .dock-search {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 11px;
+        color: var(--muted);
+        background: #f8fafc;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .command-row {
+        display: grid;
+        gap: 8px;
+      }
+
+      .command-tile {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        min-height: 42px;
+        padding: 7px 9px;
+        border: 1px solid rgba(37, 99, 235, 0.13);
+        border-radius: 13px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .command-tile small {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .tile-hotkey {
+        color: var(--soft);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .left-command.preview-hidden {
+        opacity: 0.94;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app app-debug">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">OC</div>
+          <div>
+            <h1>OmniCockpit Blueprint Console</h1>
+            <p>运行调试聊天框展开态</p>
+          </div>
+        </div>
+        <nav class="tabs">
+          <span class="tab active">应用配置</span>
+          <span class="tab">发布渠道</span>
+          <span class="tab">对话日志</span>
+        </nav>
+        <div class="top-actions">
+          <a class="btn" href="./option-c-blueprint-console.html">返回工作台</a>
+          <span class="btn">运行检查</span>
+          <span class="btn primary">保存</span>
+        </div>
+      </header>
+
+      <section class="debug-workspace">
+        <section class="debug-canvas blueprint">
+          <span class="connector debug-line-1"></span>
+          <span class="connector debug-line-2"></span>
+          <span class="connector debug-line-3"></span>
+          <span class="connector debug-line-4"></span>
+          <article class="node debug-node-1">
+            <h3>开始节点</h3>
+            <p>用户问题、附件、会话变量进入工作流。</p>
+            <div class="meta"><span class="badge">Trigger</span></div>
+          </article>
+          <article class="node debug-node-2 debug-node-active">
+            <h3>知识库检索</h3>
+            <p>正在命中产品知识库与售后策略。</p>
+            <div class="meta"><span class="badge">Running</span><span class="badge">87%</span></div>
+          </article>
+          <article class="node debug-node-3">
+            <h3>MCP 工具</h3>
+            <p>查询订单、库存和物流状态。</p>
+            <div class="meta"><span class="badge">Waiting</span></div>
+          </article>
+          <article class="node debug-node-4">
+            <h3>最终回复</h3>
+            <p>输出带引用、带下一步建议的回复。</p>
+            <div class="meta"><span class="badge">Answer</span></div>
+          </article>
+        </section>
+
+        <aside class="rail-card left-command preview-hidden">
+          <p class="rail-title">节点坞</p>
+          <div class="dock-search">
+            <span>搜索节点</span>
+            <span>/</span>
+          </div>
+          <div class="command-row">
+            <div class="command-tile">
+              <span class="dot-icon">AI</span>
+              <span>AI 对话<small>模型回复与提示词</small></span>
+              <span class="tile-hotkey">A</span>
+            </div>
+            <div class="command-tile">
+              <span class="dot-icon">KB</span>
+              <span>知识库<small>检索与引用策略</small></span>
+              <span class="tile-hotkey">K</span>
+            </div>
+            <div class="command-tile">
+              <span class="dot-icon">API</span>
+              <span>HTTP 工具<small>外部接口调用</small></span>
+              <span class="tile-hotkey">H</span>
+            </div>
+            <div class="command-tile">
+              <span class="dot-icon">IF</span>
+              <span>条件分支<small>规则判断与兜底</small></span>
+              <span class="tile-hotkey">C</span>
+            </div>
+          </div>
+        </aside>
+
+        <aside class="run-panel">
+          <header class="run-head">
+            <div class="run-title">
+              <span class="brand-mark">RUN</span>
+              <div>
+                <h2>工作流调试</h2>
+                <p>会话 ID: oc-run-2489 · 模型 Qwen3.6-27B</p>
+              </div>
+            </div>
+            <span class="run-status"><span class="live-dot"></span>运行中</span>
+          </header>
+
+          <section class="run-steps">
+            <div class="run-step">
+              <strong>开始</strong>
+              <span>0.02s</span>
+            </div>
+            <div class="run-step active">
+              <strong>知识库</strong>
+              <span>1.84s</span>
+            </div>
+            <div class="run-step">
+              <strong>工具</strong>
+              <span>等待</span>
+            </div>
+            <div class="run-step">
+              <strong>回复</strong>
+              <span>等待</span>
+            </div>
+          </section>
+
+          <section class="run-body">
+            <aside class="trace-rail">
+              <div class="trace-item">
+                <span class="trace-icon">IN</span>
+                输入
+              </div>
+              <div class="trace-item">
+                <span class="trace-icon">KB</span>
+                检索
+              </div>
+              <div class="trace-item">
+                <span class="trace-icon">API</span>
+                工具
+              </div>
+              <div class="trace-item">
+                <span class="trace-icon">AI</span>
+                回复
+              </div>
+            </aside>
+
+            <div class="chat-stream">
+              <div class="message user">
+                <div class="bubble">
+                  <div class="bubble-head"><span>用户输入</span><span>10:24</span></div>
+                  售后政策是否支持跨区域换货？我想确认一下限制条件。
+                </div>
+              </div>
+
+              <div class="message">
+                <div class="avatar">OC</div>
+                <div class="bubble">
+                  <div class="bubble-head"><span>节点输出 · 知识库检索</span><span>1.84s</span></div>
+                  已命中 3 个知识片段，相关度最高的是“跨区域售后政策”和“换货限制条件”。
+                  <div class="source-row">
+                    <span class="source">售后政策 #12</span>
+                    <span class="source">换货 FAQ #08</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="thinking-card">
+                正在进入 MCP 工具节点：将检查订单地区、商品类目和库存可换范围。
+                若接口超时，会走“人工客服建议”兜底分支。
+              </div>
+
+              <div class="message">
+                <div class="avatar">AI</div>
+                <div class="bubble">
+                  <div class="bubble-head"><span>预览回复</span><span>生成中</span></div>
+                  可以支持跨区域换货，但需要同时满足订单状态、商品类目、库存覆盖和区域服务范围四个条件。
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <footer class="run-composer">
+            <div class="composer-shell">
+              <div class="composer-input">继续输入调试问题，或粘贴一段真实用户会话...</div>
+              <div class="composer-tools">
+                <span class="mini-btn">+</span>
+                <span class="mini-btn">变量</span>
+                <span class="mini-btn send">↵</span>
+              </div>
+            </div>
+            <div class="run-footer-note">
+              <span>支持附件、变量、历史上下文</span>
+              <span>Enter 发送 · Shift Enter 换行</span>
+            </div>
+          </footer>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

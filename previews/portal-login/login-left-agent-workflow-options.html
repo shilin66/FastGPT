@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>登录页左栏 · Agentic × Workflow 三套视觉方案</title>
+  <style>
+    :root {
+      --ink: #1F2937; --muted: #667085;
+      --border: #DFE5EE; --border-strong: #C9D4E2;
+      --rail: #F5F7FA; --blue: #2563EB; --blue-strong: #1D4ED8; --blue-soft: #DBEAFE;
+      --font: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { background: #E7EDF5; color: var(--ink); font: 14px var(--font); }
+
+    .preview-bar {
+      min-height: 76px; display: grid; grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
+      align-items: center; gap: 18px; padding: 11px 20px; background: #fff;
+      border-bottom: 1px solid #CBD6E4; position: sticky; top: 0; z-index: 20;
+    }
+    .preview-title strong { display: block; font-size: 17px; }
+    .preview-title span, .preview-note { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .preview-note { text-align: right; }
+    .preview-note b { color: var(--blue); }
+    .scheme-nav { display: flex; gap: 8px; }
+    .scheme-nav a {
+      padding: 7px 14px; border-radius: 8px; background: var(--rail); border: 1px solid var(--border);
+      color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600;
+    }
+    .scheme-nav a:hover { background: var(--blue-soft); }
+
+    .option { padding: 30px 24px 46px; }
+    .option-head { max-width: 760px; margin: 0 auto 16px; }
+    .option-head h2 { margin: 0; font-size: 20px; }
+    .option-head h2 .tag {
+      display: inline-block; margin-left: 10px; padding: 3px 10px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; vertical-align: 3px; background: var(--blue-soft); color: var(--blue-strong);
+    }
+    .option-head p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .option-head .chips { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .option-head .chip {
+      font-size: 11px; padding: 2px 9px; border-radius: 999px; color: var(--muted);
+      background: var(--rail); border: 1px solid var(--border);
+    }
+
+    .stage { max-width: 760px; margin: 0 auto; display: flex; justify-content: center; }
+
+    /* ============ 左栏面板模拟（与生产 LoginModal 左栏同规格） ============ */
+    .panel {
+      width: 640px; border-radius: 20px; position: relative; overflow: hidden; color: #fff;
+      background: linear-gradient(150deg, #1F2A3A 0%, #27364A 55%, #31445E 100%);
+      padding: 40px 48px 38px;
+    }
+    .glow-a {
+      position: absolute; right: -140px; top: -140px; width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(37,99,235,0.32) 0%, rgba(37,99,235,0) 68%);
+    }
+    .glow-b {
+      position: absolute; left: -100px; bottom: -160px; width: 360px; height: 360px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(198,155,74,0.14) 0%, rgba(198,155,74,0) 66%);
+    }
+    .panel-inner { position: relative; z-index: 1; }
+    .eyebrow { color: #8EB1FF; font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+    .ptitle { font-size: 34px; font-weight: 800; margin: 14px 0 10px; letter-spacing: -.01em; }
+    .pdesc { font-size: 13px; line-height: 1.8; color: rgba(255,255,255,.72); max-width: 470px; margin: 0; }
+
+    .vis-cap {
+      margin-top: 28px; display: flex; align-items: center; gap: 8px;
+      font-size: 10px; font-weight: 700; letter-spacing: .12em; color: rgba(255,255,255,.45);
+    }
+    .vis-cap i { width: 6px; height: 6px; border-radius: 50%; background: #C69B4A; font-style: normal; }
+
+    .visual { position: relative; width: 544px; }
+    .visual svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+
+    .ncard {
+      position: absolute; z-index: 1; display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px; border-radius: 10px; white-space: nowrap;
+      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+      font-size: 12px; color: rgba(255,255,255,.9);
+    }
+    .ncard .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+    .mini-chip {
+      position: absolute; z-index: 1; padding: 4px 10px; border-radius: 8px; font-size: 11px;
+      white-space: nowrap; color: rgba(255,255,255,.88);
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13);
+    }
+    .mini-chip.agent { border-color: rgba(116,121,255,.5); color: #C3C6FF; }
+    .mini-chip.wf { border-color: rgba(0,145,255,.45); color: #9FD4FF; }
+
+    .tagline-abs {
+      position: absolute; z-index: 1; font-size: 10px; font-weight: 700; letter-spacing: .1em;
+      color: rgba(255,255,255,.4); white-space: nowrap;
+    }
+
+    .io-card {
+      position: absolute; z-index: 1; border-radius: 12px; padding: 9px 13px; text-align: left;
+      background: rgba(37,99,235,.12); border: 1px solid rgba(142,177,255,.4);
+    }
+    .io-card b { display: block; font-size: 12.5px; color: #fff; }
+    .io-card span { display: block; font-size: 10px; color: rgba(255,255,255,.55); margin-top: 2px; }
+    .io-card.done { background: rgba(198,155,74,.13); border-color: rgba(198,155,74,.55); }
+    .io-card.done .tick {
+      width: 18px; height: 18px; border-radius: 50%; background: #C69B4A; color: #1F2A3A;
+      font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 5px;
+    }
+
+    .flow-chips { display: flex; align-items: center; gap: 9px; margin-top: 18px; flex-wrap: wrap; }
+    .fchip {
+      font-size: 11px; padding: 6px 12px; border-radius: 999px; color: rgba(255,255,255,.82);
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);
+    }
+    .fchip.gold { border-color: rgba(198,155,74,.6); color: #E8CE9C; }
+    .farrow { color: rgba(255,255,255,.35); font-size: 11px; }
+  </style>
+</head>
+<body>
+  <header class="preview-bar">
+    <div class="preview-title">
+      <strong>登录页左栏 · Agentic × Workflow 三套视觉方案</strong>
+      <span>中枢调度 / 双轨合流 / 推理-执行闭环 —— 均保留现有眉标、标题与描述结构，仅重做视觉区</span>
+    </div>
+    <nav class="scheme-nav">
+      <a href="#o1">方案 1</a><a href="#o2">方案 2</a><a href="#o3">方案 3</a>
+    </nav>
+    <div class="preview-note">
+      选定后将更新 <b>LoginModal.tsx</b> 左栏视觉区；<br />
+      节点四色沿用方案 I 色板，i18n key 随文案同步调整。
+    </div>
+  </header>
+
+  <!-- ============ 方案 1 · Agent 中枢调度 ============ -->
+  <section class="option" id="o1">
+    <div class="option-head">
+      <h2>方案 1 · Agent 中枢调度 <span class="tag">Hub-Spoke</span></h2>
+      <p>Agent 居中为「脑」（金色四芒星核心卡），四类工作流节点环绕为「手脚」，调度线由中心辐射而出——「Agent 自主编排工作流，按需调用每个节点解决问题」。结构最直观，与产品画布的节点语言一脉相承。</p>
+      <div class="chips">
+        <span class="chip">中心辐射结构</span><span class="chip">金色 Agent 核心</span><span class="chip">节点四色延续方案 I</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="panel">
+        <div class="glow-a"></div><div class="glow-b"></div>
+        <div class="panel-inner">
+          <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+          <div class="ptitle">OmniCockpit</div>
+          <p class="pdesc">统一管理企业 AI Agent、知识库与自动化流程，让 Agent 与工作流协同，把复杂问题拆解成可执行的答案。</p>
+
+          <div class="vis-cap"><i></i>AGENT ORCHESTRATION · AGENT 调度，节点执行</div>
+          <div class="visual" style="height: 320px;">
+            <svg class="lines" viewBox="0 0 544 320">
+              <path d="M272 160 C 220 150, 160 120, 94 62" fill="none" stroke="rgba(142,177,255,0.45)" stroke-width="1.5"/>
+              <path d="M272 160 C 324 150, 384 120, 450 62" fill="none" stroke="rgba(142,177,255,0.45)" stroke-width="1.5"/>
+              <path d="M272 160 C 220 170, 160 200, 94 262" fill="none" stroke="rgba(142,177,255,0.45)" stroke-width="1.5"/>
+              <path d="M272 160 C 324 170, 384 200, 450 262" fill="none" stroke="rgba(142,177,255,0.45)" stroke-width="1.5"/>
+              <circle cx="183" cy="118" r="2.5" fill="#8EB1FF" opacity="0.85"/>
+              <circle cx="361" cy="118" r="2.5" fill="#8EB1FF" opacity="0.85"/>
+              <circle cx="183" cy="205" r="2.5" fill="#8EB1FF" opacity="0.85"/>
+              <circle cx="361" cy="205" r="2.5" fill="#8EB1FF" opacity="0.85"/>
+            </svg>
+            <!-- 中枢：Agent 核心卡 -->
+            <div style="position:absolute; z-index:1; left:204px; top:102px; width:136px; height:116px; border-radius:16px;
+                        background:linear-gradient(160deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
+                        border:1px solid rgba(142,177,255,.4); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+                        box-shadow:0 0 46px rgba(37,99,235,.35);">
+              <svg width="26" height="26" viewBox="0 0 24 24">
+                <path d="M12 2 C13 8 16 11 22 12 C16 13 13 16 12 22 C11 16 8 13 2 12 C8 11 11 8 12 2 Z" fill="#C69B4A"/>
+              </svg>
+              <div style="font-size:15px; font-weight:700;">Agent</div>
+              <div style="font-size:10px; color:rgba(255,255,255,.55);">自主规划 · 动态调度</div>
+            </div>
+            <!-- 四个工作流节点 -->
+            <div class="ncard" style="left:28px; top:38px;"><span class="dot" style="background:#0091FF"></span>知识库搜索</div>
+            <div class="ncard" style="left:384px; top:38px;"><span class="dot" style="background:#7479FF"></span>AI 对话</div>
+            <div class="ncard" style="left:28px; top:238px;"><span class="dot" style="background:#43CA40"></span>条件分支</div>
+            <div class="ncard" style="left:384px; top:238px;"><span class="dot" style="background:#EBA33C"></span>代码运行</div>
+          </div>
+          <div class="flow-chips">
+            <span class="fchip">问题输入</span><span class="farrow">→</span>
+            <span class="fchip">Agent 规划</span><span class="farrow">→</span>
+            <span class="fchip">工作流执行</span><span class="farrow">→</span>
+            <span class="fchip gold">结果交付</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 方案 2 · 双轨合流 ============ -->
+  <section class="option" id="o2">
+    <div class="option-head">
+      <h2>方案 2 · 双轨合流 <span class="tag">Dual-Track</span></h2>
+      <p>左入「问题输入」，右出「问题解决」：上方紫色虚线是 Agent 的推理轨（理解 → 规划 → 调整），下方蓝色实线是工作流的执行轨（搜索 → 判断 → 调用），两条轨道以金色节点相互咬合——「Agentic 与 Workflow 相互配合，合力把问题送到终点」。叙事最完整，直接回答「如何解决问题」。</p>
+      <div class="chips">
+        <span class="chip">问题 → 解决 叙事</span><span class="chip">推理轨 + 执行轨</span><span class="chip">金色协作咬合点</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="panel">
+        <div class="glow-a"></div><div class="glow-b"></div>
+        <div class="panel-inner">
+          <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+          <div class="ptitle">OmniCockpit</div>
+          <p class="pdesc">统一管理企业 AI Agent、知识库与自动化流程，让 Agent 与工作流协同，把复杂问题拆解成可执行的答案。</p>
+
+          <div class="vis-cap"><i></i>AGENT × WORKFLOW · 双轨配合，合力解题</div>
+          <div class="visual" style="height: 330px;">
+            <svg class="lines" viewBox="0 0 544 330">
+              <!-- Agent 推理轨（上，紫，虚线） -->
+              <path d="M116 148 C 160 60, 380 60, 452 148" fill="none" stroke="#7479FF" stroke-width="2" stroke-dasharray="6 5" opacity="0.85"/>
+              <!-- Workflow 执行轨（下，蓝，实线） -->
+              <path d="M116 172 C 160 260, 380 260, 452 172" fill="none" stroke="#0091FF" stroke-width="2" opacity="0.9"/>
+              <!-- 协作咬合连线（金，细虚线） -->
+              <path d="M220 104 C 212 140, 228 176, 220 216" fill="none" stroke="#C69B4A" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.85"/>
+              <path d="M330 104 C 338 140, 322 176, 330 216" fill="none" stroke="#C69B4A" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.85"/>
+              <!-- Agent 轨节点 -->
+              <circle cx="177" cy="98" r="5" fill="none" stroke="rgba(116,121,255,.45)" stroke-width="2"/>
+              <circle cx="177" cy="98" r="3" fill="#7479FF"/>
+              <circle cx="273" cy="82" r="5" fill="none" stroke="rgba(116,121,255,.45)" stroke-width="2"/>
+              <circle cx="273" cy="82" r="3" fill="#7479FF"/>
+              <circle cx="375" cy="98" r="5" fill="none" stroke="rgba(116,121,255,.45)" stroke-width="2"/>
+              <circle cx="375" cy="98" r="3" fill="#7479FF"/>
+              <!-- Workflow 轨节点 -->
+              <circle cx="177" cy="222" r="5" fill="none" stroke="rgba(0,145,255,.4)" stroke-width="2"/>
+              <circle cx="177" cy="222" r="3" fill="#0091FF"/>
+              <circle cx="273" cy="238" r="5" fill="none" stroke="rgba(0,145,255,.4)" stroke-width="2"/>
+              <circle cx="273" cy="238" r="3" fill="#0091FF"/>
+              <circle cx="375" cy="222" r="5" fill="none" stroke="rgba(0,145,255,.4)" stroke-width="2"/>
+              <circle cx="375" cy="222" r="3" fill="#0091FF"/>
+              <!-- 协作咬合点 -->
+              <circle cx="220" cy="160" r="4" fill="#C69B4A"/>
+              <circle cx="330" cy="160" r="4" fill="#C69B4A"/>
+            </svg>
+            <span class="tagline-abs" style="left:0; top:16px;">AGENT PATH · 推理</span>
+            <span class="tagline-abs" style="left:0; top:298px;">WORKFLOW PATH · 执行</span>
+            <!-- Agent 轨三步 -->
+            <div class="mini-chip agent" style="left:135px; top:54px;">理解任务</div>
+            <div class="mini-chip agent" style="left:231px; top:38px;">自主规划</div>
+            <div class="mini-chip agent" style="left:333px; top:54px;">动态调整</div>
+            <!-- Workflow 轨三节点 -->
+            <div class="mini-chip wf" style="left:132px; top:242px;">知识库搜索</div>
+            <div class="mini-chip wf" style="left:229px; top:258px;">条件分支</div>
+            <div class="mini-chip wf" style="left:330px; top:242px;">工具调用</div>
+            <!-- 入口：问题 -->
+            <div class="io-card" style="left:8px; top:138px; width:104px;">
+              <b>问题输入</b><span>任务 / 提问</span>
+            </div>
+            <!-- 出口：解决 -->
+            <div class="io-card done" style="left:452px; top:130px; width:84px;">
+              <div class="tick">✓</div>
+              <b>问题解决</b><span>结果交付</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 方案 3 · 推理-执行闭环 ============ -->
+  <section class="option" id="o3">
+    <div class="option-head">
+      <h2>方案 3 · 推理-执行闭环 <span class="tag">Closed Loop</span></h2>
+      <p>一个循环说明全部协作方式：上半环是 Agent 的推理与规划（紫色虚线 + 金色火花），下半环是工作流的执行（蓝色实线 + 三个节点），左侧「下发」、右侧「反馈」首尾相接——「推理指导执行、执行反哺推理，循环往复直至问题解决」。气质最体系化，强调持续迭代。</p>
+      <div class="chips">
+        <span class="chip">环形闭环</span><span class="chip">下发 ⇄ 反馈</span><span class="chip">中心「持续收敛到解决」</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="panel">
+        <div class="glow-a"></div><div class="glow-b"></div>
+        <div class="panel-inner">
+          <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+          <div class="ptitle">OmniCockpit</div>
+          <p class="pdesc">统一管理企业 AI Agent、知识库与自动化流程，让 Agent 与工作流协同，把复杂问题拆解成可执行的答案。</p>
+
+          <div class="vis-cap"><i></i>REASONING ⇄ EXECUTION · 循环协作，直至解决</div>
+          <div class="visual" style="height: 350px;">
+            <svg class="lines" viewBox="0 0 544 350">
+              <!-- 上半环：Agent 推理（紫，虚线） -->
+              <path d="M380 141 A112 112 0 0 0 164 141" fill="none" stroke="#7479FF" stroke-width="2" stroke-dasharray="7 6" opacity="0.85"/>
+              <!-- 下半环：工作流执行（蓝，实线） -->
+              <path d="M380 199 A112 112 0 0 1 164 199" fill="none" stroke="#0091FF" stroke-width="2.5" opacity="0.9"/>
+              <!-- 左侧下行箭头：下发执行 -->
+              <polygon points="158,164 170,164 164,179" fill="#8EB1FF"/>
+              <!-- 右侧上行箭头：结果反馈 -->
+              <polygon points="374,176 386,176 380,161" fill="#8EB1FF"/>
+              <!-- 上环节点（思考步骤） -->
+              <circle cx="216" cy="73" r="3" fill="#7479FF"/>
+              <circle cx="328" cy="73" r="3" fill="#7479FF"/>
+              <!-- 顶部火花（Agent 之芒） -->
+              <path transform="translate(260 46)" d="M12 0 C13 6 16 9 22 10 C16 11 13 14 12 20 C11 14 8 11 2 10 C8 9 11 6 12 0 Z" fill="#C69B4A"/>
+              <!-- 下环节点 -->
+              <circle cx="193" cy="249" r="5" fill="none" stroke="rgba(0,145,255,.4)" stroke-width="2"/>
+              <circle cx="193" cy="249" r="3" fill="#0091FF"/>
+              <circle cx="272" cy="282" r="5" fill="none" stroke="rgba(0,145,255,.4)" stroke-width="2"/>
+              <circle cx="272" cy="282" r="3" fill="#0091FF"/>
+              <circle cx="351" cy="249" r="5" fill="none" stroke="rgba(0,145,255,.4)" stroke-width="2"/>
+              <circle cx="351" cy="249" r="3" fill="#0091FF"/>
+            </svg>
+            <span class="tagline-abs" style="left:50%; top:6px; transform:translateX(-50%);">AGENT · 推理与规划</span>
+            <span class="tagline-abs" style="left:84px; top:164px;">下发执行</span>
+            <span class="tagline-abs" style="left:396px; top:164px;">结果反馈</span>
+            <!-- 下环三节点标签 -->
+            <div class="mini-chip wf" style="left:123px; top:262px;">知识库搜索</div>
+            <div class="mini-chip wf" style="left:228px; top:300px;">AI 对话</div>
+            <div class="mini-chip wf" style="left:330px; top:262px;">条件分支</div>
+            <!-- 中心徽记 -->
+            <div style="position:absolute; z-index:1; left:204px; top:142px; width:136px; height:60px; border-radius:14px;
+                        background:linear-gradient(160deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
+                        border:1px solid rgba(198,155,74,.45); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+                        box-shadow:0 0 40px rgba(198,155,74,.18);">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="width:14px; height:14px; border-radius:50%; background:#C69B4A; color:#1F2A3A; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center;">✓</span>
+                <span style="font-size:12.5px; font-weight:700;">持续收敛到解决</span>
+              </div>
+              <div style="font-size:9px; letter-spacing:.12em; color:rgba(255,255,255,.5);">PROBLEM → SOLUTION</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

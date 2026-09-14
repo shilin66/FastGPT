@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniCockpit Agent Studio - 双通道方案</title>
+  <style>
+    :root {
+      --blue: #2f61e9;
+      --blue-strong: #174bd4;
+      --blue-soft: #eaf0ff;
+      --blue-faint: #f5f8ff;
+      --graphite: #223047;
+      --graphite-2: #31415a;
+      --ink: #182234;
+      --text: #3e4a5d;
+      --muted: #728096;
+      --line: #dce3ed;
+      --line-strong: #c9d4e3;
+      --surface: #ffffff;
+      --canvas: #f4f6f9;
+      --green: #128a61;
+      --green-soft: #e7f7f0;
+      --gold: #c89435;
+      --shadow: 0 14px 36px rgba(31, 48, 76, 0.11);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-width: 1180px; min-height: 100%; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #edf1f6;
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      letter-spacing: 0;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .preview-header {
+      height: 86px;
+      display: grid;
+      grid-template-columns: minmax(300px, 1fr) auto minmax(230px, 1fr);
+      align-items: center;
+      gap: 24px;
+      padding: 12px 22px;
+      border-bottom: 1px solid #d5deea;
+      background: rgba(255, 255, 255, 0.97);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .preview-title strong { display: block; font-size: 17px; }
+    .preview-title span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .preview-meta { text-align: right; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .preview-meta b { color: var(--blue); }
+
+    .option-switcher {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: #f3f6fa;
+    }
+    .option-switcher button {
+      min-width: 168px;
+      height: 52px;
+      padding: 7px 13px;
+      border: 0;
+      border-radius: 5px;
+      color: #56647a;
+      background: transparent;
+      text-align: left;
+    }
+    .option-switcher button b,
+    .option-switcher button small { display: block; }
+    .option-switcher button b { font-size: 13px; }
+    .option-switcher button small { margin-top: 4px; font-size: 10px; color: #8995a7; }
+    .option-switcher button.active {
+      color: #fff;
+      background: var(--blue);
+      box-shadow: 0 5px 13px rgba(47, 97, 233, 0.24);
+    }
+    .option-switcher button.active small { color: #dfe8ff; }
+
+    .option { display: none; padding: 14px; }
+    .option.active { display: block; }
+    .studio {
+      height: calc(100vh - 114px);
+      min-height: 720px;
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .studio-top {
+      height: 58px;
+      display: grid;
+      grid-template-columns: minmax(270px, 1fr) auto minmax(330px, 1fr);
+      align-items: center;
+      gap: 18px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .identity { display: flex; align-items: center; min-width: 0; gap: 10px; }
+    .app-icon {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 7px;
+      color: #fff;
+      background: var(--graphite);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .identity-copy { min-width: 0; }
+    .identity-copy strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .identity-copy small { display: block; margin-top: 2px; color: var(--muted); }
+    .save-state {
+      padding: 4px 8px;
+      border-radius: 999px;
+      color: var(--green);
+      background: var(--green-soft);
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .mode-nav { display: flex; height: 36px; padding: 3px; border-radius: 6px; background: #edf1f6; }
+    .mode-nav button {
+      min-width: 86px;
+      border: 0;
+      border-radius: 4px;
+      color: #667389;
+      background: transparent;
+      font-weight: 700;
+    }
+    .mode-nav button.active { color: #fff; background: var(--blue); }
+    .top-actions { display: flex; justify-content: flex-end; gap: 7px; }
+    .btn {
+      height: 34px;
+      padding: 0 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      color: var(--graphite);
+      background: #fff;
+      font-weight: 700;
+    }
+    .btn:hover { border-color: #9fb0c8; }
+    .btn.primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .btn.primary:hover { background: var(--blue-strong); }
+    .btn.dark { color: #fff; border-color: var(--graphite); background: var(--graphite); }
+    .btn.icon { width: 34px; padding: 0; }
+
+    .channel-label {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      color: #5f6c80;
+      background: #f8fafc;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .channel-label .live { color: var(--green); text-transform: none; }
+    .channel-label .live::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      display: inline-block;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: #23ad7b;
+      box-shadow: 0 0 0 4px rgba(35, 173, 123, 0.11);
+    }
+
+    .eyebrow { color: var(--blue); font-size: 10px; font-weight: 900; text-transform: uppercase; }
+    .muted { color: var(--muted); }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #617087;
+      background: #fff;
+      font-size: 10px;
+      font-weight: 750;
+    }
+    .tag.blue { color: var(--blue); border-color: #cfdbff; background: var(--blue-soft); }
+    .tag.green { color: var(--green); border-color: #bce8d8; background: var(--green-soft); }
+
+    .config-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 20px 0 16px;
+      border-bottom: 2px solid var(--graphite);
+    }
+    .config-head h2 { margin: 4px 0 5px; font-size: 22px; }
+    .config-head p { margin: 0; color: var(--muted); font-size: 12px; }
+    .config-status { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 178px minmax(0, 1fr);
+      gap: 22px;
+      padding: 19px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .form-row:last-child { border-bottom: 0; }
+    .form-label strong { display: block; font-size: 13px; }
+    .form-label span { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .field { min-width: 0; }
+    .field > label { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 11px; font-weight: 700; }
+    .control, .area {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      color: var(--text);
+      background: #fff;
+      outline: 0;
+    }
+    .control { height: 38px; padding: 0 11px; }
+    .area { min-height: 150px; padding: 11px; resize: vertical; line-height: 1.6; }
+    .control:focus, .area:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47, 97, 233, 0.09); }
+    .field-grid { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 9px; }
+    .resource-line {
+      min-height: 44px;
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 9px;
+      border-top: 1px solid var(--line);
+    }
+    .resource-line:first-child { border-top: 0; }
+    .resource-icon {
+      width: 27px;
+      height: 27px;
+      display: grid;
+      place-items: center;
+      border-radius: 5px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .debug-channel { min-width: 0; background: #f6f8fb; }
+    .debug-head {
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .debug-head-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .debug-head h3 { margin: 0; font-size: 15px; }
+    .debug-head p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+    .debug-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+    .debug-feed { min-height: 0; overflow: auto; padding: 16px; }
+    .message { margin-bottom: 15px; }
+    .message-meta { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; color: var(--muted); font-size: 10px; }
+    .message-meta .avatar {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 5px;
+      color: #fff;
+      background: var(--graphite);
+      font-size: 8px;
+      font-weight: 900;
+    }
+    .message.agent .message-meta .avatar { background: var(--blue); }
+    .message-body {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--text);
+      background: #fff;
+      font-size: 12px;
+      line-height: 1.6;
+      box-shadow: 0 3px 10px rgba(35, 51, 77, 0.05);
+    }
+    .message.human .message-body { border-color: #cbd8fb; background: var(--blue-faint); }
+    .message-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; color: var(--muted); font-size: 10px; }
+    .source { color: var(--blue); font-weight: 700; }
+    .debug-compose { padding: 11px; border-top: 1px solid var(--line); background: #fff; }
+    .composer { padding: 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: #fff; }
+    .composer textarea { width: 100%; height: 50px; padding: 2px; border: 0; resize: none; outline: 0; color: var(--text); }
+    .composer-foot { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 10px; }
+
+    /* A: 默认稳定比例、支持受限拖拽的双通道工作台 */
+    .a-layout { height: calc(100% - 58px); display: grid; grid-template-columns: minmax(620px, 68fr) 8px minmax(340px, 32fr); }
+    .a-config { min-width: 0; display: grid; grid-template-columns: 188px minmax(0, 1fr); }
+    .section-rail { overflow: auto; padding: 15px 10px; border-right: 1px solid var(--line); background: #f3f6fa; }
+    .section-rail h4 { margin: 0 8px 10px; color: #78869a; font-size: 10px; text-transform: uppercase; }
+    .section-button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 29px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 8px;
+      border: 0;
+      border-left: 3px solid transparent;
+      border-radius: 4px;
+      color: #5c6a7f;
+      background: transparent;
+      text-align: left;
+    }
+    .section-button + .section-button { margin-top: 3px; }
+    .section-button .code { width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid #d0d9e6; border-radius: 5px; background: #fff; font-size: 9px; font-weight: 900; }
+    .section-button b, .section-button small { display: block; }
+    .section-button small { margin-top: 2px; color: #8a96a8; font-size: 9px; }
+    .section-button em { color: var(--green); font-size: 9px; font-style: normal; }
+    .section-button.active { border-left-color: var(--blue); color: var(--blue); background: #fff; box-shadow: 0 3px 10px rgba(38, 53, 79, 0.06); }
+    .section-button.active .code { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .a-editor { overflow: auto; }
+    .editor-width { max-width: 920px; margin: 0 auto; padding: 0 30px 46px; }
+    .a-debug { min-height: 0; display: grid; grid-template-rows: 38px auto minmax(0, 1fr) auto; border-left: 1px solid var(--line-strong); }
+
+    /* B: 配置与运行链路的深度对照 */
+    .b-layout { height: calc(100% - 58px); display: grid; grid-template-columns: minmax(610px, 58fr) minmax(480px, 42fr); }
+    .b-config { min-width: 0; display: grid; grid-template-rows: 38px 50px minmax(0, 1fr); }
+    .section-tabs { display: flex; align-items: stretch; padding: 0 14px; border-bottom: 1px solid var(--line); background: #fff; }
+    .section-tabs button { min-width: 92px; border: 0; border-bottom: 3px solid transparent; color: #6c798d; background: transparent; font-size: 11px; font-weight: 750; }
+    .section-tabs button.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .b-editor { overflow: auto; }
+    .b-editor .editor-width { max-width: 850px; }
+    .b-debug { min-height: 0; display: grid; grid-template-rows: 38px auto minmax(0, 1fr) auto; border-left: 1px solid var(--line-strong); }
+    .run-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--line); background: #fff; }
+    .run-step { min-width: 0; padding: 10px 8px; border-right: 1px solid var(--line); }
+    .run-step:last-child { border-right: 0; }
+    .run-step b, .run-step small { display: block; }
+    .run-step b { font-size: 10px; }
+    .run-step small { margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .run-step.active { color: var(--blue); background: var(--blue-soft); }
+    .b-debug-main { min-height: 0; display: grid; grid-template-columns: 52px minmax(0, 1fr); }
+    .trace-rail { padding: 13px 7px; border-right: 1px solid var(--line); background: #eef2f7; }
+    .trace-node { width: 34px; height: 34px; display: grid; place-items: center; margin: 0 auto 19px; border: 1px solid #cbd5e2; border-radius: 6px; color: #66758a; background: #fff; font-size: 8px; font-weight: 900; position: relative; }
+    .trace-node:not(:last-child)::after { content: ""; width: 1px; height: 20px; position: absolute; top: 34px; left: 16px; background: #c9d4e2; }
+    .trace-node.active { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .b-debug .debug-feed { padding: 15px 14px; }
+
+    /* C: 可拖拽的专家工作台 */
+    .c-layout { height: calc(100% - 58px); display: grid; grid-template-columns: minmax(560px, 64fr) 8px minmax(390px, 36fr); }
+    .c-config { min-width: 0; display: grid; grid-template-rows: 38px 46px minmax(0, 1fr); }
+    .compact-map { display: flex; align-items: center; gap: 7px; padding: 0 15px; border-bottom: 1px solid var(--line); background: #fff; }
+    .compact-map button { height: 28px; padding: 0 10px; border: 1px solid transparent; border-radius: 4px; color: #6b788d; background: transparent; font-size: 10px; font-weight: 750; }
+    .compact-map button.active { color: var(--blue); border-color: #cbd8fb; background: var(--blue-soft); }
+    .c-editor { overflow: auto; }
+    .c-editor .editor-width { max-width: 1000px; }
+    .divider { position: relative; z-index: 5; border-inline: 1px solid #c9d4e2; background: #e8edf4; cursor: col-resize; touch-action: none; }
+    .divider::after { content: "•••"; width: 20px; height: 50px; display: grid; place-items: center; position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%); border: 1px solid #aebbd0; border-radius: 5px; color: #6f7e93; background: #fff; font-size: 9px; writing-mode: vertical-rl; box-shadow: 0 5px 14px rgba(34, 48, 71, 0.14); }
+    .c-debug { min-height: 0; display: grid; grid-template-rows: 38px auto minmax(0, 1fr) auto auto; }
+    .debug-context { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 13px; border-bottom: 1px solid var(--line); background: var(--blue-faint); font-size: 10px; }
+    .debug-context b { color: var(--blue); }
+    .status-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 28px; padding: 0 11px; border-top: 1px solid var(--line); color: #68768b; background: #edf1f6; font-size: 9px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="preview-header">
+    <div class="preview-title">
+      <strong>Agent Studio：桌面双通道方案</strong>
+      <span>配置与调试始终并行可见，不使用抽屉、浮层或额外侧栏。</span>
+    </div>
+    <nav class="option-switcher" aria-label="双通道预览方案">
+      <button type="button" data-option="a">
+        <b>A 稳定分栏</b><small>推荐 · 默认 68:32 · 可拖拽</small>
+      </button>
+      <button type="button" data-option="b">
+        <b>B 深度对照</b><small>58:42 · 带运行链路</small>
+      </button>
+      <button type="button" data-option="c">
+        <b>C 可调工作台</b><small>拖拽分栏 · 专家模式</small>
+      </button>
+    </nav>
+    <div class="preview-meta">Steel Atlas / <b>饱和蓝图谱</b><br />桌面端专用 · 不增加后端接口</div>
+  </header>
+
+  <main>
+    <section class="option" id="option-a">
+      <div class="studio">
+        <header class="studio-top">
+          <div class="identity"><div class="app-icon">OC</div><div class="identity-copy"><strong>TestBotApp</strong><small>Agent 配置工作台</small></div><span class="save-state">已保存</span></div>
+          <nav class="mode-nav"><button class="active">应用配置</button><button>发布渠道</button><button>对话日志</button></nav>
+          <div class="top-actions"><button class="btn">版本记录</button><button class="btn dark">仅保存</button><button class="btn primary">保存并发布</button></div>
+        </header>
+        <div class="a-layout" id="stable-resizable-layout">
+          <section class="a-config">
+            <aside class="section-rail">
+              <h4>Configure</h4>
+              <button class="section-button"><span class="code">OV</span><span><b>Agent 概览</b><small>名称与基础信息</small></span><em>完成</em></button>
+              <button class="section-button active"><span class="code">AI</span><span><b>AI 配置</b><small>模型与系统指令</small></span><em>当前</em></button>
+              <button class="section-button"><span class="code">KB</span><span><b>知识库</b><small>检索范围与参数</small></span><em>2</em></button>
+              <button class="section-button"><span class="code">TL</span><span><b>技能与工具</b><small>工具调用能力</small></span><em>3</em></button>
+              <button class="section-button"><span class="code">IO</span><span><b>输入与交互</b><small>文件、变量与开场白</small></span><em>4</em></button>
+              <button class="section-button"><span class="code">RT</span><span><b>运行环境</b><small>上下文与安全规则</small></span><em>完成</em></button>
+            </aside>
+            <article class="a-editor">
+              <div class="editor-width">
+                <header class="config-head"><div><span class="eyebrow">Build Channel</span><h2>AI 配置</h2><p>修改左侧参数，右侧试跑通道立即使用当前未保存配置。</p></div><div class="config-status"><span class="tag green">模型可用</span><span class="tag blue">知识 2</span><span class="tag blue">工具 3</span></div></header>
+                <div class="form-row"><div class="form-label"><strong>AI 模型</strong><span>决定语言能力、响应速度与运行成本。</span></div><div class="field-grid"><select class="control"><option>Agents-A1</option></select><button class="btn">生成参数</button></div></div>
+                <div class="form-row"><div class="form-label"><strong>系统指令</strong><span>配置身份、知识边界和回复策略。</span></div><div class="field"><label>提示词 <span class="muted">输入 “/” 选择变量</span></label><textarea class="area">你是 OmniCockpit 售后服务 Agent。
+
+1. 优先根据知识库回答。
+2. 清晰说明政策限制与下一步操作。
+3. 信息不足时引导用户补充订单编号。</textarea></div></div>
+                <div class="form-row"><div class="form-label"><strong>能力来源</strong><span>查看当前 Agent 已连接的数据与工具。</span></div><div><div class="resource-line"><span class="resource-icon">KB</span><strong>售后政策知识库</strong><span class="tag green">可用</span><button class="btn">管理</button></div><div class="resource-line"><span class="resource-icon">TL</span><strong>订单与库存工具</strong><span class="tag blue">3 项</span><button class="btn">管理</button></div></div></div>
+              </div>
+            </article>
+          </section>
+          <div class="divider" id="stable-channel-divider" role="separator" aria-orientation="vertical" aria-label="调整配置与调试通道宽度" tabindex="0"></div>
+          <aside class="a-debug debug-channel">
+            <div class="channel-label"><span>Debug Channel</span><span class="live">实时同步</span></div>
+            <header class="debug-head"><div class="debug-head-line"><div><h3>调试对话</h3><p>默认窄通道，可拖动中线调整工作区比例。</p></div><button class="btn icon" aria-label="清空对话">↻</button></div><div class="debug-tags"><span class="tag blue">Agents-A1</span><span class="tag">知识 2</span><span class="tag">工具 3</span></div></header>
+            <div class="debug-feed"><div class="message human"><div class="message-meta"><span class="avatar">U</span><b>你</b><time>13:08</time></div><div class="message-body">请说明跨区域换货条件。</div></div><div class="message agent"><div class="message-meta"><span class="avatar">OC</span><b>TestBotApp</b><time>0.54s</time></div><div class="message-body">需要满足换货周期、目标门店库存，以及特殊商品复核条件。建议提供订单编号继续核验。</div><div class="message-foot"><span class="source">命中 2 个知识片段</span><span>查看详情</span></div></div></div>
+            <footer class="debug-compose"><div class="composer"><textarea placeholder="继续输入调试问题..."></textarea><div class="composer-foot"><span>Enter 发送 · 使用未保存配置</span><button class="btn primary">运行</button></div></div></footer>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="option" id="option-b">
+      <div class="studio">
+        <header class="studio-top">
+          <div class="identity"><div class="app-icon">OC</div><div class="identity-copy"><strong>TestBotApp</strong><small>Agent 对照工作台</small></div><span class="save-state">草稿同步</span></div>
+          <nav class="mode-nav"><button class="active">应用配置</button><button>发布渠道</button><button>对话日志</button></nav>
+          <div class="top-actions"><button class="btn">版本记录</button><button class="btn dark">仅保存</button><button class="btn primary">保存并发布</button></div>
+        </header>
+        <div class="b-layout">
+          <section class="b-config">
+            <div class="channel-label"><span>Configuration Channel</span><span>3 项变更未保存</span></div>
+            <nav class="section-tabs"><button>概览</button><button class="active">模型与指令</button><button>知识库</button><button>技能工具</button><button>交互</button><button>运行</button></nav>
+            <article class="b-editor"><div class="editor-width"><header class="config-head"><div><span class="eyebrow">Current Section</span><h2>模型与回复策略</h2><p>配置项按执行顺序排列，右侧同步展示每一步运行状态。</p></div><div class="config-status"><span class="tag green">校验通过</span><span class="tag blue">当前版本 v18</span></div></header>
+              <div class="form-row"><div class="form-label"><strong>模型与生成</strong><span>控制回复质量、长度和随机性。</span></div><div><div class="field-grid"><select class="control"><option>Agents-A1</option></select><select class="control"><option>均衡模式</option></select></div><div class="field-grid" style="margin-top:9px"><input class="control" value="温度 0.7" /><input class="control" value="最大 2048" /></div></div></div>
+              <div class="form-row"><div class="form-label"><strong>系统提示词</strong><span>角色身份、业务约束与引用规则。</span></div><div class="field"><label>提示词 <span class="muted">已引用 2 个变量</span></label><textarea class="area" style="min-height:185px">你是 OmniCockpit 售后服务 Agent。优先使用知识库回答用户问题，并明确说明跨区域服务限制。
+
+当信息不足时，询问订单编号与目标门店。</textarea></div></div>
+              <div class="form-row"><div class="form-label"><strong>检索策略</strong><span>知识命中不足时自动进入工具查询。</span></div><div class="field-grid"><select class="control"><option>混合检索 · Top K 8</option></select><button class="btn">配置知识库</button></div></div>
+            </div></article>
+          </section>
+          <aside class="b-debug debug-channel">
+            <div class="channel-label"><span>Execution Channel</span><span class="live">运行中</span></div>
+            <div class="run-strip"><div class="run-step"><b>输入</b><small>0.02s</small></div><div class="run-step active"><b>知识检索</b><small>1.84s</small></div><div class="run-step"><b>工具</b><small>等待</small></div><div class="run-step"><b>回复</b><small>生成中</small></div></div>
+            <div class="b-debug-main"><aside class="trace-rail"><div class="trace-node">IN</div><div class="trace-node active">KB</div><div class="trace-node">API</div><div class="trace-node">AI</div></aside><div class="debug-feed"><div class="message human"><div class="message-meta"><span class="avatar">U</span><b>用户输入</b><time>13:08</time></div><div class="message-body">售后政策是否支持跨区域换货？</div></div><div class="message agent"><div class="message-meta"><span class="avatar">KB</span><b>知识检索</b><time>1.84s</time></div><div class="message-body">已命中 3 个知识片段，最高相关内容为“跨区域售后政策”和“换货限制条件”。</div><div class="message-foot"><span class="source">售后政策 #12</span><span>相关度 0.86</span></div></div><div class="message agent"><div class="message-meta"><span class="avatar">AI</span><b>回复预览</b><time>生成中</time></div><div class="message-body">支持跨区域换货，但需要同时满足订单状态、商品类目与目标门店库存条件。</div></div></div></div>
+            <footer class="debug-compose"><div class="composer"><textarea placeholder="输入问题，观察完整运行链路..."></textarea><div class="composer-foot"><span>Shift Enter 换行</span><button class="btn primary">重新运行</button></div></div></footer>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="option" id="option-c">
+      <div class="studio">
+        <header class="studio-top">
+          <div class="identity"><div class="app-icon">OC</div><div class="identity-copy"><strong>TestBotApp</strong><small>Agent 专家工作台</small></div><span class="save-state">已保存</span></div>
+          <nav class="mode-nav"><button class="active">应用配置</button><button>发布渠道</button><button>对话日志</button></nav>
+          <div class="top-actions"><button class="btn">版本记录</button><button class="btn dark">仅保存</button><button class="btn primary">保存并发布</button></div>
+        </header>
+        <div class="c-layout" id="resizable-layout">
+          <section class="c-config">
+            <div class="channel-label"><span>Configuration Workspace</span><span>拖动中线调整比例</span></div>
+            <nav class="compact-map"><button>概览</button><button class="active">AI 配置</button><button>知识库</button><button>技能与工具</button><button>输入交互</button><button>运行环境</button></nav>
+            <article class="c-editor"><div class="editor-width"><header class="config-head"><div><span class="eyebrow">Live Configuration</span><h2>AI 配置</h2><p>配置通道和调试通道可在 48% 至 72% 之间自由调整。</p></div><div class="config-status"><span class="tag green">校验通过</span><span class="tag blue">实时草稿</span></div></header>
+              <div class="form-row"><div class="form-label"><strong>AI 模型</strong><span>当前调试将直接读取此处选择。</span></div><div class="field-grid"><select class="control"><option>Agents-A1</option></select><button class="btn">模型参数</button></div></div>
+              <div class="form-row"><div class="form-label"><strong>系统指令</strong><span>角色、知识边界和回复规范。</span></div><div class="field"><label>提示词 <span class="muted">输入 “/” 选择变量</span></label><textarea class="area" style="min-height:180px">你是 OmniCockpit 售后服务 Agent。
+
+1. 优先引用售后政策知识库。
+2. 明确说明限制条件。
+3. 无法确认时调用订单查询工具。</textarea></div></div>
+              <div class="form-row"><div class="form-label"><strong>能力连接</strong><span>本次试跑可调用的知识和工具。</span></div><div><div class="resource-line"><span class="resource-icon">KB</span><strong>售后政策知识库等 2 项</strong><span class="tag green">已连接</span><button class="btn">更改</button></div><div class="resource-line"><span class="resource-icon">API</span><strong>订单查询、门店库存等 3 项</strong><span class="tag blue">已授权</span><button class="btn">更改</button></div></div></div>
+            </div></article>
+          </section>
+          <div class="divider" id="channel-divider" role="separator" aria-orientation="vertical" aria-label="调整配置与调试通道宽度" tabindex="0"></div>
+          <aside class="c-debug debug-channel">
+            <div class="channel-label"><span>Live Debug Workspace</span><span class="live">并行在线</span></div>
+            <header class="debug-head"><div class="debug-head-line"><div><h3>实时调试</h3><p>宽度随工作重点自由调节。</p></div><button class="btn icon" aria-label="新建调试对话">＋</button></div><div class="debug-tags"><span class="tag blue">Agents-A1</span><span class="tag">知识 2</span><span class="tag">工具 3</span></div></header>
+            <div class="debug-feed"><div class="message human"><div class="message-meta"><span class="avatar">U</span><b>你</b><time>13:08</time></div><div class="message-body">如果目标门店缺货，还能跨区域换货吗？</div></div><div class="message agent"><div class="message-meta"><span class="avatar">OC</span><b>TestBotApp</b><time>0.62s</time></div><div class="message-body">目标门店无库存时暂时无法直接换货。可以改选有库存门店，或由客服登记补货后再处理。</div><div class="message-foot"><span class="source">知识 2 · 工具 1</span><span>响应正常</span></div></div></div>
+            <div class="debug-context"><span>当前联动：<b>AI 配置 / 系统指令</b></span><span>草稿自动同步</span></div>
+            <footer class="debug-compose"><div class="composer"><textarea placeholder="输入调试问题..."></textarea><div class="composer-foot"><span>使用当前草稿运行</span><button class="btn primary">发送</button></div></div></footer>
+            <div class="status-bar"><span>配置 64% · 调试 36%</span><span>Inline Execution · 会话 oc-run-2489</span></div>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const optionButtons = [...document.querySelectorAll('[data-option]')];
+    const options = [...document.querySelectorAll('.option')];
+
+    const showOption = (key) => {
+      const safeKey = ['a', 'b', 'c'].includes(key) ? key : 'a';
+      optionButtons.forEach((button) => {
+        const active = button.dataset.option === safeKey;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      options.forEach((option) => {
+        const active = option.id === `option-${safeKey}`;
+        option.classList.toggle('active', active);
+        option.hidden = !active;
+      });
+      if (location.hash !== `#${safeKey}`) history.replaceState(null, '', `#${safeKey}`);
+    };
+
+    optionButtons.forEach((button) => button.addEventListener('click', () => showOption(button.dataset.option)));
+    addEventListener('hashchange', () => showOption(location.hash.slice(1)));
+
+    const bindResizableLayout = ({
+      layoutId,
+      dividerId,
+      initial,
+      min,
+      max,
+      configMin,
+      debugMin,
+      onChange
+    }) => {
+      const layout = document.getElementById(layoutId);
+      const divider = document.getElementById(dividerId);
+      let split = initial;
+      let dragging = false;
+
+      const setSplit = (percentage) => {
+        split = Math.min(max, Math.max(min, percentage));
+        layout.style.gridTemplateColumns = `minmax(${configMin}px, ${split}fr) 8px minmax(${debugMin}px, ${100 - split}fr)`;
+        divider.setAttribute('aria-valuenow', String(Math.round(split)));
+        onChange?.(split, layout);
+      };
+
+      const stopDragging = () => {
+        dragging = false;
+        document.body.style.userSelect = '';
+      };
+
+      divider.setAttribute('aria-valuemin', String(min));
+      divider.setAttribute('aria-valuemax', String(max));
+      divider.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        dragging = true;
+        document.body.style.userSelect = 'none';
+      });
+      addEventListener('mousemove', (event) => {
+        if (!dragging) return;
+        const rect = layout.getBoundingClientRect();
+        setSplit(((event.clientX - rect.left) / rect.width) * 100);
+      });
+      addEventListener('mouseup', stopDragging);
+      addEventListener('blur', stopDragging);
+      divider.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        event.preventDefault();
+        setSplit(split + (event.key === 'ArrowRight' ? 2 : -2));
+      });
+      setSplit(initial);
+    };
+
+    bindResizableLayout({
+      layoutId: 'stable-resizable-layout',
+      dividerId: 'stable-channel-divider',
+      initial: 68,
+      min: 58,
+      max: 72,
+      configMin: 620,
+      debugMin: 340
+    });
+
+    bindResizableLayout({
+      layoutId: 'resizable-layout',
+      dividerId: 'channel-divider',
+      initial: 64,
+      min: 48,
+      max: 72,
+      configMin: 560,
+      debugMin: 390,
+      onChange: (split, layout) => {
+        const status = layout.querySelector('.status-bar span');
+        status.textContent = `配置 ${Math.round(split)}% · 调试 ${Math.round(100 - split)}%`;
+      }
+    });
+
+    showOption(location.hash.slice(1));
+  </script>
+</body>
+</html>

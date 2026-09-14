@@ -5,6 +5,23 @@ import httpProxy from 'http-proxy';
 import { Readable } from 'stream';
 import net from 'net';
 import crypto from 'crypto';
+import {
+  getSandboxProxyInternalSecret,
+  getSandboxProxyOrigins,
+  getSandboxProxyContentSecurityPolicy,
+  assertSandboxProxyPath,
+  watchSandboxProxySession
+} from './src/service/core/sandbox/proxyUtils';
+import {
+  SANDBOX_PROXY_COOKIE,
+  SANDBOX_PROXY_RENEW_PATH,
+  SANDBOX_PROXY_SESSION_SECONDS
+} from '@fastgpt/global/core/ai/sandbox/proxy';
+import { SandboxProxyInternalResponseSchema } from '@fastgpt/global/openapi/core/ai/sandbox/api';
+import {
+  getSandboxProxyRenewalResponse,
+  parseSandboxProxyRenewalRequest
+} from './src/service/core/sandbox/proxyRenewal';
 
 const dev = process.env.NODE_ENV !== 'production';
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -19,37 +36,44 @@ const PATH_PROXY_RE = new RegExp(`^\\/(proxy|absproxy)\\/(${SANDBOX_ID_RE.source
 // Match /tcptunnel/{sandboxId}/{port} — WebSocket upgrade only
 const TCPTUNNEL_RE = new RegExp(`^\\/tcptunnel\\/(${SANDBOX_ID_RE.source})\\/(\\d+)`);
 
-// Strip subdomain prefix from a host string (may include :port).
-// "port--uuid.localhost:3000" → "localhost:3000"
-function deriveBaseHost(subdomainHost: string): string {
-  const dotIdx = subdomainHost.indexOf('.');
-  return dotIdx >= 0 ? subdomainHost.substring(dotIdx + 1) : subdomainHost;
-}
-
 async function main() {
-  const app = next({ dev });
+  const app = next({ dev, port });
   const handle = app.getRequestHandler();
   await app.prepare();
+  const handleUpgrade = app.getUpgradeHandler();
 
   // Import pure utilities from sandboxProxyUtils — no service-layer deps, safe in tsx CJS mode.
   // getSandboxProxyTarget is NOT imported here; auth is delegated to the proxyAuth API route.
   const {
     parseSubdomainProxy,
     rewriteHtml,
-    redeemRelayToken,
+    stripFastGPTCredentials,
     ensureCodeServerSession,
     deleteCsSession
   } = (await import(
     './src/service/core/sandbox/proxyUtils'
   )) as typeof import('./src/service/core/sandbox/proxyUtils');
 
-  // Fetch the code-server password from the container config.yaml via the internal API.
-  async function fetchCodeServerPassword(sandboxId: string): Promise<string | null> {
+  async function fetchCodeServerPassword(input: {
+    sandboxId: string;
+    targetPort: number;
+    reqHeaders: IncomingMessage['headers'];
+    signal: AbortSignal;
+  }): Promise<string | null> {
     try {
       const resp = await fetch(`http://127.0.0.1:${port}/api/core/sandbox/proxyCSPassword`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ sandboxId })
+        signal: input.signal,
+        headers: {
+          'content-type': 'application/json',
+          'x-fastgpt-proxy-internal': getSandboxProxyInternalSecret(),
+          ...(input.reqHeaders.cookie ? { cookie: input.reqHeaders.cookie } : {})
+        },
+        body: JSON.stringify({
+          sandboxId: input.sandboxId,
+          targetPort: input.targetPort,
+          proxyHost: input.reqHeaders.host
+        })
       });
       if (!resp.ok) return null;
       const { password } = await resp.json();
@@ -80,14 +104,21 @@ async function main() {
     return m ? `${target}/proxy/${m[1]}` : target;
   }
 
-  // Ensure code-server is authenticated and inject the session cookie into reqHeaders.
-  async function injectCodeServerAuth(
-    reqHeaders: IncomingMessage['headers'],
-    sandboxId: string,
-    target: string
-  ): Promise<void> {
-    const key = await ensureCodeServerSession(sandboxId, target, () =>
-      fetchCodeServerPassword(sandboxId)
+  async function injectCodeServerAuth({
+    reqHeaders,
+    sandboxId,
+    target,
+    targetPort
+  }: {
+    reqHeaders: IncomingMessage['headers'];
+    sandboxId: string;
+    target: string;
+    targetPort: number;
+  }): Promise<void> {
+    const authHeaders = { ...reqHeaders };
+    stripFastGPTCredentials(reqHeaders);
+    const key = await ensureCodeServerSession(sandboxId, target, (signal) =>
+      fetchCodeServerPassword({ sandboxId, targetPort, reqHeaders: authHeaders, signal })
     );
     if (key) injectCsKey(reqHeaders, key);
   }
@@ -106,6 +137,22 @@ async function main() {
   // Detect code-server session expiry: if the upstream returns a 302 to /login,
   // evict the cached CS session so the next request triggers a fresh login.
   proxy.on('proxyRes', (proxyRes, req) => {
+    const source = parseSubdomainProxy(req.headers.host);
+    if (source) {
+      const { appOrigin } = getSandboxProxyOrigins({
+        sandboxId: source.sandboxId,
+        targetPort: source.port,
+        host: req.headers.host
+      });
+      delete proxyRes.headers['x-frame-options'];
+      proxyRes.headers['content-security-policy'] = getSandboxProxyContentSecurityPolicy(appOrigin);
+      proxyRes.headers['referrer-policy'] = 'no-referrer';
+      proxyRes.headers['x-content-type-options'] = 'nosniff';
+      proxyRes.headers['cache-control'] = 'no-store';
+      proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie']
+        ?.filter((cookie) => !/^(fastgpt_token|fastgpt_sandbox_proxy)=/i.test(cookie))
+        .map((cookie) => cookie.replace(/;\s*domain=[^;]*/gi, ''));
+    }
     if (
       proxyRes.statusCode === 302 &&
       typeof proxyRes.headers.location === 'string' &&
@@ -172,15 +219,30 @@ async function main() {
     proxyType: string
   ) {
     try {
-      const target = await authProxyTarget(req.headers, sandboxId, portNum);
+      const { target } = await authProxyTarget({
+        reqHeaders: req.headers,
+        sandboxId,
+        targetPort: portNum
+      });
+      assertSandboxProxyPath({ target, path: req.url ?? '/' });
       const csTarget = deriveCsLoginTarget(target, req.url || '');
       if (proxyType === 'absproxy') {
-        await injectCodeServerAuth(req.headers, sandboxId, csTarget);
+        await injectCodeServerAuth({
+          reqHeaders: req.headers,
+          sandboxId,
+          target: csTarget,
+          targetPort: portNum
+        });
         await handleAbsProxy(req, res, target, sandboxId, String(portNum));
       } else {
         // Rewrite Origin so code-server's CSRF check passes (changeOrigin only rewrites Host).
         const targetUrl = new URL(target);
-        await injectCodeServerAuth(req.headers, sandboxId, csTarget);
+        await injectCodeServerAuth({
+          reqHeaders: req.headers,
+          sandboxId,
+          target: csTarget,
+          targetPort: portNum
+        });
         // Mark the request so the proxyRes handler can identify the sandbox on session expiry.
         req.headers['x-fastgpt-sandbox-id'] = sandboxId;
         proxy.web(req, res, {
@@ -197,70 +259,92 @@ async function main() {
     }
   }
 
-  // Subdomain proxy handler: on auth failure (401/403) redirect to proxyAuth for cross-domain cookie hand-off.
   async function handleSubdomainProxy(
     req: IncomingMessage,
     res: ServerResponse,
     sandboxId: string,
     portNum: number
   ) {
-    // Check for relay token in query string (?__pt=<nonce>).
-    // proxyAuth GET redirects here after storing fastgptToken server-side.
-    // We set the cookie from this subdomain so Chrome scopes it correctly.
-    const urlObj = new URL(`http://placeholder${req.url || '/'}`);
-    const relayToken = urlObj.searchParams.get('__pt');
-    if (relayToken) {
-      const fastgptToken = redeemRelayToken(relayToken);
-      if (fastgptToken) {
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Cache-Control', 'no-store');
+    const urlObj = new URL(req.url ?? '/', 'http://placeholder');
+    const ticket = urlObj.searchParams.get('__pt') ?? undefined;
+    const isRenewal = urlObj.pathname === SANDBOX_PROXY_RENEW_PATH;
+    try {
+      const renewal = isRenewal
+        ? parseSandboxProxyRenewalRequest({ method: req.method, url: req.url ?? '/' })
+        : undefined;
+      const { target, session, appOrigin, expiresAt } = await authProxyTarget({
+        reqHeaders: req.headers,
+        sandboxId,
+        targetPort: portNum,
+        ticket,
+        mode: renewal ? 'renew' : undefined
+      });
+      if (!renewal) assertSandboxProxyPath({ target, path: req.url ?? '/' });
+      if (ticket) {
+        if (!session) throw Object.assign(new Error('Unauthorized'), { statusCode: 401 });
         urlObj.searchParams.delete('__pt');
-        const cleanUrl = urlObj.pathname + (urlObj.search !== '?' ? urlObj.search : '');
-        dev &&
-          console.log(
-            `[proxy:subdomain] relay token redeemed, setting cookie and redirecting to ${cleanUrl}`
-          );
         res.setHeader(
           'Set-Cookie',
-          `fastgpt_token=${fastgptToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`
+          `${SANDBOX_PROXY_COOKIE}=${session}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=${SANDBOX_PROXY_SESSION_SECONDS}`
         );
-        res.writeHead(302, { Location: cleanUrl || '/' });
+        if (renewal) {
+          if (!expiresAt) throw Object.assign(new Error('Unauthorized'), { statusCode: 401 });
+          const response = getSandboxProxyRenewalResponse({
+            requestId: renewal.requestId,
+            expiresAt,
+            appOrigin
+          });
+          res.writeHead(200, response.headers);
+          res.end(response.body);
+          return;
+        }
+        res.writeHead(302, { Location: urlObj.pathname + urlObj.search });
         res.end();
         return;
       }
-      console.warn(`[proxy:subdomain] relay token invalid or expired: ${relayToken}`);
-    }
-
-    try {
-      const target = await authProxyTarget(req.headers, sandboxId, portNum);
       const targetUrl = new URL(target);
-      const csTarget = deriveCsLoginTarget(target, req.url || '');
-      await injectCodeServerAuth(req.headers, sandboxId, csTarget);
+      const csTarget = deriveCsLoginTarget(target, req.url ?? '');
+      await injectCodeServerAuth({
+        reqHeaders: req.headers,
+        sandboxId,
+        target: csTarget,
+        targetPort: portNum
+      });
       req.headers['x-fastgpt-sandbox-id'] = sandboxId;
       proxy.web(req, res, {
         target,
-        headers: { origin: `${targetUrl.protocol}//${targetUrl.host}` }
+        headers: { origin: targetUrl.origin }
       });
-    } catch (err: any) {
-      const status = err.statusCode || 502;
-      // Auth failure — redirect to proxyAuth on the base origin for cookie hand-off
-      if (status === 401 || status === 403) {
-        const host = req.headers.host!;
-        const proto = (req.headers['x-forwarded-proto'] as string) || 'http';
-        const originalUrl = `${proto}://${host}${req.url || '/'}`;
-        const authBase = `${proto}://${deriveBaseHost(host)}`;
-        const authUrl = new URL(`${authBase}/api/core/sandbox/proxyAuth`);
-        authUrl.searchParams.set('sandboxId', sandboxId);
-        authUrl.searchParams.set('port', String(portNum));
-        authUrl.searchParams.set('next', originalUrl);
-        console.warn(
-          `[proxy:subdomain] auth failed (${status}), redirecting to proxyAuth. next=${originalUrl}`
-        );
-        res.writeHead(302, { Location: authUrl.toString() });
-        res.end();
-        return;
+    } catch (error) {
+      const status = getProxyErrorStatus(error);
+      if (
+        !ticket &&
+        !isRenewal &&
+        status === 401 &&
+        req.method === 'GET' &&
+        req.headers.accept?.includes('text/html')
+      ) {
+        try {
+          const { appOrigin, audience } = getSandboxProxyOrigins({
+            sandboxId,
+            targetPort: portNum,
+            host: req.headers.host
+          });
+          if (req.headers.host !== new URL(audience).host) throw new Error('Invalid origin');
+          const authUrl = new URL('/api/core/sandbox/proxyAuth', appOrigin);
+          authUrl.searchParams.set('sandboxId', sandboxId);
+          authUrl.searchParams.set('port', String(portNum));
+          authUrl.searchParams.set('next', new URL(req.url ?? '/', audience).toString());
+          res.writeHead(302, { Location: authUrl.toString() });
+          res.end();
+          return;
+        } catch {}
       }
       if (!res.headersSent) {
         res.writeHead(status, { 'Content-Type': 'text/plain' });
-        res.end(err.message || 'Proxy error');
+        res.end(status === 401 ? 'Unauthorized' : 'Sandbox proxy unavailable');
       }
     }
   }
@@ -303,7 +387,13 @@ async function main() {
 
       let target: string;
       try {
-        target = await authProxyTarget(req.headers, tunnelSandboxId, tunnelPort);
+        ({ target } = await authProxyTarget({
+          reqHeaders: req.headers,
+          sandboxId: tunnelSandboxId,
+          targetPort: tunnelPort
+        }));
+        if (new URL(target).pathname !== '/')
+          throw Object.assign(new Error('Unsupported tunnel endpoint'), { statusCode: 403 });
         dev && console.log(`[proxy:tcptunnel] auth ok target=${target}`);
       } catch (err: any) {
         const status = err.statusCode || 502;
@@ -341,6 +431,17 @@ async function main() {
         tcpSocket.destroy();
         socket.destroy();
       }
+
+      const stopChecking = watchSandboxProxySession({
+        verify: () =>
+          authProxyTarget({
+            reqHeaders: req.headers,
+            sandboxId: tunnelSandboxId,
+            targetPort: tunnelPort
+          }),
+        close: cleanup
+      });
+      socket.once('close', stopChecking);
 
       tcpSocket.once('connect', () => {
         dev &&
@@ -409,8 +510,7 @@ async function main() {
     } else {
       const match = req.url?.match(PATH_PROXY_RE);
       if (!match) {
-        dev && console.log(`[proxy:ws] no match, destroying socket. url=${req.url}`);
-        socket.destroy();
+        await handleUpgrade(req, socket, head);
         return;
       }
       proxyType = match[1];
@@ -425,18 +525,34 @@ async function main() {
       );
 
     try {
-      const target = await authProxyTarget(req.headers, sandboxId, portNum);
-      dev && console.log(`[proxy:ws] auth ok, forwarding to target=${target}`);
-      // Rewrite Origin to match the target host so code-server's CSRF check passes.
-      // changeOrigin:true only rewrites Host, not Origin.
-      const targetUrl = new URL(target);
-      const csTarget = deriveCsLoginTarget(target, req.url || '');
-      await injectCodeServerAuth(req.headers, sandboxId, csTarget);
-      req.headers['x-fastgpt-sandbox-id'] = sandboxId;
-      proxy.ws(req, socket, head, {
-        target,
-        headers: { origin: `${targetUrl.protocol}//${targetUrl.host}` }
+      const { target } = await authProxyTarget({
+        reqHeaders: req.headers,
+        sandboxId,
+        targetPort: portNum
       });
+      assertSandboxProxyPath({ target, path: req.url ?? '/' });
+      const proxyUrl = new URL(req.url ?? '/', 'http://placeholder');
+      if (proxyUrl.searchParams.has('__pt') || proxyUrl.pathname === SANDBOX_PROXY_RENEW_PATH) {
+        throw Object.assign(new Error('Unsupported proxy query'), { statusCode: 403 });
+      }
+      dev && console.log(`[proxy:ws] auth ok, forwarding to target=${target}`);
+      const authHeaders = { ...req.headers };
+      const stopChecking = watchSandboxProxySession({
+        verify: () => authProxyTarget({ reqHeaders: authHeaders, sandboxId, targetPort: portNum }),
+        close: () => socket.destroy()
+      });
+      socket.once('close', stopChecking);
+      const csTarget = deriveCsLoginTarget(target, req.url || '');
+      await injectCodeServerAuth({
+        reqHeaders: req.headers,
+        sandboxId,
+        target: csTarget,
+        targetPort: portNum
+      });
+      req.headers['x-fastgpt-sandbox-id'] = sandboxId;
+      // The gateway origin is not the editor origin; this hop is already server-authenticated.
+      delete req.headers.origin;
+      proxy.ws(req, socket, head, { target });
     } catch (err: any) {
       const status = err.statusCode || 502;
       console.error(`[proxy:ws] auth failed status=${status} message=${err.message}`);
@@ -450,41 +566,61 @@ async function main() {
   });
 }
 
-// Authenticate a sandbox proxy request via the internal Next.js API route.
-// This avoids importing @fastgpt/service (ESM-only deps) directly in server.ts.
-async function authProxyTarget(
-  reqHeaders: IncomingMessage['headers'],
-  sandboxId: string,
-  targetPort: number
-): Promise<string> {
-  dev &&
-    console.log(
-      `[proxy:auth] POST proxyAuth sandboxId=${sandboxId} port=${targetPort} hasCookie=${!!reqHeaders.cookie}`
-    );
+function getProxyErrorStatus(error: unknown): number {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'statusCode' in error &&
+    typeof error.statusCode === 'number' &&
+    error.statusCode >= 400 &&
+    error.statusCode < 600
+  ) {
+    return error.statusCode;
+  }
+  return 502;
+}
+
+async function authProxyTarget({
+  reqHeaders,
+  sandboxId,
+  targetPort,
+  ticket,
+  mode
+}: {
+  reqHeaders: IncomingMessage['headers'];
+  sandboxId: string;
+  targetPort: number;
+  ticket?: string;
+  mode?: 'renew';
+}) {
+  const { audience } = getSandboxProxyOrigins({ sandboxId, targetPort, host: reqHeaders.host });
+  if (reqHeaders.origin && reqHeaders.origin !== audience) {
+    throw Object.assign(new Error('Invalid origin'), { statusCode: 403 });
+  }
   const authResp = await fetch(`http://127.0.0.1:${port}/api/core/sandbox/proxyAuth`, {
     method: 'POST',
+    signal: AbortSignal.timeout(5000),
     headers: {
       'content-type': 'application/json',
-      ...(reqHeaders.cookie ? { cookie: reqHeaders.cookie as string } : {}),
-      ...(reqHeaders.authorization ? { authorization: reqHeaders.authorization as string } : {})
+      'x-fastgpt-proxy-internal': getSandboxProxyInternalSecret(),
+      ...(reqHeaders.cookie ? { cookie: reqHeaders.cookie } : {})
     },
-    body: JSON.stringify({ sandboxId, targetPort })
+    body: JSON.stringify({ sandboxId, targetPort, proxyHost: reqHeaders.host, ticket, mode })
   });
-
   if (!authResp.ok) {
-    // NextAPI always returns HTTP 500 for errors; read the real code from JSON body
-    const body = await authResp.json().catch(() => ({ code: authResp.status }));
-    const code = body?.code || authResp.status;
-    const msg = body?.message || body?.error || 'Auth failed';
-    console.error(
-      `[proxy:auth] proxyAuth failed httpStatus=${authResp.status} code=${code} message=${msg}`
-    );
-    throw Object.assign(new Error(msg), { statusCode: code });
+    const body: unknown = await authResp.json().catch(() => undefined);
+    const statusCode =
+      body &&
+      typeof body === 'object' &&
+      'code' in body &&
+      typeof body.code === 'number' &&
+      body.code >= 400 &&
+      body.code < 600
+        ? body.code
+        : authResp.status;
+    throw Object.assign(new Error('Sandbox proxy authorization failed'), { statusCode });
   }
-
-  const { target } = await authResp.json();
-  dev && console.log(`[proxy:auth] proxyAuth ok target=${target}`);
-  return target as string;
+  return SandboxProxyInternalResponseSchema.parse(await authResp.json());
 }
 
 // Build upstream request headers, dropping hop-by-hop headers

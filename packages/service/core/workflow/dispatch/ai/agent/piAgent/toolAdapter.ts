@@ -1,5 +1,9 @@
 import type { ChatCompletionTool } from '@fastgpt/global/core/ai/llm/type';
-import type { ChatHistoryItemResType } from '@fastgpt/global/core/chat/type';
+import type {
+  AIChatItemValueItemType,
+  ChatHistoryItemResType
+} from '@fastgpt/global/core/chat/type';
+import { isFatalAgentError } from '../sub/sandbox/errors';
 import { SubAppIds } from '@fastgpt/global/core/workflow/node/agent/constants';
 import {
   SANDBOX_TOOL_NAME,
@@ -23,6 +27,7 @@ import type { CapabilityToolCallHandlerType } from '../capability/type';
 import type { DispatchAgentModuleProps } from '..';
 import type { AppFormEditFormType } from '@fastgpt/global/core/app/formEdit/type';
 import type { OpenaiAccountType } from '@fastgpt/global/support/user/team/type';
+import { SandboxToolIds } from '@fastgpt/global/core/workflow/node/agent/skillTools';
 
 type AgentTool = import('@mariozechner/pi-agent-core').AgentTool<any>;
 
@@ -48,6 +53,7 @@ export type ToolDispatchContext = Pick<
   | 'usagePush'
 > & {
   model: string;
+  requireSandbox?: boolean;
   datasetParams?: AppFormEditFormType['dataset'];
 };
 
@@ -58,7 +64,9 @@ export async function buildAgentTools({
   getSubApp,
   getSubAppInfo,
   capabilityToolCallHandler,
-  nodeResponses
+  nodeResponses,
+  assistantResponses,
+  onFatalError
 }: {
   completionTools: ChatCompletionTool[];
   ctx: ToolDispatchContext;
@@ -67,6 +75,8 @@ export async function buildAgentTools({
   getSubAppInfo: GetSubAppInfoFnType;
   capabilityToolCallHandler?: CapabilityToolCallHandlerType;
   nodeResponses: ChatHistoryItemResType[];
+  assistantResponses?: AIChatItemValueItemType[];
+  onFatalError?: (error: Error) => void;
 }): Promise<AgentTool[]> {
   const { Type } = await import('@mariozechner/pi-ai');
 
@@ -93,6 +103,8 @@ export async function buildAgentTools({
   } = ctx;
 
   const tools: AgentTool[] = [];
+  let fatalError: Error | undefined;
+  let sandboxUnavailable = false;
 
   for (const tool of completionTools) {
     const toolId = tool.function.name;
@@ -108,10 +120,27 @@ export async function buildAgentTools({
       const argStr = JSON.stringify(args);
 
       try {
+        if (fatalError) throw fatalError;
         const { response, usages = [] } = await (async (): Promise<{
           response: string;
           usages?: any[];
         }> => {
+          if (
+            sandboxUnavailable &&
+            [
+              SANDBOX_TOOL_NAME,
+              SANDBOX_GET_FILE_URL_TOOL_NAME,
+              ...Object.values(SandboxToolIds)
+            ].some((id) => id === toolId)
+          ) {
+            return {
+              response: JSON.stringify({
+                code: 'sandbox_unavailable',
+                status: 'degraded',
+                retryable: false
+              })
+            };
+          }
           if (toolId === SubAppIds.fileRead) {
             const toolParams = ReadFileToolSchema.safeParse(args);
             if (!toolParams.success) return { response: toolParams.error.message };
@@ -164,6 +193,7 @@ export async function buildAgentTools({
             const toolParams = SandboxShellToolSchema.safeParse(args);
             if (!toolParams.success) return { response: toolParams.error.message };
             const result = await dispatchSandboxShell({
+              requireSandbox: ctx.requireSandbox,
               command: toolParams.data.command,
               timeout: toolParams.data.timeout,
               appId: runningAppInfo.id,
@@ -172,6 +202,10 @@ export async function buildAgentTools({
               lang
             });
             nodeResponses.push(result.nodeResponse);
+            if (result.assistantResponses) assistantResponses?.push(...result.assistantResponses);
+            sandboxUnavailable ||= !!result.assistantResponses?.some(
+              (value) => value.sandboxEvent?.status === 'degraded'
+            );
             return { response: result.response, usages: result.usages };
           }
 
@@ -179,6 +213,7 @@ export async function buildAgentTools({
             const toolParams = SandboxGetFileUrlToolSchema.safeParse(args);
             if (!toolParams.success) return { response: toolParams.error.message };
             const result = await dispatchSandboxGetFileUrl({
+              requireSandbox: ctx.requireSandbox,
               paths: toolParams.data.paths,
               appId: runningAppInfo.id,
               userId: uid,
@@ -186,12 +221,21 @@ export async function buildAgentTools({
               lang
             });
             nodeResponses.push(result.nodeResponse);
+            if (result.assistantResponses) assistantResponses?.push(...result.assistantResponses);
+            sandboxUnavailable ||= !!result.assistantResponses?.some(
+              (value) => value.sandboxEvent?.status === 'degraded'
+            );
             return { response: result.response, usages: result.usages };
           }
 
           // Capability tools (e.g. sandbox skills)
           const capResult = await capabilityToolCallHandler?.(toolId, argStr, callId);
           if (capResult != null) {
+            sandboxUnavailable ||= !!capResult.assistantResponses?.some(
+              (value) => value.sandboxEvent?.status === 'degraded'
+            );
+            if (capResult.assistantResponses?.length)
+              assistantResponses?.push(...capResult.assistantResponses);
             const subInfo = getSubAppInfo(toolId);
             nodeResponses.push({
               nodeId: callId,
@@ -202,7 +246,6 @@ export async function buildAgentTools({
               toolInput: parseJsonArgs(argStr),
               toolRes: capResult.response
             });
-            if (capResult.usages?.length) usagePush(capResult.usages);
             return { response: capResult.response, usages: capResult.usages };
           }
 
@@ -243,7 +286,12 @@ export async function buildAgentTools({
 
           if (subApp.type === 'workflow') {
             const { userChatInput, ...params } = requestParams;
-            const { response, runningTime, usages } = await dispatchApp({
+            const {
+              response,
+              runningTime,
+              usages,
+              assistantResponses: childResponses
+            } = await dispatchApp({
               appId: subApp.id,
               userChatInput: userChatInput ?? '',
               customAppVariables: params,
@@ -260,6 +308,7 @@ export async function buildAgentTools({
               workflowDispatchDeep,
               variables
             });
+            if (childResponses) assistantResponses?.push(...childResponses);
             nodeResponses.push({
               nodeId: callId,
               id: callId,
@@ -275,7 +324,13 @@ export async function buildAgentTools({
           }
 
           if (subApp.type === 'toolWorkflow') {
-            const { response, result, runningTime, usages } = await dispatchPlugin({
+            const {
+              response,
+              result,
+              runningTime,
+              usages,
+              assistantResponses: childResponses
+            } = await dispatchPlugin({
               appId: subApp.id,
               userChatInput: '',
               customAppVariables: requestParams,
@@ -292,6 +347,7 @@ export async function buildAgentTools({
               workflowDispatchDeep,
               variables
             });
+            if (childResponses) assistantResponses?.push(...childResponses);
             nodeResponses.push({
               nodeId: callId,
               id: callId,
@@ -320,6 +376,11 @@ export async function buildAgentTools({
 
         return { content: [{ type: 'text' as const, text: response }], details: {} };
       } catch (error) {
+        if (isFatalAgentError(error)) {
+          fatalError ??= error;
+          onFatalError?.(error);
+          throw error;
+        }
         const errText = `Tool error: ${getErrText(error)}`;
         return { content: [{ type: 'text' as const, text: errText }], details: {} };
       }

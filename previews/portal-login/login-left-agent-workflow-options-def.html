@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>登录页左栏 · 方案 D / E / F</title>
+    <style>
+      :root {
+        --ink: #1f2937;
+        --muted: #667085;
+        --border: #dfe5ee;
+        --rail: #f5f7fa;
+        --blue: #2563eb;
+        --blue-strong: #1d4ed8;
+        --blue-soft: #dbeafe;
+        --gold: #c69b4a;
+        --canvas: #e7edf5;
+        --surface: #fff;
+        --surface-96: rgba(255, 255, 255, 0.96);
+        --divider: #d0dae7;
+        --border-strong: #cbd6e4;
+        --panel-start: #1f2a3a;
+        --panel-mid: #27364a;
+        --panel-end: #31445e;
+        --panel-shadow: rgba(23, 32, 51, 0.72);
+        --agent-blue: #8eb1ff;
+        --agent-blue-68: rgba(142, 177, 255, 0.68);
+        --agent-blue-62: rgba(142, 177, 255, 0.62);
+        --agent-blue-50: rgba(142, 177, 255, 0.5);
+        --agent-blue-42: rgba(142, 177, 255, 0.42);
+        --agent-blue-38: rgba(142, 177, 255, 0.38);
+        --agent-blue-11: rgba(142, 177, 255, 0.11);
+        --gold-76: rgba(198, 155, 74, 0.76);
+        --gold-72: rgba(198, 155, 74, 0.72);
+        --gold-70: rgba(198, 155, 74, 0.7);
+        --gold-54: rgba(198, 155, 74, 0.54);
+        --gold-45: rgba(198, 155, 74, 0.45);
+        --gold-42: rgba(198, 155, 74, 0.42);
+        --gold-14: rgba(198, 155, 74, 0.14);
+        --gold-13: rgba(198, 155, 74, 0.13);
+        --on-panel-88: rgba(255, 255, 255, 0.88);
+        --on-panel-70: rgba(255, 255, 255, 0.7);
+        --on-panel-68: rgba(255, 255, 255, 0.68);
+        --on-panel-45: rgba(255, 255, 255, 0.45);
+        --on-panel-40: rgba(255, 255, 255, 0.4);
+        --on-panel-38: rgba(255, 255, 255, 0.38);
+        --on-panel-34: rgba(255, 255, 255, 0.34);
+        --on-panel-28: rgba(255, 255, 255, 0.28);
+        --glass-12: rgba(255, 255, 255, 0.12);
+        --glass-065: rgba(255, 255, 255, 0.065);
+        --glass-055: rgba(255, 255, 255, 0.055);
+        --glass-05: rgba(255, 255, 255, 0.05);
+        --glass-border-14: rgba(255, 255, 255, 0.14);
+        --glass-border-13: rgba(255, 255, 255, 0.13);
+        --glow-blue: rgba(37, 99, 235, 0.32);
+        --glow-blue-soft: rgba(37, 99, 235, 0.28);
+        --glow-blue-clear: rgba(37, 99, 235, 0);
+        --glow-gold-clear: rgba(198, 155, 74, 0);
+        --gold-text: #e8ce9c;
+        --node-blue: #0091ff;
+        --node-violet: #7479ff;
+        --node-green: #43ca40;
+        --node-orange: #eba33c;
+        --font: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        min-height: 100%;
+        padding-bottom: 24px;
+        color: var(--ink);
+        background: var(--canvas);
+        font: 14px var(--font);
+      }
+
+      .preview-bar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) auto minmax(280px, 1fr);
+        align-items: center;
+        gap: 18px;
+        min-height: 76px;
+        padding: 11px 20px;
+        background: var(--surface-96);
+        border-bottom: 1px solid var(--border-strong);
+        backdrop-filter: blur(12px);
+      }
+      .preview-title strong {
+        display: block;
+        font-size: 17px;
+      }
+      .preview-title span,
+      .preview-note {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .preview-note {
+        text-align: right;
+      }
+      .scheme-nav {
+        display: flex;
+        gap: 8px;
+      }
+      .scheme-nav a {
+        padding: 7px 14px;
+        color: var(--ink);
+        background: var(--rail);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .scheme-nav a:hover {
+        color: var(--blue-strong);
+        background: var(--blue-soft);
+      }
+
+      .option {
+        padding: 30px 24px 48px;
+      }
+      .option + .option {
+        border-top: 1px solid var(--divider);
+      }
+      .option:last-of-type {
+        padding-bottom: 96px;
+      }
+      .option-head {
+        width: min(760px, 100%);
+        margin: 0 auto 16px;
+      }
+      .option-head h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .option-head p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .tag {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 3px 10px;
+        color: var(--blue-strong);
+        background: var(--blue-soft);
+        border-radius: 999px;
+        vertical-align: 3px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .chip {
+        padding: 2px 9px;
+        color: var(--muted);
+        background: var(--rail);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 11px;
+      }
+
+      .stage {
+        display: flex;
+        align-items: flex-start;
+        width: min(760px, 100%);
+        margin: 0 auto;
+        justify-content: center;
+        scroll-margin-top: 68px;
+      }
+      .panel {
+        position: relative;
+        flex: 0 0 640px;
+        width: 640px;
+        padding: 40px 48px 38px;
+        overflow: hidden;
+        color: var(--surface);
+        background: linear-gradient(
+          150deg,
+          var(--panel-start) 0%,
+          var(--panel-mid) 55%,
+          var(--panel-end) 100%
+        );
+        border-radius: 20px;
+        box-shadow: 0 26px 60px -46px var(--panel-shadow);
+      }
+      .glow-a {
+        position: absolute;
+        top: -140px;
+        right: -140px;
+        width: 420px;
+        height: 420px;
+        background: radial-gradient(circle, var(--glow-blue), var(--glow-blue-clear) 68%);
+        border-radius: 50%;
+      }
+      .glow-b {
+        position: absolute;
+        left: -100px;
+        bottom: -160px;
+        width: 360px;
+        height: 360px;
+        background: radial-gradient(circle, var(--gold-14), var(--glow-gold-clear) 66%);
+        border-radius: 50%;
+      }
+      .panel-inner {
+        position: relative;
+        z-index: 1;
+      }
+      .eyebrow {
+        color: var(--agent-blue);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+      }
+      .ptitle {
+        margin: 14px 0 10px;
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .pdesc {
+        max-width: 480px;
+        margin: 0;
+        color: var(--on-panel-68);
+        font-size: 13px;
+        line-height: 1.8;
+      }
+      .vis-cap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 28px;
+        color: var(--on-panel-40);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+      .vis-cap i {
+        width: 6px;
+        height: 6px;
+        background: var(--gold);
+        border-radius: 50%;
+      }
+      .visual {
+        position: relative;
+        width: 544px;
+        height: 320px;
+      }
+      .lines {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .node-card {
+        position: absolute;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        color: var(--on-panel-88);
+        background: var(--glass-065);
+        border: 1px solid var(--glass-border-14);
+        border-radius: 10px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .node-card .dot {
+        width: 8px;
+        height: 8px;
+        flex: none;
+        border-radius: 50%;
+      }
+      .dot.blue,
+      .workflow-nodes i.blue {
+        background: var(--node-blue);
+      }
+      .dot.violet,
+      .workflow-nodes i.violet {
+        background: var(--node-violet);
+      }
+      .dot.green,
+      .workflow-nodes i.green {
+        background: var(--node-green);
+      }
+      .dot.orange,
+      .workflow-nodes i.orange {
+        background: var(--node-orange);
+      }
+      .dot.gold {
+        background: var(--gold);
+      }
+      .glass-core {
+        position: absolute;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(160deg, var(--glass-12), var(--glass-05));
+        border: 1px solid var(--agent-blue-38);
+        border-radius: 16px;
+        box-shadow: 0 0 46px var(--glow-blue-soft);
+      }
+      .spark {
+        width: 25px;
+        height: 25px;
+        color: var(--gold);
+      }
+      .core-title {
+        margin-top: 5px;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .core-sub {
+        margin-top: 4px;
+        color: var(--on-panel-45);
+        font-size: 9px;
+        letter-spacing: 0.08em;
+      }
+      .flow-chips {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 18px;
+      }
+      .fchip {
+        padding: 6px 12px;
+        color: var(--on-panel-70);
+        background: var(--glass-055);
+        border: 1px solid var(--glass-border-13);
+        border-radius: 999px;
+        font-size: 11px;
+      }
+      .fchip.gold {
+        color: var(--gold-text);
+        border-color: var(--gold-54);
+      }
+      .farrow {
+        color: var(--on-panel-28);
+        font-size: 11px;
+      }
+
+      /* D · 双向星图 */
+      .d-core {
+        left: 204px;
+        top: 102px;
+        width: 136px;
+        height: 116px;
+      }
+      .d-n1 {
+        left: 28px;
+        top: 38px;
+      }
+      .d-n2 {
+        right: 20px;
+        top: 38px;
+      }
+      .d-n3 {
+        left: 28px;
+        top: 238px;
+      }
+      .d-n4 {
+        right: 20px;
+        top: 238px;
+      }
+      .d-workflow {
+        left: 202px;
+        top: 250px;
+        width: 140px;
+        justify-content: center;
+        color: var(--gold-text);
+        border-color: var(--gold-42);
+      }
+      /* E · 双核心 */
+      .dual-core {
+        position: absolute;
+        top: 96px;
+        width: 148px;
+        height: 128px;
+      }
+      .dual-agent {
+        left: 86px;
+        border-color: var(--gold-45);
+        box-shadow: 0 0 40px var(--gold-13);
+      }
+      .dual-workflow {
+        right: 86px;
+      }
+      .workflow-nodes {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .workflow-nodes i {
+        width: 8px;
+        height: 8px;
+        border-radius: 3px;
+      }
+      .e-tag {
+        position: absolute;
+        z-index: 2;
+        left: 50%;
+        padding: 3px 7px;
+        color: var(--on-panel-38);
+        background: var(--panel-mid);
+        border-radius: 5px;
+        transform: translateX(-50%);
+        font-size: 8px;
+        letter-spacing: 0.1em;
+      }
+      .e-tag.top {
+        top: 54px;
+      }
+      .e-tag.bottom {
+        bottom: 44px;
+      }
+
+      /* F · 分层编排 */
+      .layer-agent {
+        left: 204px;
+        top: 34px;
+        width: 136px;
+        height: 94px;
+        border-color: var(--gold-45);
+      }
+      .layer-workflow {
+        left: 184px;
+        top: 204px;
+        width: 176px;
+        height: 82px;
+      }
+      .layer-workflow .core-sub {
+        margin-top: 7px;
+      }
+      .f-n1 {
+        left: 18px;
+        top: 126px;
+      }
+      .f-n2 {
+        right: 12px;
+        top: 126px;
+      }
+      .f-n3 {
+        left: 46px;
+        top: 245px;
+      }
+      .f-n4 {
+        right: 42px;
+        top: 245px;
+      }
+
+      @media (max-width: 760px) {
+        .preview-bar {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .preview-note {
+          display: none;
+        }
+        .panel {
+          transform: scale(0.88);
+          transform-origin: top center;
+        }
+        .stage {
+          height: 546px;
+          overflow: hidden;
+        }
+      }
+      @media (max-width: 610px) {
+        .panel {
+          transform: scale(0.75);
+        }
+        .stage {
+          height: 465px;
+        }
+      }
+      @media (max-width: 530px) {
+        .panel {
+          transform: scale(0.68);
+        }
+        .stage {
+          height: 422px;
+        }
+      }
+      @media (max-width: 480px) {
+        .panel {
+          transform: scale(0.6);
+        }
+        .stage {
+          height: 372px;
+        }
+      }
+      @media (max-width: 420px) {
+        .panel {
+          transform: scale(0.5);
+        }
+        .stage {
+          height: 310px;
+        }
+      }
+      @media (max-width: 340px) {
+        .panel {
+          transform: scale(0.42);
+        }
+        .stage {
+          height: 261px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="preview-bar">
+      <div class="preview-title">
+        <strong>登录页左栏 · 方案 D / E / F</strong>
+        <span>延续方案 1 的中央玻璃核心、轻节点、交叉曲线与克制文案。</span>
+      </div>
+      <nav class="scheme-nav">
+        <a href="#d">方案 D</a><a href="#e">方案 E</a><a href="#f">方案 F</a>
+      </nav>
+      <div class="preview-note">
+        面板内不使用案例或解释性调用文案<br />双向关系仅由线条方向与层级表达
+      </div>
+    </header>
+
+    <section class="option" id="d">
+      <div class="option-head">
+        <h2>方案 D · 双向星图 <span class="tag">Reciprocal Hub</span></h2>
+        <p>
+          最接近参考方案：保留中央 Agentic 与四角节点，在下方加入 Workflow
+          回路，让双向协同自然融入原有星图。
+        </p>
+        <div class="chips">
+          <span class="chip">参考还原度最高</span><span class="chip">一实一虚</span
+          ><span class="chip">改动最克制</span>
+        </div>
+      </div>
+      <div class="stage" id="d-panel">
+        <div class="panel">
+          <div class="glow-a"></div>
+          <div class="glow-b"></div>
+          <div class="panel-inner">
+            <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+            <div class="ptitle">OmniCockpit</div>
+            <p class="pdesc">
+              统一管理企业 AI Agent、知识库与自动化流程，让智能能力在同一个工作空间内协同运转。
+            </p>
+            <div class="vis-cap"><i></i>AGENT ORCHESTRATION</div>
+            <div class="visual">
+              <svg class="lines" viewBox="0 0 544 320" fill="none" aria-hidden="true">
+                <defs>
+                  <marker
+                    id="d-out"
+                    markerWidth="10"
+                    markerHeight="10"
+                    refX="8"
+                    refY="5"
+                    orient="auto"
+                  >
+                    <path d="M1 1L9 5L1 9Z" fill="var(--agent-blue)" />
+                  </marker>
+                  <marker
+                    id="d-in"
+                    markerWidth="10"
+                    markerHeight="10"
+                    refX="8"
+                    refY="5"
+                    orient="auto"
+                  >
+                    <path d="M1 1L9 5L1 9Z" fill="var(--gold)" />
+                  </marker>
+                </defs>
+                <path
+                  d="M272 160C220 150 160 120 94 62"
+                  stroke="var(--agent-blue-50)"
+                  stroke-width="1.6"
+                  marker-end="url(#d-out)"
+                />
+                <path
+                  d="M272 160C324 150 384 120 450 62"
+                  stroke="var(--agent-blue-50)"
+                  stroke-width="1.6"
+                  marker-end="url(#d-out)"
+                />
+                <path
+                  d="M94 262C160 200 220 170 272 160"
+                  stroke="var(--gold-70)"
+                  stroke-width="1.6"
+                  stroke-dasharray="5 5"
+                  marker-end="url(#d-in)"
+                />
+                <path
+                  d="M450 262C384 200 324 170 272 160"
+                  stroke="var(--gold-70)"
+                  stroke-width="1.6"
+                  stroke-dasharray="5 5"
+                  marker-end="url(#d-in)"
+                />
+                <path
+                  d="M262 218C258 229 258 238 262 247"
+                  stroke="var(--agent-blue-62)"
+                  stroke-width="2.4"
+                  marker-end="url(#d-out)"
+                />
+                <path
+                  d="M282 247C286 237 286 228 282 218"
+                  stroke="var(--gold-76)"
+                  stroke-width="2.4"
+                  stroke-dasharray="4 4"
+                  marker-end="url(#d-in)"
+                />
+                <circle cx="183" cy="118" r="2.5" fill="var(--agent-blue)" />
+                <circle cx="361" cy="118" r="2.5" fill="var(--agent-blue)" />
+                <circle cx="183" cy="205" r="2.5" fill="var(--gold)" />
+                <circle cx="361" cy="205" r="2.5" fill="var(--gold)" />
+              </svg>
+              <div class="glass-core d-core">
+                <svg class="spark" viewBox="0 0 24 24">
+                  <path
+                    d="M12 2C13 8 16 11 22 12C16 13 13 16 12 22C11 16 8 13 2 12C8 11 11 8 12 2Z"
+                    fill="currentColor"
+                  /></svg
+                ><span class="core-title">Agentic</span><span class="core-sub">ORCHESTRATION</span>
+              </div>
+              <div class="node-card d-n1"><i class="dot blue"></i>知识库搜索</div>
+              <div class="node-card d-n2"><i class="dot violet"></i>AI 对话</div>
+              <div class="node-card d-n3"><i class="dot green"></i>条件分支</div>
+              <div class="node-card d-n4"><i class="dot orange"></i>代码运行</div>
+              <div class="node-card d-workflow"><i class="dot gold"></i>Workflow</div>
+            </div>
+            <div class="flow-chips">
+              <span class="fchip">Agentic</span><span class="farrow">⇄</span
+              ><span class="fchip gold">Workflow</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="option" id="e">
+      <div class="option-head">
+        <h2>方案 E · 双核心回路 <span class="tag">Dual Core</span></h2>
+        <p>
+          将 Agentic 与 Workflow
+          提升为两个同等级核心，上下两条弧线分别向右和向左运行。构图更直接，但仍保持方案 1
+          的玻璃材质与曲线气质。
+        </p>
+        <div class="chips">
+          <span class="chip">同等级双核心</span><span class="chip">关系最清晰</span
+          ><span class="chip">留白充足</span>
+        </div>
+      </div>
+      <div class="stage" id="e-panel">
+        <div class="panel">
+          <div class="glow-a"></div>
+          <div class="glow-b"></div>
+          <div class="panel-inner">
+            <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+            <div class="ptitle">OmniCockpit</div>
+            <p class="pdesc">
+              统一管理企业 AI Agent、知识库与自动化流程，让智能能力在同一个工作空间内协同运转。
+            </p>
+            <div class="vis-cap"><i></i>AGENTIC × WORKFLOW</div>
+            <div class="visual">
+              <svg class="lines" viewBox="0 0 544 320" fill="none" aria-hidden="true">
+                <defs>
+                  <marker
+                    id="e-right"
+                    markerWidth="8"
+                    markerHeight="8"
+                    refX="6"
+                    refY="4"
+                    orient="auto"
+                  >
+                    <path d="M1 1L7 4L1 7Z" fill="var(--agent-blue)" />
+                  </marker>
+                  <marker
+                    id="e-left"
+                    markerWidth="8"
+                    markerHeight="8"
+                    refX="6"
+                    refY="4"
+                    orient="auto"
+                  >
+                    <path d="M1 1L7 4L1 7Z" fill="var(--gold)" />
+                  </marker>
+                </defs>
+                <path
+                  d="M218 110C255 48 345 48 382 110"
+                  stroke="var(--agent-blue-62)"
+                  stroke-width="1.8"
+                  marker-end="url(#e-right)"
+                />
+                <path
+                  d="M382 210C345 272 255 272 218 210"
+                  stroke="var(--gold-72)"
+                  stroke-width="1.8"
+                  stroke-dasharray="5 5"
+                  marker-end="url(#e-left)"
+                />
+                <path d="M86 160H458" stroke="var(--agent-blue-11)" stroke-dasharray="3 6" />
+                <circle cx="272" cy="70" r="2.5" fill="var(--agent-blue)" />
+                <circle cx="328" cy="70" r="2.5" fill="var(--agent-blue)" />
+                <circle cx="272" cy="250" r="2.5" fill="var(--gold)" />
+                <circle cx="328" cy="250" r="2.5" fill="var(--gold)" />
+              </svg>
+              <span class="e-tag top">01</span><span class="e-tag bottom">02</span>
+              <div class="glass-core dual-core dual-agent">
+                <svg class="spark" viewBox="0 0 24 24">
+                  <path
+                    d="M12 2C13 8 16 11 22 12C16 13 13 16 12 22C11 16 8 13 2 12C8 11 11 8 12 2Z"
+                    fill="currentColor"
+                  /></svg
+                ><span class="core-title">Agentic</span><span class="core-sub">REASON / ADAPT</span>
+              </div>
+              <div class="glass-core dual-core dual-workflow">
+                <span class="core-title">Workflow</span
+                ><span class="workflow-nodes"
+                  ><i class="blue"></i><i class="green"></i><i class="violet"></i
+                  ><i class="orange"></i></span
+                ><span class="core-sub">EXECUTE / RETURN</span>
+              </div>
+            </div>
+            <div class="flow-chips">
+              <span class="fchip">Reason</span><span class="farrow">·</span
+              ><span class="fchip">Execute</span><span class="farrow">·</span
+              ><span class="fchip gold">Adapt</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="option" id="f">
+      <div class="option-head">
+        <h2>方案 F · 分层编排 <span class="tag">Layered Orchestration</span></h2>
+        <p>
+          Agentic 位于上层、Workflow
+          位于下层，中间以一对上下方向连接形成闭环，四个节点沿交叉路径分布。层级更明确，整体仍延续参考图的中央构图。
+        </p>
+        <div class="chips">
+          <span class="chip">上下层级</span><span class="chip">交叉路径</span
+          ><span class="chip">画布感更强</span>
+        </div>
+      </div>
+      <div class="stage" id="f-panel">
+        <div class="panel">
+          <div class="glow-a"></div>
+          <div class="glow-b"></div>
+          <div class="panel-inner">
+            <div class="eyebrow">AI AGENT &amp; KNOWLEDGE WORKSPACE</div>
+            <div class="ptitle">OmniCockpit</div>
+            <p class="pdesc">
+              统一管理企业 AI Agent、知识库与自动化流程，让智能能力在同一个工作空间内协同运转。
+            </p>
+            <div class="vis-cap"><i></i>COORDINATED INTELLIGENCE</div>
+            <div class="visual">
+              <svg class="lines" viewBox="0 0 544 320" fill="none" aria-hidden="true">
+                <defs>
+                  <marker
+                    id="f-down"
+                    markerWidth="10"
+                    markerHeight="10"
+                    refX="8"
+                    refY="5"
+                    orient="auto"
+                  >
+                    <path d="M1 1L9 5L1 9Z" fill="var(--agent-blue)" />
+                  </marker>
+                  <marker
+                    id="f-up"
+                    markerWidth="10"
+                    markerHeight="10"
+                    refX="8"
+                    refY="5"
+                    orient="auto"
+                  >
+                    <path d="M1 1L9 5L1 9Z" fill="var(--gold)" />
+                  </marker>
+                </defs>
+                <path
+                  d="M264 128V194"
+                  stroke="var(--agent-blue-68)"
+                  stroke-width="2.4"
+                  marker-end="url(#f-down)"
+                />
+                <path
+                  d="M280 194V128"
+                  stroke="var(--gold-72)"
+                  stroke-width="2.4"
+                  stroke-dasharray="5 5"
+                  marker-end="url(#f-up)"
+                />
+                <path
+                  d="M92 148C170 148 190 82 240 82"
+                  stroke="var(--agent-blue-42)"
+                  stroke-width="1.5"
+                />
+                <path
+                  d="M452 148C374 148 354 82 304 82"
+                  stroke="var(--agent-blue-42)"
+                  stroke-width="1.5"
+                />
+                <path
+                  d="M116 264C164 264 190 246 218 242"
+                  stroke="var(--agent-blue-38)"
+                  stroke-width="1.5"
+                />
+                <path
+                  d="M428 264C380 264 354 246 326 242"
+                  stroke="var(--agent-blue-38)"
+                  stroke-width="1.5"
+                />
+                <circle cx="184" cy="114" r="2.5" fill="var(--agent-blue)" />
+                <circle cx="360" cy="114" r="2.5" fill="var(--agent-blue)" />
+                <circle cx="174" cy="254" r="2.5" fill="var(--agent-blue)" />
+                <circle cx="370" cy="254" r="2.5" fill="var(--agent-blue)" />
+              </svg>
+              <div class="glass-core layer-agent">
+                <svg class="spark" viewBox="0 0 24 24">
+                  <path
+                    d="M12 2C13 8 16 11 22 12C16 13 13 16 12 22C11 16 8 13 2 12C8 11 11 8 12 2Z"
+                    fill="currentColor"
+                  /></svg
+                ><span class="core-title">Agentic</span>
+              </div>
+              <div class="glass-core layer-workflow">
+                <span class="core-title">Workflow</span
+                ><span class="core-sub">KNOWLEDGE · CONDITION · ACTION</span>
+              </div>
+              <div class="node-card f-n1"><i class="dot blue"></i>Knowledge</div>
+              <div class="node-card f-n2"><i class="dot violet"></i>Context</div>
+              <div class="node-card f-n3"><i class="dot green"></i>Condition</div>
+              <div class="node-card f-n4"><i class="dot orange"></i>Action</div>
+            </div>
+            <div class="flow-chips">
+              <span class="fchip">Agentic</span><span class="farrow">⇅</span
+              ><span class="fchip gold">Workflow</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

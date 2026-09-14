@@ -3,7 +3,10 @@ import {
   agentSkillsCollectionName as agentSkillsCollectionName,
   AgentSkillSourceEnum,
   AgentSkillCategoryEnum,
-  AgentSkillTypeEnum
+  AgentSkillTypeEnum,
+  AgentSkillCreationStatusEnum,
+  AgentSkillSchemaVersion,
+  agentSkillsVersionCollectionName
 } from '@fastgpt/global/core/agentSkills/constants';
 import type { AgentSkillSchemaType } from '@fastgpt/global/core/agentSkills/type';
 
@@ -74,6 +77,55 @@ const AgentSkillsSchema = new Schema({
   deleteTime: {
     type: Date,
     default: null
+  },
+  schemaVersion: {
+    type: Number,
+    default: AgentSkillSchemaVersion
+  },
+  currentVersionId: {
+    type: Schema.Types.ObjectId,
+    ref: agentSkillsVersionCollectionName
+  },
+  currentRuntimeSkills: {
+    type: [
+      {
+        _id: false,
+        name: { type: String, required: true },
+        description: { type: String, default: '' },
+        path: { type: String, required: true }
+      }
+    ],
+    default: []
+  },
+  creationStatus: {
+    type: String,
+    enum: Object.values(AgentSkillCreationStatusEnum),
+    default: AgentSkillCreationStatusEnum.ready
+  },
+  error: {
+    code: String,
+    message: String,
+    operationId: String,
+    updatedAt: Date
+  },
+  lastOperationId: String,
+  deletionOperation: {
+    type: new Schema(
+      {
+        id: { type: String, required: true },
+        rootId: { type: Schema.Types.ObjectId, required: true },
+        memberIds: [{ type: Schema.Types.ObjectId, required: true }],
+        checkpoint: {
+          type: String,
+          enum: ['marked', 'sandbox_deleted', 'packages_deleted', 'chat_deleted'],
+          required: true
+        },
+        updatedAt: { type: Date, required: true },
+        lastQueuedAt: Date,
+        error: String
+      },
+      { _id: false }
+    )
   },
   // === Version Control ===
   currentVersion: {

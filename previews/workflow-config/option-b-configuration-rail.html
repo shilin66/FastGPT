@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>方案 B - Configuration Rail</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .app-b {
+        grid-template-rows: 74px 1fr 118px;
+      }
+
+      .workspace-b {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 16px;
+        min-height: calc(100vh - 192px);
+        padding: 16px;
+      }
+
+      .path-rail {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 18px;
+      }
+
+      .step-card {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: white;
+      }
+
+      .step-card.active {
+        border-color: var(--line-strong);
+        background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), white);
+      }
+
+      .step-card h3 {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0;
+        font-size: 14px;
+      }
+
+      .step-card p {
+        margin: 8px 0 0 33px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .canvas-b {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+      }
+
+      .node-b1 {
+        top: 90px;
+        left: 90px;
+      }
+
+      .node-b2 {
+        top: 90px;
+        left: 382px;
+      }
+
+      .node-b3 {
+        top: 250px;
+        left: 382px;
+      }
+
+      .node-b4 {
+        top: 170px;
+        left: 674px;
+      }
+
+      .line-b1 {
+        top: 145px;
+        left: 310px;
+        width: 72px;
+      }
+
+      .line-b2 {
+        top: 200px;
+        left: 302px;
+        width: 130px;
+        transform: rotate(35deg);
+      }
+
+      .line-b3 {
+        top: 145px;
+        left: 602px;
+        width: 90px;
+        transform: rotate(22deg);
+      }
+
+      .line-b4 {
+        top: 280px;
+        left: 602px;
+        width: 95px;
+        transform: rotate(-28deg);
+      }
+
+      .floating-hint {
+        position: absolute;
+        right: 20px;
+        bottom: 20px;
+        width: 260px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow);
+      }
+
+      .bottom-console {
+        display: grid;
+        grid-template-columns: 260px 1fr 240px;
+        gap: 16px;
+        padding: 14px 16px 16px;
+        border-top: 1px solid var(--line);
+        background: rgba(248, 250, 252, 0.92);
+      }
+
+      .console-card {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app app-b">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">OC</div>
+          <div>
+            <h1>售后咨询 Agent 工作流</h1>
+            <p>配置路径清晰化，适合复杂 Agent 搭建</p>
+          </div>
+        </div>
+        <nav class="tabs">
+          <span class="tab active">应用配置</span>
+          <span class="tab">发布渠道</span>
+          <span class="tab">对话日志</span>
+        </nav>
+        <div class="top-actions">
+          <span class="btn">导入配置</span>
+          <span class="btn primary">保存并发布</span>
+        </div>
+      </header>
+
+      <section class="workspace-b">
+        <aside class="rail-card path-rail">
+          <p class="rail-title">配置路径</p>
+          <article class="step-card active">
+            <h3><span class="dot-icon">1</span>输入与触发</h3>
+            <p>开始节点、用户输入、文件与全局变量。</p>
+          </article>
+          <article class="step-card">
+            <h3><span class="dot-icon">2</span>知识与工具</h3>
+            <p>知识库检索、HTTP 工具、MCP 工具。</p>
+          </article>
+          <article class="step-card">
+            <h3><span class="dot-icon">3</span>推理路径</h3>
+            <p>分类、条件分支、循环与并行节点。</p>
+          </article>
+          <article class="step-card">
+            <h3><span class="dot-icon">4</span>输出与发布</h3>
+            <p>回复节点、保存版本、发布入口。</p>
+          </article>
+          <div class="panel-card" style="box-shadow: none">
+            <p class="rail-title">检查结果</p>
+            <div class="rail-item active"><span class="dot-icon">OK</span>节点连接完整</div>
+            <div class="rail-item"><span class="dot-icon">!</span>1 个参数待确认</div>
+          </div>
+        </aside>
+
+        <section class="canvas-b blueprint">
+          <div class="canvas-tools">
+            <span class="btn dark">节点库</span>
+            <span class="btn">搜索节点</span>
+            <span class="btn">运行当前链路</span>
+          </div>
+          <span class="connector line-b1"></span>
+          <span class="connector line-b2"></span>
+          <span class="connector line-b3"></span>
+          <span class="connector line-b4"></span>
+          <article class="node node-b1">
+            <h3>开始</h3>
+            <p>定义入口变量和用户输入。</p>
+            <div class="meta"><span class="badge">Input</span></div>
+          </article>
+          <article class="node node-b2">
+            <h3>资料检索</h3>
+            <p>产品手册、售后政策、FAQ。</p>
+            <div class="meta"><span class="badge">KB</span></div>
+          </article>
+          <article class="node node-b3">
+            <h3>调用工单系统</h3>
+            <p>查询订单状态和历史记录。</p>
+            <div class="meta"><span class="badge">HTTP</span></div>
+          </article>
+          <article class="node node-b4">
+            <h3>整合回复</h3>
+            <p>生成结构化答复并引用来源。</p>
+            <div class="meta"><span class="badge">AI</span></div>
+          </article>
+          <div class="floating-hint">
+            <span class="badge">当前建议</span>
+            <p>
+              “调用工单系统”节点缺少失败兜底分支。建议添加异常回复节点，避免接口失败时中断对话。
+            </p>
+          </div>
+        </section>
+      </section>
+
+      <footer class="bottom-console">
+        <div class="console-card">
+          <p class="rail-title">运行目标</p>
+          <strong>售后咨询链路</strong>
+        </div>
+        <div class="console-card">
+          <p class="rail-title">调试输入</p>
+          <div class="fake-input"></div>
+        </div>
+        <div class="console-card">
+          <p class="rail-title">操作</p>
+          <span class="btn primary" style="width: 100%">开始调试</span>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

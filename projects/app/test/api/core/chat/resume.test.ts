@@ -371,7 +371,7 @@ describe('stream resume api', () => {
     });
 
     expect(MongoChat.updateOne).toHaveBeenCalledWith(
-      { appId, chatId },
+      { appId, chatId, sourceType: { $ne: 'skillEdit' } },
       { $set: { hasBeenRead: true } }
     );
     expect(getChatItems).toHaveBeenCalledWith({
@@ -616,7 +616,7 @@ describe('stream resume api', () => {
         }
       });
       expect(MongoChat.updateOne).toHaveBeenCalledWith(
-        { appId, chatId },
+        { appId, chatId, sourceType: { $ne: 'skillEdit' } },
         { $set: { hasBeenRead: true } }
       );
       expect(redis.call).not.toHaveBeenCalled();

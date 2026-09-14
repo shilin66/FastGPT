@@ -19,6 +19,19 @@ import { serverGetWorkflowToolRunUserQuery } from '../../../../../../app/tool/wo
 import { getWorkflowToolInputsFromStoreNodes } from '@fastgpt/global/core/app/tool/workflowTool/utils';
 import type { RunWorkflowProps } from '../../../../../../../core/workflow/dispatch';
 import { anyValueDecrypt } from '../../../../../../../common/secret/utils';
+import type { AIChatItemValueItemType } from '@fastgpt/global/core/chat/type';
+import { SandboxUnavailableError } from '../sandbox/errors';
+import { RuntimeSkillResolutionError } from '../../../../../../agentSkills/runtimeResolver';
+
+const collectChildSandboxResponses = (responses: AIChatItemValueItemType[] = []) => {
+  const audit = responses.filter((value) => value.sandboxEvent || value.skills?.length);
+  const failure = audit.find((value) => value.sandboxEvent?.status === 'failed');
+  if (failure?.sandboxEvent?.code === 'sandbox_unavailable')
+    throw new SandboxUnavailableError(audit);
+  if (failure?.sandboxEvent?.code === 'skill_unavailable')
+    throw new RuntimeSkillResolutionError('inaccessible', audit);
+  return audit;
+};
 
 type Props = Pick<
   RunWorkflowProps,
@@ -116,12 +129,14 @@ export const dispatchApp = async (props: Props): Promise<DispatchSubAppResponse>
   });
 
   const { text } = chatValue2RuntimePrompt(assistantResponses);
+  const sandboxResponses = collectChildSandboxResponses(assistantResponses);
 
   return {
     response: text,
     result: {},
     runningTime: runTimes || 0,
-    usages: flowUsages
+    usages: flowUsages,
+    assistantResponses: sandboxResponses
   };
 };
 
@@ -207,7 +222,7 @@ export const dispatchPlugin = async (props: Props): Promise<DispatchSubAppRespon
         return acc;
       }, {}) ?? {};
 
-  const { flowResponses, flowUsages, runTimes } = await runWorkflow({
+  const { flowResponses, flowUsages, runTimes, assistantResponses } = await runWorkflow({
     ...data,
     uid: variables.userId,
     chatId: variables.chatId,
@@ -235,6 +250,7 @@ export const dispatchPlugin = async (props: Props): Promise<DispatchSubAppRespon
   });
 
   const output = flowResponses.find((item) => item.moduleType === FlowNodeTypeEnum.pluginOutput);
+  const sandboxResponses = collectChildSandboxResponses(assistantResponses);
   const response = output?.pluginOutput
     ? JSON.stringify(
         Object.keys(output.pluginOutput)
@@ -250,6 +266,7 @@ export const dispatchPlugin = async (props: Props): Promise<DispatchSubAppRespon
     response,
     result: output?.pluginOutput || {},
     runningTime: runTimes || 0,
-    usages: flowUsages
+    usages: flowUsages,
+    assistantResponses: sandboxResponses
   };
 };

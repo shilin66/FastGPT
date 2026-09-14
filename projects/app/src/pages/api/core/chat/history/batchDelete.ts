@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { NextApiResponse } from 'next';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
 import { MongoChatItem } from '@fastgpt/service/core/chat/chatItemSchema';
@@ -23,48 +24,45 @@ async function handler(req: ApiRequestProps, res: NextApiResponse) {
   });
 
   await Promise.all([
-    MongoChatItemResponse.deleteMany({
-      appId,
-      chatId: { $in: chatIds }
-    }),
+    MongoChatItemResponse.deleteMany({ ...getChatSourceFilter(), appId, chatId: { $in: chatIds } }),
     // Delete sandboxes
     deleteSandboxesByChatIds({ appId, chatIds })
   ]);
   await mongoSessionRun(async (session) => {
     const chatList = await MongoChat.find(
-      {
-        appId,
-        chatId: { $in: chatIds }
-      },
+      { ...getChatSourceFilter(), appId, chatId: { $in: chatIds } },
       'chatId tmbId outLinkUid'
     )
       .lean()
       .session(session);
 
+    const skillSource = { appId, chatId: { $in: chatIds }, sourceType: 'skillEdit' };
+    const skillChatIds = new Set([
+      ...(await MongoChat.distinct('chatId', skillSource).session(session)),
+      ...(await MongoChatItem.distinct('chatId', skillSource).session(session)),
+      ...(await MongoChatItemResponse.distinct('chatId', skillSource).session(session))
+    ]);
+
     await MongoChatItem.deleteMany(
-      {
-        appId,
-        chatId: { $in: chatIds }
-      },
+      { ...getChatSourceFilter(), appId, chatId: { $in: chatIds } },
       { session }
     );
     await MongoChat.deleteMany(
-      {
-        appId,
-        chatId: { $in: chatIds }
-      },
+      { ...getChatSourceFilter(), appId, chatId: { $in: chatIds } },
       { session }
     );
 
     // Delete s3
     await Promise.all(
-      chatList.map((item) => {
-        return getS3ChatSource().deleteChatFilesByPrefix({
-          appId,
-          chatId: item.chatId,
-          uId: String(item.outLinkUid || item.tmbId)
-        });
-      })
+      chatList
+        .filter((item) => !skillChatIds.has(item.chatId))
+        .map((item) => {
+          return getS3ChatSource().deleteChatFilesByPrefix({
+            appId,
+            chatId: item.chatId,
+            uId: String(item.outLinkUid || item.tmbId)
+          });
+        })
     );
   });
 

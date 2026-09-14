@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getGuideModule, getAppChatConfig } from '@fastgpt/global/core/workflow/utils';
 import { authOutLink } from '@/service/support/permission/auth/outLink';
@@ -21,7 +22,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   // auth app permission
   const [chat, app] = await Promise.all([
-    MongoChat.findOne({ appId, chatId }).lean(),
+    MongoChat.findOne({ ...getChatSourceFilter(), appId, chatId }).lean(),
     MongoApp.findById(appId).lean()
   ]);
 
@@ -36,7 +37,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const chatGenerateStatus = chat?.chatGenerateStatus ?? ChatGenerateStatusEnum.done;
   if (chat?.hasBeenRead === false && chatGenerateStatus !== ChatGenerateStatusEnum.generating) {
-    await MongoChat.updateOne({ appId, chatId }, { $set: { hasBeenRead: true } });
+    await MongoChat.updateOne(
+      { ...getChatSourceFilter(), appId, chatId },
+      { $set: { hasBeenRead: true } }
+    );
     chat.hasBeenRead = true;
   }
 

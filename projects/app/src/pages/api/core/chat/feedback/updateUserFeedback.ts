@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import type { NextApiResponse } from 'next';
 import { MongoChatItem } from '@fastgpt/service/core/chat/chatItemSchema';
 import { authChatCrud } from '@/service/support/permission/auth/chat';
@@ -27,7 +28,7 @@ async function handler(
     ...req.body
   });
 
-  const chatItem = await MongoChatItem.findOne({ appId, chatId, dataId });
+  const chatItem = await MongoChatItem.findOne({ ...getChatSourceFilter(), appId, chatId, dataId });
   if (!chatItem) {
     return Promise.reject('Chat item not found');
   }
@@ -35,7 +36,7 @@ async function handler(
   await mongoSessionRun(async (session) => {
     // Update ChatItem feedback
     await MongoChatItem.updateOne(
-      { appId, chatId, dataId },
+      { ...getChatSourceFilter(), appId, chatId, dataId },
       {
         $unset: {
           ...(userBadFeedback === undefined && { userBadFeedback: '' }),

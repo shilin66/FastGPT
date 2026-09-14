@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from './source';
 import { subMinutes } from 'date-fns';
 import { ChatGenerateStatusEnum } from '@fastgpt/global/core/chat/constants';
 import { getLogger, LogCategories } from '../../common/logger';
@@ -18,6 +19,7 @@ export const cleanStaleGeneratingChats = async (): Promise<{ modifiedCount: numb
 
   const result = await MongoChat.updateMany(
     {
+      ...getChatSourceFilter(),
       chatGenerateStatus: ChatGenerateStatusEnum.generating,
       updateTime: { $lt: threshold }
     },

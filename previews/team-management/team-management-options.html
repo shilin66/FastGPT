@@ -1,0 +1,1975 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniCockpit 团队管理重构方案</title>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <style>
+      :root {
+        --graphite: #27364a;
+        --graphite-hover: #1f2a3a;
+        --blue: #2563eb;
+        --blue-hover: #1d4ed8;
+        --blue-soft: #dbeafe;
+        --gold: #c69b4a;
+        --gold-soft: #f3e7c6;
+        --page: #f8fafc;
+        --rail: #f5f7fa;
+        --surface: #ffffff;
+        --border: #dfe5ee;
+        --border-strong: #cfd8e6;
+        --text: #1f2937;
+        --muted: #667085;
+        --muted-2: #98a2b3;
+        --green: #15803d;
+        --green-soft: #dcfce7;
+        --red: #c2413b;
+        --red-soft: #fef2f2;
+        --shadow: 0 18px 44px -34px rgba(31, 41, 55, 0.28);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: #eef2f7;
+        font-family: Inter, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      .preview-header {
+        position: sticky;
+        z-index: 20;
+        top: 0;
+        display: flex;
+        min-height: 78px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 28px;
+        padding: 14px 24px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(248, 250, 252, 0.96);
+        backdrop-filter: blur(14px);
+      }
+
+      .preview-title {
+        min-width: 280px;
+      }
+
+      .preview-title h1 {
+        margin: 0 0 4px;
+        font-size: 18px;
+        line-height: 1.35;
+      }
+
+      .preview-title p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .option-switcher {
+        display: flex;
+        gap: 6px;
+        padding: 4px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .option-button {
+        min-width: 150px;
+        padding: 9px 14px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .option-button strong,
+      .option-button span {
+        display: block;
+      }
+
+      .option-button strong {
+        margin-bottom: 2px;
+        color: inherit;
+        font-size: 13px;
+      }
+
+      .option-button span {
+        font-size: 11px;
+      }
+
+      .option-button.is-active {
+        background: var(--graphite);
+        color: #fff;
+        box-shadow: 0 8px 18px -14px rgba(39, 54, 74, 0.8);
+      }
+
+      .recommendation {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .recommendation b {
+        padding: 5px 8px;
+        border-radius: 6px;
+        background: var(--gold-soft);
+        color: #7a5b1b;
+        font-weight: 700;
+      }
+
+      .preview-stage {
+        padding: 18px;
+      }
+
+      .option-panel {
+        display: none;
+      }
+
+      .option-panel.is-active {
+        display: block;
+      }
+
+      .concept-note {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(420px, 680px);
+        gap: 24px;
+        align-items: center;
+        max-width: 1680px;
+        margin: 0 auto 12px;
+        padding: 0 2px;
+      }
+
+      .concept-note h2 {
+        margin: 0 0 4px;
+        font-size: 16px;
+      }
+
+      .concept-note p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .concept-tags {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .concept-tag {
+        padding: 5px 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .mockup {
+        display: flex;
+        min-width: 1180px;
+        max-width: 1680px;
+        height: calc(100vh - 126px);
+        min-height: 720px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .app-rail {
+        display: flex;
+        width: 68px;
+        flex: 0 0 68px;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 8px;
+        border-right: 1px solid var(--border);
+        background: var(--rail);
+      }
+
+      .brand-mark,
+      .avatar-mark {
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        color: white;
+        font-weight: 800;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        background: var(--graphite);
+        box-shadow:
+          inset 3px 0 0 var(--blue),
+          inset -3px 0 0 var(--gold);
+      }
+
+      .rail-divider {
+        width: 34px;
+        margin: 12px 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .rail-button {
+        display: grid;
+        width: 40px;
+        height: 40px;
+        margin: 3px 0;
+        place-items: center;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: #5a6678;
+        cursor: pointer;
+      }
+
+      .rail-button:hover,
+      .rail-button.is-active {
+        background: var(--surface);
+        color: var(--blue);
+        box-shadow: 0 4px 12px -10px rgba(31, 41, 55, 0.65);
+      }
+
+      .rail-spacer {
+        flex: 1;
+      }
+
+      .rail-user {
+        width: 34px;
+        height: 34px;
+        border: 2px solid var(--surface);
+        border-radius: 50%;
+        background: #181d27;
+        color: white;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+      }
+
+      .screen {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        flex-direction: column;
+        background: var(--page);
+      }
+
+      .screen-header {
+        display: flex;
+        height: 72px;
+        flex: 0 0 72px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 0 22px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .team-identity {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .team-avatar {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--blue);
+        color: white;
+        font-weight: 800;
+      }
+
+      .team-copy strong,
+      .team-copy span {
+        display: block;
+      }
+
+      .team-copy strong {
+        margin-bottom: 2px;
+        font-size: 15px;
+      }
+
+      .team-copy span {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .header-actions,
+      .toolbar,
+      .inline-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .button {
+        display: inline-flex;
+        height: 34px;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--graphite);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .button:hover {
+        border-color: #b9c4d3;
+        background: #fbfcfe;
+      }
+
+      .button.primary {
+        border-color: var(--blue);
+        background: var(--blue);
+        color: white;
+      }
+
+      .button.primary:hover {
+        border-color: var(--blue-hover);
+        background: var(--blue-hover);
+      }
+
+      .button.icon-only {
+        width: 34px;
+        padding: 0;
+      }
+
+      .field {
+        display: flex;
+        height: 34px;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .field input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--text);
+      }
+
+      .field.search {
+        width: 230px;
+      }
+
+      .select-field {
+        min-width: 104px;
+        justify-content: space-between;
+      }
+
+      .body-row {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+      }
+
+      .governance-rail {
+        width: 224px;
+        flex: 0 0 224px;
+        padding: 18px 12px;
+        border-right: 1px solid var(--border);
+        background: var(--rail);
+      }
+
+      .rail-label {
+        padding: 0 10px 8px;
+        color: var(--muted-2);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .governance-item {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 52px;
+        margin-bottom: 4px;
+        padding: 6px 9px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .governance-item:hover {
+        background: #eef2f7;
+      }
+
+      .governance-item.is-active {
+        background: var(--surface);
+        box-shadow:
+          inset 3px 0 0 var(--blue),
+          0 7px 18px -18px rgba(31, 41, 55, 0.8);
+      }
+
+      .nav-icon {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--graphite);
+      }
+
+      .governance-item.is-active .nav-icon {
+        border-color: var(--blue-soft);
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .nav-copy strong,
+      .nav-copy span {
+        display: block;
+      }
+
+      .nav-copy strong {
+        margin-bottom: 2px;
+        font-size: 12px;
+      }
+
+      .nav-copy span {
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .count {
+        min-width: 24px;
+        padding: 3px 6px;
+        border-radius: 999px;
+        background: #e9edf3;
+        color: #526071;
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+      }
+
+      .workbench {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        flex-direction: column;
+        background: var(--surface);
+      }
+
+      .workbench-heading {
+        display: flex;
+        min-height: 82px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 17px 22px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .workbench-heading h3 {
+        margin: 0 0 5px;
+        font-size: 20px;
+      }
+
+      .workbench-heading p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .workbench-toolbar {
+        display: flex;
+        min-height: 56px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 22px;
+        border-bottom: 1px solid var(--border);
+        background: #fbfcfe;
+      }
+
+      .table-scroll {
+        min-height: 0;
+        flex: 1;
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th {
+        position: sticky;
+        z-index: 2;
+        top: 0;
+        height: 38px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--border-strong);
+        background: #f3f6fa;
+        color: #647184;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-align: left;
+      }
+
+      td {
+        height: 56px;
+        padding: 0 16px;
+        border-bottom: 1px solid #e8edf3;
+        color: #475467;
+        font-size: 12px;
+        vertical-align: middle;
+      }
+
+      tr:hover td {
+        background: #fbfdff;
+      }
+
+      .person {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .person-avatar {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        flex: 0 0 30px;
+        place-items: center;
+        border-radius: 50%;
+        background: #e8eef8;
+        color: var(--graphite);
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .person-avatar.blue {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .person-avatar.gold {
+        background: var(--gold-soft);
+        color: #7a5b1b;
+      }
+
+      .person-copy {
+        min-width: 0;
+      }
+
+      .person-copy strong,
+      .person-copy span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .person-copy strong {
+        color: var(--text);
+        font-size: 12px;
+      }
+
+      .person-copy span {
+        margin-top: 2px;
+        color: var(--muted-2);
+        font-size: 10px;
+      }
+
+      .badge {
+        display: inline-flex;
+        min-height: 22px;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 7px;
+        border-radius: 6px;
+        background: #eef2f7;
+        color: #526071;
+        font-size: 10px;
+      }
+
+      .badge.blue {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .badge.green {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .badge.gold {
+        background: var(--gold-soft);
+        color: #7a5b1b;
+      }
+
+      .row-action {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .row-action:hover {
+        background: #eef2f7;
+        color: var(--blue);
+      }
+
+      .table-footer {
+        display: flex;
+        height: 44px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .pager {
+        display: flex;
+        gap: 4px;
+      }
+
+      .pager button {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .pager button.is-active {
+        border-color: var(--blue);
+        color: var(--blue);
+      }
+
+      /* Option B */
+      .directory-shell {
+        display: grid;
+        min-height: 0;
+        flex: 1;
+        grid-template-columns: 254px minmax(420px, 1fr) 330px;
+      }
+
+      .tree-pane,
+      .detail-pane {
+        min-width: 0;
+        overflow: auto;
+        background: var(--rail);
+      }
+
+      .tree-pane {
+        border-right: 1px solid var(--border);
+      }
+
+      .pane-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .pane-header h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+      }
+
+      .tree-section {
+        padding: 14px 10px;
+      }
+
+      .tree-section + .tree-section {
+        border-top: 1px solid var(--border);
+      }
+
+      .tree-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 8px 8px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .tree-row {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 7px;
+        min-height: 38px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        color: #475467;
+        cursor: pointer;
+        font-size: 11px;
+      }
+
+      .tree-row:hover,
+      .tree-row.is-active {
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      .tree-row.is-active {
+        box-shadow: inset 3px 0 0 var(--blue);
+      }
+
+      .tree-row.level-2 {
+        padding-left: 25px;
+      }
+
+      .directory-pane {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        background: var(--surface);
+      }
+
+      .directory-toolbar {
+        display: flex;
+        min-height: 76px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .directory-title h3 {
+        margin: 0 0 4px;
+        font-size: 17px;
+      }
+
+      .directory-title p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .detail-pane {
+        border-left: 1px solid var(--border);
+        background: #fbfcfe;
+      }
+
+      .detail-hero {
+        padding: 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .detail-avatar {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        margin-bottom: 13px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-weight: 800;
+      }
+
+      .detail-hero h3 {
+        margin: 0 0 4px;
+        font-size: 16px;
+      }
+
+      .detail-hero p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .detail-section {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .detail-section h4 {
+        margin: 0 0 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+
+      .detail-line {
+        display: flex;
+        min-height: 34px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .detail-line b {
+        color: var(--text);
+        font-weight: 650;
+        text-align: right;
+      }
+
+      .permission-list {
+        display: grid;
+        gap: 7px;
+      }
+
+      .permission-line {
+        display: flex;
+        min-height: 38px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+        font-size: 11px;
+      }
+
+      .check {
+        display: grid;
+        width: 18px;
+        height: 18px;
+        place-items: center;
+        border-radius: 5px;
+        background: var(--blue);
+        color: white;
+      }
+
+      /* Option C */
+      .entity-shell {
+        display: grid;
+        min-height: 0;
+        flex: 1;
+        grid-template-columns: 276px minmax(0, 1fr);
+      }
+
+      .entity-command {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+        border-right: 1px solid var(--border);
+        background: var(--rail);
+      }
+
+      .command-title {
+        padding: 18px 16px 12px;
+      }
+
+      .command-title h3 {
+        margin: 0 0 4px;
+        font-size: 15px;
+      }
+
+      .command-title p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .mode-list {
+        padding: 8px;
+      }
+
+      .mode-row {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        min-height: 48px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .mode-row:hover,
+      .mode-row.is-active {
+        background: var(--surface);
+      }
+
+      .mode-row.is-active {
+        box-shadow: inset 3px 0 0 var(--blue);
+      }
+
+      .mode-copy strong,
+      .mode-copy span {
+        display: block;
+      }
+
+      .mode-copy strong {
+        font-size: 11px;
+      }
+
+      .mode-copy span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .saved-views {
+        margin-top: auto;
+        padding: 14px 12px;
+        border-top: 1px solid var(--border);
+      }
+
+      .saved-views strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 10px;
+      }
+
+      .view-chip {
+        display: inline-flex;
+        margin: 0 4px 5px 0;
+        padding: 5px 7px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .entity-workbench {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        background: var(--surface);
+      }
+
+      .entity-topbar {
+        display: flex;
+        min-height: 88px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .entity-topbar h3 {
+        margin: 0 0 5px;
+        font-size: 19px;
+      }
+
+      .entity-topbar p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .entity-filterbar {
+        display: flex;
+        min-height: 52px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 9px 20px;
+        border-bottom: 1px solid var(--border);
+        background: #fbfcfe;
+      }
+
+      .filter-tabs {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .filter-tab {
+        height: 30px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 11px;
+      }
+
+      .filter-tab.is-active {
+        background: var(--graphite);
+        color: white;
+      }
+
+      .entity-grid {
+        display: grid;
+        min-height: 0;
+        flex: 1;
+        grid-template-columns: minmax(0, 1fr) 304px;
+      }
+
+      .entity-list {
+        min-width: 0;
+        overflow: auto;
+      }
+
+      .entity-row {
+        display: grid;
+        grid-template-columns: 40px minmax(190px, 1.5fr) minmax(120px, 1fr) minmax(100px, 0.8fr) 110px 34px;
+        align-items: center;
+        min-height: 62px;
+        padding: 0 16px;
+        border-bottom: 1px solid #e8edf3;
+        cursor: pointer;
+      }
+
+      .entity-row:hover,
+      .entity-row.is-active {
+        background: #fbfdff;
+      }
+
+      .entity-row.is-active {
+        box-shadow: inset 3px 0 0 var(--blue);
+      }
+
+      .entity-row.header {
+        position: sticky;
+        z-index: 2;
+        top: 0;
+        min-height: 38px;
+        background: #f3f6fa;
+        color: #647184;
+        cursor: default;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .entity-inspector {
+        overflow: auto;
+        border-left: 1px solid var(--border);
+        background: #fbfcfe;
+      }
+
+      .inspector-header {
+        padding: 18px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .inspector-header .person-avatar {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+      }
+
+      .inspector-header h4 {
+        margin: 0 0 4px;
+        font-size: 15px;
+      }
+
+      .inspector-header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .inspector-section {
+        padding: 15px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .inspector-section h5 {
+        margin: 0 0 10px;
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+
+      .switch-line {
+        display: flex;
+        min-height: 36px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 11px;
+      }
+
+      .switch {
+        position: relative;
+        width: 30px;
+        height: 18px;
+        border-radius: 999px;
+        background: #cfd8e6;
+      }
+
+      .switch::after {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: white;
+        content: '';
+      }
+
+      .switch.is-on {
+        background: var(--blue);
+      }
+
+      .switch.is-on::after {
+        left: 15px;
+      }
+
+      [data-lucide] {
+        width: 16px;
+        height: 16px;
+        stroke-width: 1.8;
+      }
+
+      @media (max-width: 980px) {
+        .preview-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .option-switcher {
+          width: 100%;
+          overflow: auto;
+        }
+
+        .option-button {
+          flex: 1 0 150px;
+        }
+
+        .recommendation {
+          display: none;
+        }
+
+        .concept-note {
+          grid-template-columns: 1fr;
+        }
+
+        .concept-tags {
+          justify-content: flex-start;
+          overflow: auto;
+        }
+
+        .preview-stage {
+          overflow-x: auto;
+        }
+
+        .mockup {
+          height: 760px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="preview-header">
+      <div class="preview-title">
+        <h1>OmniCockpit 团队管理重构</h1>
+        <p>三套信息架构均复用现有团队、成员、部门、群组与权限接口</p>
+      </div>
+      <nav class="option-switcher" aria-label="方案选择">
+        <button class="option-button is-active" data-option="a">
+          <strong>方案 A · 治理工作台</strong>
+          <span>低风险，统一四个管理模块</span>
+        </button>
+        <button class="option-button" data-option="b">
+          <strong>方案 B · 组织目录</strong>
+          <span>三栏分屏，适合复杂部门体系</span>
+        </button>
+        <button class="option-button" data-option="c">
+          <strong>方案 C · 对象资源管理器</strong>
+          <span>统一成员、部门、群组检索</span>
+        </button>
+      </nav>
+      <div class="recommendation"><b>推荐 A</b><span>与当前重构风格最一致</span></div>
+    </header>
+
+    <main class="preview-stage">
+      <section class="option-panel is-active" data-panel="a">
+        <div class="concept-note">
+          <div>
+            <h2>方案 A：治理导航工作台</h2>
+            <p>
+              把横向标签改成固定治理侧栏，每个模块使用相同的标题、筛选、操作与数据区。现有代码改动可控，也最适合后续继续重构管理类页面。
+            </p>
+          </div>
+          <div class="concept-tags">
+            <span class="concept-tag">成员接口保持不变</span>
+            <span class="concept-tag">部门层级保持不变</span>
+            <span class="concept-tag">权限矩阵保持不变</span>
+          </div>
+        </div>
+
+        <div class="mockup">
+          <aside class="app-rail">
+            <div class="brand-mark">OC</div>
+            <div class="rail-divider"></div>
+            <button class="rail-button"><i data-lucide="message-circle"></i></button>
+            <button class="rail-button"><i data-lucide="bot"></i></button>
+            <button class="rail-button"><i data-lucide="database"></i></button>
+            <button class="rail-button"><i data-lucide="wrench"></i></button>
+            <button class="rail-button is-active"><i data-lucide="users-round"></i></button>
+            <div class="rail-spacer"></div>
+            <div class="rail-user">N</div>
+          </aside>
+
+          <div class="screen">
+            <header class="screen-header">
+              <div class="team-identity">
+                <div class="team-avatar">OC</div>
+                <div class="team-copy">
+                  <strong>团队治理</strong>
+                  <span>成员、组织与访问控制</span>
+                </div>
+              </div>
+              <div class="header-actions">
+                <button class="button"><i data-lucide="chevrons-up-down"></i>Public</button>
+                <button class="button icon-only" title="编辑团队">
+                  <i data-lucide="pencil"></i>
+                </button>
+                <button class="button icon-only" title="创建团队">
+                  <i data-lucide="plus"></i>
+                </button>
+              </div>
+            </header>
+
+            <div class="body-row">
+              <aside class="governance-rail">
+                <div class="rail-label">Governance</div>
+                <button class="governance-item is-active">
+                  <span class="nav-icon"><i data-lucide="users"></i></span>
+                  <span class="nav-copy"><strong>成员</strong><span>身份与成员状态</span></span>
+                  <span class="count">18</span>
+                </button>
+                <button class="governance-item">
+                  <span class="nav-icon"><i data-lucide="building-2"></i></span>
+                  <span class="nav-copy"><strong>部门</strong><span>层级与归属关系</span></span>
+                  <span class="count">4</span>
+                </button>
+                <button class="governance-item">
+                  <span class="nav-icon"><i data-lucide="users-round"></i></span>
+                  <span class="nav-copy"><strong>群组</strong><span>跨部门成员组合</span></span>
+                  <span class="count">3</span>
+                </button>
+                <button class="governance-item">
+                  <span class="nav-icon"><i data-lucide="key-round"></i></span>
+                  <span class="nav-copy"><strong>权限</strong><span>平台能力授权</span></span>
+                </button>
+              </aside>
+
+              <section class="workbench">
+                <div class="workbench-heading">
+                  <div>
+                    <h3>成员</h3>
+                    <p>维护团队身份、部门归属与成员状态。</p>
+                  </div>
+                  <div class="inline-actions">
+                    <button class="button"><i data-lucide="arrow-right-left"></i>转让团队</button>
+                    <button class="button primary"><i data-lucide="user-plus"></i>邀请成员</button>
+                  </div>
+                </div>
+                <div class="workbench-toolbar">
+                  <div class="toolbar">
+                    <div class="field select-field">
+                      <span>全部状态</span><i data-lucide="chevron-down"></i>
+                    </div>
+                    <div class="field search">
+                      <i data-lucide="search"></i><input value="" placeholder="搜索成员" />
+                    </div>
+                  </div>
+                  <span class="badge blue"><i data-lucide="users"></i>共 18 名成员</span>
+                </div>
+                <div class="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th style="width: 31%">成员</th>
+                        <th style="width: 24%">部门</th>
+                        <th style="width: 18%">身份</th>
+                        <th style="width: 19%">加入 / 更新</th>
+                        <th style="width: 8%">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar blue">OW</span
+                            ><span class="person-copy"
+                              ><strong>Owner</strong><span>团队所有者</span></span
+                            >
+                          </div>
+                        </td>
+                        <td><span class="badge">总部</span></td>
+                        <td><span class="badge gold">所有者</span></td>
+                        <td>
+                          <span class="person-copy"
+                            ><strong>2025-05-30</strong><span>2026-07-31 更新</span></span
+                          >
+                        </td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar">TU</span
+                            ><span class="person-copy"
+                              ><strong>testuser@test.com</strong><span>已验证账号</span></span
+                            >
+                          </div>
+                        </td>
+                        <td><span class="badge">ROOT</span></td>
+                        <td><span class="badge blue">管理员</span></td>
+                        <td>
+                          <span class="person-copy"
+                            ><strong>2025-07-31</strong><span>2026-06-12 更新</span></span
+                          >
+                        </td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar gold">SC</span
+                            ><span class="person-copy"
+                              ><strong>skctest@skc.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td><span class="badge">产品设计</span></td>
+                        <td><span class="badge">成员</span></td>
+                        <td>
+                          <span class="person-copy"
+                            ><strong>2025-10-11</strong><span>2026-05-28 更新</span></span
+                          >
+                        </td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar blue">HX</span
+                            ><span class="person-copy"
+                              ><strong>hyxc@test.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td><span class="badge">Agent 研发</span></td>
+                        <td><span class="badge">成员</span></td>
+                        <td>
+                          <span class="person-copy"
+                            ><strong>2025-10-23</strong><span>2026-05-19 更新</span></span
+                          >
+                        </td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar">NV</span
+                            ><span class="person-copy"
+                              ><strong>nova@test.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td><span class="badge">知识工程</span></td>
+                        <td><span class="badge">成员</span></td>
+                        <td>
+                          <span class="person-copy"
+                            ><strong>2025-10-29</strong><span>2026-05-18 更新</span></span
+                          >
+                        </td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar gold">JW</span
+                            ><span class="person-copy"
+                              ><strong>jingwei@shzl.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td><span class="badge">未分配</span></td>
+                        <td><span class="badge">成员</span></td>
+                        <td>
+                          <span class="person-copy"
+                            ><strong>2025-11-03</strong><span>2026-04-26 更新</span></span
+                          >
+                        </td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar blue">PC</span
+                            ><span class="person-copy"
+                              ><strong>pacnet@test.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td><span class="badge">运营</span></td>
+                        <td><span class="badge">成员</span></td>
+                        <td>
+                          <span class="person-copy"
+                            ><strong>2025-11-04</strong><span>2026-04-20 更新</span></span
+                          >
+                        </td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <footer class="table-footer">
+                  <span>显示 1-7，共 18 名成员</span>
+                  <div class="pager">
+                    <button><i data-lucide="chevron-left"></i></button
+                    ><button class="is-active">1</button><button>2</button><button>3</button
+                    ><button><i data-lucide="chevron-right"></i></button>
+                  </div>
+                </footer>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="option-panel" data-panel="b">
+        <div class="concept-note">
+          <div>
+            <h2>方案 B：组织目录分屏</h2>
+            <p>
+              部门树、成员目录和对象详情同时可见，切换上下级部门不离开当前上下文。适合部门层级复杂、日常调整成员归属较多的企业团队。
+            </p>
+          </div>
+          <div class="concept-tags">
+            <span class="concept-tag">复用部门树接口</span>
+            <span class="concept-tag">复用成员分页接口</span>
+            <span class="concept-tag">详情操作走现有弹窗</span>
+          </div>
+        </div>
+
+        <div class="mockup">
+          <aside class="app-rail">
+            <div class="brand-mark">OC</div>
+            <div class="rail-divider"></div>
+            <button class="rail-button"><i data-lucide="message-circle"></i></button>
+            <button class="rail-button"><i data-lucide="bot"></i></button>
+            <button class="rail-button"><i data-lucide="database"></i></button>
+            <button class="rail-button"><i data-lucide="wrench"></i></button>
+            <button class="rail-button is-active"><i data-lucide="users-round"></i></button>
+            <div class="rail-spacer"></div>
+            <div class="rail-user">N</div>
+          </aside>
+          <div class="screen">
+            <header class="screen-header">
+              <div class="team-identity">
+                <div class="team-avatar">OC</div>
+                <div class="team-copy"><strong>Public</strong><span>组织目录与成员关系</span></div>
+              </div>
+              <div class="header-actions">
+                <button class="button"><i data-lucide="chevrons-up-down"></i>切换团队</button
+                ><button class="button"><i data-lucide="key-round"></i>权限策略</button
+                ><button class="button primary"><i data-lucide="user-plus"></i>邀请成员</button>
+              </div>
+            </header>
+            <div class="directory-shell">
+              <aside class="tree-pane">
+                <div class="pane-header">
+                  <h3>组织目录</h3>
+                  <div class="field">
+                    <i data-lucide="search"></i><input placeholder="搜索部门或群组" />
+                  </div>
+                </div>
+                <div class="tree-section">
+                  <div class="tree-title"><span>部门</span><i data-lucide="plus"></i></div>
+                  <div class="tree-row is-active">
+                    <i data-lucide="building-2"></i><span>Public</span><span class="count">18</span>
+                  </div>
+                  <div class="tree-row level-2">
+                    <i data-lucide="corner-down-right"></i><span>Agent 研发</span
+                    ><span class="count">6</span>
+                  </div>
+                  <div class="tree-row level-2">
+                    <i data-lucide="corner-down-right"></i><span>知识工程</span
+                    ><span class="count">5</span>
+                  </div>
+                  <div class="tree-row level-2">
+                    <i data-lucide="corner-down-right"></i><span>产品设计</span
+                    ><span class="count">4</span>
+                  </div>
+                  <div class="tree-row level-2">
+                    <i data-lucide="corner-down-right"></i><span>运营</span
+                    ><span class="count">3</span>
+                  </div>
+                </div>
+                <div class="tree-section">
+                  <div class="tree-title"><span>群组</span><i data-lucide="plus"></i></div>
+                  <div class="tree-row">
+                    <i data-lucide="users-round"></i><span>平台管理员</span
+                    ><span class="count">3</span>
+                  </div>
+                  <div class="tree-row">
+                    <i data-lucide="users-round"></i><span>知识库维护者</span
+                    ><span class="count">6</span>
+                  </div>
+                  <div class="tree-row">
+                    <i data-lucide="users-round"></i><span>Agent 发布者</span
+                    ><span class="count">5</span>
+                  </div>
+                </div>
+              </aside>
+              <section class="directory-pane">
+                <div class="directory-toolbar">
+                  <div class="directory-title">
+                    <h3>Public</h3>
+                    <p>团队根部门 · 18 名成员</p>
+                  </div>
+                  <div class="toolbar">
+                    <div class="field search">
+                      <i data-lucide="search"></i><input placeholder="搜索当前目录" />
+                    </div>
+                    <button class="button"><i data-lucide="folder-plus"></i>新建子部门</button>
+                  </div>
+                </div>
+                <div class="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th style="width: 42%">成员</th>
+                        <th style="width: 24%">直接归属</th>
+                        <th style="width: 24%">权限来源</th>
+                        <th style="width: 10%">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar blue">OW</span
+                            ><span class="person-copy"
+                              ><strong>Owner</strong><span>owner@omnicockpit.ai</span></span
+                            >
+                          </div>
+                        </td>
+                        <td>Public</td>
+                        <td><span class="badge gold">所有者</span></td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar">TU</span
+                            ><span class="person-copy"
+                              ><strong>testuser@test.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td>Agent 研发</td>
+                        <td><span class="badge blue">平台管理员</span></td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar gold">SC</span
+                            ><span class="person-copy"
+                              ><strong>skctest@skc.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td>产品设计</td>
+                        <td><span class="badge">部门继承</span></td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar blue">HX</span
+                            ><span class="person-copy"
+                              ><strong>hyxc@test.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td>Agent 研发</td>
+                        <td><span class="badge">部门继承</span></td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar">NV</span
+                            ><span class="person-copy"
+                              ><strong>nova@test.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td>知识工程</td>
+                        <td><span class="badge blue">知识库维护者</span></td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="person">
+                            <span class="person-avatar gold">JW</span
+                            ><span class="person-copy"
+                              ><strong>jingwei@shzl.com</strong><span>普通成员</span></span
+                            >
+                          </div>
+                        </td>
+                        <td>未分配</td>
+                        <td><span class="badge">团队默认</span></td>
+                        <td>
+                          <button class="row-action"><i data-lucide="more-horizontal"></i></button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+              <aside class="detail-pane">
+                <div class="detail-hero">
+                  <div class="detail-avatar">TU</div>
+                  <h3>testuser@test.com</h3>
+                  <p>成员详情与当前权限来源</p>
+                </div>
+                <div class="detail-section">
+                  <h4>成员归属</h4>
+                  <div class="detail-line"><span>部门</span><b>Agent 研发</b></div>
+                  <div class="detail-line"><span>群组</span><b>平台管理员</b></div>
+                  <div class="detail-line"><span>加入时间</span><b>2025-07-31</b></div>
+                </div>
+                <div class="detail-section">
+                  <h4>平台能力</h4>
+                  <div class="permission-list">
+                    <div class="permission-line">
+                      <span>创建应用</span><span class="check"><i data-lucide="check"></i></span>
+                    </div>
+                    <div class="permission-line">
+                      <span>创建知识库</span><span class="check"><i data-lucide="check"></i></span>
+                    </div>
+                    <div class="permission-line">
+                      <span>创建 API 密钥</span
+                      ><span class="check"><i data-lucide="check"></i></span>
+                    </div>
+                    <div class="permission-line">
+                      <span>团队管理</span><span class="check"><i data-lucide="check"></i></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="detail-section">
+                  <div class="inline-actions">
+                    <button class="button"><i data-lucide="users-round"></i>管理归属</button
+                    ><button class="button"><i data-lucide="key-round"></i>调整权限</button>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="option-panel" data-panel="c">
+        <div class="concept-note">
+          <div>
+            <h2>方案 C：统一对象资源管理器</h2>
+            <p>
+              成员、部门和群组作为同一种“团队对象”统一检索，选中对象后在右侧直接查看归属与平台能力。交互最彻底，但前端状态编排和列表合并工作量最大。
+            </p>
+          </div>
+          <div class="concept-tags">
+            <span class="concept-tag">并行复用现有列表接口</span>
+            <span class="concept-tag">前端统一搜索结果</span>
+            <span class="concept-tag">现有权限更新接口</span>
+          </div>
+        </div>
+
+        <div class="mockup">
+          <aside class="app-rail">
+            <div class="brand-mark">OC</div>
+            <div class="rail-divider"></div>
+            <button class="rail-button"><i data-lucide="message-circle"></i></button>
+            <button class="rail-button"><i data-lucide="bot"></i></button>
+            <button class="rail-button"><i data-lucide="database"></i></button>
+            <button class="rail-button"><i data-lucide="wrench"></i></button>
+            <button class="rail-button is-active"><i data-lucide="users-round"></i></button>
+            <div class="rail-spacer"></div>
+            <div class="rail-user">N</div>
+          </aside>
+          <div class="screen">
+            <header class="screen-header">
+              <div class="team-identity">
+                <div class="team-avatar">OC</div>
+                <div class="team-copy">
+                  <strong>团队资源管理器</strong><span>Public · 统一身份与权限对象</span>
+                </div>
+              </div>
+              <div class="header-actions">
+                <button class="button"><i data-lucide="chevrons-up-down"></i>Public</button
+                ><button class="button primary"><i data-lucide="plus"></i>新建 / 邀请</button>
+              </div>
+            </header>
+            <div class="entity-shell">
+              <aside class="entity-command">
+                <div class="command-title">
+                  <h3>管理视图</h3>
+                  <p>按对象类型进入对应管理任务，所有操作仍使用现有接口。</p>
+                </div>
+                <div class="mode-list">
+                  <div class="mode-row is-active">
+                    <span class="nav-icon"><i data-lucide="layout-list"></i></span
+                    ><span class="mode-copy"
+                      ><strong>全部对象</strong><span>统一浏览与筛选</span></span
+                    ><span class="count">25</span>
+                  </div>
+                  <div class="mode-row">
+                    <span class="nav-icon"><i data-lucide="users"></i></span
+                    ><span class="mode-copy"
+                      ><strong>成员身份</strong><span>邀请、状态与归属</span></span
+                    ><span class="count">18</span>
+                  </div>
+                  <div class="mode-row">
+                    <span class="nav-icon"><i data-lucide="building-2"></i></span
+                    ><span class="mode-copy"
+                      ><strong>部门结构</strong><span>层级与成员分配</span></span
+                    ><span class="count">4</span>
+                  </div>
+                  <div class="mode-row">
+                    <span class="nav-icon"><i data-lucide="users-round"></i></span
+                    ><span class="mode-copy"
+                      ><strong>权限群组</strong><span>成员组合与负责人</span></span
+                    ><span class="count">3</span>
+                  </div>
+                  <div class="mode-row">
+                    <span class="nav-icon"><i data-lucide="key-round"></i></span
+                    ><span class="mode-copy"
+                      ><strong>能力授权</strong><span>应用、知识库与 API</span></span
+                    >
+                  </div>
+                </div>
+                <div class="saved-views">
+                  <strong>快速筛选</strong><span class="view-chip">管理员</span
+                  ><span class="view-chip">未分配部门</span><span class="view-chip">已离开</span>
+                </div>
+              </aside>
+              <section class="entity-workbench">
+                <div class="entity-topbar">
+                  <div>
+                    <h3>全部团队对象</h3>
+                    <p>在同一个目录中管理成员、部门和群组关系。</p>
+                  </div>
+                  <div class="toolbar">
+                    <div class="field search">
+                      <i data-lucide="search"></i><input placeholder="搜索成员、部门或群组" />
+                    </div>
+                    <button class="button"><i data-lucide="sliders-horizontal"></i>筛选</button>
+                  </div>
+                </div>
+                <div class="entity-filterbar">
+                  <div class="filter-tabs">
+                    <button class="filter-tab is-active">全部</button
+                    ><button class="filter-tab">成员</button><button class="filter-tab">部门</button
+                    ><button class="filter-tab">群组</button>
+                  </div>
+                  <span class="badge blue">25 个对象</span>
+                </div>
+                <div class="entity-grid">
+                  <div class="entity-list">
+                    <div class="entity-row header">
+                      <span></span><span>对象</span><span>归属 / 负责人</span><span>权限来源</span
+                      ><span>状态</span><span></span>
+                    </div>
+                    <div class="entity-row is-active">
+                      <span class="person-avatar blue">TU</span
+                      ><span class="person-copy"
+                        ><strong>testuser@test.com</strong><span>成员</span></span
+                      ><span>Agent 研发</span><span>平台管理员</span
+                      ><span class="badge green">正常</span><i data-lucide="chevron-right"></i>
+                    </div>
+                    <div class="entity-row">
+                      <span class="person-avatar">AR</span
+                      ><span class="person-copy"
+                        ><strong>Agent 研发</strong><span>部门 · 6 名成员</span></span
+                      ><span>Public</span><span>部门策略</span><span class="badge green">启用</span
+                      ><i data-lucide="chevron-right"></i>
+                    </div>
+                    <div class="entity-row">
+                      <span class="person-avatar gold">PA</span
+                      ><span class="person-copy"
+                        ><strong>平台管理员</strong><span>群组 · 3 名成员</span></span
+                      ><span>Owner</span><span>群组策略</span><span class="badge green">启用</span
+                      ><i data-lucide="chevron-right"></i>
+                    </div>
+                    <div class="entity-row">
+                      <span class="person-avatar">NV</span
+                      ><span class="person-copy"
+                        ><strong>nova@test.com</strong><span>成员</span></span
+                      ><span>知识工程</span><span>知识库维护者</span
+                      ><span class="badge green">正常</span><i data-lucide="chevron-right"></i>
+                    </div>
+                    <div class="entity-row">
+                      <span class="person-avatar blue">KE</span
+                      ><span class="person-copy"
+                        ><strong>知识工程</strong><span>部门 · 5 名成员</span></span
+                      ><span>Public</span><span>部门策略</span><span class="badge green">启用</span
+                      ><i data-lucide="chevron-right"></i>
+                    </div>
+                    <div class="entity-row">
+                      <span class="person-avatar gold">KM</span
+                      ><span class="person-copy"
+                        ><strong>知识库维护者</strong><span>群组 · 6 名成员</span></span
+                      ><span>Owner</span><span>群组策略</span><span class="badge green">启用</span
+                      ><i data-lucide="chevron-right"></i>
+                    </div>
+                  </div>
+                  <aside class="entity-inspector">
+                    <div class="inspector-header">
+                      <span class="person-avatar blue">TU</span>
+                      <h4>testuser@test.com</h4>
+                      <p>成员 · Agent 研发 · 2025-07-31 加入</p>
+                    </div>
+                    <div class="inspector-section">
+                      <h5>成员关系</h5>
+                      <div class="detail-line"><span>直属部门</span><b>Agent 研发</b></div>
+                      <div class="detail-line"><span>所属群组</span><b>平台管理员</b></div>
+                      <div class="inline-actions" style="margin-top: 10px">
+                        <button class="button">调整归属</button>
+                      </div>
+                    </div>
+                    <div class="inspector-section">
+                      <h5>平台能力</h5>
+                      <div class="switch-line">
+                        <span>创建应用</span><span class="switch is-on"></span>
+                      </div>
+                      <div class="switch-line">
+                        <span>创建知识库</span><span class="switch is-on"></span>
+                      </div>
+                      <div class="switch-line">
+                        <span>创建技能</span><span class="switch"></span>
+                      </div>
+                      <div class="switch-line">
+                        <span>创建 API 密钥</span><span class="switch is-on"></span>
+                      </div>
+                      <div class="switch-line">
+                        <span>团队管理</span><span class="switch is-on"></span>
+                      </div>
+                    </div>
+                    <div class="inspector-section">
+                      <div class="inline-actions">
+                        <button class="button"><i data-lucide="pencil"></i>编辑</button
+                        ><button class="button"><i data-lucide="more-horizontal"></i>更多</button>
+                      </div>
+                    </div>
+                  </aside>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const buttons = [...document.querySelectorAll('.option-button')];
+      const panels = [...document.querySelectorAll('.option-panel')];
+
+      function activateOption(option) {
+        buttons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.option === option);
+        });
+        panels.forEach((panel) => {
+          panel.classList.toggle('is-active', panel.dataset.panel === option);
+        });
+        history.replaceState(null, '', `#${option}`);
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      buttons.forEach((button) => {
+        button.addEventListener('click', () => activateOption(button.dataset.option));
+      });
+
+      const initialOption = ['a', 'b', 'c'].includes(location.hash.slice(1))
+        ? location.hash.slice(1)
+        : 'a';
+      activateOption(initialOption);
+    </script>
+  </body>
+</html>

@@ -121,34 +121,33 @@ export const getScheduleTriggerApp = async () => {
       };
 
       try {
+        const runningUserInfo = await retryFn(() => getRunningUserInfoByTmbId(app.tmbId));
         const {
           assistantResponses,
           flowResponses,
           durationSeconds,
           system_memories,
           customFeedbacks
-        } = await retryFn(async () => {
-          return dispatchWorkFlow({
-            chatId,
-            mode: 'chat',
-            usageId,
-            runningAppInfo: {
-              id: String(app._id),
-              name: app.name,
-              teamId: String(app.teamId),
-              tmbId: String(app.tmbId)
-            },
-            runningUserInfo: await getRunningUserInfoByTmbId(app.tmbId),
-            uid: String(app.tmbId),
-            runtimeNodes: storeNodes2RuntimeNodes(nodes, getWorkflowEntryNodeIds(nodes)),
-            runtimeEdges: storeEdges2RuntimeEdges(edges),
-            variables: {},
-            query: userQuery,
-            chatConfig,
-            histories: [],
-            stream: false,
-            maxRunTimes: WORKFLOW_MAX_RUN_TIMES
-          });
+        } = await dispatchWorkFlow({
+          chatId,
+          mode: 'chat',
+          usageId,
+          runningAppInfo: {
+            id: String(app._id),
+            name: app.name,
+            teamId: String(app.teamId),
+            tmbId: String(app.tmbId)
+          },
+          runningUserInfo,
+          uid: String(app.tmbId),
+          runtimeNodes: storeNodes2RuntimeNodes(nodes, getWorkflowEntryNodeIds(nodes)),
+          runtimeEdges: storeEdges2RuntimeEdges(edges),
+          variables: {},
+          query: userQuery,
+          chatConfig,
+          histories: [],
+          stream: false,
+          maxRunTimes: WORKFLOW_MAX_RUN_TIMES
         });
 
         const error = flowResponses[flowResponses.length - 1]?.error;

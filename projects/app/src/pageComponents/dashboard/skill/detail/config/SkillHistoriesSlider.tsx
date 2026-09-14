@@ -40,7 +40,10 @@ export default SkillHistoriesSlider;
 
 const HistoryList = ({ onClose }: { onClose: () => void }) => {
   const { t } = useSafeTranslation();
-  const { skillId } = useContextSelector(SkillDetailContext, (v) => v);
+  const { skillId, skillDetail, refreshSkillDetail } = useContextSelector(
+    SkillDetailContext,
+    (v) => v
+  );
 
   const [editId, setEditId] = useState<string | undefined>(undefined);
   const [hoveredId, setHoveredId] = useState<string | undefined>(undefined);
@@ -58,7 +61,9 @@ const HistoryList = ({ onClose }: { onClose: () => void }) => {
   const firstActiveIndex = versionList.findIndex((item) => item.isActive);
 
   const onChangeVersion = async (item: SkillVersionListItemType) => {
+    if (!skillDetail?.permission.hasWritePer) return;
     await postSwitchSkillVersion({ skillId, versionId: item._id });
+    refreshSkillDetail();
     onClose();
   };
 
@@ -147,7 +152,7 @@ const HistoryList = ({ onClose }: { onClose: () => void }) => {
                   </Tag>
                 )}
               </Box>
-              {hoveredId === item._id && (
+              {hoveredId === item._id && skillDetail?.permission.hasWritePer && (
                 <MyIcon
                   name="edit"
                   w={'18px'}

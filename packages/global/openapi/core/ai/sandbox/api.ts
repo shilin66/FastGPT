@@ -1,5 +1,62 @@
 import { OutLinkChatAuthSchema } from '../../../../support/permission/chat';
 import z from 'zod';
+import {
+  SandboxProxyScopeSchema,
+  SandboxProxyRenewRequestIdSchema
+} from '../../../../core/ai/sandbox/proxy';
+
+export const SandboxProxyAuthQuerySchema = z
+  .object({
+    sandboxId: SandboxProxyScopeSchema.shape.sandboxId.describe('Sandbox 逻辑身份'),
+    port: z
+      .union([z.number(), z.string().regex(/^\d+$/)])
+      .transform(Number)
+      .pipe(SandboxProxyScopeSchema.shape.targetPort)
+      .describe('实例已声明的代理端口'),
+    next: z.string().max(4096).optional().describe('仅允许该 Sandbox 独立 origin 内的跳转地址'),
+    mode: z.literal('renew').optional().describe('重新校验主站身份后无损续期资源会话'),
+    expectedWorkspaceGeneration: z
+      .union([z.literal('legacy'), z.string().uuid()])
+      .optional()
+      .describe('编辑器打开时的工作区代次；重置后旧页面不能自动续入新工作区'),
+    requestId:
+      SandboxProxyRenewRequestIdSchema.optional().describe('主站续期 iframe 的随机请求标识')
+  })
+  .refine(
+    (input) =>
+      input.mode === 'renew'
+        ? input.requestId !== undefined && input.next === undefined
+        : input.requestId === undefined,
+    { message: 'Invalid proxy renewal request' }
+  );
+
+export const SandboxProxyInternalBodySchema = SandboxProxyScopeSchema.omit({
+  audience: true
+})
+  .extend({
+    proxyHost: z.string().min(1).max(253).describe('由受信代理服务器传递的原始请求 Host'),
+    ticket: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional()
+      .describe('单次 bootstrap 票据'),
+    mode: z.literal('renew').optional().describe('仅用于固定资源续期回调，必须携带新票据')
+  })
+  .refine((input) => input.mode !== 'renew' || input.ticket !== undefined, {
+    message: 'Renewal requires a fresh ticket'
+  });
+
+export const SandboxProxyInternalResponseSchema = z.object({
+  target: z.string().url(),
+  session: z.string().optional(),
+  appOrigin: z.string().url(),
+  expiresAt: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('本次票据兑换实际写入的会话过期时间（Unix 毫秒）')
+});
 
 const SandboxBaseSchema = z.object({
   appId: z.string(),

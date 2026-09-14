@@ -1,3 +1,4 @@
+import { getChatSourceFilter } from '@fastgpt/service/core/chat/source';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
 import { ChatGenerateStatusEnum, ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
 import { authOutLink } from '@/service/support/permission/auth/outLink';
@@ -58,11 +59,7 @@ export async function handler(
   }
 
   const data = await MongoChat.find(
-    {
-      ...match,
-      chatId: { $in: chatIds },
-      deleteTime: null
-    },
+    { ...getChatSourceFilter(), ...match, chatId: { $in: chatIds }, deleteTime: null },
     'chatId updateTime chatGenerateStatus hasBeenRead'
   ).lean();
 

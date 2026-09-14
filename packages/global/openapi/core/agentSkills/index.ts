@@ -9,6 +9,7 @@ import {
   CreateSkillFolderResponseSchema,
   CreateSkillResponseSchema,
   DeleteSkillQuerySchema,
+  DeleteSkillVersionBodySchema,
   ExportSkillQuerySchema,
   GetSkillDetailQuerySchema,
   GetSkillDetailResponseSchema,
@@ -23,6 +24,10 @@ import {
   ListSkillsResponseSchema,
   SaveDeploySkillBodySchema,
   SaveDeploySkillResponseSchema,
+  ResetSkillWorkspaceBodySchema,
+  ResetSkillWorkspaceResponseSchema,
+  RetryInitializeSkillBodySchema,
+  RetryInitializeSkillResponseSchema,
   SkillDebugChatBodySchema,
   SkillDebugRecordsBodySchema,
   SkillDebugRecordsResponseSchema,
@@ -140,7 +145,8 @@ export const AgentSkillsPath: OpenAPIPath = {
   '/core/agentSkills/import': {
     post: {
       summary: '导入技能',
-      description: '上传 ZIP / TAR / TAR.GZ 技能压缩包并导入为技能',
+      description:
+        '上传 ZIP 技能包，安全校验后过滤 __MACOSX/、.DS_Store 和 ._* 附加文件并导入。校验失败返回具体的本地化提示键。',
       tags: [TagsMap.aiSkill],
       requestBody: {
         content: {
@@ -157,6 +163,10 @@ export const AgentSkillsPath: OpenAPIPath = {
               schema: ImportSkillResponseSchema
             }
           }
+        },
+        400: {
+          description:
+            '技能包校验失败，保留 invalidSkillPackage 业务错误码，message 为具体校验原因的本地化键'
         }
       }
     }
@@ -290,6 +300,55 @@ export const AgentSkillsPath: OpenAPIPath = {
           content: {
             'application/json': {
               schema: SaveDeploySkillResponseSchema
+            }
+          }
+        }
+      }
+    }
+  },
+  '/core/agentSkills/reset-workspace': {
+    post: {
+      summary: '重置技能编辑工作区',
+      description:
+        '需要管理权限和明确确认丢弃草稿；核对当前版本、工作区基线及操作 ID 后，将可验证的持久工作区重置到当前版本。未知远端失败不会自动重试。',
+      tags: [TagsMap.aiSkill],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: ResetSkillWorkspaceBodySchema
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: '工作区已重置并返回新代次状态',
+          content: {
+            'application/json': {
+              schema: ResetSkillWorkspaceResponseSchema
+            }
+          }
+        }
+      }
+    }
+  },
+  '/core/agentSkills/retry-initialize': {
+    post: {
+      summary: '重试初始化 Skill',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: RetryInitializeSkillBodySchema
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: '初始化任务已重新提交',
+          content: {
+            'application/json': {
+              schema: RetryInitializeSkillResponseSchema
             }
           }
         }
@@ -431,7 +490,7 @@ export const AgentSkillsPath: OpenAPIPath = {
   '/core/agentSkills/version/switch': {
     post: {
       summary: '切换技能活跃版本',
-      description: '将指定版本设置为活跃版本，同时取消其他版本的活跃状态',
+      description: '重新校验目标包后，以比较并交换方式更新当前版本指针',
       tags: [TagsMap.aiSkill],
       requestBody: {
         content: {
@@ -442,7 +501,27 @@ export const AgentSkillsPath: OpenAPIPath = {
       },
       responses: {
         200: {
-          description: '成功切换活跃版本'
+          description: '成功切换当前版本'
+        }
+      }
+    }
+  },
+  '/core/agentSkills/version/delete': {
+    post: {
+      summary: '删除 Skill 历史版本',
+      description: '当前版本不可删除；历史版本软删除后保留 30 天，再清理对象存储',
+      tags: [TagsMap.aiSkill],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: DeleteSkillVersionBodySchema
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: '版本已进入软删除保留期'
         }
       }
     }

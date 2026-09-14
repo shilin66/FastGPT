@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniCockpit Agent 双通道工作台</title>
+    <style>
+      :root {
+        --graphite: #27364a;
+        --graphite-2: #3a485c;
+        --blue: #2563eb;
+        --blue-strong: #1756d8;
+        --blue-soft: #eaf1ff;
+        --gold: #c69b4a;
+        --canvas: #f8fafc;
+        --panel: #ffffff;
+        --nav: #f5f7fa;
+        --line: #dfe5ee;
+        --line-strong: #cbd5e1;
+        --text: #182235;
+        --muted: #69758a;
+        --success: #15803d;
+        --shadow: 0 8px 24px rgba(39, 54, 74, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        color: var(--text);
+        background: #edf2f8;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-size: 14px;
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        stroke-width: 1.8;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .preview-shell {
+        min-width: 1240px;
+        height: 100vh;
+        padding: 14px;
+      }
+
+      .preview-bar {
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 0 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px 8px 0 0;
+        background: var(--panel);
+      }
+
+      .preview-title {
+        min-width: 360px;
+      }
+
+      .preview-title strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 17px;
+      }
+
+      .preview-title span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .option-switch {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--nav);
+      }
+
+      .option-switch a {
+        min-width: 146px;
+        padding: 8px 14px;
+        border-radius: 5px;
+        color: var(--muted);
+        text-align: center;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .option-switch a.active {
+        color: #fff;
+        background: var(--graphite);
+        box-shadow: 0 3px 10px rgba(39, 54, 74, 0.18);
+      }
+
+      .preview-note {
+        min-width: 250px;
+        color: var(--muted);
+        text-align: right;
+        font-size: 12px;
+      }
+
+      .studio-frame {
+        height: calc(100vh - 98px);
+        border: 1px solid var(--line);
+        border-top: 0;
+        border-radius: 0 0 8px 8px;
+        overflow: hidden;
+        background: var(--canvas);
+        box-shadow: var(--shadow);
+      }
+
+      .option {
+        display: none;
+        width: 100%;
+        height: 100%;
+      }
+
+      .option.active {
+        display: grid;
+        grid-template-rows: 64px minmax(0, 1fr);
+      }
+
+      .console-header {
+        display: grid;
+        grid-template-columns: minmax(260px, auto) minmax(310px, auto) 1fr auto;
+        align-items: stretch;
+        min-width: 0;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.97);
+      }
+
+      .app-identity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        padding: 0 16px;
+      }
+
+      .icon-button,
+      .ghost-button,
+      .primary-button,
+      .secondary-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        height: 34px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      .icon-button {
+        width: 34px;
+        padding: 0;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .app-avatar {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border-radius: 7px;
+        color: #fff;
+        background: var(--blue);
+        font-weight: 800;
+      }
+
+      .app-copy {
+        min-width: 0;
+      }
+
+      .app-name-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .app-name-row strong {
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 15px;
+      }
+
+      .save-state {
+        padding: 2px 7px;
+        border-radius: 999px;
+        color: var(--success);
+        background: #e8f6ed;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .app-copy small {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .local-facts {
+        display: flex;
+        align-items: center;
+        align-self: center;
+        height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        overflow: hidden;
+        background: var(--nav);
+      }
+
+      .fact {
+        min-width: 82px;
+        padding: 5px 13px;
+        border-right: 1px solid var(--line);
+      }
+
+      .fact:last-child {
+        border-right: 0;
+      }
+
+      .fact span {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .fact strong {
+        display: block;
+        margin-top: 1px;
+        font-size: 13px;
+      }
+
+      .current-task {
+        align-self: center;
+        justify-self: start;
+        margin-left: 14px;
+        padding: 7px 12px;
+        border: 1px solid #cfdcff;
+        border-radius: 999px;
+        color: var(--graphite);
+        background: #f8faff;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .current-task b {
+        margin-right: 7px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: stretch;
+        height: 64px;
+      }
+
+      .mode-nav {
+        display: flex;
+        align-items: stretch;
+        height: 64px;
+        border-left: 1px solid var(--line);
+        border-right: 1px solid var(--line);
+      }
+
+      .mode-item {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 86px;
+        justify-content: center;
+        border: 0;
+        color: var(--muted);
+        background: transparent;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .mode-item.active {
+        color: var(--blue);
+      }
+
+      .mode-item.active::after {
+        position: absolute;
+        right: 14px;
+        bottom: 0;
+        left: 14px;
+        height: 3px;
+        border-radius: 3px 3px 0 0;
+        background: var(--blue);
+        content: "";
+      }
+
+      .save-actions {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 12px;
+      }
+
+      .ghost-button,
+      .secondary-button,
+      .primary-button {
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        background: #fff;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .secondary-button {
+        color: var(--graphite);
+      }
+
+      .primary-button {
+        border-color: var(--blue);
+        color: #fff;
+        background: var(--blue);
+      }
+
+      .workbench {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        background: var(--canvas);
+      }
+
+      #split-a {
+        grid-template-columns: minmax(620px, 64fr) 7px minmax(410px, 36fr);
+      }
+
+      #split-b {
+        grid-template-columns: minmax(620px, 61fr) 7px minmax(410px, 39fr);
+      }
+
+      #split-c {
+        grid-template-columns: minmax(620px, 67fr) 7px minmax(410px, 33fr);
+      }
+
+      .config-channel,
+      .debug-channel {
+        min-width: 0;
+        min-height: 0;
+        background: #fff;
+      }
+
+      .config-channel {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .drag-handle {
+        position: relative;
+        z-index: 3;
+        cursor: col-resize;
+        background: var(--canvas);
+        border-right: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+      }
+
+      .drag-handle::after {
+        position: absolute;
+        top: 50%;
+        left: 2px;
+        width: 2px;
+        height: 44px;
+        border-radius: 2px;
+        background: var(--line-strong);
+        content: "";
+        transform: translateY(-50%);
+      }
+
+      .drag-handle:hover::after,
+      .drag-handle.dragging::after {
+        background: var(--blue);
+      }
+
+      .task-strip {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        min-width: 0;
+        height: 46px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfe;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .task-strip::-webkit-scrollbar {
+        display: none;
+      }
+
+      .task-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 11px;
+        border: 0;
+        border-radius: 5px;
+        color: var(--muted);
+        background: transparent;
+        white-space: nowrap;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .task-tab.active {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .task-tab .state-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--line-strong);
+      }
+
+      .task-tab.complete .state-dot,
+      .task-tab.active .state-dot {
+        background: var(--blue);
+      }
+
+      .config-scroll,
+      .debug-stream,
+      .ledger-scroll,
+      .sequence-scroll {
+        min-height: 0;
+        overflow: auto;
+      }
+
+      .config-scroll {
+        padding: 0 26px 38px;
+      }
+
+      .section-intro {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 24px 0 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .section-intro .eyebrow,
+      .debug-header .eyebrow,
+      .ledger-head .eyebrow {
+        color: var(--blue);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .section-intro h2,
+      .ledger-head h2 {
+        margin: 5px 0 6px;
+        font-size: 21px;
+        letter-spacing: 0;
+      }
+
+      .section-intro p,
+      .ledger-head p {
+        max-width: 560px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .validation {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 10px;
+        border: 1px solid #cde8d6;
+        border-radius: 6px;
+        color: var(--success);
+        background: #f2fbf5;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .setting-band {
+        display: grid;
+        grid-template-columns: 190px minmax(0, 1fr);
+        gap: 26px;
+        padding: 21px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .setting-copy h3 {
+        margin: 0 0 5px;
+        font-size: 13px;
+      }
+
+      .setting-copy p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .control-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .control-row {
+        display: grid;
+        grid-template-columns: 145px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .control-row label,
+      .control-label {
+        color: var(--graphite-2);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .field,
+      .select-field,
+      .textarea-field {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--text);
+        background: #fff;
+        outline: none;
+      }
+
+      .field,
+      .select-field {
+        height: 36px;
+        padding: 0 11px;
+      }
+
+      .field:focus,
+      .select-field:focus,
+      .textarea-field:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+
+      .textarea-field {
+        min-height: 112px;
+        padding: 11px 12px;
+        resize: vertical;
+        line-height: 1.55;
+      }
+
+      .row-action {
+        min-width: 58px;
+        border: 0;
+        color: var(--blue);
+        background: transparent;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .parameter-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .parameter-item {
+        padding: 10px 11px;
+        border-left: 2px solid var(--line-strong);
+        background: #fafbfd;
+      }
+
+      .parameter-item span {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .parameter-item strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 13px;
+      }
+
+      .connection-ledger {
+        border-top: 1px solid var(--line);
+      }
+
+      .connection-row {
+        display: grid;
+        grid-template-columns: 145px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        min-height: 48px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .connection-row small {
+        color: var(--muted);
+      }
+
+      .count-badge,
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .count-badge {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .tag {
+        color: var(--muted);
+        background: var(--nav);
+      }
+
+      .debug-channel {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .debug-head-wrap {
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .debug-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 48px;
+        padding: 0 16px;
+      }
+
+      .debug-header h3 {
+        margin: 2px 0 0;
+        font-size: 14px;
+      }
+
+      .debug-context {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 36px;
+        padding: 0 16px 9px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .debug-context::-webkit-scrollbar {
+        display: none;
+      }
+
+      .debug-stream {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 24px 22px 30px;
+        background:
+          linear-gradient(#f6f9fd 1px, transparent 1px),
+          linear-gradient(90deg, #f6f9fd 1px, transparent 1px), #fff;
+        background-size: 24px 24px;
+      }
+
+      .message {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        align-items: start;
+        gap: 9px;
+        max-width: 84%;
+      }
+
+      .message.human {
+        grid-template-columns: minmax(0, 1fr) 28px;
+        align-self: flex-end;
+      }
+
+      .message-avatar {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border-radius: 6px;
+        color: #fff;
+        background: var(--graphite);
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .message.human .message-avatar {
+        background: var(--blue);
+      }
+
+      .bubble {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fff;
+        line-height: 1.55;
+        box-shadow: 0 3px 10px rgba(39, 54, 74, 0.05);
+      }
+
+      .message.human .bubble {
+        color: #fff;
+        border-color: var(--blue);
+        background: var(--blue);
+      }
+
+      .message-meta {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .debug-composer {
+        padding: 12px 14px 14px;
+        border-top: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .composer-box {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: end;
+        gap: 10px;
+        min-height: 78px;
+        padding: 11px;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        background: #fff;
+      }
+
+      .composer-box textarea {
+        min-height: 48px;
+        padding: 0;
+        border: 0;
+        outline: none;
+        resize: none;
+      }
+
+      .send-button {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border: 0;
+        border-radius: 6px;
+        color: #fff;
+        background: var(--blue);
+      }
+
+      .composer-note {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      /* B: stage-based configuration flow */
+      .stage-track {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(108px, 1fr));
+        min-height: 58px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfe;
+        overflow-x: auto;
+      }
+
+      .stage-step {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 108px;
+        padding: 0 12px;
+        border-right: 1px solid var(--line);
+      }
+
+      .stage-step:last-child {
+        border-right: 0;
+      }
+
+      .stage-step.active {
+        background: #fff;
+      }
+
+      .stage-step.active::after {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: var(--blue);
+        content: "";
+      }
+
+      .stage-number {
+        display: grid;
+        width: 24px;
+        height: 24px;
+        place-items: center;
+        border-radius: 6px;
+        color: var(--muted);
+        background: var(--nav);
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .stage-step.active .stage-number,
+      .stage-step.done .stage-number {
+        color: #fff;
+        background: var(--blue);
+      }
+
+      .stage-step strong {
+        display: block;
+        font-size: 11px;
+      }
+
+      .stage-step small {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .sequence-scroll {
+        padding: 24px 28px 40px;
+      }
+
+      .sequence-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 230px;
+        align-items: start;
+        gap: 28px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .sequence-hero h2 {
+        margin: 4px 0 7px;
+        font-size: 22px;
+      }
+
+      .sequence-hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .stage-summary {
+        display: grid;
+        gap: 8px;
+        padding-left: 18px;
+        border-left: 2px solid var(--blue);
+      }
+
+      .stage-summary span {
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .stage-summary strong {
+        font-size: 13px;
+      }
+
+      .sequence-form {
+        padding-top: 7px;
+      }
+
+      .sequence-row {
+        display: grid;
+        grid-template-columns: 176px minmax(0, 1fr);
+        gap: 22px;
+        padding: 17px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .sequence-row h3 {
+        margin: 0 0 5px;
+        font-size: 12px;
+      }
+
+      .sequence-row p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .upcoming-stages {
+        margin-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+
+      .upcoming-row {
+        display: grid;
+        grid-template-columns: 38px 165px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 48px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .upcoming-row .stage-number {
+        width: 26px;
+        height: 26px;
+      }
+
+      .upcoming-row small {
+        color: var(--muted);
+      }
+
+      /* C: high-density parameter ledger */
+      .ledger-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 48px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+
+      .ledger-toolbar .left,
+      .ledger-toolbar .right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .compact-select {
+        height: 32px;
+        min-width: 180px;
+        padding: 0 9px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: #fff;
+      }
+
+      .ledger-scroll {
+        padding: 0 24px 36px;
+      }
+
+      .ledger-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 22px 0 17px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .ledger-columns {
+        display: grid;
+        grid-template-columns: 185px minmax(0, 1fr) 112px;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 10px;
+        color: var(--muted);
+        background: var(--nav);
+        font-size: 10px;
+        font-weight: 750;
+      }
+
+      .ledger-group-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 42px;
+        padding: 0 10px;
+        border-bottom: 1px solid var(--line);
+        color: var(--graphite);
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .ledger-row {
+        display: grid;
+        grid-template-columns: 185px minmax(0, 1fr) 112px;
+        align-items: center;
+        gap: 12px;
+        min-height: 54px;
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .ledger-row .label strong {
+        display: block;
+        font-size: 12px;
+      }
+
+      .ledger-row .label small {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .ledger-row .status {
+        justify-self: end;
+      }
+
+      .toggle {
+        position: relative;
+        width: 34px;
+        height: 20px;
+        border: 0;
+        border-radius: 999px;
+        background: #cfd7e3;
+      }
+
+      .toggle::after {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        content: "";
+        box-shadow: 0 1px 3px rgba(39, 54, 74, 0.25);
+      }
+
+      .toggle.on {
+        background: var(--blue);
+      }
+
+      .toggle.on::after {
+        left: 17px;
+      }
+
+      @media (max-width: 1390px) {
+        .console-header {
+          grid-template-columns: minmax(250px, auto) minmax(245px, auto) 1fr auto;
+        }
+
+        .fact {
+          min-width: 70px;
+          padding-right: 9px;
+          padding-left: 9px;
+        }
+
+        .mode-item {
+          min-width: 72px;
+        }
+
+        .save-actions .secondary-button span,
+        .save-actions .ghost-button span {
+          display: none;
+        }
+
+        .setting-band {
+          grid-template-columns: 160px minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg class="sr-only" aria-hidden="true">
+      <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" fill="none" stroke="currentColor" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.55V21h-4v-.08A1.7 1.7 0 0 0 8.97 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1.03H3v-4h.08A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 10 3.05V3h4v.08a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 7l-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.95 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+      <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09Z" fill="none" stroke="currentColor" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.3 12.3 0 0 1 22 2c0 2.72-.78 7.5-6.05 11a22.4 22.4 0 0 1-3.95 2Z" fill="none" stroke="currentColor" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" fill="none" stroke="currentColor" /></symbol>
+      <symbol id="i-log" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18" fill="none" stroke="currentColor" stroke-linecap="round" /><rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="currentColor" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" fill="none" stroke="currentColor" stroke-linecap="round" /></symbol>
+      <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" fill="none" stroke="currentColor" stroke-linecap="round" /><path d="M3 3v5h5M12 7v5l3 2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="m6 3 14 9-14 9V3Z" fill="none" stroke="currentColor" stroke-linejoin="round" /></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" /><path d="M22 2 11 13" fill="none" stroke="currentColor" /></symbol>
+      <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3" fill="none" stroke="currentColor" /><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3" fill="none" stroke="currentColor" /></symbol>
+      <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6.6 6.6a2.1 2.1 0 0 0 3 3l6.6-6.6a4 4 0 0 0 5.4-5.4l-2.3 2.3-3-3 2.3-2.3Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+      <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m21.4 11.6-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7L9.4 18a2 2 0 0 1-2.8-2.8l8.5-8.5" fill="none" stroke="currentColor" stroke-linecap="round" /></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" fill="none" stroke="currentColor" stroke-linecap="round" /></symbol>
+    </svg>
+
+    <main class="preview-shell">
+      <header class="preview-bar">
+        <div class="preview-title">
+          <strong>Agent 双通道工作台</strong>
+          <span>取消独立配置导航列；配置与调试并行，顶部统一为 Workflow 控制台语言。</span>
+        </div>
+        <nav class="option-switch" aria-label="预览方案">
+          <a href="#a" data-option="a">A · 连续参数台</a>
+          <a href="#b" data-option="b">B · 阶段配置流</a>
+          <a href="#c" data-option="c">C · 参数台账</a>
+        </nav>
+        <div class="preview-note">桌面端预览 · 分隔线可拖拽 · 数据均来自现有配置状态</div>
+      </header>
+
+      <section class="studio-frame">
+        <article class="option" data-panel="a">
+          <header class="console-header">
+            <div class="app-identity">
+              <button class="icon-button" title="返回"><svg><use href="#i-arrow-left" /></svg></button>
+              <div class="app-avatar">OC</div>
+              <div class="app-copy">
+                <div class="app-name-row"><strong>NewApp</strong><span class="save-state">已保存</span></div>
+                <small>对话 Agent · 配置与调试</small>
+              </div>
+            </div>
+            <div class="local-facts">
+              <div class="fact"><span>模型</span><strong>GPT-OSS</strong></div>
+              <div class="fact"><span>知识库</span><strong>0</strong></div>
+              <div class="fact"><span>工具</span><strong>0</strong></div>
+            </div>
+            <div class="current-task"><b>当前</b>AI 与指令</div>
+            <div class="header-actions">
+              <nav class="mode-nav">
+                <button class="mode-item active"><svg><use href="#i-settings" /></svg>配置</button>
+                <button class="mode-item"><svg><use href="#i-rocket" /></svg>发布渠道</button>
+                <button class="mode-item"><svg><use href="#i-log" /></svg>对话日志</button>
+              </nav>
+              <div class="save-actions">
+                <button class="icon-button" title="版本记录"><svg><use href="#i-history" /></svg></button>
+                <button class="secondary-button"><svg><use href="#i-play" /></svg><span>调试</span></button>
+                <button class="ghost-button"><span>仅保存</span></button>
+                <button class="primary-button"><svg><use href="#i-rocket" /></svg>保存并发布</button>
+              </div>
+            </div>
+          </header>
+
+          <div class="workbench" id="split-a">
+            <section class="config-channel">
+              <nav class="task-strip" aria-label="配置任务">
+                <button class="task-tab complete"><span class="state-dot"></span>Agent 概览</button>
+                <button class="task-tab active"><span class="state-dot"></span>AI 与指令</button>
+                <button class="task-tab"><span class="state-dot"></span>知识库</button>
+                <button class="task-tab"><span class="state-dot"></span>技能与工具</button>
+                <button class="task-tab"><span class="state-dot"></span>输入与交互</button>
+                <button class="task-tab"><span class="state-dot"></span>运行环境</button>
+              </nav>
+              <div class="config-scroll">
+                <div class="section-intro">
+                  <div>
+                    <div class="eyebrow">Agent Configuration</div>
+                    <h2>AI 与指令</h2>
+                    <p>选择模型并定义 Agent 的响应边界。配置区采用连续参数台，不再以多层卡片分割同一任务。</p>
+                  </div>
+                  <div class="validation">配置完整 · 可调试</div>
+                </div>
+
+                <section class="setting-band">
+                  <div class="setting-copy"><h3>模型路由</h3><p>选择对话模型；保留原有模型设置入口。</p></div>
+                  <div class="control-stack">
+                    <div class="control-row">
+                      <label for="model-a">AI 模型</label>
+                      <select class="select-field" id="model-a"><option>GPT-OSS-120B</option></select>
+                      <button class="icon-button" title="模型参数"><svg><use href="#i-settings" /></svg></button>
+                    </div>
+                    <div class="parameter-grid">
+                      <div class="parameter-item"><span>温度</span><strong>0.7</strong></div>
+                      <div class="parameter-item"><span>最大回复</span><strong>2048 tokens</strong></div>
+                      <div class="parameter-item"><span>上下文</span><strong>自动</strong></div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="setting-band">
+                  <div class="setting-copy"><h3>系统指令</h3><p>定义角色、任务边界和回答要求，支持插入现有变量。</p></div>
+                  <div class="control-stack">
+                    <textarea class="textarea-field">你是 OmniCockpit 中的企业知识助手。请基于连接的知识库与工具回答，并在信息不足时明确说明。</textarea>
+                    <div style="display:flex;justify-content:space-between;align-items:center"><span class="tag">支持 / 插入变量</span><button class="row-action">管理变量</button></div>
+                  </div>
+                </section>
+
+                <section class="setting-band">
+                  <div class="setting-copy"><h3>能力连接</h3><p>集中查看与当前回答链路相关的外部能力。</p></div>
+                  <div class="connection-ledger">
+                    <div class="connection-row"><span class="control-label">知识库</span><small>尚未连接知识源</small><button class="row-action">选择</button></div>
+                    <div class="connection-row"><span class="control-label">技能与工具</span><small>当前无可调用工具</small><button class="row-action">选择</button></div>
+                    <div class="connection-row"><span class="control-label">文件能力</span><small>允许用户上传文件</small><button class="toggle on" title="已开启"></button></div>
+                  </div>
+                </section>
+
+                <section class="setting-band">
+                  <div class="setting-copy"><h3>下一项</h3><p>配置交互方式、欢迎语和运行环境。</p></div>
+                  <div style="display:flex;gap:8px;align-items:center"><span class="count-badge">输入与交互</span><span class="tag">3 项待确认</span><button class="row-action">继续配置</button></div>
+                </section>
+              </div>
+            </section>
+            <div class="drag-handle" data-split="split-a" aria-label="拖拽调整配置与调试宽度"></div>
+            <section class="debug-channel">
+              <div class="debug-head-wrap">
+                <div class="debug-header"><div><div class="eyebrow">Live Debug</div><h3>调试通道</h3></div><button class="icon-button" title="清空"><svg><use href="#i-history" /></svg></button></div>
+                <div class="debug-context"><span class="count-badge">GPT-OSS-120B</span><span class="tag">知识库 0</span><span class="tag">工具 0</span><span class="tag">文件开启</span></div>
+              </div>
+              <div class="debug-stream">
+                <div class="message human"><div><div class="bubble">请说明这套 Agent 配置的回答边界。</div><div class="message-meta" style="text-align:right">13:08 · 用户输入</div></div><div class="message-avatar">YOU</div></div>
+                <div class="message"><div class="message-avatar">AI</div><div><div class="bubble">当前 Agent 使用 GPT-OSS-120B。它会遵循系统指令回答；尚未连接知识库和工具，因此遇到企业专属信息时会明确提示信息不足。</div><div class="message-meta">0.64s · 完整响应</div></div></div>
+              </div>
+              <div class="debug-composer"><div class="composer-box"><textarea placeholder="输入调试问题，Enter 发送"></textarea><button class="send-button" title="发送"><svg><use href="#i-send" /></svg></button></div><div class="composer-note">当前调试不会改变已保存配置</div></div>
+            </section>
+          </div>
+        </article>
+
+        <article class="option" data-panel="b">
+          <header class="console-header">
+            <div class="app-identity"><button class="icon-button" title="返回"><svg><use href="#i-arrow-left" /></svg></button><div class="app-avatar">OC</div><div class="app-copy"><div class="app-name-row"><strong>NewApp</strong><span class="save-state">已保存</span></div><small>对话 Agent · 配置与调试</small></div></div>
+            <div class="local-facts"><div class="fact"><span>模型</span><strong>GPT-OSS</strong></div><div class="fact"><span>知识库</span><strong>0</strong></div><div class="fact"><span>工具</span><strong>0</strong></div></div>
+            <div class="current-task"><b>阶段 2/6</b>AI 与指令</div>
+            <div class="header-actions"><nav class="mode-nav"><button class="mode-item active"><svg><use href="#i-settings" /></svg>配置</button><button class="mode-item"><svg><use href="#i-rocket" /></svg>发布渠道</button><button class="mode-item"><svg><use href="#i-log" /></svg>对话日志</button></nav><div class="save-actions"><button class="icon-button" title="版本记录"><svg><use href="#i-history" /></svg></button><button class="secondary-button"><svg><use href="#i-play" /></svg><span>调试</span></button><button class="ghost-button"><span>仅保存</span></button><button class="primary-button"><svg><use href="#i-rocket" /></svg>保存并发布</button></div></div>
+          </header>
+          <div class="workbench" id="split-b">
+            <section class="config-channel">
+              <div class="stage-track">
+                <div class="stage-step done"><span class="stage-number">01</span><div><strong>概览</strong><small>已完成</small></div></div>
+                <div class="stage-step active"><span class="stage-number">02</span><div><strong>AI 与指令</strong><small>正在配置</small></div></div>
+                <div class="stage-step"><span class="stage-number">03</span><div><strong>知识库</strong><small>未连接</small></div></div>
+                <div class="stage-step"><span class="stage-number">04</span><div><strong>技能工具</strong><small>0 项</small></div></div>
+                <div class="stage-step"><span class="stage-number">05</span><div><strong>交互</strong><small>待确认</small></div></div>
+                <div class="stage-step"><span class="stage-number">06</span><div><strong>环境</strong><small>默认</small></div></div>
+              </div>
+              <div class="sequence-scroll">
+                <div class="sequence-hero"><div><div class="eyebrow">Configuration Flow</div><h2>建立 Agent 的回答核心</h2><p>阶段式配置更适合首次搭建。当前阶段只呈现模型与指令，后续能力按任务顺序自然推进。</p></div><div class="stage-summary"><span>当前模型</span><strong>GPT-OSS-120B</strong><span>阶段检查</span><strong style="color:var(--success)">已通过</strong></div></div>
+                <div class="sequence-form">
+                  <div class="sequence-row"><div><h3>选择模型</h3><p>决定回答能力与上下文边界。</p></div><div class="control-row" style="grid-template-columns:minmax(0,1fr) auto"><select class="select-field"><option>GPT-OSS-120B</option></select><button class="icon-button"><svg><use href="#i-settings" /></svg></button></div></div>
+                  <div class="sequence-row"><div><h3>定义系统指令</h3><p>描述角色、目标和限制。</p></div><textarea class="textarea-field">你是 OmniCockpit 中的企业知识助手。请基于连接的知识库与工具回答，并在信息不足时明确说明。</textarea></div>
+                  <div class="sequence-row"><div><h3>生成参数</h3><p>沿用现有模型参数配置。</p></div><div class="parameter-grid"><div class="parameter-item"><span>温度</span><strong>0.7</strong></div><div class="parameter-item"><span>最大回复</span><strong>2048</strong></div><div class="parameter-item"><span>上下文</span><strong>自动</strong></div></div></div>
+                </div>
+                <div class="upcoming-stages">
+                  <div class="upcoming-row"><span class="stage-number">03</span><strong>知识库</strong><small>为 Agent 连接企业知识来源</small><button class="row-action">下一步</button></div>
+                  <div class="upcoming-row"><span class="stage-number">04</span><strong>技能与工具</strong><small>选择可调用的工具能力</small><span class="tag">稍后配置</span></div>
+                </div>
+              </div>
+            </section>
+            <div class="drag-handle" data-split="split-b"></div>
+            <section class="debug-channel">
+              <div class="debug-head-wrap"><div class="debug-header"><div><div class="eyebrow">Live Debug</div><h3>阶段联调</h3></div><span class="validation">阶段 2 已通过</span></div><div class="debug-context"><span class="count-badge">当前：AI 与指令</span><span class="tag">未保存变更 0</span></div></div>
+              <div class="debug-stream"><div class="message human"><div><div class="bubble">没有知识库时会怎样回答？</div><div class="message-meta" style="text-align:right">13:08</div></div><div class="message-avatar">YOU</div></div><div class="message"><div class="message-avatar">AI</div><div><div class="bubble">我会使用模型自身能力回答通用问题；涉及企业专属内容时，按照系统指令明确说明缺少可靠来源。</div><div class="message-meta">0.58s · 阶段验证</div></div></div></div>
+              <div class="debug-composer"><div class="composer-box"><textarea placeholder="验证当前配置阶段"></textarea><button class="send-button"><svg><use href="#i-send" /></svg></button></div><div class="composer-note">测试结果只针对当前阶段配置</div></div>
+            </section>
+          </div>
+        </article>
+
+        <article class="option" data-panel="c">
+          <header class="console-header">
+            <div class="app-identity"><button class="icon-button" title="返回"><svg><use href="#i-arrow-left" /></svg></button><div class="app-avatar">OC</div><div class="app-copy"><div class="app-name-row"><strong>NewApp</strong><span class="save-state">已保存</span></div><small>对话 Agent · 配置与调试</small></div></div>
+            <div class="local-facts"><div class="fact"><span>模型</span><strong>GPT-OSS</strong></div><div class="fact"><span>知识库</span><strong>0</strong></div><div class="fact"><span>工具</span><strong>0</strong></div></div>
+            <div class="current-task"><b>视图</b>全部参数</div>
+            <div class="header-actions"><nav class="mode-nav"><button class="mode-item active"><svg><use href="#i-settings" /></svg>配置</button><button class="mode-item"><svg><use href="#i-rocket" /></svg>发布渠道</button><button class="mode-item"><svg><use href="#i-log" /></svg>对话日志</button></nav><div class="save-actions"><button class="icon-button" title="版本记录"><svg><use href="#i-history" /></svg></button><button class="secondary-button"><svg><use href="#i-play" /></svg><span>调试</span></button><button class="ghost-button"><span>仅保存</span></button><button class="primary-button"><svg><use href="#i-rocket" /></svg>保存并发布</button></div></div>
+          </header>
+          <div class="workbench" id="split-c">
+            <section class="config-channel">
+              <div class="ledger-toolbar"><div class="left"><svg><use href="#i-sliders" /></svg><strong>参数视图</strong><select class="compact-select"><option>全部配置项</option><option>仅看未完成</option></select></div><div class="right"><span class="validation">配置完整</span><span class="tag">共 14 项</span></div></div>
+              <div class="ledger-scroll">
+                <div class="ledger-head"><div><div class="eyebrow">Configuration Ledger</div><h2>Agent 参数台账</h2><p>适合熟悉配置结构的高频用户，一屏完成检查与编辑，没有独立导航列和卡片堆叠。</p></div><button class="secondary-button">恢复默认</button></div>
+                <div class="ledger-columns"><span>配置项</span><span>当前值 / 编辑</span><span style="text-align:right">状态</span></div>
+                <div class="ledger-group-title"><span>模型与指令</span><span class="count-badge">4 项</span></div>
+                <div class="ledger-row"><div class="label"><strong>AI 模型</strong><small>回答模型</small></div><select class="select-field"><option>GPT-OSS-120B</option></select><span class="status count-badge">已配置</span></div>
+                <div class="ledger-row"><div class="label"><strong>系统指令</strong><small>角色与边界</small></div><input class="field" value="企业知识助手；信息不足时明确说明" /><span class="status count-badge">已配置</span></div>
+                <div class="ledger-row"><div class="label"><strong>温度</strong><small>生成随机性</small></div><input class="field" value="0.7" /><span class="status tag">默认</span></div>
+                <div class="ledger-row"><div class="label"><strong>最大回复</strong><small>Token 上限</small></div><input class="field" value="2048" /><span class="status tag">默认</span></div>
+                <div class="ledger-group-title"><span>能力连接</span><span class="count-badge">3 项</span></div>
+                <div class="ledger-row"><div class="label"><strong>知识库</strong><small>企业知识来源</small></div><span style="color:var(--muted)">未连接</span><button class="status row-action">选择</button></div>
+                <div class="ledger-row"><div class="label"><strong>技能与工具</strong><small>外部能力</small></div><span style="color:var(--muted)">0 个工具</span><button class="status row-action">选择</button></div>
+                <div class="ledger-row"><div class="label"><strong>文件上传</strong><small>用户附件</small></div><span>允许上传</span><button class="status toggle on"></button></div>
+                <div class="ledger-group-title"><span>输入与运行</span><span class="count-badge">7 项</span></div>
+                <div class="ledger-row"><div class="label"><strong>欢迎语</strong><small>会话开始内容</small></div><input class="field" value="你好，有什么可以帮你？" /><span class="status count-badge">已配置</span></div>
+                <div class="ledger-row"><div class="label"><strong>全局变量</strong><small>运行时变量</small></div><span style="color:var(--muted)">0 个变量</span><button class="status row-action">管理</button></div>
+              </div>
+            </section>
+            <div class="drag-handle" data-split="split-c"></div>
+            <section class="debug-channel">
+              <div class="debug-head-wrap"><div class="debug-header"><div><div class="eyebrow">Live Debug</div><h3>参数联调</h3></div><button class="icon-button"><svg><use href="#i-history" /></svg></button></div><div class="debug-context"><span class="count-badge">14 项配置</span><span class="tag">当前无未保存变更</span></div></div>
+              <div class="debug-stream"><div class="message human"><div><div class="bubble">总结当前 Agent 能力。</div><div class="message-meta" style="text-align:right">13:08</div></div><div class="message-avatar">YOU</div></div><div class="message"><div class="message-avatar">AI</div><div><div class="bubble">当前已配置对话模型与系统指令，允许文件上传；知识库和外部工具尚未连接。</div><div class="message-meta">0.49s · 参数快照</div></div></div></div>
+              <div class="debug-composer"><div class="composer-box"><textarea placeholder="输入调试问题"></textarea><button class="send-button"><svg><use href="#i-send" /></svg></button></div><div class="composer-note">调试使用左侧当前参数快照</div></div>
+            </section>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const optionLinks = [...document.querySelectorAll('[data-option]')];
+      const panels = [...document.querySelectorAll('[data-panel]')];
+
+      function setOption(value) {
+        const selected = ['a', 'b', 'c'].includes(value) ? value : 'a';
+        optionLinks.forEach((link) => link.classList.toggle('active', link.dataset.option === selected));
+        panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === selected));
+      }
+
+      optionLinks.forEach((link) => {
+        link.addEventListener('click', () => setOption(link.dataset.option));
+      });
+
+      window.addEventListener('hashchange', () => setOption(location.hash.slice(1)));
+      setOption(location.hash.slice(1));
+
+      document.querySelectorAll('.task-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          tab.closest('.task-strip').querySelectorAll('.task-tab').forEach((item) => item.classList.remove('active'));
+          tab.classList.add('active');
+        });
+      });
+
+      document.querySelectorAll('.drag-handle').forEach((handle) => {
+        const split = document.getElementById(handle.dataset.split);
+        let dragging = false;
+
+        const move = (event) => {
+          if (!dragging) return;
+          const rect = split.getBoundingClientRect();
+          const minLeft = 620;
+          const minRight = 410;
+          const divider = 7;
+          const raw = event.clientX - rect.left;
+          const left = Math.min(Math.max(raw, minLeft), rect.width - minRight - divider);
+          split.style.gridTemplateColumns = `${left}px ${divider}px minmax(${minRight}px, 1fr)`;
+        };
+
+        handle.addEventListener('pointerdown', (event) => {
+          dragging = true;
+          handle.classList.add('dragging');
+          handle.setPointerCapture(event.pointerId);
+        });
+        handle.addEventListener('pointermove', move);
+        handle.addEventListener('pointerup', (event) => {
+          dragging = false;
+          handle.classList.remove('dragging');
+          handle.releasePointerCapture(event.pointerId);
+        });
+      });
+    </script>
+  </body>
+</html>

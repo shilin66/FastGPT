@@ -90,3 +90,5 @@ overrides:
   "@types/react-dom": ^18
   react: ^18
   react-dom: ^18
+patchedDependencies:
+  '@fastgpt-sdk/sandbox-adapter@0.0.36': packages/service/patches/@fastgpt-sdk__sandbox-adapter@0.0.36.patch

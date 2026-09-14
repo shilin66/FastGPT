@@ -1,7 +1,8 @@
 import type { ApiRequestProps, ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { authSkill } from '@fastgpt/service/support/permission/agentSkill/auth';
-import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
+import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
+import { getSkillChatScope, assertSkillChatSession } from '@fastgpt/service/core/agentSkills/chat';
 import { getChatItems } from '@fastgpt/service/core/chat/controller';
 import { addPreviewUrlToChatItems } from '@fastgpt/service/core/chat/utils';
 import { transformPreviewHistories } from '@/global/core/chat/utils';
@@ -25,17 +26,19 @@ async function handler(
   if (!skillId) throw new UserError('skillId is required');
   if (!chatId) throw new UserError('chatId is required');
 
-  await authSkill({
+  const { teamId } = await authSkill({
     req,
     authToken: true,
     authApiKey: true,
     skillId,
-    per: ReadPermissionVal
+    per: WritePermissionVal
   });
+  await assertSkillChatSession({ skillId, teamId, chatId });
 
   const result = await getChatItems({
     appId: skillId,
     chatId,
+    sourceScope: getSkillChatScope({ skillId, teamId }),
     field: commonField,
     limit: pageSize ?? 20,
     initialId,

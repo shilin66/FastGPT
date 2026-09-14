@@ -21,7 +21,9 @@ export enum SkillErrEnum {
   archiveExtractionFailed = 'archiveExtractionFailed',
   archiveTooLarge = 'archiveTooLarge',
   missingImageRepository = 'missingImageRepository',
-  skillNameTooLong = 'skillNameTooLong'
+  skillNameTooLong = 'skillNameTooLong',
+  versionConflict = 'versionConflict',
+  migrationConflict = 'migrationConflict'
 }
 const skillErrList = [
   {
@@ -119,6 +121,16 @@ const skillErrList = [
     statusText: SkillErrEnum.skillNameTooLong,
     message: i18nT('common:code_error.skill_error.skill_name_too_long'),
     httpStatus: 400
+  },
+  {
+    statusText: SkillErrEnum.versionConflict,
+    message: i18nT('common:code_error.skill_error.version_conflict'),
+    httpStatus: 409
+  },
+  {
+    statusText: SkillErrEnum.migrationConflict,
+    message: i18nT('common:code_error.skill_error.migration_conflict'),
+    httpStatus: 409
   }
 ];
 export default skillErrList.reduce((acc, cur, index) => {

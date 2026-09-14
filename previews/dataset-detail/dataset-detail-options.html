@@ -1,0 +1,1636 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniCockpit 知识库详情工作台方案</title>
+    <style>
+      :root {
+        --graphite: #27364a;
+        --graphite-strong: #1f2c3e;
+        --blue: #2563eb;
+        --blue-dark: #1d4ed8;
+        --blue-soft: #eff6ff;
+        --blue-line: #cfe0ff;
+        --gold: #c69b4a;
+        --ink: #1f2937;
+        --muted: #667085;
+        --soft: #94a3b8;
+        --line: #dfe5ee;
+        --line-soft: #edf1f6;
+        --paper: #f8fafc;
+        --nav: #f5f7fa;
+        --success: #07825f;
+        --danger: #c53b37;
+        --warning: #a86517;
+        --shadow: 0 18px 50px rgba(39, 54, 74, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: #edf2f7;
+      }
+
+      body {
+        min-width: 1120px;
+        margin: 0;
+        color: var(--ink);
+        background: linear-gradient(rgba(37, 99, 235, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 99, 235, 0.025) 1px, transparent 1px), #edf2f7;
+        background-size: 28px 28px;
+        font-family:
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      input,
+      select {
+        color: inherit;
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 3px solid rgba(37, 99, 235, 0.22);
+        outline-offset: 2px;
+      }
+
+      .preview-header {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        min-height: 68px;
+        padding: 10px 22px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+        background: rgba(248, 250, 252, 0.96);
+        box-shadow: 0 10px 30px rgba(39, 54, 74, 0.09);
+        backdrop-filter: blur(12px);
+      }
+
+      .preview-copy {
+        min-width: 360px;
+      }
+
+      .preview-copy strong,
+      .preview-copy span {
+        display: block;
+      }
+
+      .preview-copy strong {
+        font-size: 15px;
+      }
+
+      .preview-copy span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .option-switcher {
+        display: flex;
+        gap: 4px;
+        margin-inline-start: auto;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+      }
+
+      .option-switcher button {
+        min-width: 142px;
+        min-height: 38px;
+        padding-inline: 14px;
+        border: 0;
+        border-radius: 6px;
+        color: var(--muted);
+        background: transparent;
+        font-size: 12px;
+        font-weight: 750;
+        transition: 160ms ease;
+      }
+
+      .option-switcher button:hover {
+        color: var(--ink);
+        background: var(--paper);
+      }
+
+      .option-switcher button.active {
+        color: white;
+        background: var(--graphite);
+      }
+
+      .recommended {
+        margin-inline-start: 10px;
+        padding: 7px 10px;
+        border-radius: 6px;
+        color: var(--blue-dark);
+        background: #dbeafe;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .option-note {
+        display: flex;
+        align-items: center;
+        min-height: 60px;
+        padding: 10px 22px;
+        border-bottom: 1px solid var(--line);
+        background: white;
+      }
+
+      .option-index {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 8px;
+        color: white;
+        background: var(--blue);
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .option-description {
+        margin-inline-start: 13px;
+      }
+
+      .option-description strong,
+      .option-description span {
+        display: block;
+      }
+
+      .option-description strong {
+        font-size: 14px;
+      }
+
+      .option-description span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .option-points {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-inline-start: auto;
+      }
+
+      .option-points span {
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        color: var(--muted);
+        background: var(--paper);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      main {
+        padding: 18px;
+      }
+
+      .screen {
+        display: none;
+        height: calc(100dvh - 166px);
+        min-height: 690px;
+        overflow: hidden;
+        border: 1px solid #d6dfeb;
+        border-radius: 8px;
+        background: white;
+        box-shadow: var(--shadow);
+      }
+
+      .screen.active {
+        display: grid;
+      }
+
+      .workspace-header {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) auto minmax(280px, 1fr);
+        align-items: center;
+        min-height: 68px;
+        padding-inline: 18px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+
+      .identity {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 11px;
+      }
+
+      .back-button,
+      .icon-button {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        color: var(--graphite);
+        background: white;
+        font-size: 18px;
+      }
+
+      .kb-mark {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 8px;
+        color: white;
+        background: var(--blue);
+        box-shadow: inset 0 -5px 12px rgba(31, 44, 62, 0.18);
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .identity-copy {
+        min-width: 0;
+      }
+
+      .identity-copy strong,
+      .identity-copy span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .identity-copy strong {
+        font-size: 15px;
+        font-weight: 780;
+      }
+
+      .identity-copy span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .page-tabs {
+        display: flex;
+        align-self: stretch;
+        align-items: stretch;
+      }
+
+      .page-tabs button {
+        position: relative;
+        min-width: 104px;
+        border: 0;
+        color: var(--muted);
+        background: transparent;
+        font-size: 13px;
+        font-weight: 720;
+      }
+
+      .page-tabs button::after {
+        position: absolute;
+        inset-inline: 24px;
+        inset-block-end: 0;
+        height: 3px;
+        border-radius: 3px 3px 0 0;
+        background: transparent;
+        content: '';
+      }
+
+      .page-tabs button.active {
+        color: var(--blue);
+      }
+
+      .page-tabs button.active::after {
+        background: var(--blue);
+      }
+
+      .header-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 36px;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding-inline: 13px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        color: var(--graphite);
+        background: white;
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .button:hover,
+      .icon-button:hover,
+      .back-button:hover {
+        border-color: #b9c6d7;
+        background: var(--paper);
+      }
+
+      .button.primary {
+        border-color: var(--graphite);
+        color: white;
+        background: var(--graphite);
+      }
+
+      .button.primary:hover {
+        border-color: var(--blue-dark);
+        background: var(--blue-dark);
+      }
+
+      .toolbar {
+        display: flex;
+        min-height: 62px;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--line);
+        background: white;
+      }
+
+      .toolbar-copy {
+        min-width: 180px;
+        margin-inline-end: auto;
+      }
+
+      .toolbar-copy strong,
+      .toolbar-copy span {
+        display: block;
+      }
+
+      .toolbar-copy strong {
+        font-size: 14px;
+      }
+
+      .toolbar-copy span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .control {
+        display: flex;
+        height: 36px;
+        min-width: 160px;
+        align-items: center;
+        gap: 8px;
+        padding-inline: 11px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: white;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .control input,
+      .control select {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+      }
+
+      .control.search {
+        width: min(260px, 25vw);
+      }
+
+      .ledger {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      .ledger th {
+        height: 40px;
+        padding-inline: 12px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        background: var(--paper);
+        text-align: start;
+        font-size: 10px;
+        font-weight: 780;
+        text-transform: uppercase;
+      }
+
+      .ledger td {
+        height: 64px;
+        padding-inline: 12px;
+        border-bottom: 1px solid var(--line-soft);
+        vertical-align: middle;
+        font-size: 12px;
+      }
+
+      .ledger tr:hover td {
+        background: #fbfdff;
+      }
+
+      .check {
+        width: 15px;
+        height: 15px;
+        border: 1px solid #c8d2df;
+        border-radius: 4px;
+        background: white;
+      }
+
+      .file-cell {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .file-icon {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 7px;
+        color: var(--blue-dark);
+        background: var(--blue-soft);
+        font-size: 9px;
+        font-weight: 850;
+      }
+
+      .file-icon.pdf {
+        color: #b42318;
+        background: #fff0ee;
+      }
+
+      .file-icon.folder {
+        color: var(--warning);
+        background: #fff8e8;
+      }
+
+      .file-copy {
+        min-width: 0;
+      }
+
+      .file-copy strong,
+      .file-copy span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .file-copy strong {
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 740;
+      }
+
+      .file-copy span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .meta-primary {
+        display: block;
+        font-weight: 720;
+      }
+
+      .meta-secondary {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-weight: 700;
+      }
+
+      .status::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--success);
+        content: '';
+      }
+
+      .status.training::before {
+        background: var(--blue);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+      }
+
+      .toggle {
+        position: relative;
+        display: block;
+        width: 34px;
+        height: 19px;
+        border: 0;
+        border-radius: 20px;
+        background: var(--blue);
+      }
+
+      .toggle::after {
+        position: absolute;
+        inset-block-start: 3px;
+        inset-inline-end: 3px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: white;
+        box-shadow: 0 1px 4px rgba(31, 44, 62, 0.24);
+        content: '';
+      }
+
+      .more {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border: 0;
+        border-radius: 6px;
+        color: var(--muted);
+        background: transparent;
+        font-size: 17px;
+        font-weight: 800;
+      }
+
+      .more:hover {
+        color: var(--graphite);
+        background: var(--paper);
+      }
+
+      .inspector {
+        min-width: 0;
+        overflow: auto;
+        border-inline-start: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+
+      .inspector-header {
+        display: flex;
+        min-height: 62px;
+        align-items: center;
+        padding: 12px 15px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .inspector-header strong,
+      .inspector-header span {
+        display: block;
+      }
+
+      .inspector-header strong {
+        font-size: 13px;
+      }
+
+      .inspector-header span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .inspector-header .icon-button {
+        margin-inline-start: auto;
+      }
+
+      .inspector-section {
+        padding: 15px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .section-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 11px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .settings-identity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .settings-identity .kb-mark {
+        width: 34px;
+        height: 34px;
+      }
+
+      .settings-identity strong,
+      .settings-identity span {
+        display: block;
+      }
+
+      .settings-identity strong {
+        font-size: 13px;
+      }
+
+      .settings-identity span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .description {
+        margin-top: 11px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .id-row {
+        display: flex;
+        margin-top: 10px;
+        align-items: center;
+        gap: 7px;
+        color: var(--soft);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 9px;
+      }
+
+      .model-row {
+        display: grid;
+        grid-template-columns: 27px minmax(0, 1fr) auto;
+        min-height: 50px;
+        align-items: center;
+        gap: 9px;
+        border-top: 1px solid var(--line-soft);
+      }
+
+      .model-row:first-of-type {
+        border-top: 0;
+      }
+
+      .model-icon {
+        display: grid;
+        width: 27px;
+        height: 27px;
+        place-items: center;
+        border-radius: 6px;
+        color: white;
+        background: var(--graphite);
+        font-size: 8px;
+        font-weight: 850;
+      }
+
+      .model-copy {
+        min-width: 0;
+      }
+
+      .model-copy strong,
+      .model-copy span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .model-copy strong {
+        font-size: 11px;
+      }
+
+      .model-copy span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .chevron {
+        color: var(--soft);
+        font-size: 15px;
+      }
+
+      .member-row {
+        display: flex;
+        min-height: 38px;
+        align-items: center;
+        gap: 8px;
+        border-top: 1px solid var(--line-soft);
+        font-size: 11px;
+      }
+
+      .member-row:first-of-type {
+        border-top: 0;
+      }
+
+      .avatar {
+        display: grid;
+        width: 25px;
+        height: 25px;
+        place-items: center;
+        border-radius: 50%;
+        color: white;
+        background: #5b89b5;
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .role {
+        margin-inline-start: auto;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .pagination {
+        display: flex;
+        min-height: 48px;
+        align-items: center;
+        justify-content: space-between;
+        padding-inline: 16px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        background: white;
+        font-size: 11px;
+      }
+
+      .pages {
+        display: flex;
+        gap: 5px;
+      }
+
+      .pages button {
+        width: 27px;
+        height: 27px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: white;
+        font-size: 10px;
+      }
+
+      .pages button.active {
+        border-color: var(--blue);
+        color: white;
+        background: var(--blue);
+      }
+
+      /* Option A: stable ledger + collapsible inspector */
+      .screen[data-option='a'] {
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .screen[data-option='a'] .workspace-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 316px;
+        min-height: 0;
+      }
+
+      .screen[data-option='a'] .dataset-pane {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .screen[data-option='a'] .table-scroll {
+        min-height: 0;
+        overflow: auto;
+      }
+
+      .screen[data-option='a'].inspector-closed .workspace-body {
+        grid-template-columns: minmax(0, 1fr) 0;
+      }
+
+      .screen[data-option='a'].inspector-closed .inspector {
+        visibility: hidden;
+      }
+
+      /* Option B: full-width data surface, settings on demand */
+      .screen[data-option='b'] {
+        position: relative;
+        grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+      }
+
+      .context-band {
+        display: grid;
+        grid-template-columns: 1.2fr repeat(3, minmax(170px, 0.55fr));
+        align-items: stretch;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+
+      .context-intro,
+      .context-model {
+        min-width: 0;
+        padding: 12px 15px;
+        border-inline-end: 1px solid var(--line);
+      }
+
+      .context-model:last-child {
+        border-inline-end: 0;
+      }
+
+      .context-intro strong,
+      .context-intro span,
+      .context-model strong,
+      .context-model span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .context-intro strong {
+        font-size: 12px;
+      }
+
+      .context-intro span,
+      .context-model span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .context-model strong {
+        margin-top: 3px;
+        font-size: 11px;
+      }
+
+      .screen[data-option='b'] .table-scroll {
+        min-height: 0;
+        overflow: auto;
+      }
+
+      .settings-sheet {
+        position: absolute;
+        z-index: 8;
+        inset-block: 68px 0;
+        inset-inline-end: 0;
+        width: min(380px, 34vw);
+        overflow: auto;
+        border-inline-start: 1px solid var(--line);
+        background: #fbfcfe;
+        box-shadow: -20px 0 45px rgba(39, 54, 74, 0.13);
+        transform: translateX(102%);
+        transition: transform 180ms ease;
+      }
+
+      .screen[data-option='b'].settings-open .settings-sheet {
+        transform: translateX(0);
+      }
+
+      /* Option C: directory rail + registry + drawer */
+      .screen[data-option='c'] {
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .screen[data-option='c'] .workspace-body {
+        display: grid;
+        grid-template-columns: 224px minmax(0, 1fr) 300px;
+        min-height: 0;
+      }
+
+      .path-rail {
+        min-height: 0;
+        overflow: auto;
+        border-inline-end: 1px solid var(--line);
+        background: var(--nav);
+      }
+
+      .path-rail-header {
+        padding: 15px 14px 9px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .path-item {
+        display: flex;
+        min-height: 42px;
+        align-items: center;
+        gap: 9px;
+        margin: 2px 8px;
+        padding-inline: 10px;
+        border-radius: 7px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 680;
+      }
+
+      .path-item.active {
+        color: var(--blue-dark);
+        background: white;
+        box-shadow: inset 3px 0 0 var(--blue);
+      }
+
+      .path-item .count {
+        margin-inline-start: auto;
+        color: var(--soft);
+        font-size: 9px;
+      }
+
+      .rail-action {
+        width: calc(100% - 20px);
+        min-height: 34px;
+        margin: 12px 10px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        color: var(--graphite);
+        background: white;
+        font-size: 11px;
+        font-weight: 740;
+      }
+
+      .screen[data-option='c'] .registry-pane {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .screen[data-option='c'] .table-scroll {
+        min-height: 0;
+        overflow: auto;
+      }
+
+      .screen[data-option='c'] .ledger th:nth-child(3),
+      .screen[data-option='c'] .ledger td:nth-child(3) {
+        display: none;
+      }
+
+      @media (max-width: 1260px) {
+        .option-points {
+          display: none;
+        }
+
+        .workspace-header {
+          grid-template-columns: minmax(260px, 1fr) auto auto;
+        }
+
+        .screen[data-option='c'] .workspace-body {
+          grid-template-columns: 190px minmax(0, 1fr) 280px;
+        }
+
+        .context-band {
+          grid-template-columns: 1.1fr repeat(3, minmax(145px, 0.55fr));
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="preview-header">
+      <div class="preview-copy">
+        <strong>知识库详情 · 数据集工作台重构</strong>
+        <span>三套方案均复用现有列表、模型配置、协作者和检索测试数据，不增加后端接口。</span>
+      </div>
+      <nav class="option-switcher" aria-label="预览方案">
+        <button class="active" data-option-target="a">方案 A · Atlas 台账</button>
+        <button data-option-target="b">方案 B · 全宽操作台</button>
+        <button data-option-target="c">方案 C · 目录注册表</button>
+      </nav>
+      <span class="recommended">推荐 A</span>
+    </header>
+
+    <section class="option-note">
+      <div class="option-index" id="optionIndex">A</div>
+      <div class="option-description">
+        <strong id="optionTitle">Atlas 高密度台账</strong>
+        <span id="optionDescription"
+          >连续数据台账负责高频管理，右侧检查器承载低频设置，并可随时收起。</span
+        >
+      </div>
+      <div class="option-points" id="optionPoints">
+        <span>稳定双栏</span><span>检查器可收起</span><span>改动风险最低</span>
+      </div>
+    </section>
+
+    <main>
+      <section class="screen active" data-option="a">
+        <header class="workspace-header">
+          <div class="identity">
+            <button class="back-button" aria-label="返回知识库列表">‹</button>
+            <div class="kb-mark">KB</div>
+            <div class="identity-copy">
+              <strong>Test</strong>
+              <span>根目录 / 通用知识库</span>
+            </div>
+          </div>
+          <nav class="page-tabs" aria-label="知识库详情导航">
+            <button class="active">数据集</button>
+            <button>搜索测试</button>
+          </nav>
+          <div class="header-actions">
+            <button class="button" data-inspector-toggle="a">收起设置</button>
+            <button class="button primary">＋ 新建 / 导入</button>
+          </div>
+        </header>
+
+        <div class="workspace-body">
+          <section class="dataset-pane">
+            <div class="toolbar">
+              <div class="toolbar-copy">
+                <strong>根目录</strong>
+                <span>3 个数据集 · 拖动文件夹可调整层级</span>
+              </div>
+              <label class="control search"><span>⌕</span><input placeholder="搜索名称" /></label>
+              <label class="control"
+                ><select>
+                  <option>全部标签</option>
+                  <option>产品资料</option>
+                  <option>内部文档</option>
+                </select></label
+              >
+              <button class="icon-button" aria-label="更多筛选">≡</button>
+            </div>
+
+            <div class="table-scroll">
+              <table class="ledger">
+                <colgroup>
+                  <col style="width: 38px" />
+                  <col style="width: 34%" />
+                  <col style="width: 16%" />
+                  <col style="width: 20%" />
+                  <col style="width: 15%" />
+                  <col style="width: 72px" />
+                  <col style="width: 46px" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th><div class="check"></div></th>
+                    <th>名称</th>
+                    <th>数据摘要</th>
+                    <th>创建 / 更新</th>
+                    <th>状态</th>
+                    <th>启用</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><div class="check"></div></td>
+                    <td>
+                      <div class="file-cell">
+                        <div class="file-icon folder">DIR</div>
+                        <div class="file-copy">
+                          <strong>123</strong><span>文件夹 · 点击进入</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="meta-primary">-</span
+                      ><span class="meta-secondary">未设置处理模式</span>
+                    </td>
+                    <td>
+                      <span class="meta-primary">2026-07-19 21:44</span
+                      ><span class="meta-secondary">同日更新</span>
+                    </td>
+                    <td><span class="status">已就绪</span></td>
+                    <td><button class="toggle" aria-label="已启用"></button></td>
+                    <td><button class="more">···</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="check"></div></td>
+                    <td>
+                      <div class="file-cell">
+                        <div class="file-icon">MD</div>
+                        <div class="file-copy">
+                          <strong>overlay_underlay_rca_design.md</strong
+                          ><span>Markdown · 内部文档</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="meta-primary">63 条数据</span
+                      ><span class="meta-secondary">分块存储</span>
+                    </td>
+                    <td>
+                      <span class="meta-primary">2026-05-13 09:48</span
+                      ><span class="meta-secondary">09:50 更新</span>
+                    </td>
+                    <td><span class="status">已就绪</span></td>
+                    <td><button class="toggle" aria-label="已启用"></button></td>
+                    <td><button class="more">···</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="check"></div></td>
+                    <td>
+                      <div class="file-cell">
+                        <div class="file-icon">MD</div>
+                        <div class="file-copy">
+                          <strong>ai-new.md</strong><span>Markdown · 产品资料</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="meta-primary">17 条数据</span
+                      ><span class="meta-secondary">分块存储</span>
+                    </td>
+                    <td>
+                      <span class="meta-primary">2026-05-13 09:18</span
+                      ><span class="meta-secondary">09:19 更新</span>
+                    </td>
+                    <td><span class="status training">索引处理中</span></td>
+                    <td><button class="toggle" aria-label="已启用"></button></td>
+                    <td><button class="more">···</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <footer class="pagination">
+              <span>共 3 项 · 每页 20 项</span>
+              <div class="pages">
+                <button>‹</button><button class="active">1</button><button>›</button>
+              </div>
+            </footer>
+          </section>
+
+          <aside class="inspector">
+            <div class="inspector-header">
+              <div><strong>知识库设置</strong><span>修改后按原规则保存</span></div>
+              <button class="icon-button" data-inspector-toggle="a" aria-label="收起设置">×</button>
+            </div>
+            <div class="inspector-section">
+              <div class="section-label"><span>基础信息</span><span>编辑</span></div>
+              <div class="settings-identity">
+                <div class="kb-mark">KB</div>
+                <div><strong>Test</strong><span>通用知识库</span></div>
+              </div>
+              <div class="description">
+                这个知识库还没有介绍。可补充用途、维护范围和适用 Agent。
+              </div>
+              <div class="id-row"><span>6a02c2c9b72dd23a0e974567</span><span>复制</span></div>
+            </div>
+            <div class="inspector-section">
+              <div class="section-label"><span>模型与索引</span><span>分块上限 32768</span></div>
+              <div class="model-row">
+                <div class="model-icon">EM</div>
+                <div class="model-copy">
+                  <strong>Qwen3-VL-Embedding</strong><span>索引模型</span>
+                </div>
+                <span class="chevron">›</span>
+              </div>
+              <div class="model-row">
+                <div class="model-icon">LLM</div>
+                <div class="model-copy"><strong>Qwen3.6-27B</strong><span>文本理解模型</span></div>
+                <span class="chevron">›</span>
+              </div>
+              <div class="model-row">
+                <div class="model-icon">VLM</div>
+                <div class="model-copy">
+                  <strong>Qwen3.5-122B-A10B-FP8</strong><span>图片理解模型</span>
+                </div>
+                <span class="chevron">›</span>
+              </div>
+            </div>
+            <div class="inspector-section">
+              <div class="section-label"><span>协作者</span><span>管理</span></div>
+              <div class="member-row">
+                <div class="avatar">OW</div>
+                <span>Owner</span><span class="role">所有者</span>
+              </div>
+              <div class="member-row">
+                <div class="avatar">TU</div>
+                <span>testuser@test.com</span><span class="role">可读</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen" data-option="b">
+        <header class="workspace-header">
+          <div class="identity">
+            <button class="back-button">‹</button>
+            <div class="kb-mark">KB</div>
+            <div class="identity-copy"><strong>Test</strong><span>根目录 / 通用知识库</span></div>
+          </div>
+          <nav class="page-tabs">
+            <button class="active">数据集</button><button>搜索测试</button>
+          </nav>
+          <div class="header-actions">
+            <button class="button" data-settings-toggle="b">知识库设置</button
+            ><button class="button primary">＋ 新建 / 导入</button>
+          </div>
+        </header>
+        <section class="context-band">
+          <div class="context-intro">
+            <strong>数据工作区</strong><span>集中管理目录、内容处理和索引状态</span>
+          </div>
+          <div class="context-model"><span>索引模型</span><strong>Qwen3-VL-Embedding</strong></div>
+          <div class="context-model"><span>文本理解</span><strong>Qwen3.6-27B</strong></div>
+          <div class="context-model"><span>图片理解</span><strong>Qwen3.5-122B</strong></div>
+        </section>
+        <div class="toolbar">
+          <div class="toolbar-copy">
+            <strong>根目录 · 3 个数据集</strong><span>当前模型信息来自知识库详情</span>
+          </div>
+          <label class="control search"><span>⌕</span><input placeholder="搜索数据集" /></label
+          ><label class="control"
+            ><select>
+              <option>全部标签</option>
+            </select></label
+          ><button class="icon-button">≡</button>
+        </div>
+        <div class="table-scroll">
+          <table class="ledger">
+            <colgroup>
+              <col style="width: 42px" />
+              <col style="width: 38%" />
+              <col style="width: 15%" />
+              <col style="width: 18%" />
+              <col style="width: 13%" />
+              <col style="width: 72px" />
+              <col style="width: 48px" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th><div class="check"></div></th>
+                <th>名称</th>
+                <th>处理模式</th>
+                <th>数据与更新</th>
+                <th>状态</th>
+                <th>启用</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="check"></div></td>
+                <td>
+                  <div class="file-cell">
+                    <div class="file-icon folder">DIR</div>
+                    <div class="file-copy"><strong>123</strong><span>文件夹 · 根目录</span></div>
+                  </div>
+                </td>
+                <td>-</td>
+                <td>
+                  <span class="meta-primary">-</span
+                  ><span class="meta-secondary">2026-07-19 21:44</span>
+                </td>
+                <td><span class="status">已就绪</span></td>
+                <td><button class="toggle"></button></td>
+                <td><button class="more">···</button></td>
+              </tr>
+              <tr>
+                <td><div class="check"></div></td>
+                <td>
+                  <div class="file-cell">
+                    <div class="file-icon">MD</div>
+                    <div class="file-copy">
+                      <strong>overlay_underlay_rca_design.md</strong
+                      ><span>Markdown · 内部文档</span>
+                    </div>
+                  </div>
+                </td>
+                <td>分块存储</td>
+                <td>
+                  <span class="meta-primary">63 条数据</span
+                  ><span class="meta-secondary">2026-05-13 09:50</span>
+                </td>
+                <td><span class="status">已就绪</span></td>
+                <td><button class="toggle"></button></td>
+                <td><button class="more">···</button></td>
+              </tr>
+              <tr>
+                <td><div class="check"></div></td>
+                <td>
+                  <div class="file-cell">
+                    <div class="file-icon">MD</div>
+                    <div class="file-copy">
+                      <strong>ai-new.md</strong><span>Markdown · 产品资料</span>
+                    </div>
+                  </div>
+                </td>
+                <td>分块存储</td>
+                <td>
+                  <span class="meta-primary">17 条数据</span
+                  ><span class="meta-secondary">2026-05-13 09:19</span>
+                </td>
+                <td><span class="status training">索引处理中</span></td>
+                <td><button class="toggle"></button></td>
+                <td><button class="more">···</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <footer class="pagination">
+          <span>共 3 项 · 当前显示全部</span>
+          <div class="pages">
+            <button>‹</button><button class="active">1</button><button>›</button>
+          </div>
+        </footer>
+        <aside class="settings-sheet">
+          <div class="inspector-header">
+            <div><strong>知识库设置</strong><span>按需展开，不占用日常列表宽度</span></div>
+            <button class="icon-button" data-settings-toggle="b">×</button>
+          </div>
+          <div class="inspector-section">
+            <div class="section-label"><span>基础信息</span><span>编辑</span></div>
+            <div class="settings-identity">
+              <div class="kb-mark">KB</div>
+              <div><strong>Test</strong><span>通用知识库</span></div>
+            </div>
+            <div class="description">这个知识库还没有介绍。</div>
+            <div class="id-row">6a02c2c9b72dd23a0e974567 · 复制</div>
+          </div>
+          <div class="inspector-section">
+            <div class="section-label"><span>模型与索引</span><span>配置</span></div>
+            <div class="model-row">
+              <div class="model-icon">EM</div>
+              <div class="model-copy"><strong>Qwen3-VL-Embedding</strong><span>索引模型</span></div>
+              <span class="chevron">›</span>
+            </div>
+            <div class="model-row">
+              <div class="model-icon">LLM</div>
+              <div class="model-copy"><strong>Qwen3.6-27B</strong><span>文本理解模型</span></div>
+              <span class="chevron">›</span>
+            </div>
+            <div class="model-row">
+              <div class="model-icon">VLM</div>
+              <div class="model-copy"><strong>Qwen3.5-122B</strong><span>图片理解模型</span></div>
+              <span class="chevron">›</span>
+            </div>
+          </div>
+          <div class="inspector-section">
+            <div class="section-label"><span>协作者</span><span>管理</span></div>
+            <div class="member-row">
+              <div class="avatar">OW</div>
+              <span>Owner</span><span class="role">所有者</span>
+            </div>
+            <div class="member-row">
+              <div class="avatar">TU</div>
+              <span>testuser@test.com</span><span class="role">可读</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="screen" data-option="c">
+        <header class="workspace-header">
+          <div class="identity">
+            <button class="back-button">‹</button>
+            <div class="kb-mark">KB</div>
+            <div class="identity-copy"><strong>Test</strong><span>通用知识库 · 根目录</span></div>
+          </div>
+          <nav class="page-tabs">
+            <button class="active">数据集</button><button>搜索测试</button>
+          </nav>
+          <div class="header-actions"><button class="button primary">＋ 新建 / 导入</button></div>
+        </header>
+        <div class="workspace-body">
+          <aside class="path-rail">
+            <div class="path-rail-header">知识目录</div>
+            <div class="path-item active">
+              <span>▣</span><span>根目录</span><span class="count">3</span>
+            </div>
+            <div class="path-item"><span>□</span><span>123</span><span class="count">0</span></div>
+            <button class="rail-action">＋ 新建文件夹</button>
+            <div class="path-rail-header">快捷视图</div>
+            <div class="path-item">
+              <span>○</span><span>索引处理中</span><span class="count">1</span>
+            </div>
+            <div class="path-item">
+              <span>○</span><span>已停用</span><span class="count">0</span>
+            </div>
+          </aside>
+          <section class="registry-pane">
+            <div class="toolbar">
+              <div class="toolbar-copy">
+                <strong>根目录</strong><span>当前层级的文件与文件夹</span>
+              </div>
+              <label class="control search"
+                ><span>⌕</span><input placeholder="搜索当前目录" /></label
+              ><label class="control"
+                ><select>
+                  <option>全部标签</option>
+                </select></label
+              >
+            </div>
+            <div class="table-scroll">
+              <table class="ledger">
+                <colgroup>
+                  <col style="width: 38px" />
+                  <col style="width: 40%" />
+                  <col style="width: 18%" />
+                  <col style="width: 22%" />
+                  <col style="width: 16%" />
+                  <col style="width: 54px" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th><div class="check"></div></th>
+                    <th>数据集</th>
+                    <th>处理模式</th>
+                    <th>数据摘要</th>
+                    <th>状态</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><div class="check"></div></td>
+                    <td>
+                      <div class="file-cell">
+                        <div class="file-icon folder">DIR</div>
+                        <div class="file-copy"><strong>123</strong><span>文件夹</span></div>
+                      </div>
+                    </td>
+                    <td>-</td>
+                    <td>
+                      <span class="meta-primary">-</span
+                      ><span class="meta-secondary">2026-07-19 21:44</span>
+                    </td>
+                    <td><span class="status">已就绪</span></td>
+                    <td><button class="more">···</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="check"></div></td>
+                    <td>
+                      <div class="file-cell">
+                        <div class="file-icon">MD</div>
+                        <div class="file-copy">
+                          <strong>overlay_underlay_rca_design.md</strong><span>内部文档</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>分块存储</td>
+                    <td>
+                      <span class="meta-primary">63 条数据</span
+                      ><span class="meta-secondary">09:50 更新</span>
+                    </td>
+                    <td><span class="status">已就绪</span></td>
+                    <td><button class="more">···</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="check"></div></td>
+                    <td>
+                      <div class="file-cell">
+                        <div class="file-icon">MD</div>
+                        <div class="file-copy"><strong>ai-new.md</strong><span>产品资料</span></div>
+                      </div>
+                    </td>
+                    <td>分块存储</td>
+                    <td>
+                      <span class="meta-primary">17 条数据</span
+                      ><span class="meta-secondary">09:19 更新</span>
+                    </td>
+                    <td><span class="status training">处理中</span></td>
+                    <td><button class="more">···</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <footer class="pagination">
+              <span>根目录 · 共 3 项</span>
+              <div class="pages">
+                <button>‹</button><button class="active">1</button><button>›</button>
+              </div>
+            </footer>
+          </section>
+          <aside class="inspector">
+            <div class="inspector-header">
+              <div><strong>知识库概览</strong><span>目录管理时保持可见</span></div>
+              <button class="icon-button">×</button>
+            </div>
+            <div class="inspector-section">
+              <div class="section-label"><span>基础信息</span><span>编辑</span></div>
+              <div class="settings-identity">
+                <div class="kb-mark">KB</div>
+                <div><strong>Test</strong><span>通用知识库</span></div>
+              </div>
+              <div class="description">这个知识库还没有介绍。</div>
+            </div>
+            <div class="inspector-section">
+              <div class="section-label"><span>模型</span><span>设置</span></div>
+              <div class="model-row">
+                <div class="model-icon">EM</div>
+                <div class="model-copy">
+                  <strong>Qwen3-VL-Embedding</strong><span>索引模型</span>
+                </div>
+                <span class="chevron">›</span>
+              </div>
+              <div class="model-row">
+                <div class="model-icon">LLM</div>
+                <div class="model-copy"><strong>Qwen3.6-27B</strong><span>文本理解</span></div>
+                <span class="chevron">›</span>
+              </div>
+              <div class="model-row">
+                <div class="model-icon">VLM</div>
+                <div class="model-copy"><strong>Qwen3.5-122B</strong><span>图片理解</span></div>
+                <span class="chevron">›</span>
+              </div>
+            </div>
+            <div class="inspector-section">
+              <div class="section-label"><span>协作者</span><span>2 位</span></div>
+              <div class="member-row">
+                <div class="avatar">OW</div>
+                <span>Owner</span><span class="role">所有者</span>
+              </div>
+              <div class="member-row">
+                <div class="avatar">TU</div>
+                <span>testuser@test.com</span><span class="role">可读</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const optionMeta = {
+        a: {
+          index: 'A',
+          title: 'Atlas 高密度台账',
+          description: '连续数据台账负责高频管理，右侧检查器承载低频设置，并可随时收起。',
+          points: ['稳定双栏', '检查器可收起', '改动风险最低']
+        },
+        b: {
+          index: 'B',
+          title: '全宽数据操作台',
+          description: '模型上下文压缩成顶部状态带，设置按需从右侧展开，文件列表获得最大宽度。',
+          points: ['列表密度最高', '设置按需出现', '适合大数据量']
+        },
+        c: {
+          index: 'C',
+          title: '目录注册表',
+          description: '当前路径和已加载文件夹形成目录轨，中间专注数据注册表，适合多层目录维护。',
+          points: ['目录感最强', '三栏工作台', '适合多文件夹']
+        }
+      };
+
+      const updateNote = (option) => {
+        const meta = optionMeta[option];
+        document.getElementById('optionIndex').textContent = meta.index;
+        document.getElementById('optionTitle').textContent = meta.title;
+        document.getElementById('optionDescription').textContent = meta.description;
+        document.getElementById('optionPoints').innerHTML = meta.points
+          .map((point) => `<span>${point}</span>`)
+          .join('');
+      };
+
+      const selectOption = (option) => {
+        const resolvedOption = optionMeta[option] ? option : 'a';
+        document.querySelectorAll('[data-option-target]').forEach((item) => {
+          item.classList.toggle('active', item.dataset.optionTarget === resolvedOption);
+        });
+        document.querySelectorAll('.screen').forEach((screen) => {
+          screen.classList.toggle('active', screen.dataset.option === resolvedOption);
+        });
+        updateNote(resolvedOption);
+      };
+
+      document.querySelectorAll('[data-option-target]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const option = button.dataset.optionTarget;
+          window.location.hash = option;
+          selectOption(option);
+        });
+      });
+
+      selectOption(window.location.hash.replace('#', ''));
+
+      document.querySelectorAll('[data-inspector-toggle="a"]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const screen = document.querySelector('.screen[data-option="a"]');
+          screen.classList.toggle('inspector-closed');
+          const closed = screen.classList.contains('inspector-closed');
+          const headerButton = screen.querySelector('.header-actions [data-inspector-toggle="a"]');
+          headerButton.textContent = closed ? '展开设置' : '收起设置';
+        });
+      });
+
+      document.querySelectorAll('[data-settings-toggle="b"]').forEach((button) => {
+        button.addEventListener('click', () => {
+          document.querySelector('.screen[data-option="b"]').classList.toggle('settings-open');
+        });
+      });
+    </script>
+  </body>
+</html>
