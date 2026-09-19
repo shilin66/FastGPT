@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import * as lark from '@larksuiteoapi/node-sdk';
 import type { FeishuAppType } from '@fastgpt/global/support/outLink/type';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
+import { removeDatasetCiteText } from '@fastgpt/global/core/ai/llm/utils';
 import type {
   FeishuCallbackPayload,
   FeishuChatContext,
@@ -178,7 +179,9 @@ export const getFeishuReplyText = ({
   const text = answer?.trim() || defaultResponse?.trim() || '';
   if (!text) return '';
 
-  return text.slice(0, 4000);
+  return removeDatasetCiteText(text, false)
+    .replace(/[ \t]+(?=[,.;:!?，。；：！？、])/g, '')
+    .trim();
 };
 
 export const parseFeishuIncomingPayload = ({
