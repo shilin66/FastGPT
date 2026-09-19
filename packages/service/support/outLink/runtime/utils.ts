@@ -78,6 +78,8 @@ export type outLinkInvokeChatProps<T extends OutlinkAppType> = {
   onReply?: (replyContent: string) => Promise<void>;
   // Called for each streaming chunk (feishu and other push channels)
   onStreamChunk?: (text: string) => Promise<void>;
+  defaultReply?: string;
+  errorReply?: string;
   streamId?: string;
 };
 
@@ -95,6 +97,8 @@ export async function outlinkInvokeChat<T extends OutlinkAppType>({
   chatUserId,
   onReply,
   onStreamChunk,
+  defaultReply,
+  errorReply,
   streamId
 }: outLinkInvokeChatProps<T>) {
   const streamResKey = `${STREAM_CACHE_KEY_PREFIX}${streamId}`;
@@ -237,7 +241,7 @@ export async function outlinkInvokeChat<T extends OutlinkAppType>({
       .join('\n')
       .trim();
     if (responseContent.length === 0) {
-      responseContent = DEFAULT_REPLY;
+      responseContent = defaultReply ?? DEFAULT_REPLY;
     }
 
     const replyResult = await (async () => {
@@ -309,7 +313,7 @@ export async function outlinkInvokeChat<T extends OutlinkAppType>({
       if (streamId) {
         await appendRedisCache(streamResKey, STREAM_END_FLAG, 60);
       }
-      await onReply?.(`App run error: ${getErrText(error)}`);
+      await onReply?.(errorReply ?? `App run error: ${getErrText(error)}`);
     } catch (error) {
       logger.error('Outlink invoke chat fallback reply failed', {
         shareId: outLinkConfig.shareId,

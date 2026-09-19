@@ -1,15 +1,7 @@
-import * as lark from '@larksuiteoapi/node-sdk';
 import type { FeishuAppType } from '@fastgpt/global/support/outLink/type';
-import { createFeishuSdkAxios } from '../../../common/api/feishu';
+import { getFeishuClient } from './sdk';
 
-const getFeishuClient = (appConfig: FeishuAppType) =>
-  new lark.Client({
-    appId: appConfig.appId,
-    appSecret: appConfig.appSecret,
-    appType: lark.AppType.SelfBuild,
-    domain: lark.Domain.Feishu,
-    httpInstance: createFeishuSdkAxios()
-  });
+type FeishuReceiveIdType = 'chat_id' | 'open_id' | 'user_id' | 'union_id' | 'email';
 
 export const sendFeishuMarkdownMessage = async ({
   appConfig,
@@ -19,7 +11,7 @@ export const sendFeishuMarkdownMessage = async ({
 }: {
   appConfig: FeishuAppType;
   receiveId: string;
-  receiveIdType?: 'chat_id' | 'open_id' | 'user_id' | 'union_id' | 'email';
+  receiveIdType?: FeishuReceiveIdType;
   markdown: string;
 }) => {
   const client = getFeishuClient(appConfig);

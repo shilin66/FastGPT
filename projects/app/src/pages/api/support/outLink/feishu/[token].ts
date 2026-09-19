@@ -4,7 +4,6 @@ import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import type { FeishuAppType, OutLinkSchemaType } from '@fastgpt/global/support/outLink/type';
 import { MongoOutLink } from '@fastgpt/service/support/outLink/schema';
-import { MongoApp } from '@fastgpt/service/core/app/schema';
 import type { FeishuMessage, FeishuSenderId } from '@fastgpt/service/support/outLink/feishu/type';
 import {
   getFeishuChatContext,
@@ -19,10 +18,11 @@ import {
   getFeishuUserName,
   sendFeishuMarkdownMessage
 } from '@fastgpt/service/support/outLink/feishu/client';
-import { axios } from '@fastgpt/service/common/api/axios';
-import { SERVICE_LOCAL_HOST } from '@fastgpt/service/common/system/tools';
+import { createFeishuMarkdownStream } from '@fastgpt/service/support/outLink/feishu/stream';
+import type { FeishuMarkdownStream } from '@fastgpt/service/support/outLink/feishu/stream';
 import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 import { getGlobalRedisConnection } from '@fastgpt/service/common/redis';
+import { outlinkInvokeChat } from '@fastgpt/service/support/outLink/runtime/utils';
 
 const logger = getLogger(LogCategories.MODULE.OUTLINK.FEISHU);
 const FEISHU_EVENT_DEDUP_EXPIRE = 60 * 60 * 24;
@@ -119,7 +119,8 @@ async function handler(
       outLink,
       appConfig,
       message,
-      senderId
+      senderId,
+      eventId: payload.header?.event_id
     });
   });
 }
@@ -131,14 +132,19 @@ async function processFeishuEvent({
   outLink,
   appConfig,
   message,
-  senderId
+  senderId,
+  eventId
 }: {
   token: string;
   outLink: OutLinkSchemaType<FeishuAppType>;
   appConfig: FeishuAppType;
   message: FeishuMessage;
   senderId?: FeishuSenderId;
+  eventId?: string;
 }) {
+  const receiveId = message.chat_id;
+  if (!receiveId) return;
+
   const question = normalizeFeishuQuestion(getFeishuMessageText(message));
 
   // 尝试从缓存获取用户名
@@ -165,7 +171,7 @@ async function processFeishuEvent({
     if (reply) {
       await sendFeishuMarkdownMessage({
         appConfig,
-        receiveId: message.chat_id!,
+        receiveId,
         markdown: reply
       });
     }
@@ -185,7 +191,7 @@ async function processFeishuEvent({
   if (isFeishuResetCommand(question)) {
     await sendFeishuMarkdownMessage({
       appConfig,
-      receiveId: message.chat_id!,
+      receiveId,
       markdown: '已重置上下文，请发送新问题。'
     });
     return;
@@ -194,67 +200,95 @@ async function processFeishuEvent({
   if (outLink.immediateResponse?.trim()) {
     await sendFeishuMarkdownMessage({
       appConfig,
-      receiveId: message.chat_id!,
+      receiveId,
       markdown: outLink.immediateResponse.trim()
     });
   }
 
-  const app = await MongoApp.findById(outLink.appId, '_id').lean();
-  if (!app) {
-    throw new Error(CommonErrEnum.invalidParams);
-  }
-
+  let stream: FeishuMarkdownStream | undefined;
   try {
-    const result = await axios.post(`http://${SERVICE_LOCAL_HOST}/api/v1/chat/completions`, {
-      appId: String(outLink.appId),
-      chatId,
-      shareId: token,
-      outLinkUid,
-      stream: false,
-      detail: false,
-      messages: [
-        {
-          role: 'user',
-          content: question
-        }
-      ],
-      variables: {}
+    stream = await createFeishuMarkdownStream({
+      appConfig,
+      receiveId
     });
-
-    const answer = result.data?.choices?.[0]?.message?.content;
-    const reply = getFeishuReplyText({
-      answer,
-      defaultResponse: outLink.defaultResponse
-    });
-
-    if (reply) {
-      await sendFeishuMarkdownMessage({
-        appConfig,
-        receiveId: message.chat_id!,
-        markdown: reply
-      });
-    }
   } catch (error) {
-    logger.error('Failed to process feishu callback', {
+    logger.warn('Failed to create feishu streaming card, fallback to normal message', {
       shareId: token,
       appId: String(outLink.appId),
       chatId,
-      error
+      error: error instanceof Error ? error : new Error(String(error))
     });
-
-    const reply = getFeishuReplyText({
-      answer: '',
-      defaultResponse: outLink.exceptionResponse || '消息处理失败，请稍后重试。'
-    });
-
-    if (reply) {
-      await sendFeishuMarkdownMessage({
-        appConfig,
-        receiveId: message.chat_id!,
-        markdown: reply
-      });
-    }
   }
+
+  let streamUpdateFailed = false;
+  await outlinkInvokeChat({
+    outLinkConfig: outLink,
+    chatId,
+    query: [{ text: { content: question } }],
+    messageId: message.message_id || eventId || `${receiveId}:${message.create_time || question}`,
+    chatUserId: outLinkUid,
+    defaultReply: outLink.defaultResponse?.trim() ?? '',
+    errorReply: outLink.exceptionResponse?.trim() || '消息处理失败，请稍后重试。',
+    onStreamChunk: stream
+      ? async (text: string) => {
+          if (streamUpdateFailed || !stream) return;
+
+          try {
+            await stream.append(text);
+          } catch (error) {
+            streamUpdateFailed = true;
+            logger.warn('Failed to update feishu streaming card', {
+              shareId: token,
+              appId: String(outLink.appId),
+              chatId,
+              error: error instanceof Error ? error : new Error(String(error))
+            });
+          }
+        }
+      : undefined,
+    onReply: async (answer: string) => {
+      const reply = getFeishuReplyText({
+        answer,
+        defaultResponse: outLink.defaultResponse
+      });
+
+      if (!stream) {
+        if (!reply) return;
+
+        await sendFeishuMarkdownMessage({
+          appConfig,
+          receiveId,
+          markdown: reply
+        });
+        return;
+      }
+
+      const finishResult = await stream.finish(reply);
+      if (!finishResult.streamingClosed) {
+        logger.warn('Failed to close feishu streaming card', {
+          shareId: token,
+          appId: String(outLink.appId),
+          chatId,
+          error: finishResult.closeError
+        });
+      }
+
+      if (!finishResult.contentUpdated && reply) {
+        logger.warn('Failed to finalize feishu streaming card, fallback to normal message', {
+          shareId: token,
+          appId: String(outLink.appId),
+          chatId,
+          error: finishResult.contentError
+        });
+
+        await sendFeishuMarkdownMessage({
+          appConfig,
+          receiveId,
+          markdown: reply
+        });
+      }
+    }
+  });
 }
 
 async function markFeishuEventAsProcessing(eventId: string) {
