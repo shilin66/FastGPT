@@ -114,9 +114,12 @@ export const claimEditWorkspace = async ({
     await markRemoteEffect();
     return run();
   };
-  const fail = async ({ invalidPackage = false }: { invalidPackage?: boolean } = {}) => {
+  const fail = async ({
+    invalidPackage = false,
+    terminalRejection
+  }: { invalidPackage?: boolean; terminalRejection?: 'busy' | 'probe_failed' } = {}) => {
     await assertActive();
-    if (type === 'publish' && invalidPackage) {
+    if (type === 'publish' && (invalidPackage || terminalRejection)) {
       // Only local validation before publication side effects may leave the draft editable.
       const rejected = await MongoSandboxInstance.updateOne(
         {
@@ -131,8 +134,8 @@ export const claimEditWorkspace = async ({
             'operation.checkpoint': 'rejected',
             'operation.updatedAt': new Date(),
             'operation.error': {
-              code: 'invalid_package',
-              message: 'Package validation rejected publication; draft retained'
+              code: terminalRejection ? `terminal_${terminalRejection}` : 'invalid_package',
+              message: 'Publication preflight rejected; draft retained'
             }
           }
         }

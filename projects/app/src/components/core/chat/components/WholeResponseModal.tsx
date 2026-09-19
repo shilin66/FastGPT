@@ -688,6 +688,7 @@ const SideTabItem = ({
             alt={''}
             w={'26px'}
             h={'26px'}
+            fill={'none'}
             borderRadius={'8px'}
           />
           <Box ml={2} minW={0}>
@@ -972,6 +973,7 @@ export const ResponseBox = React.memo(function ResponseBox({
                   }
                   w={'1.25rem'}
                   h={'1.25rem'}
+                  fill={'none'}
                   borderRadius={'sm'}
                 />
 

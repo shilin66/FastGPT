@@ -4,11 +4,17 @@ import { MongoChatItem } from '@fastgpt/service/core/chat/chatItemSchema';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
 import { getChatItems } from '@fastgpt/service/core/chat/controller';
 import { ChatRoleEnum, ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
-import { getSkillChatScope, assertSkillChatSession } from '@fastgpt/service/core/agentSkills/chat';
+import {
+  getSkillChatScope,
+  assertSkillChatSession,
+  claimSkillDebugResume,
+  loadSkillDebugHistories
+} from '@fastgpt/service/core/agentSkills/chat';
 import {
   pushChatRecords,
   prepareChatRound,
-  finalizeChatRound
+  finalizeChatRound,
+  updateInteractiveChat
 } from '@fastgpt/service/core/chat/saveChat';
 import { MongoChatItemResponse } from '@fastgpt/service/core/chat/chatItemResponseSchema';
 import { MongoAppChatLog } from '@fastgpt/service/core/app/logs/chatLogsSchema';
@@ -115,6 +121,113 @@ describe('Skill debug chat source isolation', () => {
       ).toBe(true);
     }
     expect(await MongoAppChatLog.countDocuments({ appId: skillId })).toBe(0);
+  });
+
+  it('resumes the visible question instead of a newer hidden execution record', async () => {
+    const interactive = {
+      type: 'agentPlanAskQuery' as const,
+      params: { content: 'Which input?' },
+      entryNodeIds: [],
+      memoryEdges: [],
+      nodeOutputs: []
+    };
+    const shared = {
+      appId: skillId,
+      chatId,
+      teamId,
+      tmbId,
+      sourceScope: getSkillChatScope({ skillId, teamId }),
+      source: ChatSourceEnum.test,
+      nodes: [],
+      newTitle: 'ask',
+      durationSeconds: 1
+    };
+    await pushChatRecords({
+      ...shared,
+      userContent: { obj: ChatRoleEnum.Human, value: [{ text: { content: 'Create' } }] },
+      aiContent: { obj: ChatRoleEnum.AI, dataId: 'ask', value: [{ interactive }] }
+    });
+    const run = await MongoChatItem.create({
+      _id: new Types.ObjectId('ffffffffffffffffffffffff'),
+      ...shared,
+      ...shared.sourceScope,
+      obj: ChatRoleEnum.AI,
+      dataId: 'run-resume',
+      value: [],
+      hideInUI: true,
+      execution: { requestId: 'resume', status: 'running', updatedAt: new Date() }
+    });
+    await updateInteractiveChat({
+      ...shared,
+      interactive,
+      userContent: { obj: ChatRoleEnum.Human, value: [{ text: { content: 'stdin' } }] },
+      aiContent: { obj: ChatRoleEnum.AI, dataId: 'answer', value: [{ text: { content: 'done' } }] }
+    });
+    const question = await MongoChatItem.findOne({ dataId: 'ask' }).lean();
+    expect(question?.value).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          interactive: expect.objectContaining({
+            params: expect.objectContaining({ answer: 'stdin' })
+          })
+        })
+      ])
+    );
+    expect((await MongoChatItem.findById(run._id).lean())?.value).toEqual([]);
+    expect(await MongoChatItem.countDocuments({ dataId: 'answer' })).toBe(1);
+  });
+
+  it('consumes a paused continuation before side effects and never replays it after a crash', async () => {
+    const nodeId = 'skill-debug-agent';
+    const key = `agentLoopMemory-${nodeId}`;
+    const memory = {
+      schemaVersion: 1,
+      engine: 'pi',
+      status: 'paused',
+      providerState: { pendingMainContext: [] }
+    };
+    await createItem('paused', 'skillEdit', {
+      obj: ChatRoleEnum.AI,
+      value: [
+        {
+          interactive: {
+            type: 'agentPlanAskQuery',
+            entryNodeIds: [nodeId],
+            params: { content: 'Which input?' }
+          }
+        }
+      ],
+      memories: { [key]: memory }
+    });
+    const params = { skillId, teamId, chatId, nodeId };
+    const histories = await loadSkillDebugHistories(params);
+    await claimSkillDebugResume({ ...params, histories, requestId: 'first-resume' });
+    expect(histories.at(-1)?.memories?.[key]).toEqual(memory);
+    expect((await MongoChatItem.findOne({ dataId: 'paused' }).lean())?.memories?.[key]).toEqual({
+      schemaVersion: 1,
+      engine: 'pi',
+      status: 'failed',
+      consumedBy: 'first-resume'
+    });
+    await expect(
+      claimSkillDebugResume({ ...params, histories, requestId: 'retry-stale' })
+    ).rejects.toThrow('skill_resume_unavailable');
+    const refreshed = await loadSkillDebugHistories(params);
+    await expect(
+      claimSkillDebugResume({ ...params, histories: refreshed, requestId: 'retry-new' })
+    ).rejects.toThrow('skill_resume_unavailable');
+    await MongoChatItem.updateOne({ dataId: 'paused' }, { $set: { memories: { [key]: memory } } });
+    await expect(
+      claimSkillDebugResume({
+        ...params,
+        histories,
+        teamId: new Types.ObjectId().toHexString(),
+        requestId: 'wrong-team'
+      })
+    ).rejects.toThrow('skill_resume_unavailable');
+    expect((await MongoChatItem.findOne({ dataId: 'paused' }).lean())?.memories?.[key]).toEqual(
+      memory
+    );
   });
 
   it('does not let ordinary pending-round writes overwrite an explicit Skill chat', async () => {

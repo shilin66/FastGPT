@@ -6,6 +6,7 @@
  */
 
 import type { ISandbox } from '@fastgpt-sdk/sandbox-adapter';
+import { assertSkillTerminalIdle } from '../ai/sandbox/terminal';
 import { MongoSandboxInstance } from '../ai/sandbox/schema';
 import { MongoAgentSkills } from './schema';
 import { downloadSkillPackage } from './storage';
@@ -387,7 +388,9 @@ async function initializeEditDebugSandbox(
         const downloadedPackage = await downloadSkillPackage({
           storageInfo: activeVersion.storage
         });
-        const validatedPackage = await validateAndNormalizeSkillPackage(downloadedPackage);
+        const validatedPackage = await validateAndNormalizeSkillPackage(downloadedPackage, {
+          allowEmptyWorkspace: true
+        });
         await lease.assertOwned();
         await deployEditPackage({
           sandbox: client.provider,
@@ -455,7 +458,9 @@ async function initializeEditDebugSandbox(
   const packageBuffer = await downloadSkillPackage({
     storageInfo: activeVersion.storage
   });
-  const validatedPackage = await validateAndNormalizeSkillPackage(packageBuffer);
+  const validatedPackage = await validateAndNormalizeSkillPackage(packageBuffer, {
+    allowEmptyWorkspace: true
+  });
 
   addLog.info('[Sandbox] Package downloaded', { size: packageBuffer.length });
 
@@ -771,6 +776,7 @@ export async function packageSkillInSandbox(params: {
       }
       const info = await sandbox.getInfo();
       if (info?.status.state !== 'Running') throw new Error('Edit Sandbox is not running');
+      await assertSkillTerminalIdle(sandbox);
       return await exportEditSandboxWorkspace({
         provider: sandbox,
         workDirectory: targetDir,

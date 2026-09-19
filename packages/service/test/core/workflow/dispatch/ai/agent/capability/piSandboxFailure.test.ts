@@ -26,7 +26,21 @@ describe('Pi Sandbox tool errors and audit', () => {
       })
     });
     await tools[0].execute('call', {});
-    expect(assistantResponses).toEqual([audit]);
+    expect(assistantResponses).toEqual([
+      {
+        tools: [
+          {
+            id: 'call',
+            functionName: 'sandbox_execute',
+            toolName: 'Sandbox',
+            toolAvatar: '',
+            params: '{}',
+            response: 'unavailable'
+          }
+        ]
+      },
+      audit
+    ]);
   });
   it('signals and rethrows fatal errors before the SDK can continue another model turn', async () => {
     const error = new SandboxUnavailableError();

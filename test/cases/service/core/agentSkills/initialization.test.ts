@@ -5,6 +5,7 @@ import { AgentSkillCreationStatusEnum } from '@fastgpt/global/core/agentSkills/c
 import { MongoAgentSkills } from '@fastgpt/service/core/agentSkills/schema';
 import { MongoAgentSkillsVersion } from '@fastgpt/service/core/agentSkills/version/schema';
 import { initializeAgentSkill } from '@fastgpt/service/core/agentSkills/initialize/processor';
+import { JSZip } from '@fastgpt/service/core/agentSkills/zipBuilder';
 
 const { finalizeMock, stageMock } = vi.hoisted(() => ({
   finalizeMock: vi.fn().mockResolvedValue(undefined),
@@ -72,13 +73,10 @@ describe('Agent Skill initialization', () => {
     ]);
     expect(skill?.creationStatus).toBe(AgentSkillCreationStatusEnum.ready);
     expect(String(skill?.currentVersionId)).toBe(versionId);
-    expect(version?.runtimeSkills).toEqual([
-      {
-        name: 'my-skill',
-        description: 'Initialized without an LLM',
-        path: 'skills/my-skill'
-      }
-    ]);
+    expect(version?.runtimeSkills).toEqual([]);
+    expect(skill?.currentRuntimeSkills).toEqual([]);
+    const archive = await JSZip.loadAsync(stageMock.mock.calls[0][0].zipBuffer);
+    expect(Object.keys(archive.files).sort()).toEqual(['.gitignore', 'skills/']);
     expect(stageMock).toHaveBeenCalledOnce();
     expect(finalizeMock).toHaveBeenCalledOnce();
   });

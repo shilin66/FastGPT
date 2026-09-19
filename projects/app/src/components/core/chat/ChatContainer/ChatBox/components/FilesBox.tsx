@@ -49,16 +49,26 @@ const FilesBlock = ({ files }: { files: UserInputFileItemType[] }) => {
   }, [computedChatItemWidth]);
 
   return (
-    <Grid ref={chartRef} gridTemplateColumns={gridColumns} gap={4} alignItems={'flex-start'}>
+    <Grid ref={chartRef} gridTemplateColumns={gridColumns} gap={3} alignItems={'flex-start'}>
       {sortFiles.map(({ id, type, name, url, icon }, i) => (
-        <Box key={i} bg={'white'} borderRadius={'md'} overflow="hidden">
+        <Box
+          key={i}
+          bg={'white'}
+          border={'1px solid'}
+          borderColor={'myGray.200'}
+          borderRadius={'lg'}
+          minW={0}
+          overflow="hidden"
+        >
           {type === 'image' && <MdImage src={url} minH={'100px'} my={0} />}
           {type === 'file' && (
             <Flex
-              p={2}
+              p={3}
               w={'100%'}
               alignItems="center"
               cursor={'pointer'}
+              _hover={{ bg: 'myGray.50' }}
+              transition={'background-color 0.15s ease'}
               onClick={() => {
                 window.open(url);
               }}
@@ -71,7 +81,10 @@ const FilesBlock = ({ files }: { files: UserInputFileItemType[] }) => {
               />
               <Text
                 ml={2}
+                minW={0}
+                title={name || url}
                 fontSize={'xs'}
+                color={'myGray.900'}
                 overflow="hidden"
                 textOverflow="ellipsis"
                 whiteSpace="nowrap"

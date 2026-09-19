@@ -20,6 +20,7 @@ import type {
 } from '../ai/llm/type';
 import { ChatCompletionRequestMessageRoleEnum } from '../../core/ai/constants';
 import { getPlanCallResponseText } from './utils';
+import { AgentContextCheckpointSchema } from './type';
 
 export const GPT2Chat = {
   [ChatCompletionRequestMessageRoleEnum.System]: ChatRoleEnum.System,
@@ -44,11 +45,13 @@ export const simpleUserContentPart = (content: ChatCompletionContentPart[]) => {
 export const chats2GPTMessages = ({
   messages,
   reserveId,
-  reserveTool = false
+  reserveTool = false,
+  checkpointNodeId
 }: {
   messages: ChatItemMiniType[];
   reserveId: boolean;
   reserveTool?: boolean;
+  checkpointNodeId?: string;
 }): ChatCompletionMessageParam[] => {
   let results: ChatCompletionMessageParam[] = [];
 
@@ -107,6 +110,17 @@ export const chats2GPTMessages = ({
       const aiResults: ChatCompletionMessageParam[] = [];
 
       item.value.forEach((value, i) => {
+        if (
+          checkpointNodeId &&
+          value.contextCheckpoint?.schemaVersion === 1 &&
+          value.contextCheckpoint.nodeId === checkpointNodeId
+        ) {
+          const checkpoint = AgentContextCheckpointSchema.safeParse(value.contextCheckpoint);
+          if (!checkpoint.success) return;
+          results = [];
+          aiResults.splice(0, aiResults.length, ...checkpoint.data.messages);
+          return;
+        }
         /* Plan agent 产生的上下文都需要合并到一个 toolCall 里。
           Plan agent 产生的上下文都会携带 planId
           value.plan 代表的是 plan 的具体内容，根据这个值去转化成 toolcall

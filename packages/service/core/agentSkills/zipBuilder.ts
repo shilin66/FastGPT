@@ -19,6 +19,13 @@ import JSZip from 'jszip';
 // Re-export JSZip for test files that need direct access
 export { JSZip };
 
+export async function createEmptySkillWorkspace(): Promise<Buffer> {
+  const zip = new JSZip();
+  zip.folder('skills');
+  zip.file('.gitignore', '.env\n.env.*\nnode_modules/\n.venv/\n__pycache__/\n');
+  return generateZipBuffer(zip);
+}
+
 export type CreateSkillPackageParams = {
   name: string;
   skillMd: string;

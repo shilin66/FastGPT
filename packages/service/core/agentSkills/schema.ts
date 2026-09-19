@@ -109,6 +109,7 @@ const AgentSkillsSchema = new Schema({
     updatedAt: Date
   },
   lastOperationId: String,
+  creationRequestId: String,
   deletionOperation: {
     type: new Schema(
       {

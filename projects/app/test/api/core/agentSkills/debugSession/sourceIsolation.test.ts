@@ -16,6 +16,17 @@ import { sseErrRes } from '@fastgpt/service/common/response';
 import { Types } from '@fastgpt/service/common/mongo';
 import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
 import { MongoChatItemResponse } from '@fastgpt/service/core/chat/chatItemResponseSchema';
+import type { SandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
+
+vi.mock('@fastgpt/service/core/ai/sandbox/terminal', () => ({
+  assertSkillWorkspaceTerminalIdle: vi.fn(async () => {})
+}));
+
+vi.mock('@fastgpt/service/core/ai/sandbox/lease', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@fastgpt/service/core/ai/sandbox/lease')>()),
+  withSandboxLease: async (key: string, run: (lease: SandboxLease) => Promise<unknown>) =>
+    run({ token: key, isActive: () => true, assertOwned: async () => {}, setHeartbeat: () => {} })
+}));
 
 vi.mock('@fastgpt/service/core/workflow/dispatch', () => ({
   dispatchWorkFlow: vi.fn(async () => ({
@@ -70,7 +81,8 @@ describe('Skill debug API source and permission boundary', () => {
       body: {
         skillId,
         chatId: 'debug-source-session',
-        model: 'gpt-4o',
+        responseChatItemId: 'source-response',
+        model: 'gpt-5',
         messages: [{ role: 'user', content: 'hello' }]
       }
     });
@@ -104,7 +116,8 @@ describe('Skill debug API source and permission boundary', () => {
       body: {
         skillId,
         chatId: 'session',
-        model: 'gpt-4o',
+        responseChatItemId: 'reader-response',
+        model: 'gpt-5',
         messages: [{ role: 'user', content: 'hello' }]
       }
     });

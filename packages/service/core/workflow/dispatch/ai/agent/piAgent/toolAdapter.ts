@@ -1,7 +1,8 @@
 import type { ChatCompletionTool } from '@fastgpt/global/core/ai/llm/type';
 import type {
   AIChatItemValueItemType,
-  ChatHistoryItemResType
+  ChatHistoryItemResType,
+  ToolModuleResponseItemType
 } from '@fastgpt/global/core/chat/type';
 import { isFatalAgentError } from '../sub/sandbox/errors';
 import { SubAppIds } from '@fastgpt/global/core/workflow/node/agent/constants';
@@ -393,20 +394,30 @@ export async function buildAgentTools({
       signal?: AbortSignal
     ) => {
       const subAppInfo = getSubAppInfo(toolId);
+      const record: ToolModuleResponseItemType = {
+        id: callId,
+        toolName: subAppInfo?.name || toolId,
+        toolAvatar: subAppInfo?.avatar || '',
+        functionName: toolId,
+        params: JSON.stringify(args),
+        response: null
+      };
+      assistantResponses?.push({ tools: [record] });
       workflowStreamResponse?.({
         id: callId,
         event: SseResponseEventEnum.toolCall,
         data: {
-          tool: {
-            id: callId,
-            toolName: subAppInfo?.name || toolId,
-            toolAvatar: subAppInfo?.avatar || '',
-            functionName: toolId,
-            params: JSON.stringify(args)
-          }
+          tool: record
         }
       });
-      return execute(callId, args, signal);
+      try {
+        const result = await execute(callId, args, signal);
+        record.response = result.content.map((part) => part.text).join('\n');
+        return result;
+      } catch (error) {
+        record.response = `Execution failed; inspect workspace before retrying: ${getErrText(error)}`;
+        throw error;
+      }
     };
 
     tools.push({

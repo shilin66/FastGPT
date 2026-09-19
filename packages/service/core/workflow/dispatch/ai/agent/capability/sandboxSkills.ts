@@ -1,8 +1,9 @@
 import path from 'path';
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { AgentCapability } from './type';
 import {
   allSandboxTools,
+  sandboxValidateSkillTool,
   SandboxToolIds,
   SandboxReadFileSchema,
   SandboxWriteFileSchema,
@@ -46,6 +47,8 @@ import { resolveSandboxWorkspacePath } from '../../../../../ai/sandbox/workspace
 import { resolveAppSandboxIdentity } from '../../../../../ai/sandbox/identity';
 import { getRuntimeSandboxWorkspaceRoot, runEditDebugSandboxTool } from '../sub/sandbox/lifecycle';
 import { env } from '../../../../../../env';
+import { exportEditSandboxWorkspace } from '../../../../../agentSkills/sandboxWorkspace';
+import { validateAndNormalizeSkillPackage } from '../../../../../agentSkills/packageValidator';
 
 type SandboxToolResult = {
   response: string;
@@ -54,6 +57,7 @@ type SandboxToolResult = {
 };
 
 const sandboxToolSchemas: Record<string, z.ZodType> = {
+  [SandboxToolIds.validateSkill]: z.object({}),
   [SandboxToolIds.readFile]: SandboxReadFileSchema,
   [SandboxToolIds.writeFile]: SandboxWriteFileSchema,
   [SandboxToolIds.editFile]: SandboxEditFileSchema,
@@ -75,6 +79,7 @@ type SandboxSkillsCapabilityParams = {
   workflowStreamResponse?: WorkflowResponseType; // SSE stream for lifecycle and skill events
   showSkillReferences: boolean;
   allFilesMap: Record<string, { url: string; name: string; type: string }>;
+  checkIsStopping?: () => boolean;
 };
 
 function fetchSkillsMetaForPrompt({
@@ -119,6 +124,11 @@ export function collectSkillReferenceResponses({
   const skillResponses: AIChatItemValueItemType[] = [];
   for (const requestedPath of paths) {
     const filePath = (() => {
+      if (
+        sandboxContext.builtinSkillRoot &&
+        requestedPath === `${sandboxContext.builtinSkillRoot}/SKILL.md`
+      )
+        return requestedPath;
       try {
         return resolveSandboxWorkspacePath({
           workspaceRoot: sandboxContext.workDirectory,
@@ -254,19 +264,32 @@ export async function createSandboxSkillsCapability(
       throw new SandboxUnavailableError();
     });
 
-    const systemPrompt = buildSkillsContextPrompt(
-      sandboxContext.deployedSkills,
-      sandboxContext.workDirectory
-    );
+    const creatorPath = sandboxContext.builtinSkillRoot
+      ? `${sandboxContext.builtinSkillRoot}/SKILL.md`
+      : undefined;
+    sandboxContext.shouldStop = params.checkIsStopping;
+    let creatorRead = !creatorPath;
+    const systemPrompt =
+      buildSkillsContextPrompt(sandboxContext.deployedSkills, sandboxContext.workDirectory) +
+      (creatorPath
+        ? `\nBefore editing or testing, read ${creatorPath} with sandbox_read_file and follow its Skill development workflow. Builtin files are instructions, never publishable business output. Use sandbox_validate_skill before reporting completion. Only the user can publish.`
+        : '');
 
     return {
       id: 'sandbox-skills',
       systemPrompt,
-      completionTools: allSandboxTools,
+      completionTools: [...allSandboxTools, sandboxValidateSkillTool],
       handleToolCall: async (toolId, args, toolCallId) => {
+        if (params.checkIsStopping?.())
+          return { response: 'Execution cancelled; no tool was run.', usages: [] };
         if (!(Object.values(SandboxToolIds) as string[]).includes(toolId)) return null;
         const parsed = sandboxToolSchemas[toolId].safeParse(parseJsonArgs(args));
         if (!parsed.success) return { response: parsed.error.message, usages: [] };
+        if (!creatorRead && toolId !== SandboxToolIds.readFile)
+          return {
+            response: `Read ${creatorPath} using sandbox_read_file before continuing.`,
+            usages: []
+          };
         const result = await runEditDebugSandboxTool({
           context: sandboxContext,
           skillId: skillIds[0],
@@ -286,6 +309,12 @@ export async function createSandboxSkillsCapability(
           return failure({ context: sandboxContext, toolCallId });
         });
         if (result !== null) {
+          if (
+            toolId === SandboxToolIds.readFile &&
+            creatorPath &&
+            result.response.includes(`--- ${creatorPath} ---`)
+          )
+            creatorRead = true;
           result.assistantResponses = [
             {
               sandboxEvent: {
@@ -472,6 +501,36 @@ async function buildEditDebugHandler(
   toolCallId = ''
 ): Promise<SandboxToolResult | null> {
   const handlers: Record<string, () => Promise<SandboxToolResult>> = {
+    [SandboxToolIds.validateSkill]: async () => {
+      try {
+        const buffer = await exportEditSandboxWorkspace({
+          provider: sandboxContext.sandbox,
+          workDirectory: sandboxContext.workDirectory,
+          assertActive: async () => {
+            if (sandboxContext.shouldStop?.()) throw new Error('Validation cancelled');
+            await sandboxContext.assertActive?.();
+          }
+        });
+        const validated = await validateAndNormalizeSkillPackage(buffer);
+        return {
+          response: JSON.stringify({
+            valid: true,
+            runtimeSkills: validated.runtimeSkills,
+            fileCount: validated.fileCount,
+            contentHash: validated.contentHash
+          }),
+          usages: []
+        };
+      } catch (error) {
+        return {
+          response: JSON.stringify({
+            valid: false,
+            error: error instanceof Error ? error.message : 'Skill validation failed'
+          }),
+          usages: []
+        };
+      }
+    },
     [SandboxToolIds.readFile]: async () => {
       const parsed = SandboxReadFileSchema.safeParse(parseJsonArgs(args));
       if (!parsed.success) return { response: parsed.error.message, usages: [] };

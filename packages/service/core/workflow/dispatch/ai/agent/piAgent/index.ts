@@ -9,7 +9,11 @@ import type {
 } from '@fastgpt/global/core/chat/type';
 import type { DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
 import { getNodeErrResponse } from '../../../utils';
-import { chatValue2RuntimePrompt } from '@fastgpt/global/core/chat/adapt';
+import { chatValue2RuntimePrompt, chats2GPTMessages } from '@fastgpt/global/core/chat/adapt';
+import { gptMessagesToPi, piMessagesToGPT } from './context';
+import { fitAgentContext } from '../../../../../ai/llm/compress/contextBudget';
+import { getLLMModel } from '../../../../../ai/model';
+import { formatModelChars2Points } from '../../../../../../support/wallet/usage/utils';
 import { parseUserSystemPrompt } from '../sub/plan/prompt';
 import { formatFileInput } from '../sub/file/utils';
 import { normalizeSkillIds } from '@fastgpt/global/core/app/formEdit/type';
@@ -29,6 +33,8 @@ import { AIAskAnswerSchema, AIAskTool, formatAgentAsk } from '../sub/plan/ask/co
 import type { InteractiveNodeResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 import { chatHistoriesToPiMessages, readPiAgentState, resumePiMessages } from './memory';
 import { isFatalAgentError, SandboxUnavailableError } from '../sub/sandbox/errors';
+import { resolveAgentSandboxSessionId } from '../sub/sandbox/identity';
+import { applyAgentModelParams } from '@fastgpt/global/core/ai/agent/modelParams';
 
 type Response = DispatchNodeResultType<{
   [NodeOutputKeyEnum.answerText]: string;
@@ -64,7 +70,9 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     }
   } = props;
 
-  const chatHistories = getAgentHistories({ history, histories, nodeId });
+  const chatHistories = useEditDebugSandbox
+    ? histories
+    : getAgentHistories({ history, histories, nodeId });
   const normalizedSkillIds = normalizeSkillIds(skillIds);
 
   const assistantResponses: AIChatItemValueItemType[] = [];
@@ -105,7 +113,12 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
 
     // Initialize capabilities — sandbox skills (lazy-init, gated by SHOW_SKILL)
     if (env.SHOW_SKILL) {
-      const sandboxSessionId = mode === 'chat' ? chatId : `debug-${runningAppInfo.id}-${nodeId}`;
+      const sandboxSessionId = resolveAgentSandboxSessionId({
+        mode,
+        appId: runningAppInfo.id,
+        nodeId,
+        chatId
+      });
       const sandboxMode = useEditDebugSandbox ? 'editDebug' : 'sessionRuntime';
 
       const sandboxCap = await createSandboxSkillsCapability({
@@ -116,6 +129,7 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
         tmbId: runningAppInfo.tmbId,
         sessionId: sandboxSessionId,
         mode: sandboxMode,
+        checkIsStopping,
         workflowStreamResponse,
         showSkillReferences: showSkillReferences === true,
         allFilesMap,
@@ -181,8 +195,8 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     });
 
     /* ===== Build pi-agent-core model & tools ===== */
-    const piModel = buildPiModel(model, aiChatVision);
-    const apiKey = getModelApiKey(model);
+    const piModel = buildPiModel(model, aiChatVision, props.externalProvider.openaiAccount);
+    const apiKey = getModelApiKey(model, props.externalProvider.openaiAccount);
 
     const toolCtx: ToolDispatchContext = {
       checkIsStopping,
@@ -243,7 +257,20 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     });
     const restoredMessages = restoredState
       ? resumePiMessages({ state: restoredState, answer: chatValue2RuntimePrompt(query).text })
-      : chatHistoriesToPiMessages({ histories: chatHistories, model: piModel });
+      : useEditDebugSandbox
+        ? gptMessagesToPi(
+            chats2GPTMessages({
+              messages: chatHistories,
+              reserveId: false,
+              reserveTool: true,
+              checkpointNodeId: nodeId
+            }),
+            piModel
+          )
+        : chatHistoriesToPiMessages({ histories: chatHistories, model: piModel });
+    let compacted: import('@mariozechner/pi-agent-core').AgentMessage[] | undefined;
+    let coveredMessages = 0;
+    let turns = 0;
 
     /* ===== Create & run Agent ===== */
     const { Agent } = await import('@mariozechner/pi-agent-core');
@@ -257,14 +284,41 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
         messages: restoredMessages
       },
       getApiKey: () => apiKey,
+      onPayload: (payload) => {
+        if (typeof payload !== 'object' || payload === null) return payload;
+        return applyAgentModelParams(payload, props.params.aiChatDefaultConfig, piModel.maxTokens);
+      },
       toolExecution: 'sequential',
       beforeToolCall: async () =>
-        pendingAsk || fatalError || checkIsStopping()
+        pendingAsk || fatalError || checkIsStopping() || turns >= 100
           ? { block: true, reason: 'Agent execution has stopped. Retry after the user responds.' }
           : undefined,
       transformContext: async (messages) => {
         if (fatalError) throw fatalError;
         if (pendingAsk || checkIsStopping()) throw new Error('Agent execution paused');
+        if (++turns > 100) throw new Error('Agent execution step budget exceeded');
+        if (useEditDebugSandbox) {
+          const current = compacted ? [...compacted, ...messages.slice(coveredMessages)] : messages;
+          const fitted = await fitAgentContext({
+            messages: [
+              { role: 'system', content: formatedSystemPrompt },
+              ...piMessagesToGPT(current)
+            ],
+            tools: [...agentCompletionTools, AIAskTool],
+            model: getLLMModel(model),
+            outputTokens: piModel.maxTokens,
+            isAborted: checkIsStopping,
+            userKey: props.externalProvider.openaiAccount,
+            onUsage: (usage) => usagePush([usage])
+          });
+          piModel.maxTokens = fitted.maxOutputTokens;
+          if (fitted.compressed || fitted.truncated) {
+            compacted = gptMessagesToPi(fitted.messages, piModel);
+            coveredMessages = messages.length;
+            return compacted;
+          }
+          return current;
+        }
         return messages;
       }
     });
@@ -283,6 +337,25 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
           });
         }
       } else if (event.type === 'turn_end') {
+        if (event.message.role === 'assistant') {
+          const usage = event.message.usage;
+          const inputTokens = usage.input + usage.cacheRead + usage.cacheWrite;
+          usagePush([
+            {
+              moduleName: 'Agent',
+              model: getLLMModel(model).name,
+              inputTokens,
+              outputTokens: usage.output,
+              totalPoints: props.externalProvider.openaiAccount
+                ? 0
+                : formatModelChars2Points({
+                    model: getLLMModel(model),
+                    inputTokens,
+                    outputTokens: usage.output
+                  }).totalPoints
+            }
+          ]);
+        }
         const errMsg = event.message.role === 'assistant' ? event.message.errorMessage : undefined;
         if (errMsg && !pendingAsk) {
           getLogger(LogCategories.MODULE.AI.AGENT).error(`[piAgent] Turn error: ${errMsg}`);
@@ -309,15 +382,24 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     }
     getLogger(LogCategories.MODULE.AI.AGENT).debug(`[piAgent] Agent completed`);
 
-    // Surface API errors that pi-agent-core stores instead of throwing
-    if (fatalError) throw fatalError;
-    if (agent.state.errorMessage && !pendingAsk) {
-      throw new Error(agent.state.errorMessage);
-    }
-
     // Build assistant responses
     if (answerText) {
       assistantResponses.push({ text: { content: answerText } });
+    }
+    if (compacted)
+      assistantResponses.push({
+        hideInUI: true,
+        contextCheckpoint: {
+          schemaVersion: 1,
+          nodeId,
+          createdAt: new Date().toISOString(),
+          messages: piMessagesToGPT([...compacted, ...agent.state.messages.slice(coveredMessages)])
+        }
+      });
+
+    if (fatalError) throw fatalError;
+    if (agent.state.errorMessage && !pendingAsk) {
+      throw new Error(agent.state.errorMessage);
     }
 
     if (pendingAsk && !checkIsStopping()) {

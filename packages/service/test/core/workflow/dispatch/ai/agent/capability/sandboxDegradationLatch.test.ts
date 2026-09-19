@@ -107,7 +107,19 @@ describe('Agent-wide Sandbox degradation latch', () => {
         });
         await tools[0].execute('one', { command: 'side_effect' });
         await tools[1].execute('two', { command: 'side_effect' });
-        expect(responses).toEqual([audit]);
+        expect(responses.filter((value) => value.sandboxEvent)).toEqual([audit]);
+        expect(responses.flatMap((value) => value.tools ?? [])).toMatchObject([
+          { id: 'one', functionName: 'sandbox_execute', response: 'sandbox_unavailable' },
+          {
+            id: 'two',
+            functionName: 'sandbox_shell',
+            response: JSON.stringify({
+              code: 'sandbox_unavailable',
+              status: 'degraded',
+              retryable: false
+            })
+          }
+        ]);
       }
       expect(mocks.shell).not.toHaveBeenCalled();
       expect(capability).toHaveBeenCalledTimes(1);

@@ -133,6 +133,39 @@ describe('createLLMResponse', () => {
   });
 
   describe('Non-stream text output', () => {
+    it('applies native Agent body parameters without rescaling or overriding the output budget', async () => {
+      const create = vi.fn().mockResolvedValue({
+        choices: [{ message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }
+      });
+      mockGetAIApi.mockReturnValue({ chat: { completions: { create } } } as unknown as ReturnType<
+        typeof getAIApi
+      >);
+      await createLLMResponse({
+        body: {
+          model: 'gpt-4',
+          messages: [{ role: 'user', content: 'test' }],
+          stream: false,
+          max_tokens: 512,
+          extraBody: {
+            temperature: 0.7,
+            top_p: 0.9,
+            max_tokens: 4096,
+            chat_template_kwargs: { enable_thinking: false }
+          }
+        }
+      });
+      expect(create.mock.calls[0][0]).toMatchObject({
+        model: 'gpt-4',
+        stream: false,
+        temperature: 0.7,
+        top_p: 0.9,
+        max_tokens: 512,
+        chat_template_kwargs: { enable_thinking: false }
+      });
+      expect(create.mock.calls[0][0]).not.toHaveProperty('extraBody');
+    });
+
     it('should handle simple non-stream text response', async () => {
       const mockResponse = {
         choices: [

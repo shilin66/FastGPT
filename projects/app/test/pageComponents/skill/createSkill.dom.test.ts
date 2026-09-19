@@ -1,5 +1,6 @@
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { ChakraProvider } from '@chakra-ui/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { postCreateSkill } from '@/web/core/skill/api';
 
@@ -25,48 +26,9 @@ vi.mock('@fastgpt/web/common/file/hooks/useUploadAvatar', () => ({
     handleFileSelectorOpen: () => onSuccess('/selected-skill-avatar.png')
   })
 }));
-vi.mock('@chakra-ui/react', () => {
-  const Box = ({ children, onClick }: React.HTMLAttributes<HTMLDivElement>) =>
-    React.createElement('div', { onClick }, children);
-  return {
-    Box,
-    Flex: Box,
-    ModalBody: Box,
-    ModalFooter: Box,
-    Button: ({
-      children,
-      onClick,
-      isLoading
-    }: React.ButtonHTMLAttributes<HTMLButtonElement> & { isLoading?: boolean }) =>
-      React.createElement('button', { onClick, disabled: isLoading }, children),
-    Input: React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
-      function MockInput({ name, value, defaultValue, onChange, onBlur, placeholder }, ref) {
-        return React.createElement('input', {
-          ref,
-          name,
-          value,
-          defaultValue,
-          onChange,
-          onBlur,
-          placeholder
-        });
-      }
-    ),
-    Textarea: React.forwardRef<
-      HTMLTextAreaElement,
-      React.TextareaHTMLAttributes<HTMLTextAreaElement>
-    >(function MockTextarea({ name, value, defaultValue, onChange, onBlur, placeholder }, ref) {
-      return React.createElement('textarea', {
-        ref,
-        name,
-        value,
-        defaultValue,
-        onChange,
-        onBlur,
-        placeholder
-      });
-    })
-  };
+vi.mock('@chakra-ui/react', async (importOriginal) => {
+  const chakra = await importOriginal<typeof import('@chakra-ui/react')>();
+  return { ...chakra, ModalBody: chakra.Box };
 });
 vi.mock('@fastgpt/web/components/common/MyModal', () => ({
   default: ({ children, title }: { children: React.ReactNode; title: string }) =>
@@ -121,11 +83,15 @@ describe('Create blank Skill modal', () => {
   const mount = async (parentId?: string) =>
     act(async () =>
       root.render(
-        React.createElement(CreateSkillModal, {
-          parentId,
-          onClose: mocks.onClose,
-          onSuccess: mocks.onSuccess
-        })
+        React.createElement(
+          ChakraProvider,
+          null,
+          React.createElement(CreateSkillModal, {
+            parentId,
+            onClose: mocks.onClose,
+            onSuccess: mocks.onSuccess
+          })
+        )
       )
     );
   const chooseAvatar = async () => {
@@ -162,9 +128,10 @@ describe('Create blank Skill modal', () => {
   it('creates with a name and no configured model, without ignored generation parameters', async () => {
     await mount();
     await change('name', '  Blank skill  ');
-    await click(button('common:Confirm'));
+    await click(button('skill:create_and_open_workspace'));
 
     expect(mocks.postCreateSkill).toHaveBeenCalledExactlyOnceWith({
+      requestId: expect.any(String),
       parentId: null,
       name: 'Blank skill',
       description: undefined,
@@ -181,7 +148,7 @@ describe('Create blank Skill modal', () => {
     await change('name', '  Draft skill  ');
     await change('intro', '  Keep this introduction.  ');
     await chooseAvatar();
-    await click(button('common:Confirm'));
+    await click(button('skill:create_and_open_workspace'));
 
     expect(field('name').value).toBe('  Draft skill  ');
     expect(field('intro').value).toBe('  Keep this introduction.  ');
@@ -190,10 +157,11 @@ describe('Create blank Skill modal', () => {
     expect(mocks.onSuccess).not.toHaveBeenCalled();
     expect(mocks.push).not.toHaveBeenCalled();
     expect(mocks.toast).toHaveBeenCalledWith({ title: 'Creation unavailable', status: 'error' });
-    expect(button('common:Confirm').disabled).toBe(false);
+    expect(button('skill:create_and_open_workspace').disabled).toBe(false);
 
-    await click(button('common:Confirm'));
+    await click(button('skill:create_and_open_workspace'));
     const expectedRequest = {
+      requestId: expect.any(String),
       parentId: 'parent-folder-id',
       name: 'Draft skill',
       description: 'Keep this introduction.',
@@ -201,6 +169,9 @@ describe('Create blank Skill modal', () => {
     };
     expect(mocks.postCreateSkill).toHaveBeenNthCalledWith(1, expectedRequest);
     expect(mocks.postCreateSkill).toHaveBeenNthCalledWith(2, expectedRequest);
+    expect(mocks.postCreateSkill.mock.calls[0][0].requestId).toBe(
+      mocks.postCreateSkill.mock.calls[1][0].requestId
+    );
     expect(mocks.onClose).toHaveBeenCalledOnce();
     expect(mocks.onSuccess).toHaveBeenCalledOnce();
     expect(mocks.push).toHaveBeenCalledExactlyOnceWith('/skill/detail?skillId=created-skill-id');
@@ -208,12 +179,21 @@ describe('Create blank Skill modal', () => {
 
   it('does not submit without a name and permits cancellation without creating a resource', async () => {
     await mount();
-    await click(button('common:Confirm'));
+    await click(button('skill:create_and_open_workspace'));
     expect(mocks.postCreateSkill).not.toHaveBeenCalled();
 
     await click(button('common:Cancel'));
     expect(mocks.onClose).toHaveBeenCalledOnce();
     expect(mocks.onSuccess).not.toHaveBeenCalled();
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('explains the workspace next step and rejects a whitespace-only name', async () => {
+    await mount();
+    expect(container.textContent).toContain('skill:create_blank_form_hint');
+    await change('name', '   ');
+    await click(button('skill:create_and_open_workspace'));
+    expect(mocks.postCreateSkill).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('skill:skill_name_required');
   });
 });

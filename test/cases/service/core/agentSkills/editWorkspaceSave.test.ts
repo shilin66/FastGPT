@@ -10,6 +10,7 @@ import { SkillPackageValidationError } from '@fastgpt/service/core/agentSkills/p
 import { isEditWorkspaceOperationComplete } from '@fastgpt/service/core/agentSkills/editWorkspace/utils';
 import { SkillErrEnum } from '@fastgpt/global/common/error/code/agentSkill';
 import * as skillPublisher from '@fastgpt/service/core/agentSkills/version/publish';
+import { SkillTerminalActivityError } from '@fastgpt/service/core/ai/sandbox/terminal';
 
 vi.unmock('@fastgpt/service/common/mongo/sessionRun');
 const mocks = vi.hoisted(() => ({
@@ -167,6 +168,27 @@ describe('Edit save owns one lease through export and publication', () => {
       const result = await save();
       expect(result.workspace.status).toBe('running');
       expect(result.workspace.baseVersionId).toBe(result.versionId);
+      expect(await MongoAgentSkillsVersion.countDocuments({ skillId })).toBe(2);
+    }
+  );
+  it.each(['busy', 'probe_failed'] as const)(
+    'retains an editable draft when terminal preflight is %s',
+    async (reason) => {
+      mocks.package.mockRejectedValueOnce(new SkillTerminalActivityError(reason));
+      await expect(save()).rejects.toBeInstanceOf(SkillTerminalActivityError);
+      const instance = await MongoSandboxInstance.findById(instanceId).lean();
+      expect(instance).toMatchObject({
+        status: 'running',
+        operation: {
+          checkpoint: 'rejected',
+          failureDisposition: 'retryable',
+          error: { code: `terminal_${reason}` }
+        }
+      });
+      expect(instance && isEditWorkspaceOperationComplete(instance)).toBe(true);
+      expect(mocks.stage).not.toHaveBeenCalled();
+      expect(await MongoAgentSkillsVersion.countDocuments({ skillId })).toBe(1);
+      await save();
       expect(await MongoAgentSkillsVersion.countDocuments({ skillId })).toBe(2);
     }
   );

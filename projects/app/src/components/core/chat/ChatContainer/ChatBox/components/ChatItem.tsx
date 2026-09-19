@@ -180,9 +180,9 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
     () => ({
       ...(chat.obj === ChatRoleEnum.Human
         ? {
-            borderRadius: '8px 3px 8px 8px',
+            borderRadius: '12px 4px 12px 12px',
             textAlign: 'right',
-            bg: 'primary.600'
+            bg: 'myGray.150'
           }
         : {
             borderRadius: 0,
@@ -228,7 +228,7 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
     chat.time && (isPc || isChatLog || isPortalMessage) ? (
       <Box
         className={'time-label'}
-        fontSize={isPortalMessage ? '10px' : styleMap.fontSize}
+        fontSize={isPortalMessage ? '11px' : styleMap.fontSize}
         color={isPortalMessage ? 'myGray.500' : styleMap.color}
         fontWeight={styleMap.fontWeight}
         w={isChatLog ? 'auto' : isPortalMessage ? '42px' : '36px'}
@@ -387,8 +387,8 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
         minH={isPortalMessage ? '30px' : undefined}
         alignItems={'center'}
         justifyContent={chat.obj === ChatRoleEnum.Human ? 'flex-end' : 'flex-start'}
-        gap={isPortalMessage ? 1 : 1.5}
-        mb={1.5}
+        gap={1.5}
+        mb={2}
       >
         {showAiIdentity && <ChatAvatar src={avatar} type={chat.obj} />}
 
@@ -398,8 +398,8 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
             maxW={'180px'}
             overflow={'hidden'}
             color={'myGray.700'}
-            fontSize={'11px'}
-            fontWeight={'800'}
+            fontSize={'12px'}
+            fontWeight={'600'}
             textOverflow={'ellipsis'}
             whiteSpace={'nowrap'}
           >
@@ -456,7 +456,7 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
           )}
 
         {isPortalMessage && chat.obj === ChatRoleEnum.Human && (
-          <Box mx={0.75} color={'myGray.700'} fontSize={'11px'} fontWeight={'800'}>
+          <Box mx={0.75} color={'myGray.600'} fontSize={'12px'} fontWeight={'500'}>
             {t('common:core.chat.You')}
           </Box>
         )}
@@ -513,17 +513,14 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
             <Card
               {...MessageCardStyle}
               bg={styleMap.bg}
-              borderRadius={
-                isPortalMessage && chat.obj === ChatRoleEnum.Human
-                  ? '7px 2px 7px 7px'
-                  : styleMap.borderRadius
-              }
-              border={'none'}
-              borderLeft={isPortalMessage && chat.obj === ChatRoleEnum.AI ? '3px solid' : undefined}
+              borderRadius={styleMap.borderRadius}
+              border={chat.obj === ChatRoleEnum.Human ? '1px solid' : 'none'}
+              borderColor={'myGray.200'}
+              borderLeft={isPortalMessage && chat.obj === ChatRoleEnum.AI ? '1px solid' : undefined}
               borderLeftColor={
-                isPortalMessage && chat.obj === ChatRoleEnum.AI ? 'primary.600' : undefined
+                isPortalMessage && chat.obj === ChatRoleEnum.AI ? 'myGray.250' : undefined
               }
-              color={chat.obj === ChatRoleEnum.Human ? 'white' : 'myGray.900'}
+              color={'myGray.800'}
               w={chat.obj === ChatRoleEnum.Human ? 'auto' : '100%'}
               maxW={
                 isPortalMessage
@@ -537,29 +534,25 @@ const ChatItem = ({ hasPlanCheck, ...props }: Props) => {
               px={
                 isPortalMessage
                   ? chat.obj === ChatRoleEnum.Human
-                    ? '15px'
+                    ? [4, 5]
                     : 0
                   : chat.obj === ChatRoleEnum.Human
                     ? [3, 4]
                     : 0
               }
-              pl={isPortalMessage && chat.obj === ChatRoleEnum.AI ? '17px' : undefined}
+              pl={isPortalMessage && chat.obj === ChatRoleEnum.AI ? [4, 5] : undefined}
               py={
                 isPortalMessage
                   ? chat.obj === ChatRoleEnum.Human
-                    ? '12px'
+                    ? 4
                     : '1px'
                   : chat.obj === ChatRoleEnum.Human
                     ? 3
                     : 0
               }
-              boxShadow={
-                isPortalMessage && chat.obj === ChatRoleEnum.Human
-                  ? '0 8px 20px rgba(37, 99, 235, 0.16)'
-                  : 'none'
-              }
+              boxShadow={'none'}
               fontSize={isPortalMessage ? '14px' : undefined}
-              lineHeight={isPortalMessage ? 1.65 : undefined}
+              lineHeight={1.8}
               textAlign={'left'}
             >
               {chat.obj === ChatRoleEnum.Human && (

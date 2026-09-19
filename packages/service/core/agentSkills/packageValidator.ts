@@ -78,6 +78,7 @@ export type SkillPackageLimits = {
 
 export type ValidateSkillPackageOptions = {
   allowLegacyLayout?: boolean;
+  allowEmptyWorkspace?: boolean;
   limits?: Partial<SkillPackageLimits>;
 };
 
@@ -110,8 +111,8 @@ export function getSkillPackageLimits(): SkillPackageLimits {
   return {
     maxArchiveBytes: maxUploadBytes,
     maxUncompressedBytes,
-    maxEntries: 1000,
-    maxFileBytes: Math.min(20 * 1024 * 1024, maxUncompressedBytes),
+    maxEntries: 20000,
+    maxFileBytes: Math.min(100 * 1024 * 1024, maxUncompressedBytes),
     maxDepth: 12
   };
 }
@@ -395,9 +396,13 @@ function readRuntimeMetadata(path: string, content: Buffer): RuntimeSkillMetadat
 
 async function createCanonicalZip(
   fileMap: Map<string, Buffer>,
-  permissions: Map<string, number | undefined>
+  permissions: Map<string, number | undefined>,
+  emptyWorkspace = false
 ): Promise<Buffer> {
   const zip = new JSZip();
+  if (emptyWorkspace) {
+    zip.file('skills/', '', { dir: true, date: FIXED_ZIP_DATE, unixPermissions: 0o40755 });
+  }
   for (const path of [...fileMap.keys()].sort((left, right) => left.localeCompare(right))) {
     zip.file(path, fileMap.get(path)!, {
       createFolders: false,
@@ -445,6 +450,22 @@ export async function validateAndNormalizeSkillPackage(
     (path) => path === 'SKILL.md' || /^[^/]+\/SKILL\.md$/.test(path)
   );
   if (canonicalSkillPaths.length === 0 && legacySkillPaths.length === 0) {
+    if (
+      options.allowEmptyWorkspace &&
+      entries.some((entry) => entry.path === 'skills/' && entry.isDirectory) &&
+      entries.every((entry) => entry.path === 'skills/' || entry.path === '.gitignore') &&
+      extractedFiles.has('.gitignore')
+    ) {
+      const canonicalBuffer = await createCanonicalZip(extractedFiles, extractedPermissions, true);
+      return {
+        zipBuffer: canonicalBuffer,
+        contentHash: createHash('sha256').update(canonicalBuffer).digest('hex'),
+        runtimeSkills: [],
+        fileCount: extractedFiles.size,
+        totalUncompressedBytes,
+        legacyLayout: false
+      };
+    }
     validationError('missing_skill_md', 'Skill package does not contain SKILL.md');
   }
   if (canonicalSkillPaths.length > 0 && legacySkillPaths.length > 0) {

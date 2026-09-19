@@ -20,6 +20,7 @@ import { putFileToS3 } from '@fastgpt/web/common/file/utils';
 import { WorkflowRuntimeContext } from '../../context/workflowRuntimeContext';
 import { useContextSelector } from 'use-context-selector';
 import type { IconNameType } from '@fastgpt/web/components/common/Icon/type';
+import { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
 
 type UseFileUploadOptions = {
   fileSelectConfig: AppFileSelectConfigType;
@@ -36,6 +37,7 @@ export const useFileUpload = (props: UseFileUploadOptions) => {
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
   const { teamPlanStatus } = useUserStore();
+  const sourceType = useContextSelector(ChatItemContext, (v) => v.chatBoxData.sourceType);
   const runtimeFileSelectConfig = useContextSelector(
     WorkflowRuntimeContext,
     (v) => v.runtimeFileSelectConfig
@@ -200,6 +202,7 @@ export const useFileUpload = (props: UseFileUploadOptions) => {
             filename: copyFile.rawFile.name,
             appId,
             chatId,
+            sourceType,
             fileSelectConfig: runtimeFileSelectConfig,
             outLinkAuthData
           });
@@ -222,7 +225,9 @@ export const useFileUpload = (props: UseFileUploadOptions) => {
           const previewUrl = await getPresignedChatFileGetUrl({
             key: key,
             appId,
-            outLinkAuthData
+            outLinkAuthData,
+            sourceType,
+            chatId
           });
 
           // Update file url and key
@@ -244,6 +249,7 @@ export const useFileUpload = (props: UseFileUploadOptions) => {
     removeFiles(errorFileIndex);
   }, [
     appId,
+    sourceType,
     chatId,
     fileList,
     outLinkAuthData,

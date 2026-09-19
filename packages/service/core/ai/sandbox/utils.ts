@@ -8,4 +8,6 @@ export const isSandboxPublishRejected = (
   instance.operation?.type === 'publish' &&
   instance.operation.checkpoint === 'rejected' &&
   instance.operation.failureDisposition === 'retryable' &&
-  instance.operation.error?.code === 'invalid_package';
+  ['invalid_package', 'terminal_busy', 'terminal_probe_failed'].includes(
+    instance.operation.error?.code ?? ''
+  );

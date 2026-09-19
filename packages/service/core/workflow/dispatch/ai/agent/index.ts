@@ -51,6 +51,9 @@ import {
   restoreAgentPlan
 } from './memory';
 import { isFatalAgentError, SandboxUnavailableError } from './sub/sandbox/errors';
+import { resolveAgentSandboxSessionId } from './sub/sandbox/identity';
+import { i18nT } from '../../../../../../web/i18n/utils';
+import type { AgentModelParams } from '@fastgpt/global/core/ai/agent/modelParams';
 
 export type DispatchAgentModuleProps = ModuleDispatchProps<{
   [NodeInputKeyEnum.history]?: ChatItemMiniType[] | number;
@@ -59,6 +62,7 @@ export type DispatchAgentModuleProps = ModuleDispatchProps<{
   [NodeInputKeyEnum.aiChatVision]?: boolean;
   [NodeInputKeyEnum.fileUrlList]?: string[];
   [NodeInputKeyEnum.aiModel]: string;
+  [NodeInputKeyEnum.aiChatDefaultConfig]?: AgentModelParams;
   [NodeInputKeyEnum.aiSystemPrompt]: string;
 
   [NodeInputKeyEnum.selectedTools]?: SkillToolType[];
@@ -121,13 +125,16 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
       useAgentSandbox = false
     }
   } = props;
-  const chatHistories = getAgentHistories({ history, histories, nodeId });
+  const chatHistories = useEditDebugSandbox
+    ? histories
+    : getAgentHistories({ history, histories, nodeId });
   const aiHistoryValues = chatHistories
     .filter((item) => item.obj === ChatRoleEnum.AI)
     .flatMap((item) => item.value);
   // 规范化：兼容 string[]（debugChat 路径）和 SelectedAgentSkillItemType[]（workflow NodeAgent 路径）
   const normalizedSkillIds = normalizeSkillIds(skillIds);
   const historiesMessages = chats2GPTMessages({
+    checkpointNodeId: useEditDebugSandbox ? nodeId : undefined,
     messages: chatHistories,
     reserveId: false,
     reserveTool: true
@@ -206,7 +213,12 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
       }
     })();
     if (env.SHOW_SKILL) {
-      const sandboxSessionId = mode === 'chat' ? chatId : `debug-${runningAppInfo.id}-${nodeId}`;
+      const sandboxSessionId = resolveAgentSandboxSessionId({
+        mode,
+        appId: runningAppInfo.id,
+        nodeId,
+        chatId
+      });
       const useEditDebugSandbox_flag = !!useEditDebugSandbox;
       const sandboxMode = useEditDebugSandbox_flag ? 'editDebug' : 'sessionRuntime';
 
@@ -218,6 +230,7 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
         tmbId: runningAppInfo.tmbId,
         sessionId: sandboxSessionId,
         mode: sandboxMode,
+        checkIsStopping,
         workflowStreamResponse,
         showSkillReferences: showSkillReferences === true,
         allFilesMap,
@@ -505,7 +518,6 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
               sandboxState
             });
             nodeResponses.push(result.nodeResponse);
-            if (result.nodeResponse.errorText) throw new Error(result.nodeResponse.errorText);
 
             // Merge response
             const assistantResponse = GPTMessages2Chats({
@@ -529,6 +541,17 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
                 }))
               );
             }
+
+            // Empty output cannot prove completion; replaying this step may repeat side effects.
+            if (
+              !checkIsStopping() &&
+              !result.nodeResponse.errorText &&
+              !result.stepResponse?.rawResponse.trim()
+            ) {
+              result.nodeResponse.errorText = i18nT('chat:LLM_model_response_empty');
+              result.nodeResponse.finishReason = 'error';
+            }
+            if (result.nodeResponse.errorText) throw new Error(result.nodeResponse.errorText);
 
             step.response = result.stepResponse?.rawResponse;
             step.summary = result.stepResponse?.summary;
@@ -592,7 +615,6 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
           sandboxState
         });
         nodeResponses.push(result.nodeResponse);
-        if (result.nodeResponse.errorText) throw new Error(result.nodeResponse.errorText);
         masterMessages = result.masterMessages;
 
         // Merge assistant responses
@@ -607,6 +629,17 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
         if (result.capabilityAssistantResponses?.length) {
           assistantResponses.push(...result.capabilityAssistantResponses);
         }
+        if (result.contextCheckpoint)
+          assistantResponses.push({
+            hideInUI: true,
+            contextCheckpoint: {
+              schemaVersion: 1,
+              nodeId,
+              createdAt: new Date().toISOString(),
+              messages: result.contextCheckpoint
+            }
+          });
+        if (result.nodeResponse.errorText) throw new Error(result.nodeResponse.errorText);
 
         // 触发了 plan
         if (result.planResponse) {

@@ -63,6 +63,7 @@ export type AIChatSettingsModalProps = {
   showStopSign?: boolean;
   showResponseFormat?: boolean;
   showReasoning?: boolean;
+  validateDefaultConfig?: (value: unknown) => string | undefined;
 };
 
 const AIChatSettingsModal = ({
@@ -75,7 +76,8 @@ const AIChatSettingsModal = ({
   showTopP = true,
   showStopSign = true,
   showResponseFormat = true,
-  showReasoning = true
+  showReasoning = true,
+  validateDefaultConfig
 }: AIChatSettingsModalProps & {
   onClose: () => void;
   onSuccess: (e: SettingAIDataType) => void;
@@ -116,7 +118,10 @@ const AIChatSettingsModal = ({
   const responseFormat = watch(NodeInputKeyEnum.aiChatResponseFormat);
   const jsonSchema = watch(NodeInputKeyEnum.aiChatJsonSchema);
 
-  const defaultConfig = watch(NodeInputKeyEnum.aiChatDefaultConfig);
+  const [defaultConfigText, setDefaultConfigText] = useState(() =>
+    defaultData.aiChatDefaultConfig ? JSON.stringify(defaultData.aiChatDefaultConfig, null, 2) : ''
+  );
+  const [defaultConfigError, setDefaultConfigError] = useState('');
 
   const tokenLimit = useMemo(() => {
     return selectedModel?.maxResponse || 4096;
@@ -484,21 +489,39 @@ const AIChatSettingsModal = ({
           </Box>
           <Box flex={'1 0 0'}>
             <JsonEditor
-              value={defaultConfig ? JSON.stringify(defaultConfig, null, 2) : ''}
+              value={defaultConfigText}
+              isInvalid={!!defaultConfigError}
               onChange={(e) => {
-                if (!e) {
+                setDefaultConfigText(e);
+                setDefaultConfigError('');
+                if (!e.trim()) {
                   setValue(NodeInputKeyEnum.aiChatDefaultConfig, undefined);
                   return;
                 }
                 try {
-                  setValue(NodeInputKeyEnum.aiChatDefaultConfig, JSON.parse(e));
+                  const parsed: unknown = JSON.parse(e);
+                  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                    setDefaultConfigError(t('common:json_parse_error'));
+                    return;
+                  }
+                  const error = validateDefaultConfig?.(parsed);
+                  if (error) {
+                    setDefaultConfigError(error);
+                    return;
+                  }
+                  setValue(NodeInputKeyEnum.aiChatDefaultConfig, parsed);
                 } catch (error) {
-                  console.error(error);
+                  setDefaultConfigError(t('common:json_parse_error'));
                 }
               }}
               bg={'myGray.25'}
               resize
             />
+            {defaultConfigError && (
+              <Box mt={2} color="red.600" fontSize="xs" role="alert">
+                {defaultConfigError}
+              </Box>
+            )}
           </Box>
         </Flex>
       </ModalBody>
@@ -506,7 +529,7 @@ const AIChatSettingsModal = ({
         <Button variant={'whiteBase'} onClick={onClose}>
           {t('common:Close')}
         </Button>
-        <Button ml={4} onClick={handleSubmit(onSuccess)}>
+        <Button ml={4} isDisabled={!!defaultConfigError} onClick={handleSubmit(onSuccess)}>
           {t('common:Confirm')}
         </Button>
       </ModalFooter>

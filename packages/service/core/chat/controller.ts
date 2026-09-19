@@ -55,6 +55,7 @@ export async function getChatItems({
   field = `dataId ${field}`;
   const sourceFilter = getChatSourceFilter(sourceScope);
   const baseCondition = {
+    execution: { $exists: false },
     appId,
     chatId,
     ...sourceFilter,

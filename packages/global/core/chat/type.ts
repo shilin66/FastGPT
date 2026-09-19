@@ -12,6 +12,7 @@ import { DispatchNodeResponseSchema } from '../workflow/runtime/type';
 import { WorkflowInteractiveResponseTypeSchema } from '../workflow/template/system/interactive/type';
 import type { FlowNodeInputItemType } from '../workflow/type/io';
 import z from 'zod';
+import { ChatCompletionMessageParamSchema } from '../ai/llm/type';
 import { AgentPlanEventSchema, AgentPlanSchema } from '../ai/agent/type';
 
 export const ChatHistoryItemResSchema = DispatchNodeResponseSchema.extend({
@@ -218,7 +219,41 @@ export const AdminFbkSchema = z.object({
 });
 export type AdminFbkType = z.infer<typeof AdminFbkSchema>;
 
+export const AgentContextCheckpointSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    nodeId: z.string(),
+    createdAt: z.iso.datetime(),
+    messages: z.array(ChatCompletionMessageParamSchema).min(1)
+  })
+  .superRefine(({ messages }, ctx) => {
+    const pending = new Set<string>();
+    for (const message of messages) {
+      if (message.role === 'tool') {
+        if (!pending.delete(message.tool_call_id))
+          ctx.addIssue({ code: 'custom', message: 'Orphan checkpoint tool result' });
+      } else {
+        if (pending.size)
+          ctx.addIssue({ code: 'custom', message: 'Incomplete checkpoint tool call' });
+        if (message.role === 'system' || message.role === 'developer')
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Checkpoint cannot replace system instructions'
+          });
+        if (message.role === 'assistant')
+          for (const call of message.tool_calls ?? []) {
+            if (pending.has(call.id))
+              ctx.addIssue({ code: 'custom', message: 'Duplicate checkpoint tool call' });
+            pending.add(call.id);
+          }
+      }
+    }
+    if (pending.size) ctx.addIssue({ code: 'custom', message: 'Incomplete checkpoint tool call' });
+  });
+
 export const AIChatItemValueSchema = z.object({
+  hideInUI: z.boolean().optional(),
+  contextCheckpoint: AgentContextCheckpointSchema.optional(),
   id: z.string().nullish(),
   stepId: z.string().nullish(),
   planId: z.string().nullish(),
@@ -250,6 +285,20 @@ export const AIChatItemSchema = z.object({
   obj: z.literal(ChatRoleEnum.AI),
   value: z.array(AIChatItemValueSchema),
   memories: z.record(z.string(), z.any()).optional(),
+  execution: z
+    .object({
+      requestId: z.string(),
+      status: z.enum([
+        'running',
+        'waitingForInput',
+        'completed',
+        'stopped',
+        'failed',
+        'interrupted'
+      ]),
+      updatedAt: z.coerce.date()
+    })
+    .optional(),
   userGoodFeedback: z.string().optional(),
   userBadFeedback: z.string().optional(),
   customFeedbacks: z.array(z.string()).optional(),

@@ -35,6 +35,7 @@ type CreateSkillData = {
   tmbId: string;
   creationStatus?: AgentSkillCreationStatusEnum;
   lastOperationId?: string;
+  creationRequestId?: string;
 };
 
 // UpdateSkillData excludes markdown to ensure consistency with version management

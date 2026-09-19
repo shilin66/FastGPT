@@ -19,8 +19,10 @@ import { filterEmptyAssistantMessages } from './utils';
 import { countGptMessagesTokens } from '../../../../common/string/tiktoken/index';
 import { formatModelChars2Points } from '../../../../support/wallet/usage/utils';
 import { i18nT } from '../../../../../web/i18n/utils';
+import { fitAgentContext } from '../compress/contextBudget';
 
 type RunAgentCallProps = {
+  strictContextBudget?: boolean;
   maxRunAgentTimes: number;
   compressTaskDescription?: string;
 
@@ -77,6 +79,7 @@ type RunAgentCallProps = {
 } & ResponseEvents;
 
 type RunAgentResponse = {
+  contextCompressed?: boolean;
   requestIds: string[];
   error?: any;
   completeMessages: ChatCompletionMessageParam[]; // Step request complete messages
@@ -111,6 +114,7 @@ type RunAgentResponse = {
   memoryRequestMessages 为上一轮中断时，requestMessages 的内容
 */
 export const runAgentCall = async ({
+  strictContextBudget = false,
   maxRunAgentTimes,
   body: { model, messages, max_tokens, tools, ...body },
 
@@ -132,6 +136,7 @@ export const runAgentCall = async ({
   const modelData = getLLMModel(model);
 
   let runTimes = 0;
+  let contextCompressed = false;
   let interactiveResponse: ToolCallChildrenInteractive | undefined;
 
   // Init messages
@@ -139,10 +144,12 @@ export const runAgentCall = async ({
   const assistantMessages: ChatCompletionMessageParam[] = [];
   // 多轮运行时候的请求 messages
   let requestMessages = (
-    await filterGPTMessageByMaxContext({
-      messages,
-      maxContext: modelData.maxContext - 8000 // 始终预留 8000 个 token 响应空间。
-    })
+    strictContextBudget
+      ? messages
+      : await filterGPTMessageByMaxContext({
+          messages,
+          maxContext: modelData.maxContext - 8000 // 始终预留 8000 个 token 响应空间。
+        })
   ).map((item) => {
     if (item.role === 'assistant' && item.tool_calls) {
       return {
@@ -230,18 +237,38 @@ export const runAgentCall = async ({
   const requestIds: string[] = [];
   let consecutiveRequestToolTimes = 0; // 连续多次工具调用后会强制回答，避免模型自身死循环。
   while (runTimes < maxRunAgentTimes) {
+    if (isAborted?.()) break;
     // TODO: 费用检测
 
     runTimes++;
 
     // 1. Compress request messages
     const compressStartTime = Date.now();
-    const result = await compressRequestMessages({
-      checkIsStopping: isAborted,
-      messages: requestMessages,
-      model: modelData,
-      userKey
-    });
+    const result = strictContextBudget
+      ? await fitAgentContext({
+          messages: requestMessages,
+          tools,
+          model: modelData,
+          outputTokens: max_tokens ?? undefined,
+          isAborted,
+          userKey,
+          onUsage: (usage) => {
+            compressInputTokens += usage.inputTokens ?? 0;
+            compressOutputTokens += usage.outputTokens ?? 0;
+            childrenUsages.push(usage);
+            usagePush([usage]);
+          }
+        }).then((result) => {
+          contextCompressed ||= result.compressed;
+          max_tokens = result.maxOutputTokens;
+          return { messages: result.messages, usage: undefined };
+        })
+      : await compressRequestMessages({
+          checkIsStopping: isAborted,
+          messages: requestMessages,
+          model: modelData,
+          userKey
+        });
     requestMessages = result.messages;
     if (result.usage) {
       compressInputTokens += result.usage.inputTokens || 0;
@@ -412,6 +439,7 @@ export const runAgentCall = async ({
   }
 
   return {
+    contextCompressed,
     requestIds,
     error: requestError,
     model: modelData.model,

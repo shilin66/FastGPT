@@ -17,13 +17,13 @@ const ChatAvatar = ({ src, type }: { src?: string; type: `${ChatRoleEnum}` }) =>
       p={src ? '2px' : 0}
       borderRadius={'6px'}
       border={'1px solid'}
-      borderColor={isHuman ? 'primary.300' : 'myGray.200'}
-      bg={isHuman ? 'primary.600' : 'white'}
+      borderColor={'myGray.200'}
+      bg={isHuman ? 'myGray.150' : 'white'}
     >
       {src ? (
         <Avatar src={src} w={'100%'} h={'100%'} borderRadius={'5px'} />
       ) : isHuman ? (
-        <MyIcon name={'common/user'} w={'15px'} color={'white'} />
+        <MyIcon name={'common/user'} w={'15px'} color={'myGray.600'} />
       ) : (
         <Avatar w={'100%'} h={'100%'} borderRadius={'5px'} />
       )}

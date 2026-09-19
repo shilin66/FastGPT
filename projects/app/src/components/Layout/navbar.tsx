@@ -100,7 +100,7 @@ const Navbar = ({ unread, isCollapsed = false, onToggleCollapse }: NavbarProps) 
               label: '技能库',
               icon: 'common/skill',
               link: '/dashboard/skill',
-              activeLink: ['/dashboard/skill', '/skill/detail']
+              activeLink: ['/dashboard/skill', '/skill/create', '/skill/detail']
             }
           ]
         : []),
@@ -126,12 +126,6 @@ const Navbar = ({ unread, isCollapsed = false, onToggleCollapse }: NavbarProps) 
     ];
 
     const manageItems: NavItemType[] = [
-      {
-        label: '资源库',
-        icon: 'common/templateMarket',
-        link: '/dashboard/templateMarket',
-        activeLink: ['/dashboard/templateMarket']
-      },
       ...(feConfigs?.isPlus
         ? [
             {

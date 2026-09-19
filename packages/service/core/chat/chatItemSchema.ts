@@ -65,6 +65,10 @@ const ChatItemSchema = new Schema({
 
   // Field memory
   memories: Object,
+  execution: {
+    type: new Schema({ requestId: String, status: String, updatedAt: Date }, { _id: false }),
+    default: undefined
+  },
   errorMsg: String,
   durationSeconds: Number,
   citeCollectionIds: [String],

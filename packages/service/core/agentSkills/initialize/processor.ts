@@ -2,8 +2,7 @@ import type { Processor } from 'bullmq';
 import { AgentSkillCreationStatusEnum } from '@fastgpt/global/core/agentSkills/constants';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
-import { buildSkillMd, sanitizeSkillNameForFile } from '../skillMdBuilder';
-import { createSkillPackage } from '../zipBuilder';
+import { createEmptySkillWorkspace } from '../zipBuilder';
 import { validateAndNormalizeSkillPackage } from '../packageValidator';
 import { finalizeStagedSkillPackage, stageSkillPackage } from '../storage';
 import { MongoAgentSkills } from '../schema';
@@ -42,15 +41,9 @@ export async function initializeAgentSkill({
   if (!claimed) return;
 
   try {
-    const runtimeName =
-      sanitizeSkillNameForFile(claimed.name) || `skill-${skillId.slice(-8).toLowerCase()}`;
-    const skillMd = `${buildSkillMd({
-      name: runtimeName,
-      description: claimed.description || runtimeName
-    })}\n`;
     const validatedPackage = await validateAndNormalizeSkillPackage(
-      await createSkillPackage({ name: runtimeName, skillMd }),
-      { allowLegacyLayout: false }
+      await createEmptySkillWorkspace(),
+      { allowLegacyLayout: false, allowEmptyWorkspace: true }
     );
     const storage = await stageSkillPackage({
       teamId,

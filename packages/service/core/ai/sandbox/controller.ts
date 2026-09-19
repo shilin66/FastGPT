@@ -729,7 +729,17 @@ export const cronJob = async () => {
 
     await batchRun(instances, async (doc) => {
       const client = getExistingSandboxClient(doc);
-      await client.stop({ inactiveBefore }).catch((err) => {
+      const stop = () => client.stop({ inactiveBefore });
+      const stopping =
+        doc.sourceType === 'skillEdit' && doc.sourceId
+          ? withSandboxLease(`skill-edit-activity:${doc.sourceId}`, async () => {
+              const { assertSkillWorkspaceTerminalIdle } = await import('./terminal');
+              await assertSkillWorkspaceTerminalIdle(doc);
+              await stop();
+            })
+          : stop();
+      await stopping.catch((err) => {
+        if (err instanceof SandboxOperationConflict) return;
         logger.error('Failed to stop sandbox', { sandboxId: doc.sandboxId, error: err });
       });
     });

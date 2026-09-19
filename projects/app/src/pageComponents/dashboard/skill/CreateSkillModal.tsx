@@ -1,8 +1,20 @@
-import React from 'react';
-import { Box, Button, Flex, Input, ModalBody, ModalFooter, Textarea } from '@chakra-ui/react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Flex,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
+  Input,
+  ModalBody,
+  Text,
+  Textarea
+} from '@chakra-ui/react';
+import { getErrText } from '@fastgpt/global/common/error/utils';
 import { useForm } from 'react-hook-form';
 import MyModal from '@fastgpt/web/components/common/MyModal';
-import FormLabel from '@fastgpt/web/components/common/MyBox/FormLabel';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { useTranslation } from 'next-i18next';
@@ -26,11 +38,28 @@ type Props = {
   onSuccess?: () => void;
 };
 
-const CreateSkillModal = ({ parentId, onClose, onSuccess }: Props) => {
+export const CreateSkillForm = ({
+  parentId,
+  onCancel,
+  onSuccess,
+  onBusyChange
+}: {
+  parentId?: string | null;
+  onCancel: () => void;
+  onSuccess: (skillId: string) => void;
+  onBusyChange?: (busy: boolean) => void;
+}) => {
   const { t } = useTranslation();
-  const router = useRouter();
+  const requestId = useRef<string>();
+  const [creationError, setCreationError] = useState('');
 
-  const { register, setValue, watch, handleSubmit } = useForm<FormType>({
+  const {
+    register,
+    setValue,
+    watch,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<FormType>({
     defaultValues: {
       avatar: DEFAULT_SKILL_AVATAR,
       name: '',
@@ -49,7 +78,9 @@ const CreateSkillModal = ({ parentId, onClose, onSuccess }: Props) => {
 
   const { run: onCreate, loading: isCreating } = useRequest(
     async ({ avatar, name, intro }: FormType) => {
+      requestId.current ??= crypto.randomUUID();
       return postCreateSkill({
+        requestId: requestId.current,
         parentId: parentId ?? null,
         name: name.trim(),
         description: intro?.trim() || undefined,
@@ -57,34 +88,40 @@ const CreateSkillModal = ({ parentId, onClose, onSuccess }: Props) => {
       });
     },
     {
+      onError(error) {
+        setCreationError(getErrText(error));
+      },
       onSuccess(skillId) {
-        onSuccess?.();
-        onClose();
-        router.push(`/skill/detail?skillId=${skillId}`);
+        onSuccess(skillId);
       },
       successToast: t('common:create_success'),
       errorToast: t('common:create_failed')
     }
   );
 
+  useEffect(() => onBusyChange?.(isCreating), [isCreating, onBusyChange]);
+
   return (
     <>
-      <MyModal
-        isOpen
-        onClose={onClose}
-        title={t('skill:create_skill')}
-        w={'600px'}
-        closeOnOverlayClick={false}
-      >
-        <ModalBody>
+      <Box as="form" onSubmit={handleSubmit((data) => onCreate(data))}>
+        <Box as="fieldset" disabled={isCreating} minW={0}>
+          {creationError && (
+            <Alert status="error" mb={4}>
+              {creationError}
+            </Alert>
+          )}
           {/* 图标 & 名称 */}
-          <Box mb={5}>
-            <FormLabel required mb={2.5}>
+          <FormControl isRequired isInvalid={!!errors.name} mb={5}>
+            <FormLabel htmlFor="skill-create-name" mb={2.5} fontSize="sm">
               {t('common:app_icon_and_name')}
             </FormLabel>
             <Flex alignItems={'center'}>
               <MyTooltip label={t('common:set_avatar')}>
-                <Flex
+                <Button
+                  type="button"
+                  variant="whiteBase"
+                  aria-label={t('common:set_avatar')}
+                  p={0}
                   borderRadius={'6px'}
                   w={10}
                   h={10}
@@ -97,39 +134,80 @@ const CreateSkillModal = ({ parentId, onClose, onSuccess }: Props) => {
                   onClick={handleAvatarSelectorOpen}
                 >
                   <Avatar src={avatar} borderRadius={'4.667px'} />
-                </Flex>
+                </Button>
               </MyTooltip>
               <Input
+                id="skill-create-name"
                 flex={1}
-                h={'34px'}
+                minW={0}
+                h={10}
                 placeholder={t('skill:skill_name_placeholder')}
-                {...register('name', { required: true })}
+                {...register('name', {
+                  required: t('skill:skill_name_required'),
+                  validate: (value) => !!value.trim() || t('skill:skill_name_required')
+                })}
               />
             </Flex>
-          </Box>
+            <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
+          </FormControl>
 
           {/* 介绍 */}
           <Box>
-            <FormLabel mb={2.5}>{t('skill:skill_intro_label')}</FormLabel>
+            <FormLabel htmlFor="skill-create-intro" mb={2.5} fontSize="sm">
+              {t('skill:skill_intro_label')}
+              <Box as="span" ml={2} color="myGray.500" fontWeight="normal" fontSize="xs">
+                {t('skill:create_optional')}
+              </Box>
+            </FormLabel>
             <Textarea
+              id="skill-create-intro"
               {...register('intro')}
-              rows={3}
+              rows={4}
               placeholder={t('skill:skill_intro_placeholder')}
               resize={'vertical'}
             />
           </Box>
-        </ModalBody>
-        <ModalFooter gap={2}>
-          <Button variant={'whiteBase'} onClick={onClose}>
+          <Text mt={3} fontSize="sm" color="myGray.500" lineHeight="tall">
+            {t('skill:create_blank_form_hint')}
+          </Text>
+        </Box>
+        <Flex gap={3} mt={6} justify="flex-end" flexWrap="wrap">
+          <Button type="button" variant={'whiteBase'} onClick={onCancel} isDisabled={isCreating}>
             {t('common:Cancel')}
           </Button>
-          <Button isLoading={isCreating} onClick={handleSubmit((data) => onCreate(data))}>
-            {t('common:Confirm')}
+          <Button type="submit" isLoading={isCreating}>
+            {t('skill:create_and_open_workspace')}
           </Button>
-        </ModalFooter>
-      </MyModal>
+        </Flex>
+      </Box>
       <AvatarUploader />
     </>
+  );
+};
+
+const CreateSkillModal = ({ parentId, onClose, onSuccess }: Props) => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  return (
+    <MyModal
+      isOpen
+      onClose={onClose}
+      title={t('skill:create_skill')}
+      w="600px"
+      closeOnOverlayClick={false}
+    >
+      <ModalBody>
+        <CreateSkillForm
+          parentId={parentId}
+          onCancel={onClose}
+          onSuccess={(skillId) => {
+            onSuccess?.();
+            onClose();
+            router.push(`/skill/detail?skillId=${skillId}`);
+          }}
+        />
+      </ModalBody>
+    </MyModal>
   );
 };
 

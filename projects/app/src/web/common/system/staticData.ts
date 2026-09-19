@@ -11,8 +11,12 @@ export const clientInitData = async (
   feConfigs: FastGPTFeConfigsType;
 }> => {
   try {
-    const res = await getSystemInitData(useSystemStore.getState().initDataBufferId);
-    const feConfigs = normalizeBrandFeConfigs(res.feConfigs);
+    const { initDataBufferId, feConfigs: cachedFeConfigs } = useSystemStore.getState();
+    const hasCapabilityConfig =
+      typeof cachedFeConfigs.show_skill === 'boolean' &&
+      typeof cachedFeConfigs.show_agent_sandbox === 'boolean';
+    const res = await getSystemInitData(hasCapabilityConfig ? initDataBufferId : undefined);
+    const feConfigs = res.feConfigs ? normalizeBrandFeConfigs(res.feConfigs) : undefined;
     const normalizedRes = {
       ...res,
       feConfigs

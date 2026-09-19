@@ -48,6 +48,7 @@ import { isFatalAgentError } from '../sub/sandbox/errors';
 import { SandboxToolIds } from '@fastgpt/global/core/workflow/node/agent/skillTools';
 
 type Response = {
+  contextCheckpoint?: ChatCompletionMessageParam[];
   stepResponse?: {
     rawResponse: string;
     summary: string;
@@ -220,6 +221,7 @@ export const masterCall = async ({
   let planResult: DispatchPlanAgentResponse | undefined;
 
   const {
+    contextCompressed,
     model: agentModel,
     assistantMessages,
     completeMessages,
@@ -231,8 +233,10 @@ export const masterCall = async ({
     requestIds,
     error: agentError
   } = await runAgentCall({
+    strictContextBudget: !!props.params.useEditDebugSandbox,
     maxRunAgentTimes: 100,
     body: {
+      extraBody: props.params.aiChatDefaultConfig,
       messages: requestMessages,
       model: getLLMModel(model),
       stream: true,
@@ -823,6 +827,11 @@ export const masterCall = async ({
   // Default
   return {
     planResponse: planResult,
+    contextCheckpoint: contextCompressed
+      ? completeMessages.filter(
+          (message) => message.role !== 'system' && message.role !== 'developer'
+        )
+      : undefined,
     completeMessages,
     assistantMessages,
     nodeResponse,

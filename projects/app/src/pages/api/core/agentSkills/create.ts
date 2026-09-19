@@ -1,5 +1,7 @@
 import { NextAPI } from '@/service/middleware/entry';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { CreateSkillBodySchema } from '@fastgpt/global/openapi/core/agentSkills/api';
+import { MongoAgentSkills } from '@fastgpt/service/core/agentSkills/schema';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { assertTeamWritable } from '@fastgpt/service/support/user/team/status';
 import { mongoSessionRun } from '@fastgpt/service/common/mongo/sessionRun';
@@ -33,7 +35,15 @@ import {
 const logger = getLogger(LogCategories.MODULE.AGENT_SKILLS.CREATION);
 
 async function handler(req: ApiRequestProps<CreateSkillBody>): Promise<CreateSkillResponse> {
-  const { parentId, name, description, category = [], config = {}, avatar } = req.body;
+  const {
+    parentId,
+    name,
+    description,
+    category = [],
+    config = {},
+    avatar,
+    requestId
+  } = CreateSkillBodySchema.parse(req.body);
 
   // Authenticate user: if parentId exists, verify parent folder permission
   const { teamId, tmbId, userId } = parentId
@@ -51,6 +61,35 @@ async function handler(req: ApiRequestProps<CreateSkillBody>): Promise<CreateSki
         per: TeamSkillCreatePermissionVal
       });
   await assertTeamWritable(teamId, WritePermissionVal);
+  if (
+    parentId &&
+    !(await MongoAgentSkills.exists({
+      _id: parentId,
+      teamId,
+      type: AgentSkillTypeEnum.folder,
+      deleteTime: null
+    }))
+  )
+    throw new Error('Skill parent must be an existing folder');
+
+  const requestedSkillId = requestId
+    ? createHash('sha256')
+        .update(JSON.stringify(['skill-create', teamId, tmbId, requestId]))
+        .digest('hex')
+        .slice(0, 24)
+    : undefined;
+  const findExistingRequest = () =>
+    requestedSkillId
+      ? MongoAgentSkills.findOne({
+          _id: requestedSkillId,
+          teamId,
+          tmbId,
+          creationRequestId: requestId,
+          deleteTime: null
+        }).lean()
+      : Promise.resolve(null);
+  const existingRequest = await findExistingRequest();
+  if (existingRequest) return String(existingRequest._id);
 
   // Validate required fields
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -73,6 +112,8 @@ async function handler(req: ApiRequestProps<CreateSkillBody>): Promise<CreateSki
   // Check if skill name already exists in the same parent folder
   const nameExists = await checkSkillNameExists(name.trim(), teamId, parentId || null);
   if (nameExists) {
+    const existing = await findExistingRequest();
+    if (existing) return String(existing._id);
     return Promise.reject(SkillErrEnum.skillNameExists);
   }
 
@@ -81,6 +122,8 @@ async function handler(req: ApiRequestProps<CreateSkillBody>): Promise<CreateSki
   const skillId = await mongoSessionRun(async (session) => {
     const newSkillId = await createSkill(
       {
+        skillId: requestedSkillId,
+        creationRequestId: requestId,
         parentId: parentId || null,
         name: name.trim(),
         description: description?.trim() || '',
@@ -110,7 +153,16 @@ async function handler(req: ApiRequestProps<CreateSkillBody>): Promise<CreateSki
     await getS3AvatarSource().refreshAvatar(avatar, undefined, session);
 
     return newSkillId;
+  }).catch(async (error: unknown) => {
+    const existing = await findExistingRequest();
+    if (existing) return String(existing._id);
+    throw error;
   });
+
+  if (requestedSkillId) {
+    const existing = await findExistingRequest();
+    if (existing?.lastOperationId !== operationId) return skillId;
+  }
 
   try {
     await addAgentSkillInitializeJob({ skillId, teamId, tmbId, operationId, versionId });

@@ -217,6 +217,7 @@ describe('Skill Edit workspace capacity', () => {
       provider: {
         provider: 'opensandbox',
         connectExisting: connectExistingMock,
+        execute: executeMock,
         getInfo: async () => ({ id: `provider-${doc.sandboxId}`, status: { state: 'Running' } }),
         close: async () => undefined
       }
@@ -553,6 +554,11 @@ describe('Skill Edit workspace capacity', () => {
   });
 
   it('packages the stored workspace root and disallows a conflicting override', async () => {
+    executeMock.mockResolvedValue({
+      stdout: '1 0 1 -1 ? Ss bootstrap.sh',
+      stderr: '',
+      exitCode: 0
+    });
     const sandboxId = new Types.ObjectId().toHexString();
     await MongoSandboxInstance.create({
       provider: 'opensandbox',

@@ -46,6 +46,7 @@ vi.mock('@/web/core/skill/api', () => ({
   streamCreateEditDebugSandbox: mocks.streamCreateEditDebugSandbox,
   postResetSkillWorkspace: mocks.postResetSkillWorkspace,
   postSaveDeploySkill: mocks.postSaveDeploySkill,
+  postSkillWorkspaceFiles: vi.fn(async () => ({ action: 'list', files: [], truncated: false })),
   postRetrySkillInitialization: vi.fn(),
   deleteSkill: vi.fn(),
   postUpdateSkill: vi.fn(),
@@ -81,6 +82,7 @@ vi.mock('@chakra-ui/react', () => {
     );
   return {
     Box,
+    Alert: Box,
     Flex: Box,
     HStack: Box,
     VStack: Box,
@@ -114,6 +116,18 @@ vi.mock('@fastgpt/web/components/common/MyModal', () => ({
     isOpen ? React.createElement('div', { role: 'dialog', 'aria-label': title }, children) : null
 }));
 vi.mock('@fastgpt/web/components/common/Icon', () => ({ default: () => null }));
+vi.mock('@fastgpt/web/components/common/MyTooltip', () => ({
+  default: ({ children }: { children: React.ReactNode }) => children
+}));
+vi.mock('@/pageComponents/dashboard/skill/detail/WorkspaceSplit', () => ({
+  default: ({
+    conversation,
+    children
+  }: {
+    conversation?: React.ReactNode;
+    children: React.ReactNode;
+  }) => React.createElement(React.Fragment, null, conversation, children)
+}));
 vi.mock('@fastgpt/web/components/common/Avatar', () => ({ default: () => null }));
 vi.mock('@fastgpt/web/components/common/MyMenu', () => ({
   default: ({ Button }: { Button: React.ReactNode }) => Button
@@ -199,7 +213,7 @@ describe('Skill workspace permission, confirmation and generation UI', () => {
         }
       })
     );
-    expect(editor()).not.toBeNull();
+    await visitEditor();
   };
   const refresh = async (workspace: Partial<SkillEditWorkspace>) => {
     detail = { ...detail, workspace: { ...initialWorkspace(), ...detail.workspace, ...workspace } };
@@ -212,6 +226,12 @@ describe('Skill workspace permission, confirmation and generation UI', () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, value);
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
+  };
+  const visitEditor = async () => {
+    await click(button('skill:detail_tab_ide'));
+    expect(editor()).not.toBeNull();
+    await click(button('skill:detail_tab_conversation'));
+    await click(button('common:Confirm', dialog()));
   };
 
   it.each(['absent', 'provisioning', 'failed'] as const)(
@@ -341,6 +361,56 @@ describe('Skill workspace permission, confirmation and generation UI', () => {
     });
   });
 
+  it.each(['focus', 'poll'] as const)(
+    'finishes the ready handshake when %s refresh overlaps the workspace read',
+    async (refreshSource) => {
+      await mount();
+      let deliver: (value: GetSkillDetailResponse) => void = () => {
+        throw new Error('Ready detail request was not initialized');
+      };
+      mocks.getSkillDetail.mockReturnValueOnce(
+        new Promise<GetSkillDetailResponse>((resolve) => {
+          deliver = resolve;
+        })
+      );
+      const stream = mocks.streamCreateEditDebugSandbox.mock.calls[0][0];
+      await act(async () =>
+        stream.onStatus({
+          sandboxId: detail._id,
+          phase: 'ready',
+          providerSandboxId: 'provider-sandbox',
+          endpoint: {
+            host: 'sandbox.invalid',
+            port: 8090,
+            protocol: 'http',
+            url: 'http://sandbox.invalid:8090'
+          }
+        })
+      );
+      expect(editor()).toBeNull();
+      await act(async () => {
+        if (refreshSource === 'focus') window.dispatchEvent(new Event('focus'));
+        else vi.advanceTimersByTime(20000);
+      });
+      detail.workspace = {
+        ...initialWorkspace(),
+        generation: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+      };
+      await act(async () => deliver(GetSkillDetailResponseSchema.parse(detail)));
+      await visitEditor();
+      expect(editor()?.src).toContain(
+        'expectedWorkspaceGeneration=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+      );
+      const original = editor();
+      const previousReads = mocks.getSkillDetail.mock.calls.length;
+      await refresh({ stale: true });
+      expect(mocks.getSkillDetail.mock.calls.length).toBeGreaterThan(previousReads);
+      expect(editor()).toBe(original);
+      expect(mocks.streamCreateEditDebugSandbox).toHaveBeenCalledTimes(1);
+      expect(mocks.postResetSkillWorkspace).not.toHaveBeenCalled();
+    }
+  );
+
   it('opens a name confirmation before reset and cancelling preserves the mounted editor', async () => {
     await mount();
     await ready();
@@ -355,6 +425,71 @@ describe('Skill workspace permission, confirmation and generation UI', () => {
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(mocks.postResetSkillWorkspace).not.toHaveBeenCalled();
     expect(editor()).toBe(original);
+  });
+
+  it('reads fresh detail after reset instead of sharing the pre-reset ready request', async () => {
+    await mount();
+    let rejectOldRead: (error: Error) => void = () => {};
+    mocks.getSkillDetail.mockReturnValueOnce(
+      new Promise<GetSkillDetailResponse>((_, reject) => {
+        rejectOldRead = reject;
+      })
+    );
+    const stream = mocks.streamCreateEditDebugSandbox.mock.calls[0][0];
+    await act(async () =>
+      stream.onStatus({
+        sandboxId: detail._id,
+        phase: 'ready',
+        providerSandboxId: 'provider-sandbox',
+        endpoint: {
+          host: 'sandbox.invalid',
+          port: 8090,
+          protocol: 'http',
+          url: 'http://sandbox.invalid:8090'
+        }
+      })
+    );
+    await click(button('skill:workspace_reset'));
+    await enterConfirmation(detail.name);
+    await click(button('common:Confirm', dialog()));
+    await act(async () => rejectOldRead(new Error('pre-reset detail failed')));
+    expect(mocks.postResetSkillWorkspace).toHaveBeenCalledTimes(1);
+    expect(stream.abortCtrl.signal.aborted).toBe(true);
+    expect(editor()).toBeNull();
+    expect(container.textContent).toContain('skill:workspace_reopen');
+    expect(container.textContent).not.toContain('pre-reset detail failed');
+  });
+
+  it('shows a ready detail error despite an overlapping refresh and allows subsequent refreshes', async () => {
+    await mount();
+    let rejectRead: (error: Error) => void = () => {};
+    mocks.getSkillDetail.mockReturnValueOnce(
+      new Promise<GetSkillDetailResponse>((_, reject) => {
+        rejectRead = reject;
+      })
+    );
+    const stream = mocks.streamCreateEditDebugSandbox.mock.calls[0][0];
+    await act(async () =>
+      stream.onStatus({
+        sandboxId: detail._id,
+        phase: 'ready',
+        providerSandboxId: 'provider-sandbox',
+        endpoint: {
+          host: 'sandbox.invalid',
+          port: 8090,
+          protocol: 'http',
+          url: 'http://sandbox.invalid:8090'
+        }
+      })
+    );
+    await refresh({});
+    await act(async () => rejectRead(new Error('ready detail unavailable')));
+    expect(editor()).toBeNull();
+    expect(container.textContent).toContain('ready detail unavailable');
+    const previousReads = mocks.getSkillDetail.mock.calls.length;
+    await refresh({});
+    expect(mocks.getSkillDetail.mock.calls.length).toBeGreaterThan(previousReads);
+    expect(mocks.postResetSkillWorkspace).not.toHaveBeenCalled();
   });
 
   it('keeps the originally confirmed workspace versions and operation when detail refreshes', async () => {

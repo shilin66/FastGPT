@@ -16,6 +16,11 @@ import type {
   SandboxFetchUserFileSchema
 } from '@fastgpt/global/core/workflow/node/agent/skillTools';
 import axios from 'axios';
+import {
+  executeWorkspaceCommand,
+  WorkspaceCommandOutcomeUnknown
+} from '../../../../../../ai/sandbox/command';
+import { readSandboxTextRange } from '../../../../../../ai/sandbox/text';
 import { SandboxUnavailableError } from './errors';
 import { isSandboxInfrastructureError } from '../../../../../../ai/sandbox/errors';
 import { serverRequestBaseUrl } from '../../../../../../../common/api/serverRequest';
@@ -63,7 +68,36 @@ export async function dispatchSandboxReadFile(
   params: z.infer<typeof SandboxReadFileSchema>
 ): Promise<DispatchResult> {
   try {
-    const paths = await Promise.all(params.paths.map((path) => validateToolPath(ctx, { path })));
+    if (ctx.builtinSkillRoot || params.startLine !== undefined || params.maxLines !== undefined) {
+      const results = await Promise.all(
+        params.paths.map(async (path) => {
+          const workspaceRoot =
+            ctx.builtinSkillRoot && path === `${ctx.builtinSkillRoot}/SKILL.md`
+              ? ctx.builtinSkillRoot
+              : ctx.workDirectory;
+          const result = await readSandboxTextRange({
+            provider: ctx.sandbox,
+            workspaceRoot,
+            path,
+            startLine: params.startLine,
+            maxLines: params.maxLines
+          });
+          return `--- ${resolveSandboxWorkspacePath({ workspaceRoot, path })} ---\n${result.type === 'binary' ? `[Binary file: ${result.size} bytes]` : result.content}${result.truncated ? '\n[Truncated; request a later startLine or inspect the log with a bounded command.]' : ''}`;
+        })
+      );
+      return { response: results.join('\n\n'), usages: [] };
+    }
+    const paths = await Promise.all(
+      params.paths.map((path) =>
+        ctx.builtinSkillRoot && path === `${ctx.builtinSkillRoot}/SKILL.md`
+          ? assertSandboxWorkspacePath({
+              provider: ctx.sandbox,
+              workspaceRoot: ctx.builtinSkillRoot,
+              path
+            })
+          : validateToolPath(ctx, { path })
+      )
+    );
     const files = await ctx.sandbox.readFiles(paths);
 
     if (paths.length === 0) {
@@ -72,7 +106,10 @@ export async function dispatchSandboxReadFile(
     if (files.length !== paths.length) throw new Error('Missing Sandbox file result');
 
     const results = files.map((file, index) => {
-      assertFileResult(ctx, { file, expectedPath: paths[index] });
+      if (ctx.builtinSkillRoot && paths[index] === `${ctx.builtinSkillRoot}/SKILL.md`) {
+        if (file.error) throw file.error;
+        if (file.path !== paths[index]) throw new Error('Unexpected builtin file result');
+      } else assertFileResult(ctx, { file, expectedPath: paths[index] });
       const content = new TextDecoder('utf-8').decode(file.content);
       return `--- ${file.path} ---\n${content}`;
     });
@@ -176,6 +213,16 @@ export async function dispatchSandboxExecute(
 ): Promise<DispatchResult> {
   try {
     const workingDirectory = await validateToolPath(ctx, { path: params.workingDirectory ?? '.' });
+    if (ctx.builtinSkillRoot) {
+      const result = await executeWorkspaceCommand({
+        provider: ctx.sandbox,
+        workspaceRoot: ctx.workDirectory,
+        ...params,
+        workingDirectory,
+        shouldStop: ctx.shouldStop
+      });
+      return { response: JSON.stringify(result), usages: [] };
+    }
     const result = await ctx.sandbox.execute(params.command, {
       workingDirectory,
       timeoutMs: params.timeoutMs
@@ -188,6 +235,7 @@ export async function dispatchSandboxExecute(
 
     return { response: parts.join('\n'), usages: [] };
   } catch (error) {
+    if (error instanceof WorkspaceCommandOutcomeUnknown) throw new SandboxUnavailableError();
     if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
     return {
       response: `Failed to execute command: ${error instanceof Error ? error.message : String(error)}`,
@@ -215,14 +263,17 @@ export async function dispatchSandboxSearch(
     }
 
     const paths = await Promise.all(
-      results.map(async (result) => {
+      results.slice(0, 200).map(async (result) => {
         const path = await validateToolPath(ctx, { path: result.path });
         if (path !== searchRoot && !path.startsWith(`${searchRoot}/`))
           throw new Error('Search result is outside the requested directory');
         return path;
       })
     );
-    return { response: `Matching files:\n${paths.join('\n')}`, usages: [] };
+    return {
+      response: `Matching files:\n${paths.join('\n')}${results.length > paths.length ? '\n[Truncated to 200 matches; narrow the search directory or pattern.]' : ''}`,
+      usages: []
+    };
   } catch (error) {
     if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
     return {

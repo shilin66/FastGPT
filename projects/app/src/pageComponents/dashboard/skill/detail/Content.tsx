@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Flex, Box, Button } from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
 import { useContextSelector } from 'use-context-selector';
@@ -9,6 +9,8 @@ import SandboxIframe from './config/SandboxIframe';
 import SandboxError from './config/SandboxError';
 import SkillPreview from './preview/SkillPreview';
 import WorkspaceStatus from './WorkspaceStatus';
+import WorkspaceFiles from './config/WorkspaceFiles';
+import WorkspaceSplit from './WorkspaceSplit';
 
 const SkillBuilding = () => {
   const { t } = useTranslation();
@@ -34,6 +36,14 @@ const Content = () => {
       skillDetailError: v.skillDetailError,
       refreshSkillDetail: v.refreshSkillDetail
     }));
+  const [editorOpened, setEditorOpened] = useState(false);
+  const [filesOpened, setFilesOpened] = useState(false);
+  useEffect(() => {
+    if (currentTab === TabEnum.preview) setEditorOpened(true);
+  }, [currentTab]);
+  useEffect(() => {
+    if (sandboxState === 'ready') setFilesOpened(true);
+  }, [sandboxState]);
 
   if (!skillDetail)
     return (
@@ -46,15 +56,11 @@ const Content = () => {
     );
 
   return (
-    <Box
-      flex={1}
-      bg={'white'}
-      borderRadius={'8px'}
-      border={'1px solid #EBEDF0'}
-      overflow={'hidden'}
-    >
+    <WorkspaceSplit conversation={canEdit ? <SkillPreview key={skillDetail._id} /> : undefined}>
       <Flex
         h={'100%'}
+        flex={1}
+        minW={0}
         flexDirection="column"
         display={currentTab === TabEnum.config ? 'flex' : 'none'}
       >
@@ -68,22 +74,33 @@ const Content = () => {
             <>
               {sandboxState === 'idle' && <SkillBuilding />}
               {sandboxState === 'loading' && <SandboxTerminal />}
-              {sandboxState === 'ready' && <SandboxIframe />}
+              {(sandboxState === 'ready' || filesOpened) && (
+                <Box h="100%" display={sandboxState === 'ready' ? 'block' : 'none'}>
+                  <WorkspaceFiles key={skillDetail._id} />
+                </Box>
+              )}
               {sandboxState === 'failed' && <SandboxError />}
             </>
           )}
         </Box>
       </Flex>
-      <Box h={'100%'} display={currentTab === TabEnum.preview ? 'block' : 'none'}>
-        {canEdit ? (
-          <SkillPreview />
+      <Box flex={1} minW={0} h={'100%'} display={currentTab === TabEnum.preview ? 'block' : 'none'}>
+        {canEdit && sandboxState === 'ready' && editorOpened ? (
+          <Flex h="100%" direction="column">
+            <Box p={2} fontSize="xs" bg="orange.50">
+              {t('skill:editor_advanced_hint')}
+            </Box>
+            <Box flex={1} minH={0}>
+              <SandboxIframe />
+            </Box>
+          </Flex>
         ) : (
           <Flex h="100%" align="center" justify="center" color="myGray.500">
             {t('skill:workspace_read_only')}
           </Flex>
         )}
       </Box>
-    </Box>
+    </WorkspaceSplit>
   );
 };
 

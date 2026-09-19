@@ -16,6 +16,7 @@ import { dirname, join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
+import { randomBytes } from 'node:crypto';
 import { JSZip } from '@fastgpt/service/core/agentSkills/zipBuilder';
 import {
   initializeEditSandboxWorkspace,
@@ -87,14 +88,15 @@ describe('Skill Edit atomic workspace and safe export', () => {
           })
         )
       ),
-      readFiles: vi.fn(async (paths: string[]) =>
-        Promise.all(
-          paths.map(async (path) => ({
-            path,
-            content: new Uint8Array(await readFile(path)),
-            error: null
-          }))
-        )
+      readFiles: vi.fn(
+        async (paths: string[], options?: Parameters<typeof provider.readFiles>[1]) =>
+          Promise.all(
+            paths.map(async (path) => {
+              const file = await readFile(path);
+              const [start, end] = options?.range?.split('-').map(Number) ?? [0, file.length];
+              return { path, content: new Uint8Array(file.subarray(start, end)), error: null };
+            })
+          )
       )
     };
   });
@@ -186,6 +188,84 @@ describe('Skill Edit atomic workspace and safe export', () => {
       expect.stringMatching(/tail -c \+1 .+ \| head -c \d+ \| openssl base64 -A/),
       undefined
     );
+  });
+  it('exports a large ZIP without losing data to the SDK command output limit', async () => {
+    await initialize();
+    const payload = randomBytes(1024 * 1024 + 17);
+    await writeFile(join(workDirectory, 'skills/demo/payload.bin'), payload);
+    const requireFromService = createRequire(
+      new URL('../../../../../packages/service/package.json', import.meta.url)
+    );
+    const { OpenSandboxAdapter } = requireFromService('@fastgpt-sdk/sandbox-adapter') as {
+      OpenSandboxAdapter: new (connection: {
+        baseUrl: string;
+        sessionId: string;
+      }) => typeof provider;
+    };
+    const adapter = new OpenSandboxAdapter({
+      baseUrl: 'http://sandbox.invalid',
+      sessionId: 'local-sdk-large-archive'
+    });
+    const localExecute = provider.execute;
+    adapter.execute = async (command, options) => {
+      const result = await localExecute(
+        command.replace('base64 -w 0', 'openssl base64 -A'),
+        options
+      );
+      // Model the installed SDK's 1 MiB tail-retaining command output buffer.
+      return { ...result, stdout: result.stdout.slice(-1024 * 1024) };
+    };
+    provider.readFiles = adapter.readFiles.bind(adapter);
+    const zip = await JSZip.loadAsync(new Uint8Array(await exportPackage()));
+    expect(await zip.file('skills/demo/payload.bin')?.async('nodebuffer')).toEqual(payload);
+    expect((await readdir(parent)).filter((name) => name.endsWith('.zip'))).toEqual([]);
+  });
+  it.each(['short', 'long', 'corrupted', 'missing', 'error'] as const)(
+    'rejects a %s later archive chunk without changing the draft',
+    async (failure) => {
+      await initialize();
+      const payload = randomBytes(1024 * 1024 + 17);
+      const payloadPath = join(workDirectory, 'skills/demo/payload.bin');
+      await writeFile(payloadPath, payload);
+      const readFiles = provider.readFiles;
+      let reads = 0;
+      provider.readFiles = async (paths, options) => {
+        const files = await readFiles(paths, options);
+        if (++reads !== 2) return files;
+        if (failure === 'missing') return [];
+        if (failure === 'error') return [{ ...files[0], error: new Error('read denied') }];
+        const bytes = files[0].content;
+        if (!(bytes instanceof Uint8Array)) throw new Error('Expected archive bytes');
+        if (failure === 'short') files[0].content = bytes.slice(0, -1);
+        if (failure === 'long') files[0].content = new Uint8Array(bytes.length + 1);
+        if (failure === 'corrupted') bytes[0] ^= 1;
+        return files;
+      };
+      const expected = {
+        short: 'Invalid Edit archive size',
+        long: 'Invalid Edit archive size',
+        corrupted: 'Edit archive changed during read',
+        missing: 'Missing Edit archive read result',
+        error: 'read denied'
+      };
+      await expect(exportPackage()).rejects.toThrow(expected[failure]);
+      expect(reads).toBeGreaterThanOrEqual(2);
+      expect(await readFile(payloadPath)).toEqual(payload);
+      expect((await readdir(parent)).filter((name) => name.endsWith('.zip'))).toEqual([]);
+    }
+  );
+  it('checks the active lease before reading each archive chunk', async () => {
+    await initialize();
+    await writeFile(join(workDirectory, 'skills/demo/payload.bin'), randomBytes(1024 * 1024));
+    const readFiles = provider.readFiles;
+    provider.readFiles = async (paths, options) => {
+      const files = await readFiles(paths, options);
+      assertActive.mockRejectedValue(new Error('lease lost'));
+      return files;
+    };
+    await expect(exportPackage()).rejects.toThrow('lease lost');
+    expect(readFiles).toHaveBeenCalledTimes(1);
+    expect(await readdir(workDirectory)).toEqual(['skills']);
   });
   it('preserves executable entrypoint permissions in the validated export', async () => {
     await initialize();
@@ -410,6 +490,21 @@ subprocess.run = mutate_rules`
         options
       );
     await expect(exportPackage()).rejects.toThrow('gitignore changed');
+    expect(provider.readFiles).not.toHaveBeenCalled();
+    expect((await readdir(parent)).filter((name) => name.endsWith('.zip'))).toEqual([]);
+  });
+  it('rejects changes to an already copied file before the snapshot is sealed', async () => {
+    await initialize();
+    const localExecute = provider.execute;
+    provider.execute = (command, options) =>
+      localExecute(
+        command.replace(
+          '# All copied files must overlap at one unchanged workspace instant before packaging.',
+          'with open(os.path.join(arg["root"], "skills/demo/SKILL.md"), "ab") as changed: changed.write(b"concurrent edit")'
+        ),
+        options
+      );
+    await expect(exportPackage()).rejects.toThrow('changed during snapshot');
     expect(provider.readFiles).not.toHaveBeenCalled();
     expect((await readdir(parent)).filter((name) => name.endsWith('.zip'))).toEqual([]);
   });

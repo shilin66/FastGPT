@@ -19,6 +19,29 @@ import { getUser } from '@test/datas/users';
 import { Call } from '@test/utils/request';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
+import type { SandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
+import { dispatchWorkFlow } from '@fastgpt/service/core/workflow/dispatch';
+import { assertSkillWorkspaceTerminalIdle } from '@fastgpt/service/core/ai/sandbox/terminal';
+import { SkillDebugChatBodySchema } from '@fastgpt/global/openapi/core/agentSkills/api';
+
+vi.mock('@fastgpt/service/core/ai/sandbox/terminal', () => ({
+  assertSkillWorkspaceTerminalIdle: vi.fn(async () => {})
+}));
+
+vi.mock('@fastgpt/service/core/ai/sandbox/lease', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@fastgpt/service/core/ai/sandbox/lease')>()),
+  withSandboxLease: async (key: string, run: (lease: SandboxLease) => Promise<unknown>) =>
+    run({ token: key, isActive: () => true, assertOwned: async () => {}, setHeartbeat: () => {} })
+}));
+vi.mock('@fastgpt/service/core/workflow/dispatch', () => ({
+  dispatchWorkFlow: vi.fn(async () => ({
+    flowResponses: [],
+    assistantResponses: [{ text: { content: 'debug answer' } }],
+    system_memories: {},
+    durationSeconds: 1,
+    customFeedbacks: []
+  }))
+}));
 
 // ── Constants mirrored from the implementation ──
 const START_NODE_ID = 'skill-debug-start';
@@ -31,6 +54,56 @@ describe('buildDebugRuntimeNodes', () => {
   const SKILL_ID = '507f1f77bcf86cd799439011';
   const MODEL = 'gpt-4o';
   const SYSTEM_PROMPT = 'You are a helpful assistant.';
+
+  it('validates and forwards model parameters without changing workspace controls', () => {
+    const aiChatDefaultConfig = {
+      temperature: 0.7,
+      top_p: 0.9,
+      max_tokens: 2048,
+      chat_template_kwargs: { enable_thinking: false }
+    };
+    const body = SkillDebugChatBodySchema.parse({
+      skillId: SKILL_ID,
+      chatId: 'chat',
+      responseChatItemId: 'response',
+      messages: [{ role: 'user', content: 'hi' }],
+      aiChatDefaultConfig
+    });
+    expect(body).toHaveProperty('aiChatDefaultConfig', aiChatDefaultConfig);
+    const { runtimeNodes } = buildDebugRuntimeNodes(
+      SKILL_ID,
+      MODEL,
+      SYSTEM_PROMPT,
+      aiChatDefaultConfig
+    );
+    expect(
+      runtimeNodes[1].inputs.find((input) => input.key === NodeInputKeyEnum.aiChatDefaultConfig)
+        ?.value
+    ).toEqual(aiChatDefaultConfig);
+  });
+
+  it.each([
+    [],
+    null,
+    { model: 'other' },
+    { messages: [] },
+    { tools: [] },
+    { stream: false },
+    { temperature: 20 },
+    { max_tokens: -1 },
+    { top_p: 2 },
+    { extra: 'x'.repeat(17000) }
+  ])('rejects invalid or protected model parameters: %j', (aiChatDefaultConfig) => {
+    expect(
+      SkillDebugChatBodySchema.safeParse({
+        skillId: SKILL_ID,
+        chatId: 'chat',
+        responseChatItemId: 'response',
+        messages: [{ role: 'user', content: 'hi' }],
+        aiChatDefaultConfig
+      }).success
+    ).toBe(false);
+  });
 
   it('should return exactly two nodes and one edge', () => {
     const { runtimeNodes, runtimeEdges } = buildDebugRuntimeNodes(SKILL_ID, MODEL, SYSTEM_PROMPT);
@@ -62,16 +135,28 @@ describe('buildDebugRuntimeNodes', () => {
       expect(input.value).toBe('');
     });
 
-    it('should have exactly one userChatInput output with static type', () => {
+    it('should expose static userChatInput and userFiles outputs', () => {
       const { runtimeNodes } = buildDebugRuntimeNodes(SKILL_ID, MODEL, SYSTEM_PROMPT);
       const startNode = runtimeNodes[0];
 
-      expect(startNode.outputs).toHaveLength(1);
-      const output = startNode.outputs[0];
-      expect(output.key).toBe(NodeOutputKeyEnum.userChatInput);
-      expect(output.id).toBe(NodeOutputKeyEnum.userChatInput);
-      expect(output.type).toBe(FlowNodeOutputTypeEnum.static);
-      expect(output.valueType).toBe(WorkflowIOValueTypeEnum.string);
+      expect(startNode.outputs).toHaveLength(2);
+      expect(
+        startNode.outputs.find((output) => output.key === NodeOutputKeyEnum.userChatInput)
+      ).toMatchObject({
+        id: NodeOutputKeyEnum.userChatInput,
+        type: FlowNodeOutputTypeEnum.static,
+        valueType: WorkflowIOValueTypeEnum.string
+      });
+      expect(
+        startNode.outputs.find((output) => output.key === NodeOutputKeyEnum.userFiles)
+      ).toMatchObject({
+        id: NodeOutputKeyEnum.userFiles,
+        type: FlowNodeOutputTypeEnum.static,
+        valueType: WorkflowIOValueTypeEnum.arrayString
+      });
+      expect(
+        runtimeNodes[1].inputs.find((input) => input.key === NodeInputKeyEnum.fileUrlList)?.value
+      ).toEqual([START_NODE_ID, NodeOutputKeyEnum.userFiles]);
     });
   });
 
@@ -240,8 +325,8 @@ describe('debugChat handler — parameter validation', () => {
     skillId = String(skill._id);
   });
 
-  it('should call sseErrRes when skillId is missing', async () => {
-    await Call(debugChatApi.default, {
+  it('rejects missing skillId before starting SSE', async () => {
+    const result = await Call(debugChatApi.default, {
       auth: testUser,
       body: {
         chatId: getNanoid(),
@@ -250,13 +335,15 @@ describe('debugChat handler — parameter validation', () => {
         messages: [{ role: 'user', content: 'hello' }]
       }
     });
-    expect(getSseErrResMock()).toHaveBeenCalled();
-    const err = getSseErrResMock().mock.calls[0][1];
-    expect(err?.message ?? err).toMatch(/skillId/i);
+    expect(result.code).not.toBe(200);
+    expect(result.error?.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: ['skillId'] })])
+    );
+    expect(getSseErrResMock()).not.toHaveBeenCalled();
   });
 
-  it('should call sseErrRes when chatId is missing', async () => {
-    await Call(debugChatApi.default, {
+  it('rejects missing chatId before starting SSE', async () => {
+    const result = await Call(debugChatApi.default, {
       auth: testUser,
       body: {
         skillId,
@@ -265,13 +352,15 @@ describe('debugChat handler — parameter validation', () => {
         messages: [{ role: 'user', content: 'hello' }]
       }
     });
-    expect(getSseErrResMock()).toHaveBeenCalled();
-    const err = getSseErrResMock().mock.calls[0][1];
-    expect(err?.message ?? err).toMatch(/chatId/i);
+    expect(result.code).not.toBe(200);
+    expect(result.error?.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: ['chatId'] })])
+    );
+    expect(getSseErrResMock()).not.toHaveBeenCalled();
   });
 
-  it('should call sseErrRes when messages array is empty', async () => {
-    await Call(debugChatApi.default, {
+  it('rejects empty messages before starting SSE', async () => {
+    const result = await Call(debugChatApi.default, {
       auth: testUser,
       body: {
         skillId,
@@ -281,9 +370,11 @@ describe('debugChat handler — parameter validation', () => {
         messages: []
       }
     });
-    expect(getSseErrResMock()).toHaveBeenCalled();
-    const err = getSseErrResMock().mock.calls[0][1];
-    expect(err?.message ?? err).toMatch(/messages/i);
+    expect(result.code).not.toBe(200);
+    expect(result.error?.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: ['messages'] })])
+    );
+    expect(getSseErrResMock()).not.toHaveBeenCalled();
   });
 
   it('should call sseErrRes when edit-debug sandbox does not exist', async () => {
@@ -293,7 +384,8 @@ describe('debugChat handler — parameter validation', () => {
         skillId,
         chatId: getNanoid(),
         responseChatItemId: getNanoid(),
-        model: 'gpt-4o',
+        model: 'gpt-5',
+        aiChatDefaultConfig: { temperature: 0.7 },
         messages: [{ role: 'user', content: 'hi' }]
       }
     });
@@ -302,7 +394,11 @@ describe('debugChat handler — parameter validation', () => {
     expect(err?.message ?? err).toMatch(/sandbox/i);
   });
 
-  it('should NOT call sseErrRes with sandbox error when edit-debug sandbox exists', async () => {
+  it.each([false, true])('checks Terminal activity before dispatch (busy=%s)', async (busy) => {
+    if (busy)
+      vi.mocked(assertSkillWorkspaceTerminalIdle).mockRejectedValueOnce(
+        new Error('workspace_terminal_busy')
+      );
     // Create sandbox instance
     await MongoSandboxInstance.create({
       provider: 'opensandbox',
@@ -324,18 +420,33 @@ describe('debugChat handler — parameter validation', () => {
 
     await Call(debugChatApi.default, {
       auth: testUser,
+      headers: {},
+      cookies: {},
       body: {
         skillId,
         chatId: getNanoid(),
         responseChatItemId: getNanoid(),
-        model: 'gpt-4o',
+        model: 'gpt-5',
+        aiChatDefaultConfig: { temperature: 0.7 },
         messages: [{ role: 'user', content: 'hi' }]
       }
     });
 
-    // sseErrRes must NOT be called with a sandbox-not-found error
-    const calls = getSseErrResMock().mock.calls;
-    const hasSandboxError = calls.some(([, err]) => /sandbox/i.test(err?.message ?? ''));
-    expect(hasSandboxError).toBe(false);
+    expect(assertSkillWorkspaceTerminalIdle).toHaveBeenCalledOnce();
+    if (busy) {
+      expect(getSseErrResMock().mock.calls[0][1]).toMatchObject({
+        message: 'workspace_terminal_busy'
+      });
+      expect(dispatchWorkFlow).not.toHaveBeenCalled();
+    } else {
+      expect(getSseErrResMock()).not.toHaveBeenCalled();
+      expect(dispatchWorkFlow).toHaveBeenCalledOnce();
+      expect(vi.mocked(dispatchWorkFlow).mock.calls[0][0].runtimeNodes[1].inputs).toContainEqual(
+        expect.objectContaining({
+          key: NodeInputKeyEnum.aiChatDefaultConfig,
+          value: { temperature: 0.7 }
+        })
+      );
+    }
   });
 });

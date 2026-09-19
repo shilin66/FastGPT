@@ -237,6 +237,37 @@ describe('Skill tools workspace boundary', () => {
     expect(result.response).toContain('Failed to search files');
   });
 
+  it('限制搜索输出并明确提示截断', async () => {
+    searchMock.mockResolvedValue(
+      Array.from({ length: 250 }, (_, index) => ({ path: `${workDirectory}/file-${index}.txt` }))
+    );
+    const result = await dispatchSandboxSearch(context, { pattern: '*.txt' });
+    expect(result.response).toContain('file-199.txt');
+    expect(result.response).not.toContain('file-200.txt');
+    expect(result.response).toContain('Truncated to 200 matches');
+  });
+
+  it('普通运行会话也遵守显式文件行范围', async () => {
+    executeMock.mockResolvedValue({
+      stdout: JSON.stringify({
+        type: 'text',
+        content: 'second line',
+        size: 20,
+        startLine: 2,
+        truncated: false
+      }),
+      stderr: '',
+      exitCode: 0
+    });
+    const result = await dispatchSandboxReadFile(context, {
+      paths: ['report.txt'],
+      startLine: 2,
+      maxLines: 1
+    });
+    expect(result.response).toContain('second line');
+    expect(readMock).not.toHaveBeenCalled();
+  });
+
   it.each(['$(id)', '`id`', 'bad"pattern', 'line\npattern', 'a\\b'])(
     '拒绝 SDK 无法安全处理的搜索表达式 %s',
     async (pattern) => {

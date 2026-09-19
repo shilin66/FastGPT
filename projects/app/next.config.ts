@@ -84,6 +84,9 @@ const nextConfig: NextConfig = {
     memoryBasedWorkersCount: true
   },
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  outputFileTracingIncludes: {
+    '/*': ['../../packages/service/core/agentSkills/builtin/**/*']
+  },
   // Exclude build-time-only packages from standalone output file tracing
   outputFileTracingExcludes: {
     '*': [

@@ -8,6 +8,8 @@ export const PresignChatFileGetUrlSchema = z
   .object({
     key: z.string().min(1).describe('文件key'),
     appId: ObjectIdSchema.describe('应用ID'),
+    sourceType: z.literal('skillEdit').optional(),
+    chatId: z.string().min(1).max(128).optional(),
     mode: z.enum(['proxy', 'presigned']).optional().describe('下载方式'),
     outLinkAuthData: OutLinkChatAuthSchema.optional().describe('外链鉴权数据')
   })
@@ -27,6 +29,7 @@ export const PresignChatFilePostUrlSchema = z
   .object({
     filename: z.string().min(1).describe('文件名'),
     appId: ObjectIdSchema.describe('应用ID'),
+    sourceType: z.literal('skillEdit').optional(),
     chatId: z.string().min(1).describe('对话ID'),
     fileSelectConfig:
       AppFileSelectConfigTypeSchema.optional().describe('调试态前端当前文件选择配置'),

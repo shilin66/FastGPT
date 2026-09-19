@@ -222,7 +222,8 @@ const List = () => {
                     boxShadow: omniTheme.shadows.card,
                     transform: 'translateY(-1px)',
                     '& .more': {
-                      display: 'flex'
+                      opacity: 1,
+                      pointerEvents: 'auto'
                     },
                     '& .time': {
                       display: ['flex', 'none']
@@ -334,7 +335,18 @@ const List = () => {
                       {(AppFolderTypeList.includes(app.type)
                         ? app.permission.hasManagePer
                         : app.permission.hasWritePer || app.permission.hasReadChatLogPer) && (
-                        <Box className="more" display={['', 'none']}>
+                        <Box
+                          className="more"
+                          display={'block'}
+                          opacity={[1, 0]}
+                          pointerEvents={['auto', 'none']}
+                          flexShrink={0}
+                          transition={'opacity 0.15s ease'}
+                          _focusWithin={{
+                            opacity: 1,
+                            pointerEvents: 'auto'
+                          }}
+                        >
                           <MyMenu
                             trigger={'click'}
                             placement={'bottom-end'}

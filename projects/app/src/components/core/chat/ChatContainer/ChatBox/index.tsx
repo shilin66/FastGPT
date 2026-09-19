@@ -122,6 +122,7 @@ type Props = OutLinkChatAuthProps &
     active?: boolean; // can use
     showWorkorder?: boolean;
     enableAutoResume?: boolean;
+    markReadEnabled?: boolean;
 
     onStartChat?: (e: StartChatFnProps) => Promise<
       StreamResponseType & {
@@ -141,11 +142,15 @@ const ChatBox = ({
   active = true,
   showWorkorder,
   enableAutoResume = false,
+  markReadEnabled = true,
   onStartChat,
   chatType,
   onTriggerRefresh,
   onDeleteChatItem
 }: Props) => {
+  const markChatRead = useMemoizedFn((data: Parameters<typeof postMarkChatRead>[0]) =>
+    markReadEnabled ? postMarkChatRead(data) : Promise.resolve()
+  );
   const ScrollContainerRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -953,7 +958,7 @@ const ChatBox = ({
             );
 
             if (finishedInActiveChat) {
-              void postMarkChatRead({
+              void markChatRead({
                 appId,
                 chatId,
                 ...outLinkAuthData
@@ -1008,7 +1013,7 @@ const ChatBox = ({
             );
 
             if (finishedInActiveChat) {
-              void postMarkChatRead({
+              void markChatRead({
                 appId,
                 chatId,
                 ...outLinkAuthData
@@ -1426,7 +1431,7 @@ const ChatBox = ({
         );
 
         if (finishedInActiveChat) {
-          void postMarkChatRead({
+          void markChatRead({
             appId,
             chatId: resumeForChatId,
             ...outLinkAuthData

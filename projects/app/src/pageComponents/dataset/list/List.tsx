@@ -191,7 +191,8 @@ function List() {
                       display: 'block'
                     },
                     '& .more': {
-                      display: 'flex'
+                      opacity: 1,
+                      pointerEvents: 'auto'
                     },
                     '& .time': {
                       display: ['flex', 'none']
@@ -307,7 +308,15 @@ function List() {
                         : dataset.permission.hasWritePer) && (
                         <Box
                           className="more"
-                          display={['', 'none']}
+                          display={'block'}
+                          opacity={[1, 0]}
+                          pointerEvents={['auto', 'none']}
+                          flexShrink={0}
+                          transition={'opacity 0.15s ease'}
+                          _focusWithin={{
+                            opacity: 1,
+                            pointerEvents: 'auto'
+                          }}
                           borderRadius={'md'}
                           _hover={{
                             '& .icon': {

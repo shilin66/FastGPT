@@ -33,41 +33,56 @@ const ConfigPerModal = dynamic(() => import('@/components/support/permission/Con
 
 const RouteTab = () => {
   const { t } = useTranslation();
-  const { currentTab, setCurrentTab } = useContextSelector(SkillDetailContext, (v) => v);
+  const { currentTab, setCurrentTab, flushWorkspace, chatRunning } = useContextSelector(
+    SkillDetailContext,
+    (v) => v
+  );
+  const { openConfirm, ConfirmModal } = useConfirm({ content: t('skill:editor_return_confirm') });
+  const changeTab = (next: TabEnum) => {
+    const change = () => flushWorkspace().then(() => setCurrentTab(next));
+    if (currentTab === TabEnum.preview) openConfirm({ onConfirm: change })();
+    else void change().catch(() => {});
+  };
 
   const tabList = [
-    { label: t('skill:detail_tab_config'), value: TabEnum.config },
-    { label: t('skill:detail_tab_preview'), value: TabEnum.preview }
+    { label: t('skill:detail_tab_conversation'), value: TabEnum.config },
+    { label: t('skill:detail_tab_ide'), value: TabEnum.preview }
   ];
 
   return (
-    <HStack borderRadius={'md'} bg={'rgba(244, 244, 245, 0.63)'} backdropBlur={'blur(5px)'} p={1}>
-      {tabList.map((tab) => (
-        <HStack
-          key={tab.value}
-          justifyContent={'center'}
-          cursor={'pointer'}
-          w={'120px'}
-          h={8}
-          fontSize={'12px'}
-          fontWeight={'medium'}
-          userSelect={'none'}
-          {...(currentTab === tab.value
-            ? {
-                bg: 'white',
-                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                color: 'black',
-                borderRadius: '2px'
-              }
-            : {
-                color: 'myGray.500',
-                onClick: () => setCurrentTab(tab.value)
-              })}
-        >
-          <Box>{tab.label}</Box>
-        </HStack>
-      ))}
-    </HStack>
+    <>
+      <ConfirmModal />
+      <HStack borderRadius={'md'} bg={'rgba(244, 244, 245, 0.63)'} backdropBlur={'blur(5px)'} p={1}>
+        {tabList.map((tab) => (
+          <Button
+            key={tab.value}
+            variant="unstyled"
+            isDisabled={chatRunning}
+            aria-pressed={currentTab === tab.value}
+            justifyContent={'center'}
+            cursor={'pointer'}
+            w={'120px'}
+            h={8}
+            fontSize={'12px'}
+            fontWeight={'medium'}
+            userSelect={'none'}
+            {...(currentTab === tab.value
+              ? {
+                  bg: 'white',
+                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                  color: 'black',
+                  borderRadius: '2px'
+                }
+              : {
+                  color: 'myGray.500',
+                  onClick: () => changeTab(tab.value)
+                })}
+          >
+            <Box>{tab.label}</Box>
+          </Button>
+        ))}
+      </HStack>
+    </>
   );
 };
 
@@ -75,8 +90,16 @@ const Header = () => {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const { skillDetail, refreshSkillDetail, showHistories, setShowHistories, sandboxState } =
-    useContextSelector(SkillDetailContext, (v) => v);
+  const {
+    skillDetail,
+    refreshSkillDetail,
+    showHistories,
+    setShowHistories,
+    sandboxState,
+    flushWorkspace,
+    chatRunning,
+    currentTab
+  } = useContextSelector(SkillDetailContext, (v) => v);
 
   const [editedSkill, setEditedSkill] = useState<EditResourceInfoFormType>();
   const [showPermModal, setShowPermModal] = useState(false);
@@ -119,12 +142,18 @@ const Header = () => {
     }
   );
 
-  const { runAsync: onSaveDeploy, loading: isSaving } = useRequest(postSaveDeploySkill, {
-    onSuccess: refreshSkillDetail,
-    onError: refreshSkillDetail,
-    successToast: t('skill:deploy_success'),
-    errorToast: t('skill:deploy_failed')
-  });
+  const { runAsync: onSaveDeploy, loading: isSaving } = useRequest(
+    async (params: Parameters<typeof postSaveDeploySkill>[0]) => {
+      await flushWorkspace();
+      return postSaveDeploySkill(params);
+    },
+    {
+      onSuccess: refreshSkillDetail,
+      onError: refreshSkillDetail,
+      successToast: t('skill:deploy_success'),
+      errorToast: t('skill:deploy_failed')
+    }
+  );
 
   const { openConfirm: confirmStalePublish, ConfirmModal: StalePublishModal } = useConfirm({
     content: t('skill:workspace_stale_publish_confirm')
@@ -204,7 +233,17 @@ const Header = () => {
   if (!skillDetail) return null;
 
   return (
-    <Flex flexShrink={0} h={'64px'} alignItems={'center'} position={'relative'} userSelect={'none'}>
+    <Flex
+      flexShrink={0}
+      h={'64px'}
+      px={4}
+      bg="white"
+      borderBottomWidth="1px"
+      borderColor="myGray.200"
+      alignItems={'center'}
+      position={'relative'}
+      userSelect={'none'}
+    >
       {/* 返回按钮 */}
       <Box _hover={{ bg: 'rgba(18, 22, 26, 0.05)' }} p={0.5} borderRadius={'sm'}>
         <IconButton
@@ -265,6 +304,8 @@ const Header = () => {
             variant={'primary'}
             isLoading={isSaving}
             isDisabled={
+              chatRunning ||
+              currentTab === TabEnum.preview ||
               !skillDetail.permission.hasWritePer ||
               sandboxState !== 'ready' ||
               skillDetail.workspace?.status !== 'running'

@@ -78,6 +78,7 @@ type Props = Omit<
   runtimeNodes: RuntimeNodeItemType[];
   runtimeEdges: RuntimeEdgeItemType[];
   defaultSkipNodeQueue?: WorkflowDebugResponse['skipNodeQueue'];
+  shouldStop?: () => boolean;
 };
 type NodeResponseType = DispatchNodeResultType<{
   [key: string]: any;
@@ -277,6 +278,7 @@ export async function dispatchWorkFlow({
   // Stop sign(没有 apiVersion，说明不会有暂停)
   let stopping = false;
   const checkIsStopping = (): boolean => {
+    if (data.shouldStop?.()) return true;
     if (apiVersion === 'v2') {
       return stopping;
     }

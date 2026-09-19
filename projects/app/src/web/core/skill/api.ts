@@ -36,6 +36,17 @@ import type { SkillDebugDeleteChatItemBody } from '@fastgpt/global/core/agentSki
 import type { GetResourceFolderListProps } from '@fastgpt/global/common/parentFolder/type';
 import { AgentSkillTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
 import type { GetRecordsV2ResponseType } from '@fastgpt/global/openapi/core/chat/record/api';
+import type {
+  SkillWorkspaceFileBody,
+  SkillWorkspaceFileResponse
+} from '@fastgpt/global/openapi/core/agentSkills/files';
+import type { SkillDebugStatusResponse } from '@fastgpt/global/openapi/core/agentSkills/api';
+
+export const getSkillDebugStatus = (data: { skillId: string; chatId: string }) =>
+  GET<SkillDebugStatusResponse>('/core/agentSkills/debugStatus', data);
+
+export const postSkillWorkspaceFiles = (data: SkillWorkspaceFileBody) =>
+  POST<SkillWorkspaceFileResponse>('/core/agentSkills/files', data);
 
 /** 获取 Skill 列表（支持分页、搜索、分类、文件夹过滤） */
 export const getSkillList = (data: ListSkillsQuery) =>
@@ -53,7 +64,7 @@ export const getSkillFolderList = ({ parentId }: GetResourceFolderListProps) =>
 export const getSkillDetail = (data: GetSkillDetailQuery) =>
   GET<GetSkillDetailResponse>('/core/agentSkills/detail', data);
 
-/** 创建 Skill（支持 AI 辅助生成 SKILL.md） */
+/** 创建空白 Skill 编辑工作区 */
 export const postCreateSkill = (data: CreateSkillBody) =>
   POST<string>('/core/agentSkills/create', data);
 

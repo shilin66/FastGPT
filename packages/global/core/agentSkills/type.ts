@@ -102,6 +102,7 @@ export const AgentSkillSchema = z.object({
   creationStatus: z.enum(AgentSkillCreationStatusEnum).optional(),
   error: AgentSkillCreationErrorSchema.optional(),
   lastOperationId: z.string().optional(),
+  creationRequestId: z.string().optional(),
   deletionOperation: AgentSkillDeletionOperationSchema.optional(),
   currentVersion: z.number(),
   versionCount: z.number(),

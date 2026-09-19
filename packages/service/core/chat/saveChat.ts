@@ -1033,6 +1033,7 @@ export const pushChatRecords = async (props: Props) => {
     }
   } catch (error) {
     logger.error('Failed to update chat history', { chatId, error });
+    if (props.sourceScope?.sourceType === 'skillEdit') throw error;
   }
 };
 
@@ -1074,6 +1075,7 @@ export const updateInteractiveChat = async ({
     appId,
     chatId,
     ...sourceFilter,
+    execution: { $exists: false },
     obj: ChatRoleEnum.AI
   }).sort({
     _id: -1

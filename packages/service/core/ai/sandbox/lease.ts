@@ -25,6 +25,7 @@ export class SandboxOperationConflict extends Error {
 
 export type SandboxLease = {
   token: string;
+  isActive: () => boolean;
   assertOwned: () => Promise<void>;
   setHeartbeat: (heartbeat?: () => Promise<boolean>) => void;
 };
@@ -85,6 +86,7 @@ export const withSandboxLease = async <T>(
   try {
     return await run({
       token,
+      isActive: () => active && !lost,
       assertOwned,
       setHeartbeat: (callback) => {
         heartbeat = callback;

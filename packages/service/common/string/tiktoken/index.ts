@@ -35,13 +35,7 @@ export const countGptMessagesTokens = async (
     return total;
   } catch (error) {
     logger.error('Token count worker failed, using fallback', { error });
-    const total = messages.reduce((sum, item) => {
-      if (item.content) {
-        return sum + item.content.length * 0.5;
-      }
-      return sum;
-    }, 0);
-    return total;
+    return Buffer.byteLength(JSON.stringify({ messages, tools, functionCall }), 'utf8');
   }
 };
 

@@ -151,9 +151,10 @@ Use **Steel Atlas / saturated blue map**.
 - Custom plugin workbench: group identity, application binding, classification, release policy,
   billing, and Markdown guidance into continuous setting bands. Avoid the legacy split form with a
   full-height textarea and avoid wrapping each individual setting in a card.
-- Portal conversation rails: Human commands align to the right in compact saturated-blue blocks;
-  AI responses align to the left as open reading surfaces with a three-pixel blue rail. Avoid paired
-  rounded chat bubbles or another enclosing conversation card.
+- Portal conversation rails: Human messages align right on a quiet `myGray.150` surface with dark
+  text, a subtle border, and no colored shadow. AI responses remain open reading surfaces with a
+  one-pixel neutral rail. Use generous line height, quiet metadata, and white bordered attachments;
+  reserve saturated blue for actionable controls and focus rather than large reading surfaces.
 - Login collaboration visual: the desktop brand panel uses one vertically layered diagram. Agentic sits
   above Workflow; a solid blue downward lane means Agentic can invoke Workflow, while a dashed warm-gold
   upward lane means Workflow nodes can call Agentic back. Knowledge and Context connect to Agentic;

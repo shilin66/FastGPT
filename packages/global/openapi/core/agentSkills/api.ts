@@ -17,6 +17,8 @@ import {
 } from '../../../core/agentSkills/type';
 import { AgentSkillCreationStatusEnum } from '../../../core/agentSkills/constants';
 import { SkillEditWorkspaceSchema } from '../../../core/agentSkills/workspace';
+import { ChatCompletionUserMessageParamSchema } from '../../../core/ai/llm/type';
+import { AgentModelParamsSchema } from '../../../core/ai/agent/modelParams';
 
 const IdSchema = z.string().min(1).meta({ description: '资源 ID' });
 const NullableParentIdSchema = z.string().nullable().optional().meta({
@@ -25,6 +27,7 @@ const NullableParentIdSchema = z.string().nullable().optional().meta({
 const LooseObjectSchema = z.object({}).catchall(z.any());
 
 export const ListSkillsQuerySchema = z.object({
+  runnableOnly: z.boolean().optional().describe('只返回可运行技能及导航文件夹'),
   source: z.enum(['store', 'mine']).optional().describe('技能来源: store=系统技能, mine=我的技能'),
   searchKey: z.string().optional().describe('搜索关键词'),
   category: AgentSkillCategorySchema.optional().describe('技能分类'),
@@ -60,6 +63,7 @@ export const ListSkillsResponseSchema = z.object({
 export type ListSkillsResponse = z.infer<typeof ListSkillsResponseSchema>;
 
 export const CreateSkillBodySchema = z.object({
+  requestId: z.string().uuid().optional().describe('创建请求幂等键，重试时保持不变'),
   parentId: NullableParentIdSchema,
   name: z.string().describe('技能名称'),
   description: z.string().optional().describe('技能描述'),
@@ -264,11 +268,14 @@ export type {
 
 export const SkillDebugChatBodySchema = z.object({
   skillId: IdSchema,
-  chatId: z.string(),
-  responseChatItemId: z.string().optional(),
-  messages: z.array(LooseObjectSchema),
-  model: z.string().optional(),
-  systemPrompt: z.string().optional()
+  chatId: z.string().min(1).max(128),
+  responseChatItemId: z.string().min(1).max(128),
+  messages: z.array(ChatCompletionUserMessageParamSchema).length(1),
+  model: z.string().max(200).optional(),
+  aiChatDefaultConfig: AgentModelParamsSchema.optional().describe(
+    '当前 Skill 对话的模型原生参数，不改变已发布 Skill 或工作区权限'
+  ),
+  systemPrompt: z.string().max(32000).optional()
 });
 export type SkillDebugChatBody = z.infer<typeof SkillDebugChatBodySchema>;
 
@@ -453,3 +460,21 @@ export const ImportSkillMultipartRequestSchema = {
   },
   required: ['file'] as string[]
 };
+
+export const SkillDebugStatusQuerySchema = z.object({
+  skillId: IdSchema,
+  chatId: z.string().min(1).max(128)
+});
+export const SkillDebugStatusResponseSchema = z.object({
+  status: z.enum([
+    'idle',
+    'running',
+    'waitingForInput',
+    'completed',
+    'stopped',
+    'failed',
+    'interrupted'
+  ]),
+  workspaceRunning: z.boolean()
+});
+export type SkillDebugStatusResponse = z.infer<typeof SkillDebugStatusResponseSchema>;

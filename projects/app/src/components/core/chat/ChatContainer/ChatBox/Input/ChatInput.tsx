@@ -20,6 +20,7 @@ import { useToast } from '@fastgpt/web/hooks/useToast';
 import VoiceInput, { type VoiceInputComponentRef } from './VoiceInput';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import { postStopV2Chat } from '@/web/core/chat/api';
+import { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
 import type { WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 
 const InputGuideBox = dynamic(() => import('./InputGuideBox'));
@@ -65,6 +66,7 @@ const ChatInput = ({
   const appId = useContextSelector(WorkflowRuntimeContext, (v) => v.appId);
   const chatId = useContextSelector(WorkflowRuntimeContext, (v) => v.chatId);
   const isChatting = useContextSelector(ChatBoxContext, (v) => v.isChatting);
+  const sourceType = useContextSelector(ChatItemContext, (v) => v.chatBoxData?.sourceType);
   const whisperConfig = useContextSelector(ChatBoxContext, (v) => v.whisperConfig);
   const chatInputGuide = useContextSelector(ChatBoxContext, (v) => v.chatInputGuide);
   const fileSelectConfig = useContextSelector(ChatBoxContext, (v) => v.fileSelectConfig);
@@ -131,7 +133,8 @@ const ChatInput = ({
   );
   const { runAsync: handleStop, loading: isStopping } = useRequest(async () => {
     try {
-      if (isChatting) {
+      // Skill debug runs are request-scoped and stop when onStop closes their stream.
+      if (isChatting && sourceType !== 'skillEdit') {
         await postStopV2Chat({
           appId,
           chatId,
@@ -408,9 +411,9 @@ const ChatInput = ({
   ]);
 
   const activeStyles: FlexProps = {
-    boxShadow: '0 10px 28px rgba(37, 99, 235, 0.12)',
+    boxShadow: '0 0 0 3px var(--chakra-colors-primary-50)',
     border: '1px solid',
-    borderColor: 'primary.300'
+    borderColor: 'primary.400'
   };
 
   return (
@@ -447,17 +450,18 @@ const ChatInput = ({
         px={[2.5, 3]}
         py={fileList.length > 0 ? 2 : mobilePreSpeak ? 1 : 2}
         position={'relative'}
-        borderRadius={'8px'}
+        borderRadius={'12px'}
         bg={'white'}
         overflow={'visible'}
         {...(focusing
           ? activeStyles
           : {
-              _hover: activeStyles,
+              _hover: { borderColor: 'myGray.400' },
               border: '1px solid',
               borderColor: 'myGray.250',
-              boxShadow: '0 8px 24px rgba(19, 51, 107, 0.08)'
+              boxShadow: '0 2px 8px rgba(19, 51, 107, 0.04)'
             })}
+        transition={'border-color 0.15s ease, box-shadow 0.15s ease'}
         onClick={() => TextareaDom?.current?.focus()}
       >
         <Box>

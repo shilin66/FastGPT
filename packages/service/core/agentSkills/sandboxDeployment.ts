@@ -145,6 +145,12 @@ elif action == 'extract':
     target = safe(arg['stage'])
     with zipfile.ZipFile(archive) as package:
         infos = package.infolist()
+        directories = [info for info in infos if info.is_dir()]
+        if directories:
+            if entry['runtimeSkills'] or [info.filename for info in directories] != ['skills/']:
+                raise ValueError('Invalid empty workspace directory')
+            safe(arg['stage'] + '/skills').mkdir()
+            infos = [info for info in infos if not info.is_dir()]
         if len(infos) != len(entry['files']) or {item.filename for item in infos} != {item['path'] for item in entry['files']}:
             raise ValueError('Package file manifest mismatch')
         expected = {item['path']: item for item in entry['files']}
@@ -208,11 +214,13 @@ export const deploySandboxSkillPackages = async ({
   provider,
   workspaceRoot,
   packages,
+  allowEmptyWorkspace = false,
   assertActive = async () => undefined
 }: {
   provider: DeploymentProvider;
   workspaceRoot: string;
   packages: SandboxSkillPackage[];
+  allowEmptyWorkspace?: boolean;
   assertActive?: () => Promise<void>;
 }) => {
   const prepared = [];
@@ -222,16 +230,20 @@ export const deploySandboxSkillPackages = async ({
     objectId.parse(item.versionId);
     if (seen.has(item.skillId)) throw new Error('Duplicate Skill deployment identity');
     seen.add(item.skillId);
-    const validated = await validateAndNormalizeSkillPackage(item.packageBuffer);
+    const validated = await validateAndNormalizeSkillPackage(item.packageBuffer, {
+      allowEmptyWorkspace
+    });
     if (item.contentHash && item.contentHash !== validated.contentHash) {
       throw new Error('Skill package content hash mismatch');
     }
     const archive = await JSZip.loadAsync(validated.zipBuffer);
     const files = await Promise.all(
-      Object.values(archive.files).map(async (file) => {
-        const data = await file.async('nodebuffer');
-        return { path: file.name, hash: hash(data), size: data.length };
-      })
+      Object.values(archive.files)
+        .filter((file) => !file.dir)
+        .map(async (file) => {
+          const data = await file.async('nodebuffer');
+          return { path: file.name, hash: hash(data), size: data.length };
+        })
     );
     files.sort((a, b) => a.path.localeCompare(b.path));
     prepared.push({ ...item, ...validated, files });

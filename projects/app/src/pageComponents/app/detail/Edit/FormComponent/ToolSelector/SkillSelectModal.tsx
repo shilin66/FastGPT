@@ -44,6 +44,7 @@ const SkillSelectModal = ({
     () =>
       getSkillList({
         source: 'mine',
+        runnableOnly: true,
         parentId: parentId,
         searchKey: searchKey || undefined
       }).then((res) => res.list),

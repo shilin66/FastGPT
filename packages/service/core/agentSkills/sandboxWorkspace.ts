@@ -191,6 +191,8 @@ try:
     count = 0
     total = 0
     rule_bytes = 0
+    observed = []
+    snapshot_entries = []
     excluded_names = {
         '.git', '.hg', '.svn', '.env', '.envrc', 'keys', 'credentials', '.credentials',
         '.ssh', '.aws', '.azure', '.config', '.kube', '.npmrc', '.pypirc', '.netrc',
@@ -213,9 +215,10 @@ try:
             os.close(fd)
             raise ValueError('Unsafe Edit file changed during export')
         return os.fdopen(fd, 'rb')
-    def walk(folder, parts, archive):
+    def walk(folder, parts):
         global count, total, rule_bytes
         folder_before = os.fstat(folder)
+        observed.append((parts, signature(folder_before)))
         candidates = []
         with os.scandir(folder) as entries:
             for entry in entries:
@@ -247,6 +250,7 @@ try:
                 rules = source.read(rule_limit + 1)
                 if len(rules) != before.st_size or signature(before) != signature(os.fstat(source.fileno())):
                     raise ValueError('Edit gitignore changed during export')
+            observed.append((path, signature(before)))
             rule_bytes += len(rules)
             if rule_bytes > min(1048576, limits['maxUncompressedBytes']):
                 raise ValueError('Edit gitignore rules exceed total size limit')
@@ -276,7 +280,8 @@ try:
                 try:
                     if signature(before) != signature(os.fstat(child)):
                         raise ValueError('Edit directory changed during export')
-                    walk(child, path, archive)
+                    os.mkdir(os.path.join(snapshot, *path), mode=0o700)
+                    walk(child, path)
                     if signature(before) != signature(os.stat(name, dir_fd=folder, follow_symlinks=False)):
                         raise ValueError('Edit directory changed during export')
                 finally:
@@ -290,7 +295,7 @@ try:
                     entry_info.create_system = 3
                     entry_info.external_attr = (stat.S_IFREG | (before.st_mode & 0o777)) << 16
                     entry_info.compress_type = zipfile.ZIP_DEFLATED
-                    with archive.open(entry_info, 'w') as target:
+                    with open(os.path.join(snapshot, *path), 'xb') as target:
                         while True:
                             block = source.read(65536)
                             if not block:
@@ -302,6 +307,8 @@ try:
                             target.write(block)
                     if size != before.st_size or signature(before) != signature(os.fstat(source.fileno())) or signature(before) != signature(os.stat(name, dir_fd=folder, follow_symlinks=False)):
                         raise ValueError('Edit file changed during export')
+                    observed.append((path, signature(before)))
+                    snapshot_entries.append((path, entry_info))
         if rules is not None:
             before = next(info for name, _, info in candidates if name == '.gitignore')
             if signature(before) != signature(os.stat('.gitignore', dir_fd=folder, follow_symlinks=False)):
@@ -310,7 +317,7 @@ try:
             raise ValueError('Edit directory changed during export')
     with LimitedFile(fd, 'w+b', closefd=True) as output:
         # Git sees only descriptor-validated ignore rules in a private, empty repository.
-        with tempfile.TemporaryDirectory(prefix='fastgpt-edit-ignore-', dir='/tmp') as mirror:
+        with tempfile.TemporaryDirectory(prefix='fastgpt-edit-ignore-', dir='/tmp') as mirror, tempfile.TemporaryDirectory(prefix='fastgpt-edit-snapshot-', dir='/tmp') as snapshot:
             git_dir = os.path.join(mirror, '.git')
             os.mkdir(git_dir, mode=0o700)
             os.mkdir(os.path.join(git_dir, 'objects'), mode=0o700)
@@ -319,8 +326,27 @@ try:
                 head.write('ref: refs/heads/main\\n')
             git_env = {'PATH': os.defpath, 'LC_ALL': 'C', 'GIT_DIR': git_dir, 'GIT_WORK_TREE': mirror,
                        'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_SYSTEM': os.devnull, 'GIT_CONFIG_GLOBAL': os.devnull}
+            walk(root, [])
+            # All copied files must overlap at one unchanged workspace instant before packaging.
+            for parts, expected in observed:
+                if not parts:
+                    current = directory(arg['root'])
+                    try:
+                        actual = os.fstat(current)
+                    finally:
+                        os.close(current)
+                else:
+                    current = directory(os.path.join(arg['root'], *parts[:-1]))
+                    try:
+                        actual = os.stat(parts[-1], dir_fd=current, follow_symlinks=False)
+                    finally:
+                        os.close(current)
+                if signature(actual) != expected:
+                    raise ValueError('Edit workspace changed during snapshot; retry after writers stop')
             with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
-                walk(root, [], archive)
+                for parts, entry_info in snapshot_entries:
+                    with open(os.path.join(snapshot, *parts), 'rb') as source, archive.open(entry_info, 'w') as target:
+                        shutil.copyfileobj(source, target, 65536)
         output.flush()
         size = output.seek(0, os.SEEK_END)
         output.seek(0)
@@ -404,6 +430,7 @@ export async function initializeEditSandboxWorkspace({
     },
     workspaceRoot: stagingRoot,
     packages: [skillPackage],
+    allowEmptyWorkspace: true,
     assertActive
   });
   const entry = manifest.entries[0];
@@ -466,17 +493,22 @@ export async function exportEditSandboxWorkspace({
     })
     .parse(JSON.parse(output));
   try {
-    await assertActive();
-    // SDK 0.0.36 uses an exclusive range end, unlike an HTTP Range header.
-    const files = await provider.readFiles([path], { range: `0-${archive.size}` });
-    const file = files[0];
-    if (files.length !== 1 || file.path !== path)
-      throw new Error('Missing Edit archive read result');
-    if (file.error) throw file.error;
-    if (!(file.content instanceof Uint8Array) || file.content.length !== archive.size)
-      throw new Error('Invalid Edit archive size');
-    const buffer = Buffer.from(file.content);
-    if (createHash('sha256').update(file.content).digest('hex') !== archive.hash)
+    // Base64 must fit the SDK's 1 MiB output cap; its range end is exclusive.
+    const chunkBytes = 512 * 1024;
+    const buffer = Buffer.alloc(archive.size);
+    for (let offset = 0; offset < archive.size; offset += chunkBytes) {
+      await assertActive();
+      const end = Math.min(offset + chunkBytes, archive.size);
+      const files = await provider.readFiles([path], { range: `${offset}-${end}` });
+      const file = files[0];
+      if (files.length !== 1 || file.path !== path)
+        throw new Error('Missing Edit archive read result');
+      if (file.error) throw file.error;
+      if (!(file.content instanceof Uint8Array) || file.content.length !== end - offset)
+        throw new Error('Invalid Edit archive size');
+      buffer.set(file.content, offset);
+    }
+    if (createHash('sha256').update(buffer).digest('hex') !== archive.hash)
       throw new Error('Edit archive changed during read');
     return (await validateAndNormalizeSkillPackage(buffer, { allowLegacyLayout: false })).zipBuffer;
   } finally {

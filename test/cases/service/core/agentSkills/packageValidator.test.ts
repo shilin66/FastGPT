@@ -30,6 +30,24 @@ async function expectReason(
 }
 
 describe('validateAndNormalizeSkillPackage', () => {
+  it('allows only an explicitly requested empty editing baseline, never an empty published Skill', async () => {
+    const zip = new JSZip();
+    zip.folder('skills');
+    zip.file('.gitignore', '.env\nnode_modules/\n');
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' });
+    await expectReason(buffer, 'missing_skill_md');
+    const result = await validateAndNormalizeSkillPackage(buffer, { allowEmptyWorkspace: true });
+    expect(result.runtimeSkills).toEqual([]);
+    expect(Object.keys((await JSZip.loadAsync(result.zipBuffer)).files).sort()).toEqual([
+      '.gitignore',
+      'skills/'
+    ]);
+    zip.file('skills/unfinished/script.py', 'print(1)');
+    await expectReason(await zip.generateAsync({ type: 'nodebuffer' }), 'missing_skill_md', {
+      allowEmptyWorkspace: true
+    });
+  });
+
   it.each(['skills/demo/SKILL.md', 'demo/SKILL.md', 'SKILL.md'])(
     'discards macOS metadata without changing Skill files or the normalized hash for %s',
     async (path) => {

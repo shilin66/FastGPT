@@ -74,6 +74,8 @@ vi.mock('@fastgpt-sdk/sandbox-adapter', async (importOriginal) => {
     execute = providerExecute;
     inspectExisting = providerInspect;
     connectExisting = providerConnect;
+    getInfo = async () => ({ id: 'provider-instance', status: { state: 'Running' } });
+    close = async () => {};
   }
   return {
     ...original,
@@ -1267,6 +1269,49 @@ describe('Sandbox lifecycle cleanup', () => {
     expect(providerConnect).not.toHaveBeenCalled();
     expect(providerStop).not.toHaveBeenCalled();
   });
+
+  it('does not idle-stop a Skill workspace while a chat or publish owns its activity lease', async () => {
+    await seedInstance({
+      sourceType: 'skillEdit',
+      sourceId: 'editing-skill',
+      lastActiveAt: new Date(Date.now() - 600_000)
+    });
+    await cronJob();
+    await withSandboxLease('skill-edit-activity:editing-skill', async () => {
+      await setCron.mock.calls[0][1]();
+    });
+    expect(providerStop).not.toHaveBeenCalled();
+    expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
+      status: 'running'
+    });
+  });
+
+  it.each(['busy', 'unknown', 'idle'])(
+    'checks Terminal activity before idle-stop: %s',
+    async (state) => {
+      await seedInstance({
+        sourceType: 'skillEdit',
+        sourceId: 'editing-skill',
+        lastActiveAt: new Date(Date.now() - 600_000)
+      });
+      providerExecute.mockResolvedValue({
+        stdout:
+          state === 'busy'
+            ? '80 15 80 81 pts/0 Ss bash\n81 80 81 81 pts/0 S+ sleep'
+            : state === 'idle'
+              ? '1 0 1 -1 ? Ss bootstrap.sh'
+              : '',
+        stderr: '',
+        exitCode: 0
+      });
+      await cronJob();
+      await setCron.mock.calls[0][1]();
+      expect(providerStop).toHaveBeenCalledTimes(state === 'idle' ? 1 : 0);
+      expect((await MongoSandboxInstance.findOne({ sandboxId }).lean())?.status).toBe(
+        state === 'idle' ? 'stopped' : 'running'
+      );
+    }
+  );
 
   it.each(['idle', 'manual'] as const)(
     'honors a heartbeat arriving before the %s stop claim without overriding manual intent',

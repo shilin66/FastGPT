@@ -11,7 +11,7 @@ import { RuntimeSkillResolutionError } from '@fastgpt/service/core/agentSkills/r
 import type { ChatItemMiniType } from '@fastgpt/global/core/chat/type';
 import type { AIChatItemValueItemType } from '@fastgpt/global/core/chat/type';
 import type { DispatchPlanAgentResponse } from '@fastgpt/service/core/workflow/dispatch/ai/agent/sub/plan';
-import type { AssistantMessage, Context } from '@mariozechner/pi-ai';
+import type { AssistantMessage, Context, SimpleStreamOptions } from '@mariozechner/pi-ai';
 import {
   buildAgentMemory,
   restoreAgentPlan
@@ -37,9 +37,9 @@ vi.mock('@fastgpt/service/core/agentSkills/runtimeResolver', () => ({
     }
   }
 }));
-vi.mock('@fastgpt/service/common/logger', () => ({
-  getLogger: () => ({ error: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
-  LogCategories: { MODULE: { AI: { AGENT: 'agent' } } }
+vi.mock('@fastgpt/service/common/logger', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@fastgpt/service/common/logger')>()),
+  getLogger: () => ({ error: vi.fn(), warn: vi.fn(), debug: vi.fn(), info: vi.fn() })
 }));
 vi.mock('@fastgpt/service/core/workflow/dispatch/utils', () => ({
   getHistories: (history: number | ChatItemMiniType[], histories: ChatItemMiniType[]) =>
@@ -205,6 +205,114 @@ beforeEach(() => {
   mocks.stream.mockImplementation(() => piResponse([{ type: 'text', text: 'done' }]));
 });
 
+it('passes native model parameters through the Pi provider payload hook', async () => {
+  const input = props();
+  input.params.aiChatDefaultConfig = {
+    temperature: 0.7,
+    max_tokens: 8192,
+    chat_template_kwargs: { enable_thinking: false }
+  };
+  await dispatchPiAgent(input);
+  const [model, , options] = mocks.stream.mock.calls[0];
+  const payload = { model: 'test', messages: [], tools: [], stream: true, max_tokens: 512 };
+  const patched = await (options as SimpleStreamOptions).onPayload?.(payload, model);
+  expect(patched).toEqual({
+    ...payload,
+    temperature: 0.7,
+    chat_template_kwargs: { enable_thinking: false }
+  });
+});
+
+describe.each(['default', 'pi'] as const)('%s Sandbox session identity', (engine) => {
+  const runAgent = engine === 'default' ? dispatchRunAgent : dispatchPiAgent;
+
+  it.each(['test', 'debug'] as const)(
+    'reuses one %s conversation but isolates a new conversation and node',
+    async (mode) => {
+      mocks.env.SHOW_SKILL = true;
+      mocks.sandbox.mockResolvedValue({});
+      const input = props();
+      input.mode = mode;
+      input.params.skills = ['skill-1'];
+
+      await runAgent(input);
+      await runAgent(input);
+      await runAgent({ ...input, chatId: 'chat-2' });
+      await runAgent({ ...input, node: { ...input.node, nodeId: 'node-2' } });
+
+      const sessions = mocks.sandbox.mock.calls.map(([call]) => call.sessionId);
+      expect(sessions[0]).toBe(sessions[1]);
+      expect(sessions[0]).not.toBe(sessions[2]);
+      expect(sessions[0]).not.toBe(sessions[3]);
+      expect(sessions[0]).not.toBe(input.chatId);
+      expect(mocks.sandbox).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appId: input.runningAppInfo.id,
+          runtimeUserId: input.uid,
+          mode: 'sessionRuntime'
+        })
+      );
+    }
+  );
+
+  it('keeps online chat identity unchanged', async () => {
+    mocks.env.SHOW_SKILL = true;
+    mocks.sandbox.mockResolvedValue({});
+    const input = props();
+    input.params.skills = ['skill-1'];
+    await runAgent(input);
+    expect(mocks.sandbox).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: input.chatId, mode: 'sessionRuntime' })
+    );
+  });
+
+  it('keeps preview workspace across rounds even when the usage record changes', async () => {
+    mocks.env.SHOW_SKILL = true;
+    mocks.sandbox.mockResolvedValue({});
+    const input = props();
+    input.mode = 'test';
+    input.usageId = 'round-1';
+    input.params.skills = ['skill-1'];
+    await runAgent(input);
+    await runAgent({ ...input, usageId: 'round-2' });
+    await runAgent({ ...input, chatId: 'chat-2', usageId: 'round-3' });
+    const sessions = mocks.sandbox.mock.calls.map(([call]) => call.sessionId);
+    expect(sessions[0]).toBe(sessions[1]);
+    expect(sessions[0]).not.toBe(sessions[2]);
+  });
+
+  it('does not alias node and chat IDs containing separators', async () => {
+    mocks.env.SHOW_SKILL = true;
+    mocks.sandbox.mockResolvedValue({});
+    const input = props();
+    input.mode = 'test';
+    input.node.nodeId = 'node';
+    input.chatId = 'part-chat';
+    input.params.skills = ['skill-1'];
+    await runAgent(input);
+    await runAgent({
+      ...input,
+      node: { ...input.node, nodeId: 'node-part' },
+      chatId: 'chat'
+    });
+    const sessions = mocks.sandbox.mock.calls.map(([call]) => call.sessionId);
+    expect(sessions[0]).not.toBe(sessions[1]);
+  });
+
+  it('preserves explicit Skill Edit workspace routing', async () => {
+    mocks.env.SHOW_SKILL = true;
+    mocks.sandbox.mockResolvedValue({});
+    const input = props();
+    input.mode = 'test';
+    input.params.skills = ['skill-1'];
+    input.params.useEditDebugSandbox = true;
+    await runAgent(input);
+    expect(mocks.sandbox).toHaveBeenCalledWith(
+      expect.objectContaining({ skillIds: ['skill-1'], mode: 'editDebug' })
+    );
+  });
+});
+
 it.each(['default', 'pi'] as const)(
   '%s keeps a failed Skill audit event when runtime resolution fails',
   async (engine) => {
@@ -342,6 +450,71 @@ describe('default Agent execution memory', () => {
     });
   });
 
+  it.each([undefined, '', '\n\n', ' \t\r\n'])(
+    'stops without replaying tools or replanning when a step returns %j',
+    async (rawResponse) => {
+      const audit: AIChatItemValueItemType = {
+        sandboxEvent: { id: 'already-executed', status: 'ready', versionId: 'version-1' }
+      };
+      mocks.master
+        .mockRejectedValue(new Error('Unexpected replay'))
+        .mockResolvedValueOnce({
+          ...masterResult(),
+          planResponse: {
+            plan: structuredClone(plan),
+            completeMessages: [],
+            usages: [],
+            nodeResponse: {}
+          }
+        })
+        .mockResolvedValueOnce({
+          ...masterResult(),
+          nodeResponse: { id: 'empty-step', finishReason: 'stop' },
+          assistantMessages: [
+            {
+              role: 'assistant',
+              content: '\n\n',
+              tool_calls: [
+                {
+                  id: 'side-effect-1',
+                  type: 'function',
+                  function: { name: 'side_effect', arguments: '{}' }
+                }
+              ]
+            },
+            { role: 'tool', tool_call_id: 'side-effect-1', content: 'already executed' }
+          ],
+          capabilityAssistantResponses: [audit],
+          stepResponse: rawResponse === undefined ? undefined : { rawResponse, summary: '' }
+        });
+      mocks.plan.mockResolvedValue({
+        plan: { ...plan, steps: [] },
+        completeMessages: [],
+        usages: [],
+        nodeResponse: {}
+      });
+
+      const result = await dispatchRunAgent(props());
+
+      expect(mocks.master).toHaveBeenCalledTimes(2);
+      expect(mocks.plan).not.toHaveBeenCalled();
+      expect(result.system_memories?.['agentLoopMemory-node-1']).toMatchObject({
+        status: 'failed'
+      });
+      expect(result.nodeResponses).toContainEqual(
+        expect.objectContaining({
+          id: 'empty-step',
+          finishReason: 'error',
+          errorText: expect.any(String)
+        })
+      );
+      expect(result.assistantResponses).toContainEqual({ ...audit, stepId: 'step-1' });
+      expect(result.assistantResponses?.flatMap((item) => item.tools ?? [])).toContainEqual(
+        expect.objectContaining({ id: 'side-effect-1', response: 'already executed' })
+      );
+    }
+  );
+
   it('does not mark a failed master model response as completed', async () => {
     mocks.master.mockResolvedValueOnce({
       ...masterResult(),
@@ -350,6 +523,49 @@ describe('default Agent execution memory', () => {
     const result = await dispatchRunAgent(props());
     expect(result.system_memories?.['agentLoopMemory-node-1']).toMatchObject({ status: 'failed' });
   });
+
+  it.each(['cancelled', 'provider-error'] as const)(
+    'preserves step audit and the original outcome when %s',
+    async (outcome) => {
+      let stopped = false;
+      const audit: AIChatItemValueItemType = {
+        sandboxEvent: { id: 'executed-before-stop', status: 'ready' }
+      };
+      mocks.master
+        .mockResolvedValueOnce({
+          ...masterResult(),
+          planResponse: {
+            plan: structuredClone(plan),
+            completeMessages: [],
+            usages: [],
+            nodeResponse: {}
+          }
+        })
+        .mockImplementationOnce(async () => {
+          stopped = outcome === 'cancelled';
+          return {
+            ...masterResult(),
+            nodeResponse: {
+              id: 'stopped-step',
+              ...(outcome === 'provider-error' ? { errorText: 'provider failed' } : {})
+            },
+            capabilityAssistantResponses: [audit]
+          };
+        });
+
+      const result = await dispatchRunAgent({ ...props(), checkIsStopping: () => stopped });
+
+      expect(mocks.master).toHaveBeenCalledTimes(2);
+      expect(mocks.plan).not.toHaveBeenCalled();
+      expect(result.system_memories?.['agentLoopMemory-node-1']).toMatchObject({
+        status: 'failed'
+      });
+      expect(result.assistantResponses).toContainEqual({ ...audit, stepId: 'step-1' });
+      expect(result.nodeResponses?.find((item) => item.id === 'stopped-step')?.errorText).toBe(
+        outcome === 'provider-error' ? 'provider failed' : undefined
+      );
+    }
+  );
 
   it('preserves completed steps and pauses when the continuation planner requests clarification', async () => {
     mocks.master

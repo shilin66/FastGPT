@@ -31,10 +31,11 @@ export type GetSkillListBody = {
   type?: string;
   page?: number;
   pageSize?: number;
+  runnableOnly?: boolean;
 };
 
 async function handler(req: ApiRequestProps<GetSkillListBody>) {
-  const { parentId, source, searchKey, category, type, page, pageSize } = req.body;
+  const { parentId, source, searchKey, category, type, page, pageSize, runnableOnly } = req.body;
 
   // Auth user permission
   const [{ tmbId, teamId, permission: teamPer }] = await Promise.all([
@@ -153,6 +154,14 @@ async function handler(req: ApiRequestProps<GetSkillListBody>) {
     .lean();
 
   const formatSkills = mySkills
+    .filter(
+      (skill) =>
+        !runnableOnly ||
+        skill.type === AgentSkillTypeEnum.folder ||
+        (skill.creationStatus === 'ready' &&
+          !!skill.currentVersionId &&
+          !!skill.currentRuntimeSkills?.length)
+    )
     .map((skill) => {
       const { Per, privateSkill } = (() => {
         const getPer = (skillId: string) => {

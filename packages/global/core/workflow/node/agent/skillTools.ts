@@ -7,10 +7,17 @@ export enum SandboxToolIds {
   editFile = 'sandbox_edit_file',
   execute = 'sandbox_execute',
   search = 'sandbox_search',
-  fetchUserFile = 'sandbox_fetch_user_file'
+  fetchUserFile = 'sandbox_fetch_user_file',
+  validateSkill = 'sandbox_validate_skill'
 }
 
 export const skillToolsMap = {
+  [SandboxToolIds.validateSkill]: {
+    name: { 'zh-CN': '校验技能', 'zh-Hant': '校驗技能', en: 'ValidateSkill' },
+    avatar: 'core/workflow/template/codeRun',
+    toolDescription:
+      'Validate the current editing workspace using the same package parser and limits as manual publication. Does not publish.'
+  },
   // Sandbox tools
   [SandboxToolIds.readFile]: {
     name: {
@@ -76,25 +83,47 @@ export const skillToolsMap = {
 
 // Zod parameter schemas (runtime validation)
 export const SandboxReadFileSchema = z.object({
-  paths: z.array(z.string()).describe('Array of absolute file paths')
+  paths: z
+    .array(z.string().max(1024))
+    .min(1)
+    .max(4)
+    .describe('Array of up to four absolute file paths'),
+  startLine: z.number().int().min(1).max(100000).optional().describe('First line, one-based'),
+  maxLines: z
+    .number()
+    .int()
+    .min(1)
+    .max(1000)
+    .optional()
+    .describe('Maximum lines per file, default 200; output is also byte-limited')
 });
 export const SandboxWriteFileSchema = z.object({
   path: z.string().describe('Absolute file path'),
-  content: z.string().describe('File content')
+  content: z.string().max(262144).describe('File content')
 });
 export const SandboxEditFileSchema = z.object({
-  entries: z.array(
-    z.object({
-      path: z.string().describe('Absolute file path'),
-      oldContent: z.string().describe('Original content to replace'),
-      newContent: z.string().describe('New content after replacement')
-    })
-  )
+  entries: z
+    .array(
+      z.object({
+        path: z.string().describe('Absolute file path'),
+        oldContent: z.string().min(1).max(262144).describe('Original content to replace'),
+        newContent: z.string().max(262144).describe('New content after replacement')
+      })
+    )
+    .min(1)
+    .max(16)
 });
 export const SandboxExecuteSchema = z.object({
-  command: z.string().describe('Shell command to execute'),
+  command: z.string().min(1).max(65536).describe('Shell command to execute'),
   workingDirectory: z.string().optional().describe('Working directory (optional)'),
-  timeoutMs: z.number().optional().default(30000).describe('Timeout in milliseconds')
+  timeoutMs: z
+    .number()
+    .int()
+    .min(100)
+    .max(120000)
+    .optional()
+    .default(30000)
+    .describe('Timeout in milliseconds')
 });
 export const SandboxSearchSchema = z.object({
   pattern: z.string().describe('Search pattern (filename or glob)'),
@@ -121,7 +150,20 @@ export const sandboxReadFileTool: ChatCompletionTool = {
         paths: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Array of absolute file paths'
+          maxItems: 4,
+          description: 'Array of up to four absolute file paths'
+        },
+        startLine: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 100000,
+          description: 'First line to read (one-based)'
+        },
+        maxLines: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 1000,
+          description: 'Maximum lines per file, default 200; at most 16 KiB per file'
         }
       },
       required: ['paths']
@@ -236,3 +278,12 @@ export const allSandboxTools: ChatCompletionTool[] = [
   sandboxSearchTool,
   sandboxFetchUserFileTool
 ];
+
+export const sandboxValidateSkillTool: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: SandboxToolIds.validateSkill,
+    description: skillToolsMap[SandboxToolIds.validateSkill].toolDescription,
+    parameters: { type: 'object', properties: {}, additionalProperties: false }
+  }
+};

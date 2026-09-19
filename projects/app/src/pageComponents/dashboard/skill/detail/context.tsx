@@ -49,6 +49,11 @@ type SkillDetailContextType = {
   startSandbox: () => void;
   resetWorkspace: (workspace: SkillEditWorkspace) => Promise<void>;
   isResettingWorkspace: boolean;
+  chatRunning: boolean;
+  setChatRunning: (running: boolean) => void;
+  setWorkspaceBusy: (running: boolean) => void;
+  registerWorkspaceSave: (save?: () => Promise<void>) => void;
+  flushWorkspace: () => Promise<void>;
 };
 
 export const SkillDetailContext = createContext<SkillDetailContextType>({
@@ -66,7 +71,12 @@ export const SkillDetailContext = createContext<SkillDetailContextType>({
   sandboxError: null,
   startSandbox: () => {},
   resetWorkspace: async () => {},
-  isResettingWorkspace: false
+  isResettingWorkspace: false,
+  chatRunning: false,
+  setChatRunning: () => {},
+  setWorkspaceBusy: () => {},
+  registerWorkspaceSave: () => {},
+  flushWorkspace: async () => {}
 });
 
 const formatTimestamp = () => {
@@ -92,6 +102,15 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
   const abortCtrlRef = useRef<AbortController | null>(null);
   const hasStartedRef = useRef(false);
   const [isResettingWorkspace, setIsResettingWorkspace] = useState(false);
+  const [chatRunning, setChatRunning] = useState(false);
+  const [workspaceBusy, setWorkspaceBusy] = useState(false);
+  const workspaceSave = useRef<() => Promise<void>>();
+  const registerWorkspaceSave = useCallback((save?: () => Promise<void>) => {
+    workspaceSave.current = save;
+  }, []);
+  const flushWorkspace = useCallback(async () => {
+    await workspaceSave.current?.();
+  }, []);
 
   const phaseToMessage = useCallback(
     (status: SandboxStatusItemType): string => {
@@ -118,8 +137,8 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
     data: skillDetail,
     loading: isFetchingSkillDetail,
     error: skillDetailRequestError,
-    run: refreshSkillDetail,
-    runAsync: loadSkillDetail
+    run: requestSkillDetail,
+    runAsync: requestSkillDetailAsync
   } = useRequest(
     () => {
       if (!skillId) return Promise.resolve(undefined);
@@ -146,6 +165,23 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
       refreshDeps: [skillId]
     }
   );
+
+  const detailLoadRef = useRef<{
+    skillId: string;
+    promise: ReturnType<typeof requestSkillDetailAsync>;
+  } | null>(null);
+  const loadSkillDetail = useCallback(() => {
+    const promise = requestSkillDetailAsync().finally(() => {
+      if (detailLoadRef.current?.promise === promise) detailLoadRef.current = null;
+    });
+    detailLoadRef.current = { skillId, promise };
+    return promise;
+  }, [requestSkillDetailAsync, skillId]);
+  const refreshSkillDetail = useCallback(() => {
+    // ahooks leaves superseded runAsync promises pending; background reads must not cancel a handshake.
+    if (detailLoadRef.current?.skillId === skillId) return;
+    requestSkillDetail();
+  }, [requestSkillDetail, skillId]);
 
   const startSandbox = useCallback(() => {
     if (!skillId || !skillDetail?.permission.hasWritePer) return;
@@ -340,7 +376,12 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
       sandboxError,
       startSandbox,
       resetWorkspace,
-      isResettingWorkspace
+      isResettingWorkspace,
+      chatRunning: chatRunning || workspaceBusy,
+      setChatRunning,
+      setWorkspaceBusy,
+      registerWorkspaceSave,
+      flushWorkspace
     }),
     [
       skillId,
@@ -356,7 +397,11 @@ const SkillDetailContextProvider = ({ children }: { children: ReactNode }) => {
       sandboxError,
       startSandbox,
       resetWorkspace,
-      isResettingWorkspace
+      isResettingWorkspace,
+      chatRunning,
+      workspaceBusy,
+      registerWorkspaceSave,
+      flushWorkspace
     ]
   );
 

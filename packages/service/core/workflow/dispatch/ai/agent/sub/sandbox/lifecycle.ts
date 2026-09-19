@@ -55,6 +55,7 @@ import type { AgentSandboxContext, DeployedSkillInfo } from './types';
 import { getLogger, LogCategories } from '../../../../../../../common/logger';
 import type { SandboxStatusItemType } from '@fastgpt/global/core/chat/type';
 import type { SandboxInstanceSchemaType } from '../../../../../../ai/sandbox/type';
+import { syncSkillCreator } from '../../../../../../agentSkills/builtin';
 
 type CreateAgentSandboxParams = {
   skillIds: string[];
@@ -421,6 +422,7 @@ export async function connectEditDebugSandbox(
       const info = await sandbox.getInfo();
       if (info?.status.state !== 'Running') throw new SandboxUnavailableError();
       const discovered = await discoverSkillsInSandbox(sandbox, workDirectory);
+      const creator = await syncSkillCreator(sandbox);
       await lease.assertOwned();
       return {
         sandbox,
@@ -431,11 +433,21 @@ export async function connectEditDebugSandbox(
         workspaceGeneration: instance.workspaceGeneration,
         baseVersionId: instance.baseVersionId ? String(instance.baseVersionId) : undefined,
         skills: [skill],
-        deployedSkills: discovered.map((item) => ({
-          ...item,
-          id: skillId,
-          avatar: skill.avatar
-        })),
+        builtinSkillRoot: creator.root,
+        deployedSkills: [
+          ...discovered.map((item) => ({
+            ...item,
+            id: skillId,
+            avatar: skill.avatar
+          })),
+          {
+            id: skillId,
+            name: 'skill-creator',
+            description: creator.description,
+            directory: creator.root,
+            skillMdPath: creator.path
+          }
+        ],
         workDirectory,
         isReady: true
       };
@@ -496,6 +508,7 @@ export async function runEditDebugSandboxTool<T>({
     if (claim.matchedCount !== 1) throw new SandboxUnavailableError();
     const activeFilter = { _id: instance._id, 'operation.id': lease.token };
     context.operationId = lease.token;
+    context.assertActive = lease.assertOwned;
     registerSandboxOperationHeartbeat(lease, {
       provider: instance.provider,
       sandboxId: instance.sandboxId,

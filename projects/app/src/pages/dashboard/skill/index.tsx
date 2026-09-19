@@ -7,7 +7,6 @@ import { useContextSelector } from 'use-context-selector';
 import MyBox from '@fastgpt/web/components/common/MyBox';
 import SearchInput from '@fastgpt/web/components/common/Input/SearchInput';
 import MyIcon from '@fastgpt/web/components/common/Icon';
-import MyMenu from '@fastgpt/web/components/common/MyMenu';
 import DashboardContainer from '@/pageComponents/dashboard/Container';
 import SkillListContextProvider, {
   SkillListContext
@@ -25,16 +24,12 @@ import type { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 const EditFolderModal = dynamic(
   () => import('@fastgpt/web/components/common/MyModal/EditFolderModal')
 );
-const CreateSkillModal = dynamic(() => import('@/pageComponents/dashboard/skill/CreateSkillModal'));
-const ImportSkillModal = dynamic(() => import('@/pageComponents/dashboard/skill/ImportSkillModal'));
 
 const SkillPageContent = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const { userInfo } = useUserStore();
   const [editFolder, setEditFolder] = useState<EditFolderFormType>();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
 
   const { skills, isFetchingSkills, loadSkills, searchKey, setSearchKey, parentId, paths } =
     useContextSelector(SkillListContext, (v) => v);
@@ -100,56 +95,17 @@ const SkillPageContent = () => {
                 <Button variant={'whitePrimary'} onClick={() => setEditFolder({})}>
                   {t('skill:create_folder')}
                 </Button>
-                <MyMenu
-                  trigger={'hover'}
-                  Button={
-                    <Button leftIcon={<MyIcon name={'common/addLight'} w={'18px'} />}>
-                      {t('skill:create_skill')}
-                    </Button>
+                <Button
+                  leftIcon={<MyIcon name={'common/addLight'} w={'18px'} />}
+                  onClick={() =>
+                    router.push({
+                      pathname: '/skill/create',
+                      query: parentId ? { parentId } : {}
+                    })
                   }
-                  menuList={[
-                    {
-                      children: [
-                        {
-                          label: (
-                            <Flex alignItems={'center'} gap={3}>
-                              <MyIcon name={'core/skill/default'} w={'32px'} flexShrink={0} />
-                              <Box>
-                                <Box color={'#333'} fontWeight={'bold'} fontSize={'sm'}>
-                                  {t('skill:custom_skill')}
-                                </Box>
-                                <Box color={'#666'} fontSize={'xs'} mt={1}>
-                                  {t('skill:custom_skill_desc')}
-                                </Box>
-                              </Box>
-                            </Flex>
-                          ),
-                          onClick: () => setShowCreateModal(true)
-                        }
-                      ]
-                    },
-                    {
-                      children: [
-                        {
-                          label: (
-                            <Flex alignItems={'center'} gap={2}>
-                              <MyIcon
-                                name={'common/folderImport'}
-                                w={'24px'}
-                                flexShrink={0}
-                                color={'#475466'}
-                              />
-                              <Box fontSize={'sm'} color={'#333'}>
-                                {t('skill:import_skill_zip')}
-                              </Box>
-                            </Flex>
-                          ),
-                          onClick: () => setShowImportModal(true)
-                        }
-                      ]
-                    }
-                  ]}
-                />
+                >
+                  {t('skill:create_skill')}
+                </Button>
               </>
             )}
           </Flex>
@@ -167,22 +123,6 @@ const SkillPageContent = () => {
           onClose={() => setEditFolder(undefined)}
           onCreate={({ name, intro }) => onCreateFolder({ name, description: intro, parentId })}
           onEdit={() => Promise.resolve()}
-        />
-      )}
-
-      {showCreateModal && (
-        <CreateSkillModal
-          parentId={parentId}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => loadSkills()}
-        />
-      )}
-
-      {showImportModal && (
-        <ImportSkillModal
-          parentId={parentId}
-          onClose={() => setShowImportModal(false)}
-          onSuccess={() => loadSkills()}
         />
       )}
     </Flex>

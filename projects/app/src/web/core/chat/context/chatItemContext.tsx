@@ -23,6 +23,7 @@ type ContextProps = {
   showAvatar?: boolean;
 };
 type ChatBoxDataType = {
+  sourceType?: 'skillEdit';
   chatId?: string;
   appId: string;
   title?: string;

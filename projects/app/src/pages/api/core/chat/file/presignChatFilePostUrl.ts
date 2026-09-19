@@ -13,38 +13,59 @@ import { authApp } from '@fastgpt/service/support/permission/app/auth';
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
 import { S3ErrEnum } from '@fastgpt/global/common/error/code/s3';
 import { MongoChatSetting } from '@fastgpt/service/core/chat/setting/schema';
+import { authSkill } from '@fastgpt/service/support/permission/agentSkill/auth';
+import { assertSkillChatSession } from '@fastgpt/service/core/agentSkills/chat';
+import { skillAttachmentConfig } from '@fastgpt/global/core/agentSkills/attachments';
 
 async function handler(req: ApiRequestProps): Promise<CreatePostPresignedUrlResponseType> {
-  const { filename, appId, chatId, outLinkAuthData, fileSelectConfig } =
+  const { filename, appId, chatId, outLinkAuthData, fileSelectConfig, sourceType } =
     PresignChatFilePostUrlSchema.parse(req.body);
 
-  const { teamId, uid } = await authChatCrud({
-    req,
-    authToken: true,
-    authApiKey: true,
-    appId,
-    ...outLinkAuthData
-  });
+  const { teamId, uid } =
+    sourceType === 'skillEdit'
+      ? await (async () => {
+          const auth = await authSkill({
+            req,
+            authToken: true,
+            authApiKey: true,
+            skillId: appId,
+            per: WritePermissionVal
+          });
+          await assertSkillChatSession({ skillId: appId, teamId: auth.teamId, chatId });
+          return { teamId: auth.teamId, uid: auth.tmbId };
+        })()
+      : await authChatCrud({
+          req,
+          authToken: true,
+          authApiKey: true,
+          appId,
+          ...outLinkAuthData
+        });
 
   const [planStatus, app] = await Promise.all([
     getTeamPlanStatus({ teamId }),
-    MongoApp.findById(appId, 'chatConfig.fileSelectConfig').lean()
+    sourceType === 'skillEdit'
+      ? undefined
+      : MongoApp.findById(appId, 'chatConfig.fileSelectConfig').lean()
   ]);
-  const effectiveFileSelectConfig = fileSelectConfig
-    ? await (async () => {
-        const isHomeApp = await MongoChatSetting.exists({ teamId, appId });
+  const effectiveFileSelectConfig =
+    sourceType === 'skillEdit'
+      ? skillAttachmentConfig
+      : fileSelectConfig
+        ? await (async () => {
+            const isHomeApp = await MongoChatSetting.exists({ teamId, appId });
 
-        if (!isHomeApp) {
-          await authApp({
-            req,
-            authToken: true,
-            appId,
-            per: WritePermissionVal
-          });
-        }
-        return fileSelectConfig;
-      })()
-    : app?.chatConfig?.fileSelectConfig;
+            if (!isHomeApp) {
+              await authApp({
+                req,
+                authToken: true,
+                appId,
+                per: WritePermissionVal
+              });
+            }
+            return fileSelectConfig;
+          })()
+        : app?.chatConfig?.fileSelectConfig;
   const allowedExtensions = getAllowedExtensionsFromFileSelectConfig(effectiveFileSelectConfig);
 
   if (allowedExtensions.length === 0) {

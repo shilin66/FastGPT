@@ -17,6 +17,10 @@ import {
   parseReasoningContent
 } from '../utils';
 import { getLLMSupportParams, removeDatasetCiteText } from '@fastgpt/global/core/ai/llm/utils';
+import {
+  applyAgentModelParams,
+  type AgentModelParams
+} from '@fastgpt/global/core/ai/agent/modelParams';
 import { getAIApi } from '../config';
 import type { OpenaiAccountType } from '@fastgpt/global/support/user/team/type';
 import { customNanoid, getNanoid } from '@fastgpt/global/common/string/tools';
@@ -697,6 +701,7 @@ type LLMRequestBodyType<T> = Omit<T, 'model' | 'stop' | 'response_format' | 'mes
   toolCallMode?: 'toolChoice' | 'prompt';
   useVision?: boolean;
   requestOrigin?: string;
+  extraBody?: AgentModelParams;
 };
 const llmCompletionsBodyFormat = async <T extends ChatCompletionCreateParams>({
   retainDatasetCite,
@@ -707,6 +712,7 @@ const llmCompletionsBodyFormat = async <T extends ChatCompletionCreateParams>({
   tool_choice,
   parallel_tool_calls,
   toolCallMode,
+  extraBody,
   ...body
 }: LLMRequestBodyType<T>): Promise<{
   requestBody: InferCompletionsBody<T>;
@@ -798,10 +804,14 @@ const llmCompletionsBodyFormat = async <T extends ChatCompletionCreateParams>({
     });
   }
 
-  requestBody = {
-    ...modelData?.defaultConfig,
-    ...requestBody
-  };
+  requestBody = applyAgentModelParams(
+    {
+      ...modelData?.defaultConfig,
+      ...requestBody
+    },
+    extraBody,
+    modelData.maxResponse
+  );
 
   return {
     requestBody: requestBody as unknown as InferCompletionsBody<T>,
