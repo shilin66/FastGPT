@@ -1,5 +1,85 @@
 import { describe, expect, it } from 'vitest';
-import { getFeishuReplyText } from '@fastgpt/service/support/outLink/feishu/utils';
+import {
+  getFeishuReplyText,
+  getFeishuSenderMention,
+  isFeishuMentionAllMessage
+} from '@fastgpt/service/support/outLink/feishu/utils';
+
+describe('isFeishuMentionAllMessage', () => {
+  it('忽略群聊中带 @_all 标记的消息', () => {
+    const message = {
+      chat_type: 'group' as const,
+      message_type: 'text',
+      content: JSON.stringify({ text: '@_all 请看通知' }),
+      mentions: [{ key: '@_all', name: '所有人', id: { open_id: '' } }]
+    };
+
+    expect(isFeishuMentionAllMessage(message)).toBe(true);
+  });
+
+  it('当 mentions 缺失时仍识别群聊文本中的 @_all', () => {
+    expect(
+      isFeishuMentionAllMessage({
+        chat_type: 'group',
+        message_type: 'text',
+        content: JSON.stringify({ text: '@_all 通知' })
+      })
+    ).toBe(true);
+  });
+
+  it('识别富文本内容节点中的 @所有人', () => {
+    expect(
+      isFeishuMentionAllMessage({
+        chat_type: 'group',
+        message_type: 'post',
+        mentions: [],
+        content: JSON.stringify({
+          zh_cn: {
+            content: [[{ tag: 'at', user_id: 'all', user_name: '所有人' }]]
+          }
+        })
+      })
+    ).toBe(true);
+  });
+
+  it('保留普通群聊 @机器人、单聊和仅包含字面“@所有人”的消息', () => {
+    expect(
+      isFeishuMentionAllMessage({
+        chat_type: 'group',
+        message_type: 'text',
+        content: JSON.stringify({ text: '@_user_1 帮我看看' }),
+        mentions: [{ key: '@_user_1', id: { open_id: 'ou_bot' } }]
+      })
+    ).toBe(false);
+    expect(
+      isFeishuMentionAllMessage({
+        chat_type: 'p2p',
+        message_type: 'text',
+        content: JSON.stringify({ text: '@_all' })
+      })
+    ).toBe(false);
+    expect(
+      isFeishuMentionAllMessage({
+        chat_type: 'group',
+        message_type: 'text',
+        content: JSON.stringify({ text: '文档里写了 @所有人' })
+      })
+    ).toBe(false);
+  });
+});
+
+describe('getFeishuSenderMention', () => {
+  it('生成安全的飞书用户 mention', () => {
+    expect(getFeishuSenderMention({ openId: 'ou_sender', name: '张<三>&' })).toBe(
+      '<at id=ou_sender>张&lt;三&gt;&amp;</at>'
+    );
+  });
+
+  it('缺少有效 open_id 时不构造 mention', () => {
+    expect(getFeishuSenderMention({ name: '张三' })).toBe('');
+    expect(getFeishuSenderMention({ openId: 'bad<id', name: '张三' })).toBe('');
+  });
+});
 
 describe('getFeishuReplyText', () => {
   it('保留超过 4000 字符的完整飞书回复', () => {

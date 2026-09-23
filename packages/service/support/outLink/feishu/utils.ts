@@ -13,6 +13,8 @@ import { getOrCreateOutLinkChatId } from '../session';
 
 const resetCommand = /^reset$/i;
 const mentionPattern = /@_user_\d+\s*/g;
+const mentionAllPattern = /@_all/;
+const feishuOpenIdPattern = /^ou_[A-Za-z0-9_-]+$/;
 
 export const parseFeishuPayload = (body: any): FeishuCallbackPayload | undefined => {
   if (!body) return;
@@ -71,6 +73,51 @@ export const getFeishuMessageText = (message?: FeishuMessage) => {
   } catch {
     return '';
   }
+};
+
+export const isFeishuMentionAllMessage = (message: FeishuMessage) => {
+  if (message.chat_type !== 'group') return false;
+
+  if (
+    message.mentions?.some(
+      (mention) =>
+        mention.key === '@_all' ||
+        mention.id?.open_id === 'all' ||
+        mention.id?.user_id === 'all' ||
+        mention.id?.union_id === 'all'
+    ) ||
+    mentionAllPattern.test(getFeishuMessageText(message))
+  ) {
+    return true;
+  }
+
+  if (message.message_type !== 'post' || !message.content) return false;
+
+  try {
+    const nodes: unknown[] = [JSON.parse(message.content)];
+    while (nodes.length > 0) {
+      const node = nodes.pop();
+      if (!node || typeof node !== 'object') continue;
+      if ('tag' in node && node.tag === 'at' && 'user_id' in node && node.user_id === 'all') {
+        return true;
+      }
+      for (const child of Object.values(node)) nodes.push(child);
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+};
+
+export const getFeishuSenderMention = ({ openId, name }: { openId?: string; name?: string }) => {
+  if (!openId || !feishuOpenIdPattern.test(openId)) return '';
+
+  const displayName = (name?.trim() || '提问人')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+  return `<at id=${openId}>${displayName}</at>`;
 };
 
 export const normalizeFeishuQuestion = (text: string) =>

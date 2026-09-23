@@ -32,11 +32,15 @@ class FeishuApiError extends Error {
 export const createFeishuMarkdownStream = async ({
   appConfig,
   receiveId,
-  receiveIdType = 'chat_id'
+  receiveIdType = 'chat_id',
+  replyToMessageId,
+  senderMention
 }: {
   appConfig: FeishuAppType;
   receiveId: string;
   receiveIdType?: FeishuReceiveIdType;
+  replyToMessageId?: string;
+  senderMention?: string;
 }): Promise<FeishuMarkdownStream> => {
   const client = getFeishuClient(appConfig);
   const createResult = await client.cardkit.v1.card.create({
@@ -54,6 +58,7 @@ export const createFeishuMarkdownStream = async ({
         },
         body: {
           elements: [
+            ...(senderMention ? [{ tag: 'markdown', content: senderMention }] : []),
             {
               tag: 'markdown',
               element_id: FEISHU_STREAM_ELEMENT_ID,
@@ -70,19 +75,16 @@ export const createFeishuMarkdownStream = async ({
   }
 
   const cardId = createResult.data.card_id;
-  const sendResult = await client.im.message.create({
-    params: {
-      receive_id_type: receiveIdType
-    },
-    data: {
-      receive_id: receiveId,
-      msg_type: 'interactive',
-      content: JSON.stringify({
-        type: 'card',
-        data: { card_id: cardId }
+  const content = JSON.stringify({ type: 'card', data: { card_id: cardId } });
+  const sendResult = replyToMessageId
+    ? await client.im.message.reply({
+        path: { message_id: replyToMessageId },
+        data: { msg_type: 'interactive', content }
       })
-    }
-  });
+    : await client.im.message.create({
+        params: { receive_id_type: receiveIdType },
+        data: { receive_id: receiveId, msg_type: 'interactive', content }
+      });
 
   if (sendResult.code !== 0) {
     throw new FeishuApiError('Send feishu streaming card', sendResult.code, sendResult.msg);

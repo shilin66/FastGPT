@@ -4,7 +4,8 @@ const mocks = vi.hoisted(() => ({
   cardCreate: vi.fn(),
   cardSettings: vi.fn(),
   cardElementContent: vi.fn(),
-  messageCreate: vi.fn()
+  messageCreate: vi.fn(),
+  messageReply: vi.fn()
 }));
 
 vi.mock('@larksuiteoapi/node-sdk', () => ({
@@ -25,7 +26,8 @@ vi.mock('@larksuiteoapi/node-sdk', () => ({
       },
       im: {
         message: {
-          create: mocks.messageCreate
+          create: mocks.messageCreate,
+          reply: mocks.messageReply
         }
       }
     };
@@ -33,6 +35,7 @@ vi.mock('@larksuiteoapi/node-sdk', () => ({
 }));
 
 import { createFeishuMarkdownStream } from '@fastgpt/service/support/outLink/feishu/stream';
+import { sendFeishuMarkdownMessage } from '@fastgpt/service/support/outLink/feishu/client';
 
 const appConfig = {
   appId: 'app-id',
@@ -47,6 +50,7 @@ describe('createFeishuMarkdownStream', () => {
 
     mocks.cardCreate.mockResolvedValue({ code: 0, data: { card_id: 'card-id' } });
     mocks.messageCreate.mockResolvedValue({ code: 0 });
+    mocks.messageReply.mockResolvedValue({ code: 0 });
     mocks.cardElementContent.mockResolvedValue({ code: 0 });
     mocks.cardSettings.mockResolvedValue({ code: 0 });
   });
@@ -147,5 +151,62 @@ describe('createFeishuMarkdownStream', () => {
     expect(result.streamingClosed).toBe(true);
     expect(result.contentError).toEqual(new Error('update failed'));
     expect(mocks.cardSettings).toHaveBeenCalledOnce();
+  });
+
+  it('群聊流式卡片引用原消息并在整个更新过程保留 @提问人', async () => {
+    const stream = await createFeishuMarkdownStream({
+      appConfig,
+      receiveId: 'chat-id',
+      replyToMessageId: 'om_question',
+      senderMention: '<at id=ou_sender>张三</at>'
+    });
+
+    const card = JSON.parse(mocks.cardCreate.mock.calls[0]?.[0].data.data);
+    expect(card.body.elements).toEqual([
+      { tag: 'markdown', content: '<at id=ou_sender>张三</at>' },
+      { tag: 'markdown', element_id: 'markdown_1', content: '🤔 生成中...' }
+    ]);
+    expect(mocks.messageReply).toHaveBeenCalledWith({
+      path: { message_id: 'om_question' },
+      data: {
+        msg_type: 'interactive',
+        content: JSON.stringify({ type: 'card', data: { card_id: 'card-id' } })
+      }
+    });
+    expect(mocks.messageCreate).not.toHaveBeenCalled();
+
+    await stream.append('回答');
+    const finishPromise = stream.finish('完整回答');
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(100);
+    await finishPromise;
+
+    expect(mocks.cardElementContent.mock.calls.at(-1)?.[0].data.content).toBe('完整回答');
+  });
+});
+
+describe('sendFeishuMarkdownMessage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.messageReply.mockResolvedValue({ code: 0 });
+  });
+
+  it('普通回复也引用原消息并 @提问人', async () => {
+    await sendFeishuMarkdownMessage({
+      appConfig,
+      receiveId: 'chat-id',
+      replyToMessageId: 'om_question',
+      senderMention: '<at id=ou_sender>张三</at>',
+      markdown: '完整回答'
+    });
+
+    expect(mocks.messageCreate).not.toHaveBeenCalled();
+    const request = mocks.messageReply.mock.calls[0]?.[0];
+    expect(request.path).toEqual({ message_id: 'om_question' });
+    expect(JSON.parse(request.data.content).body.elements).toEqual([
+      { tag: 'markdown', content: '<at id=ou_sender>张三</at>' },
+      { tag: 'markdown', content: '完整回答' }
+    ]);
   });
 });
