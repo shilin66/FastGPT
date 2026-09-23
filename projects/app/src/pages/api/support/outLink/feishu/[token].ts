@@ -9,6 +9,8 @@ import {
   getFeishuChatContext,
   getFeishuMessageText,
   getFeishuReplyText,
+  getFeishuSenderMention,
+  isFeishuMentionAllMessage,
   isFeishuResetCommand,
   normalizeFeishuQuestion,
   parseFeishuIncomingPayload,
@@ -144,6 +146,7 @@ async function processFeishuEvent({
 }) {
   const receiveId = message.chat_id;
   if (!receiveId) return;
+  if (isFeishuMentionAllMessage(message)) return;
 
   const question = normalizeFeishuQuestion(getFeishuMessageText(message));
 
@@ -163,6 +166,12 @@ async function processFeishuEvent({
     });
   }
 
+  const replyToMessageId = message.chat_type === 'group' ? message.message_id : undefined;
+  const senderMention =
+    message.chat_type === 'group'
+      ? getFeishuSenderMention({ openId: senderId?.open_id, name: userName })
+      : '';
+
   if (!question) {
     const reply = getFeishuReplyText({
       answer: '暂不支持处理该类型消息，请发送文本消息。',
@@ -172,6 +181,8 @@ async function processFeishuEvent({
       await sendFeishuMarkdownMessage({
         appConfig,
         receiveId,
+        replyToMessageId,
+        senderMention,
         markdown: reply
       });
     }
@@ -192,6 +203,8 @@ async function processFeishuEvent({
     await sendFeishuMarkdownMessage({
       appConfig,
       receiveId,
+      replyToMessageId,
+      senderMention,
       markdown: '已重置上下文，请发送新问题。'
     });
     return;
@@ -201,6 +214,8 @@ async function processFeishuEvent({
     await sendFeishuMarkdownMessage({
       appConfig,
       receiveId,
+      replyToMessageId,
+      senderMention,
       markdown: outLink.immediateResponse.trim()
     });
   }
@@ -209,7 +224,9 @@ async function processFeishuEvent({
   try {
     stream = await createFeishuMarkdownStream({
       appConfig,
-      receiveId
+      receiveId,
+      replyToMessageId,
+      senderMention
     });
   } catch (error) {
     logger.warn('Failed to create feishu streaming card, fallback to normal message', {
@@ -258,6 +275,8 @@ async function processFeishuEvent({
         await sendFeishuMarkdownMessage({
           appConfig,
           receiveId,
+          replyToMessageId,
+          senderMention,
           markdown: reply
         });
         return;
@@ -284,6 +303,8 @@ async function processFeishuEvent({
         await sendFeishuMarkdownMessage({
           appConfig,
           receiveId,
+          replyToMessageId,
+          senderMention,
           markdown: reply
         });
       }

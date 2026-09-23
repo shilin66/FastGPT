@@ -7,34 +7,38 @@ export const sendFeishuMarkdownMessage = async ({
   appConfig,
   receiveId,
   receiveIdType = 'chat_id',
-  markdown
+  markdown,
+  replyToMessageId,
+  senderMention
 }: {
   appConfig: FeishuAppType;
   receiveId: string;
   receiveIdType?: FeishuReceiveIdType;
   markdown: string;
+  replyToMessageId?: string;
+  senderMention?: string;
 }) => {
   const client = getFeishuClient(appConfig);
+  const content = JSON.stringify({
+    schema: '2.0',
+    body: {
+      elements: [
+        ...(senderMention ? [{ tag: 'markdown', content: senderMention }] : []),
+        { tag: 'markdown', content: markdown }
+      ]
+    }
+  });
+
+  if (replyToMessageId) {
+    return client.im.message.reply({
+      path: { message_id: replyToMessageId },
+      data: { msg_type: 'interactive', content }
+    });
+  }
 
   return client.im.message.create({
-    params: {
-      receive_id_type: receiveIdType
-    },
-    data: {
-      receive_id: receiveId,
-      msg_type: 'interactive',
-      content: JSON.stringify({
-        schema: '2.0',
-        body: {
-          elements: [
-            {
-              tag: 'markdown',
-              content: markdown
-            }
-          ]
-        }
-      })
-    }
+    params: { receive_id_type: receiveIdType },
+    data: { receive_id: receiveId, msg_type: 'interactive', content }
   });
 };
 
