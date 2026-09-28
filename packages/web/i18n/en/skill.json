@@ -1,4 +1,6 @@
 {
+  "list_title": "Skill Library",
+  "list_search_empty": "No matching skills. Try another search term.",
   "create_page_intro": "Package reusable instructions, scripts and resources into a Skill for Agents to use on demand.",
   "create_method_label": "Creation method",
   "create_blank_title": "Start from scratch",
@@ -55,6 +57,11 @@
   "file_sync_conflict": "File conflict",
   "file_save": "Save file",
   "file_refresh": "Refresh",
+  "file_recent_changes": "Recent changes",
+  "file_recent_changes_hint": "Latest changes to up to 8 files since opening this workspace. Select a file to view it.",
+  "file_change_created": "Added",
+  "file_change_modified": "Modified",
+  "file_change_deleted": "Deleted",
   "file_conflict_hint": "Agent or Terminal changed this file. Your unsaved edits have been preserved.",
   "file_conflict_resolve": "Discard local edits and reload",
   "file_conflict_error": "The workspace file changed. Resolve the conflict first.",

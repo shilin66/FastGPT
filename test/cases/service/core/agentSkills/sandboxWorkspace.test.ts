@@ -374,6 +374,7 @@ describe('Skill Edit atomic workspace and safe export', () => {
       'provider/state.json',
       '.codex/auth.json',
       '.fastgpt/runtime/state.json',
+      '.omni/skills/skill-creator/SKILL.md',
       '.runtime/manifest.json',
       '.code-server/User/settings.json'
     ];

@@ -87,6 +87,12 @@ vi.mock('@chakra-ui/react', () => {
     HStack: Box,
     VStack: Box,
     Text: Box,
+    Badge: Box,
+    Portal: Box,
+    Popover: ({ children }: { children: (props: { onClose: () => void }) => React.ReactNode }) =>
+      children({ onClose: () => {} }),
+    PopoverTrigger: Box,
+    PopoverContent: () => null,
     ModalBody: Box,
     ModalFooter: Box,
     Button,

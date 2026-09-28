@@ -16,6 +16,7 @@ import { LOGO_ICON } from '@fastgpt/global/common/system/constants';
 import { OMNICOCKPIT_NAME } from '@/web/common/brand/constants';
 import { omniTheme } from '@/web/common/brand/theme';
 import { useConfirm } from '@fastgpt/web/hooks/useConfirm';
+import { ToolTypeList } from '@fastgpt/global/core/app/constants';
 
 export enum NavbarTypeEnum {
   normal = 'normal',
@@ -45,12 +46,16 @@ type NavbarProps = {
   onToggleCollapse?: () => void;
 };
 
-const getIsActive = (
+export const getIsActive = (
   pathname: string,
   query: Record<string, string | string[] | undefined>,
   item: NavItemType
 ) => {
-  if (!item.activeLink.includes(pathname)) return false;
+  const activePathname =
+    pathname === '/dashboard/create' && ToolTypeList.some((type) => type === query.appType)
+      ? '/dashboard/tool'
+      : pathname;
+  if (!item.activeLink.includes(activePathname)) return false;
 
   if (item.activeQuery) {
     return Object.entries(item.activeQuery).every(([key, value]) => {

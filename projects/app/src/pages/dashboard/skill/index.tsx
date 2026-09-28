@@ -20,6 +20,7 @@ import type { EditFolderFormType } from '@fastgpt/web/components/common/MyModal/
 import FolderPath from '@/components/common/folder/Path';
 import { useRouter } from 'next/router';
 import type { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const EditFolderModal = dynamic(
   () => import('@fastgpt/web/components/common/MyModal/EditFolderModal')
@@ -58,14 +59,22 @@ const SkillPageContent = () => {
         flex={'1 0 0'}
         flexDirection={'column'}
         h={'100%'}
-        pr={6}
-        pl={6}
+        px={[3, 6]}
         pt={6}
         overflowY={'auto'}
         overflowX={'hidden'}
       >
         {/* Header */}
-        <Flex alignItems={'center'}>
+        <Flex
+          alignItems={'center'}
+          justifyContent="space-between"
+          flexWrap="wrap"
+          gap={4}
+          pb={4}
+          flexShrink={0}
+          borderBottomWidth="1px"
+          borderColor={omniTheme.colors.border}
+        >
           {paths.length > 0 ? (
             <Box>
               <FolderPath
@@ -76,26 +85,48 @@ const SkillPageContent = () => {
               />
             </Box>
           ) : (
-            <Box fontSize={'18px'} fontWeight={'bold'}>
-              Skill
+            <Box minW={0}>
+              <Box as="h1" color={omniTheme.colors.text} fontSize="22px" fontWeight={900}>
+                {t('skill:list_title')}
+              </Box>
+              <Box mt={1} color={omniTheme.colors.muted} fontSize="sm">
+                {t('skill:create_page_intro')}
+              </Box>
             </Box>
           )}
-          <Flex flex={1} />
-          <Flex alignItems={'center'} gap={3}>
+          <Flex
+            alignItems={'center'}
+            gap={3}
+            flexWrap={['wrap', 'nowrap']}
+            w={['100%', 'auto']}
+            maxW="100%"
+          >
             <SearchInput
-              w={'250px'}
+              w={['100%', '250px']}
+              maxW={['100%', '250px']}
               value={searchKey}
               bg={'white'}
               onChange={(e) => setSearchKey(e.target.value)}
               placeholder={t('skill:search_skill')}
+              aria-label={t('skill:search_skill')}
               maxLength={30}
             />
             {hasCreatePer && (
               <>
-                <Button variant={'whitePrimary'} onClick={() => setEditFolder({})}>
+                <Button
+                  variant="whiteBase"
+                  borderColor={omniTheme.colors.border}
+                  leftIcon={<MyIcon name="common/folderFill" w="16px" />}
+                  px={5}
+                  onClick={() => setEditFolder({})}
+                >
                   {t('skill:create_folder')}
                 </Button>
                 <Button
+                  bg={omniTheme.colors.graphite}
+                  color="white"
+                  _hover={{ bg: omniTheme.colors.graphiteHover }}
+                  px={5}
                   leftIcon={<MyIcon name={'common/addLight'} w={'18px'} />}
                   onClick={() =>
                     router.push({
@@ -112,7 +143,7 @@ const SkillPageContent = () => {
         </Flex>
 
         {/* List */}
-        <MyBox flex={'1 0 0'} isLoading={skills.length === 0 && isFetchingSkills}>
+        <MyBox flex={'1 0 0'} minH={0} isLoading={skills.length === 0 && isFetchingSkills}>
           <List />
         </MyBox>
       </Flex>

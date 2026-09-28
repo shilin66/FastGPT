@@ -20,7 +20,7 @@ def folder(parts):
         else:
             os.mkdir(path, mode=0o700)
     return path
-root = folder(['.fastgpt', 'skills', 'skill-creator'])
+root = folder(['.omni', 'skills', 'skill-creator'])
 runtime = folder(['.fastgpt', 'runtime'])
 content = base64.b64decode(arg['content'], validate=True)
 if hashlib.sha256(content).hexdigest() != arg['hash']:
@@ -92,7 +92,7 @@ export const syncSkillCreator = async (sandbox: Pick<ISandbox, 'execute'>) => {
   const { root, path } = z
     .object({ root: z.string().startsWith('/'), path: z.string().startsWith('/') })
     .parse(JSON.parse(result.stdout));
-  if (path !== `${root}/SKILL.md` || !root.endsWith('/.fastgpt/skills/skill-creator'))
+  if (path !== `${root}/SKILL.md` || !root.endsWith('/.omni/skills/skill-creator'))
     throw new Error('Invalid Skill Creator location');
   return { root, path, description: resource.description };
 };

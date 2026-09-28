@@ -1,49 +1,66 @@
+import React from 'react';
 import type { CreateAppType } from '@/pages/dashboard/create';
 import type { createAppTypeMap } from '../constants';
-import { Box, Card } from '@chakra-ui/react';
-import MyIcon from '@fastgpt/web/components/common/Icon';
+import { Box, Button, Flex, Text } from '@chakra-ui/react';
+import Avatar from '@fastgpt/web/components/common/Avatar';
 import { useTranslation } from 'next-i18next';
 
 const AppTypeCard = ({
   selectedAppType,
   onClick,
-  option
+  option,
+  isDisabled
 }: {
   selectedAppType: CreateAppType;
   onClick: () => void;
   option: (typeof createAppTypeMap)[CreateAppType];
+  isDisabled?: boolean;
 }) => {
   const { t } = useTranslation();
+  const selected = selectedAppType === option.type;
   return (
-    <Card
-      key={option.type}
+    <Button
+      type="button"
+      variant="unstyled"
+      display="flex"
+      flexDirection="column"
+      alignItems="flex-start"
+      textAlign="left"
+      whiteSpace="normal"
+      h="auto"
+      minW={0}
       p={4}
-      borderRadius={'10px'}
-      border={'1px solid'}
-      {...(selectedAppType === option.type
-        ? {
-            borderColor: 'primary.300'
-          }
-        : {
-            borderColor: 'myGray.200'
-          })}
-      cursor={'pointer'}
-      userSelect={'none'}
+      borderRadius="lg"
+      borderWidth="1px"
+      borderColor={selected ? 'primary.500' : 'myGray.200'}
+      bg={selected ? 'primary.50' : 'white'}
+      aria-pressed={selected}
+      isDisabled={isDisabled}
       onClick={onClick}
-      boxShadow={'none'}
-      _hover={{
-        boxShadow: '0 4px 10px 0 rgba(19, 51, 107, 0.08), 0 0 1px 0 rgba(19, 51, 107, 0.08)'
-      }}
+      _hover={{ borderColor: 'primary.400' }}
+      _focusVisible={{ outline: '2px solid', outlineColor: 'primary.500', outlineOffset: '3px' }}
     >
-      <MyIcon name={option.icon as any} w={'6'} borderRadius={4} />
-      <Box fontWeight={'medium'} color={'myGray.900'} mt={2}>
+      <Flex w="100%" align="center" justify="space-between" mb={3} aria-hidden>
+        <Avatar src={option.icon} w={6} color="primary.500" />
+        <Box
+          w={4}
+          h={4}
+          borderRadius="full"
+          borderWidth="1px"
+          borderColor={selected ? 'primary.500' : 'myGray.300'}
+          display="grid"
+          placeItems="center"
+        >
+          {selected && <Box w={2} h={2} borderRadius="full" bg="primary.500" />}
+        </Box>
+      </Flex>
+      <Text as="span" fontSize="sm" fontWeight="600" color="myGray.900">
         {t(option.title)}
-      </Box>
-      <Box fontSize={'mini'} color={'myGray.500'} mt={0.5} lineHeight={'16px'}>
+      </Text>
+      <Text as="span" mt={1} fontSize="xs" fontWeight="normal" color="myGray.600" lineHeight="tall">
         {t(option.intro)}
-      </Box>
-    </Card>
+      </Text>
+    </Button>
   );
 };
-
 export default AppTypeCard;

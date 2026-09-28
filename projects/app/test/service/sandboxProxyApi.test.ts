@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { IncomingMessage } from 'http';
 import { Socket } from 'net';
@@ -52,6 +52,7 @@ const createRequest = (
 };
 
 describe('Sandbox proxy HTTP auth API', () => {
+  afterEach(() => vi.unstubAllEnvs());
   const scope = {
     sandboxId: 'sandbox-12345678',
     targetPort: 8090,
@@ -103,6 +104,44 @@ describe('Sandbox proxy HTTP auth API', () => {
     );
     expect(JSON.stringify(res.redirect.mock.calls)).not.toContain('main-secret');
   });
+
+  it.each([false, true])(
+    'issues resource-prefixed IP mode bootstrap/renewal redirects (renew=%s)',
+    async (renew) => {
+      const origin = 'http://192.0.2.10:38026';
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('AGENT_SANDBOX_PROXY_MODE', 'ip-path');
+      vi.stubEnv('AGENT_SANDBOX_PROXY_APP_ORIGIN', origin);
+      vi.stubEnv('AGENT_SANDBOX_PROXY_BASE_URL', origin);
+      const res = response();
+      await handler(
+        createRequest({
+          method: 'GET',
+          headers: {
+            host: '192.0.2.10:38026',
+            'sec-fetch-site': 'same-origin',
+            cookie: 'fastgpt_token=main-secret'
+          },
+          query: {
+            sandboxId: scope.sandboxId,
+            port: '8090',
+            ...(renew ? { mode: 'renew', requestId: 'request-1234567890123456' } : {})
+          }
+        }),
+        res as unknown as NextApiResponse
+      );
+      const suffix = renew
+        ? '/__fastgpt_proxy_session?requestId=request-1234567890123456&'
+        : '/proxy/8080/?';
+      expect(res.redirect).toHaveBeenCalledWith(
+        302,
+        `${origin}/absproxy/${scope.sandboxId}/8090${suffix}__pt=${'a'.repeat(64)}`
+      );
+      expect(mocks.grant).toHaveBeenCalledWith(
+        expect.objectContaining({ audience: origin, sandboxId: scope.sandboxId })
+      );
+    }
+  );
   it('rejects next targeting another resource before signing', async () => {
     const res = response();
     await handler(
@@ -120,6 +159,35 @@ describe('Sandbox proxy HTTP auth API', () => {
     expect(res.statusCode).toBe(400);
     expect(mocks.issue).not.toHaveBeenCalled();
   });
+
+  it.each(['http://192.0.2.10:38026/dashboard', 'http://evil.example/', 'invalid', undefined])(
+    'checks the HTTP renewal referer when Fetch Metadata is unavailable: %s',
+    async (referer) => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('AGENT_SANDBOX_PROXY_MODE', 'ip-path');
+      vi.stubEnv('AGENT_SANDBOX_PROXY_APP_ORIGIN', 'http://192.0.2.10:38026');
+      vi.stubEnv('AGENT_SANDBOX_PROXY_BASE_URL', 'http://192.0.2.10:38026');
+      const res = response();
+      await handler(
+        createRequest({
+          method: 'GET',
+          headers: { host: '192.0.2.10:38026', referer },
+          query: {
+            sandboxId: scope.sandboxId,
+            port: '8090',
+            mode: 'renew',
+            requestId: 'request-1234567890123456'
+          }
+        }),
+        res as unknown as NextApiResponse
+      );
+      if (referer === 'http://192.0.2.10:38026/dashboard') expect(res.redirect).toHaveBeenCalled();
+      else {
+        expect(res.statusCode).toBe(403);
+        expect(mocks.issue).not.toHaveBeenCalled();
+      }
+    }
+  );
 
   it('passes the editor generation to fresh main-origin renewal authorization', async () => {
     const res = response();

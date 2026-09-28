@@ -111,6 +111,7 @@ describe('Create blank Skill modal', () => {
   afterEach(async () => {
     await act(async () => root.unmount());
     container.remove();
+    vi.unstubAllGlobals();
   });
 
   it('offers only name, introduction and avatar without reading model configuration', async () => {
@@ -143,6 +144,9 @@ describe('Create blank Skill modal', () => {
   });
 
   it('keeps name, introduction and selected avatar after failure, then retries the same creation', async () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto)
+    });
     mocks.postCreateSkill.mockRejectedValueOnce(new Error('Creation unavailable'));
     await mount('parent-folder-id');
     await change('name', '  Draft skill  ');
@@ -169,6 +173,9 @@ describe('Create blank Skill modal', () => {
     };
     expect(mocks.postCreateSkill).toHaveBeenNthCalledWith(1, expectedRequest);
     expect(mocks.postCreateSkill).toHaveBeenNthCalledWith(2, expectedRequest);
+    expect(mocks.postCreateSkill.mock.calls[0][0].requestId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    );
     expect(mocks.postCreateSkill.mock.calls[0][0].requestId).toBe(
       mocks.postCreateSkill.mock.calls[1][0].requestId
     );

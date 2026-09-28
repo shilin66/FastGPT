@@ -12,7 +12,8 @@ import {
 import {
   assertSandboxProxyInternalRequest,
   getSandboxProxyOrigins,
-  getSandboxProxyRedirect
+  getSandboxProxyRedirect,
+  getSandboxProxyBasePath
 } from '@/service/core/sandbox/proxyUtils';
 import {
   SandboxProxyAuthQuerySchema,
@@ -39,11 +40,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const input = { sandboxId, targetPort, host: req.headers.host, next };
     const { appOrigin, audience } = getSandboxProxyOrigins(input);
     if (req.headers.host !== new URL(appOrigin).host) return res.status(403).end('Invalid origin');
-    if (mode === 'renew' && req.headers['sec-fetch-site'] !== 'same-origin')
-      return res.status(403).end('Invalid origin');
+    const sameOriginRenewal =
+      req.headers['sec-fetch-site'] === 'same-origin' ||
+      (getSandboxProxyBasePath(input) &&
+        req.headers.referer &&
+        URL.canParse(req.headers.referer) &&
+        new URL(req.headers.referer).origin === appOrigin);
+    if (mode === 'renew' && !sameOriginRenewal) return res.status(403).end('Invalid origin');
     const target =
       mode === 'renew'
-        ? new URL(SANDBOX_PROXY_RENEW_PATH, audience)
+        ? new URL(`${getSandboxProxyBasePath(input)}${SANDBOX_PROXY_RENEW_PATH}`, audience)
         : getSandboxProxyRedirect(input);
     if (requestId) target.searchParams.set('requestId', requestId);
     const authorization = await authorizeSandboxProxyGrant({

@@ -124,3 +124,13 @@ export const getUploadFileType = ({
   }
   return types.join(', ');
 };
+
+export const isFileNameAcceptedByUploadFileType = (filename: string, uploadFileType: string) => {
+  const normalizedFilename = filename.toLowerCase();
+
+  return uploadFileType.split(',').some((type) => {
+    const extension = type.trim().toLowerCase();
+
+    return extension !== '' && normalizedFilename.endsWith(extension);
+  });
+};

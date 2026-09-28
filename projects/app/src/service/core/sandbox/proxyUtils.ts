@@ -4,7 +4,11 @@
 import { randomBytes, timingSafeEqual } from 'crypto';
 import type { SkillSandboxEndpointType } from '@fastgpt/global/core/agentSkills/type';
 import type { IncomingHttpHeaders } from 'http';
-import { SANDBOX_PROXY_COOKIE } from '@fastgpt/global/core/ai/sandbox/proxy';
+import {
+  SANDBOX_PROXY_COOKIE,
+  SANDBOX_PROXY_SESSION_SECONDS,
+  SandboxProxyScopeSchema
+} from '@fastgpt/global/core/ai/sandbox/proxy';
 
 export function stripFastGPTCredentials(headers: IncomingHttpHeaders): void {
   delete headers.authorization;
@@ -68,6 +72,25 @@ export function parseSubdomainProxy(
 
 type ProxyOriginInput = { sandboxId: string; targetPort: number; host?: string; next?: string };
 
+export const isSandboxPathProxyEnabled = () => process.env.AGENT_SANDBOX_PROXY_MODE === 'ip-path';
+
+export function getSandboxProxyBasePath(input: Pick<ProxyOriginInput, 'sandboxId' | 'targetPort'>) {
+  if (!isSandboxPathProxyEnabled()) return '';
+  const { sandboxId, targetPort } = SandboxProxyScopeSchema.omit({ audience: true }).parse(input);
+  return `/absproxy/${sandboxId}/${targetPort}`;
+}
+
+export function getSandboxProxySessionCookie(input: {
+  session: string;
+  basePath: string;
+  appOrigin: string;
+}) {
+  const attributes = input.basePath
+    ? `Path=${input.basePath}/; HttpOnly; SameSite=Strict${new URL(input.appOrigin).protocol === 'https:' ? '; Secure' : ''}`
+    : 'Path=/; HttpOnly; SameSite=None; Secure';
+  return `${SANDBOX_PROXY_COOKIE}=${input.session}; ${attributes}; Max-Age=${SANDBOX_PROXY_SESSION_SECONDS}`;
+}
+
 export function getSandboxProxyContentSecurityPolicy(appOrigin: string): string {
   return `frame-ancestors 'self' ${appOrigin}; object-src 'none'; base-uri 'self'`;
 }
@@ -84,6 +107,7 @@ export function getSandboxProxyOrigins({ sandboxId, targetPort, host }: ProxyOri
   }
   const app = new URL(configuredApp ?? `http://${localHost}`);
   const preview = new URL(configuredProxy ?? `http://${localHost}`);
+  const pathMode = isSandboxPathProxyEnabled();
   if (
     app.username ||
     app.password ||
@@ -95,11 +119,16 @@ export function getSandboxProxyOrigins({ sandboxId, targetPort, host }: ProxyOri
     preview.pathname !== '/' ||
     preview.search ||
     preview.hash ||
-    (!isLocal && (app.protocol !== 'https:' || preview.protocol !== 'https:')) ||
+    (!pathMode && !isLocal && (app.protocol !== 'https:' || preview.protocol !== 'https:')) ||
     !['http:', 'https:'].includes(app.protocol) ||
     !['http:', 'https:'].includes(preview.protocol)
   )
     throw Object.assign(new Error('Invalid proxy origin configuration'), { statusCode: 503 });
+  if (pathMode) {
+    if (app.origin !== preview.origin)
+      throw Object.assign(new Error('Path proxy requires the app origin'), { statusCode: 503 });
+    return { appOrigin: app.origin, audience: app.origin };
+  }
   const label = `${targetPort}--${sandboxId}`;
   if (label.length > 63)
     throw Object.assign(new Error('Invalid sandbox hostname'), { statusCode: 400 });
@@ -111,23 +140,30 @@ export function getSandboxProxyOrigins({ sandboxId, targetPort, host }: ProxyOri
 
 export function getSandboxProxyRedirect(input: ProxyOriginInput): URL {
   const { audience } = getSandboxProxyOrigins(input);
-  const target = new URL(input.next ?? '/proxy/8080/', audience);
+  const basePath = getSandboxProxyBasePath(input);
+  const target = new URL(input.next ?? `${basePath}/proxy/8080/`, audience);
   if (
     target.origin !== audience ||
     target.username ||
     target.password ||
     target.hash ||
-    /[\x00-\x1f\\]/.test(input.next ?? '')
+    /[\x00-\x1f\\]/.test(input.next ?? '') ||
+    (basePath && !target.pathname.startsWith(`${basePath}/proxy/8080/`))
   ) {
     throw Object.assign(new Error('Invalid next URL'), { statusCode: 400 });
   }
   target.searchParams.delete('__pt');
+  if (basePath) assertSandboxEditorPath(target.pathname.slice(basePath.length));
   return target;
 }
 
 export function assertSandboxProxyPath(input: { target: string; path: string }) {
   if (new URL(input.target).pathname === '/') return;
-  const rawPath = input.path.split('?')[0];
+  assertSandboxEditorPath(input.path);
+}
+
+function assertSandboxEditorPath(path: string) {
+  const rawPath = path.split('?')[0];
   if (
     !rawPath.startsWith('/proxy/8080/') ||
     /[%\\\x00-\x20]/.test(rawPath) ||
@@ -342,14 +378,27 @@ export async function ensureCodeServerSession(
 }
 
 // Rewrite absolute paths in HTML for the absproxy mode
-export function rewriteHtml(html: string, basePath: string): string {
+export function rewriteHtml(html: string, basePath: string, documentPath?: string): string {
+  const baseHref = documentPath
+    ? new URL('.', new URL(documentPath, 'http://placeholder')).pathname
+    : `${basePath}/`;
+  const rewriteRoot = (path: string) =>
+    documentPath && !path.startsWith('/proxy/8080/')
+      ? `${basePath}/proxy/8080${path}`
+      : `${basePath}${path}`;
   return (
     html
       // Rewrite src/href/action attributes pointing to absolute paths (not protocol-relative)
-      .replace(/((?:src|href|action)=["'])(\/(?!\/))/g, `$1${basePath}/`)
+      .replace(
+        /((?:src|href|action)=["'])(\/(?!\/)[^"']*)/g,
+        (_, prefix: string, path: string) => `${prefix}${rewriteRoot(path)}`
+      )
       // Rewrite url() in CSS with absolute paths
-      .replace(/(url\(['"]?)(\/(?!\/))/g, `$1${basePath}/`)
+      .replace(
+        /(url\(['"]?)(\/(?!\/)[^)'"\s]*)/g,
+        (_, prefix: string, path: string) => `${prefix}${rewriteRoot(path)}`
+      )
       // Inject <base> tag last to avoid self-rewrite by the replacements above
-      .replace(/(<head[^>]*>)/i, `$1<base href="${basePath}/">`)
+      .replace(/(<head[^>]*>)/i, `$1<base href="${baseHref}">`)
   );
 }

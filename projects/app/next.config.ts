@@ -37,6 +37,7 @@ const optimizedPackageImports = [
 
 const nextConfig: NextConfig = {
   basePath,
+  allowedDevOrigins: ['192.168.1.90'],
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'zh-CN', 'zh-Hant'],

@@ -1,4 +1,6 @@
 {
+  "list_title": "技能庫",
+  "list_search_empty": "找不到符合的 Skill，試試其他關鍵字",
   "create_page_intro": "將可重用的指令、腳本與資源整理成 Skill，供 Agent 按需呼叫。",
   "create_method_label": "建立方式",
   "create_blank_title": "空白建立",
@@ -55,6 +57,11 @@
   "file_sync_conflict": "檔案衝突",
   "file_save": "儲存檔案",
   "file_refresh": "重新整理",
+  "file_recent_changes": "最近變更",
+  "file_recent_changes_hint": "顯示本次開啟工作區後最近 8 個檔案的最新變更。點擊檔案查看內容。",
+  "file_change_created": "新增",
+  "file_change_modified": "修改",
+  "file_change_deleted": "刪除",
   "file_conflict_hint": "檔案已被 Agent 或 Terminal 修改，已保留你的未儲存內容。",
   "file_conflict_resolve": "捨棄本機修改並重新載入",
   "file_conflict_error": "工作區檔案已改變，請先處理衝突。",

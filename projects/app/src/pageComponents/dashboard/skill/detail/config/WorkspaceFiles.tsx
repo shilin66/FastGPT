@@ -1,5 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Box, Button, Flex, Text } from '@chakra-ui/react';
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Flex,
+  Text,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  Portal
+} from '@chakra-ui/react';
 import { useMemoizedFn } from 'ahooks';
 import { useContextSelector } from 'use-context-selector';
 import dynamic from 'next/dynamic';
@@ -8,7 +19,11 @@ import type { SkillWorkspaceFileResponse } from '@fastgpt/global/openapi/core/ag
 import { postSkillWorkspaceFiles } from '@/web/core/skill/api';
 import { SkillDetailContext } from '../context';
 import { useTranslation } from 'next-i18next';
-import { diffWorkspaceFiles, type WorkspaceFileChange } from './fileChanges';
+import {
+  diffWorkspaceFiles,
+  mergeWorkspaceFileChanges,
+  type WorkspaceFileChange
+} from './fileChanges';
 import WorkspaceFileTree from './WorkspaceFileTree';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { workspaceLayout } from '../workspaceLayout';
@@ -124,7 +139,7 @@ const WorkspaceFiles = () => {
     if (response.action !== 'list' || !mounted.current || request !== listRequest.current) return;
     if (previousEntries.current && !response.truncated) {
       const latest = diffWorkspaceFiles(previousEntries.current, response.files);
-      if (latest.length) setChanges((current) => [...latest, ...current].slice(0, 8));
+      if (latest.length) setChanges((current) => mergeWorkspaceFileChanges(current, latest));
     }
     previousEntries.current = response.truncated ? undefined : response.files;
     setListError('');
@@ -216,24 +231,6 @@ const WorkspaceFiles = () => {
           {t('skill:file_list_truncated')}
         </Alert>
       )}
-      {!!changes.length && (
-        <Box
-          px={3}
-          py={1}
-          maxH="72px"
-          overflowY="auto"
-          fontSize="xs"
-          color="myGray.500"
-          aria-live="polite"
-        >
-          {changes.map((change, index) => (
-            <Text key={`${change.path}:${change.version}:${index}`} title={change.version}>
-              {change.type === 'created' ? '+' : change.type === 'deleted' ? '−' : '~'}{' '}
-              {change.path}
-            </Text>
-          ))}
-        </Box>
-      )}
       {conflict && (
         <Alert status="warning" fontSize="sm" gap={2}>
           {t('skill:file_conflict_hint')}
@@ -290,6 +287,90 @@ const WorkspaceFiles = () => {
                       : 'skill:file_sync_saved'
               )}
             </Text>
+            <Popover placement="bottom-end" isLazy lazyBehavior="unmount">
+              {({ onClose }) => (
+                <>
+                  <PopoverTrigger>
+                    <Button
+                      size="xs"
+                      variant="whiteBase"
+                      flexShrink={0}
+                      isDisabled={!changes.length}
+                    >
+                      {t('skill:file_recent_changes')} · {changes.length}
+                    </Button>
+                  </PopoverTrigger>
+                  <Portal>
+                    <PopoverContent
+                      aria-label={t('skill:file_recent_changes')}
+                      w="400px"
+                      maxW="calc(100vw - 32px)"
+                      bg="white"
+                      borderColor="myGray.200"
+                      borderRadius="lg"
+                      boxShadow="lg"
+                      overflow="hidden"
+                    >
+                      <Box px={3} py={3} borderBottomWidth="1px" borderColor="myGray.200">
+                        <Text fontSize="sm" fontWeight="600" color="myGray.900">
+                          {t('skill:file_recent_changes')}
+                        </Text>
+                        <Text mt={1} fontSize="xs" color="myGray.500">
+                          {t('skill:file_recent_changes_hint')}
+                        </Text>
+                      </Box>
+                      <Box as="ul" m={0} p={1.5} listStyleType="none" maxH="280px" overflowY="auto">
+                        {changes.map((change) => (
+                          <Box as="li" key={change.path}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              w="100%"
+                              h="auto"
+                              py={2.5}
+                              px={2}
+                              gap={2}
+                              justifyContent="flex-start"
+                              fontWeight="normal"
+                              title={change.path}
+                              isDisabled={change.type === 'deleted'}
+                              _disabled={{ opacity: 1, cursor: 'default' }}
+                              onClick={() => {
+                                onClose();
+                                void open(change.path).catch((e) => setError(getErrText(e)));
+                              }}
+                            >
+                              <Badge
+                                flexShrink={0}
+                                colorScheme={
+                                  change.type === 'created'
+                                    ? 'green'
+                                    : change.type === 'deleted'
+                                      ? 'gray'
+                                      : 'blue'
+                                }
+                                fontSize="xs"
+                              >
+                                {t(`skill:file_change_${change.type}`)}
+                              </Badge>
+                              <Text
+                                fontSize="xs"
+                                color="myGray.600"
+                                textAlign="left"
+                                whiteSpace="normal"
+                                wordBreak="break-all"
+                              >
+                                {change.path}
+                              </Text>
+                            </Button>
+                          </Box>
+                        ))}
+                      </Box>
+                    </PopoverContent>
+                  </Portal>
+                </>
+              )}
+            </Popover>
             <Button
               size="xs"
               variant="whiteBase"

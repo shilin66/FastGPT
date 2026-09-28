@@ -22,7 +22,10 @@ export const useSandboxProxySession = (entryUrl: string | null) => {
     if (url.origin !== window.location.origin || url.pathname !== '/api/core/sandbox/proxyAuth')
       return;
     clearTimeout(renewalRef.current);
-    const requestId = crypto.randomUUID();
+    // getRandomValues also works on private deployments served over plain HTTP.
+    const requestId = Array.from(crypto.getRandomValues(new Uint8Array(24)), (byte) =>
+      byte.toString(16).padStart(2, '0')
+    ).join('');
     pendingRef.current = requestId;
     url.searchParams.delete('next');
     url.searchParams.set('mode', 'renew');
@@ -63,10 +66,10 @@ export const useSandboxProxySession = (entryUrl: string | null) => {
         const origin = new URL(event.origin);
         const label = `${entry.searchParams.get('port')}--${entry.searchParams.get('sandboxId')}.`;
         if (
-          event.origin === window.location.origin ||
-          !origin.hostname.startsWith(label) ||
-          (origin.protocol !== 'https:' &&
-            !(origin.protocol === 'http:' && origin.hostname.endsWith('.localhost')))
+          event.origin !== window.location.origin &&
+          (!origin.hostname.startsWith(label) ||
+            (origin.protocol !== 'https:' &&
+              !(origin.protocol === 'http:' && origin.hostname.endsWith('.localhost'))))
         )
           return;
       } catch {

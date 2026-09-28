@@ -7,6 +7,20 @@ export type WorkspaceFileChange = {
   version: string;
 };
 
+export const mergeWorkspaceFileChanges = (
+  previous: WorkspaceFileChange[],
+  latest: WorkspaceFileChange[]
+): WorkspaceFileChange[] => {
+  const seen = new Set<string>();
+  return [...latest, ...previous]
+    .filter((change) => {
+      if (seen.has(change.path)) return false;
+      seen.add(change.path);
+      return true;
+    })
+    .slice(0, 8);
+};
+
 export const diffWorkspaceFiles = (previous: Entry[], next: Entry[]): WorkspaceFileChange[] => {
   const before = new Map(
     previous.filter((entry) => entry.type === 'file').map((entry) => [entry.path, entry])

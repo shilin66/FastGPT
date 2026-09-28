@@ -68,7 +68,7 @@ const SandboxIframe = () => {
           aria-hidden="true"
           tabIndex={-1}
           sandbox="allow-scripts allow-same-origin"
-          referrerPolicy="no-referrer"
+          referrerPolicy="same-origin"
         />
       )}
     </Flex>

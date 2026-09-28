@@ -107,6 +107,60 @@ describe('Skill workspace file browser', () => {
     expect(mocks.files.mock.calls.every(([body]) => body.action === 'list')).toBe(true);
   });
 
+  it('keeps recent changes collapsed, merges paths and opens existing files from the popover', async () => {
+    const changesButton = () => {
+      const element = [...container.querySelectorAll('button')].find((el) =>
+        el.textContent?.startsWith('skill:file_recent_changes')
+      );
+      if (!element) throw new Error('Missing recent changes action');
+      return element;
+    };
+    expect(changesButton().disabled).toBe(true);
+    entries = entries.map((entry) =>
+      entry.path === 'skills/demo/SKILL.md' ? { ...entry, version: '2' } : entry
+    );
+    await refresh();
+    entries = entries
+      .map((entry) => (entry.path === 'skills/demo/SKILL.md' ? { ...entry, version: '3' } : entry))
+      .filter((entry) => entry.path !== 'skills/demo/scripts/test.py');
+    await refresh();
+    expect(changesButton().textContent).toContain('2');
+    const closedPopup = document.querySelector<HTMLElement>('[role="dialog"]')!;
+    expect(getComputedStyle(closedPopup).visibility).toBe('hidden');
+    expect(closedPopup.querySelectorAll('button[title]')).toHaveLength(0);
+    await click(changesButton());
+    await act(async () => vi.advanceTimersByTimeAsync(50));
+    const popup = document.querySelector('[role="dialog"]');
+    expect(popup).not.toBeNull();
+    const rows = popup!.querySelectorAll('button[title]');
+    expect(rows).toHaveLength(2);
+    const deleted = popup!.querySelector<HTMLButtonElement>(
+      '[title="skills/demo/scripts/test.py"]'
+    )!;
+    expect(deleted.disabled).toBe(true);
+    expect(deleted.textContent).toContain('skill:file_change_deleted');
+    const modified = popup!.querySelector<HTMLButtonElement>('[title="skills/demo/SKILL.md"]')!;
+    expect(modified.textContent).toContain('skill:file_change_modified');
+    await click(modified);
+    await act(async () => vi.advanceTimersByTimeAsync(250));
+    expect(container.querySelector('textarea')?.value).toBe('Original draft');
+    expect(mocks.files).toHaveBeenCalledWith({
+      skillId: mocks.context.skillId,
+      action: 'read',
+      path: 'skills/demo/SKILL.md'
+    });
+    expect(changesButton().getAttribute('aria-expanded')).toBe('false');
+    await click(changesButton());
+    await act(async () => vi.advanceTimersByTimeAsync(50));
+    await act(async () => {
+      const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
+      dialog.focus();
+      dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(250));
+    expect(changesButton().getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('retains expansion choices across list refreshes and preserves a selected file when collapsing', async () => {
     await click(button('skills/demo'));
     await click(button('skills/demo/SKILL.md'));

@@ -3,6 +3,7 @@ import { createServer, ServerResponse } from 'http';
 import next from 'next';
 import httpProxy from 'http-proxy';
 import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 import net from 'net';
 import crypto from 'crypto';
 import {
@@ -10,13 +11,12 @@ import {
   getSandboxProxyOrigins,
   getSandboxProxyContentSecurityPolicy,
   assertSandboxProxyPath,
-  watchSandboxProxySession
+  watchSandboxProxySession,
+  isSandboxPathProxyEnabled,
+  getSandboxProxyBasePath,
+  getSandboxProxySessionCookie
 } from './src/service/core/sandbox/proxyUtils';
-import {
-  SANDBOX_PROXY_COOKIE,
-  SANDBOX_PROXY_RENEW_PATH,
-  SANDBOX_PROXY_SESSION_SECONDS
-} from '@fastgpt/global/core/ai/sandbox/proxy';
+import { SANDBOX_PROXY_RENEW_PATH } from '@fastgpt/global/core/ai/sandbox/proxy';
 import { SandboxProxyInternalResponseSchema } from '@fastgpt/global/openapi/core/ai/sandbox/api';
 import {
   getSandboxProxyRenewalResponse,
@@ -31,12 +31,14 @@ const port = parseInt(process.env.PORT || '3000', 10);
 const SANDBOX_ID_RE = /[a-zA-Z0-9][a-zA-Z0-9-]{6,62}[a-zA-Z0-9]/;
 
 // Match /proxy/{sandboxId}/{port} or /absproxy/{sandboxId}/{port}
-const PATH_PROXY_RE = new RegExp(`^\\/(proxy|absproxy)\\/(${SANDBOX_ID_RE.source})\\/(\\d+)`);
+const PATH_PROXY_RE = new RegExp(
+  `^\\/(proxy|absproxy)\\/(${SANDBOX_ID_RE.source})\\/(\\d+)(?=/|\\?|$)`
+);
 
 // Match /tcptunnel/{sandboxId}/{port} — WebSocket upgrade only
 const TCPTUNNEL_RE = new RegExp(`^\\/tcptunnel\\/(${SANDBOX_ID_RE.source})\\/(\\d+)`);
 
-async function main() {
+export async function startServer() {
   const app = next({ dev, port });
   const handle = app.getRequestHandler();
   await app.prepare();
@@ -174,24 +176,63 @@ async function main() {
     sandboxId: string,
     targetPort: string
   ) {
+    const basePath = `/absproxy/${sandboxId}/${targetPort}`;
     const upstreamUrl = `${target}${req.url || '/'}`;
-    const response = await fetch(upstreamUrl, {
+    const headers = buildProxyHeaders(req.headers);
+    headers.origin = new URL(target).origin;
+    const controller = new AbortController();
+    res.once('close', () => controller.abort());
+    const options: RequestInit & { duplex: 'half' } = {
       method: req.method,
-      headers: buildProxyHeaders(req.headers),
-      // @ts-ignore — Node 18+ supports duplex on fetch body streams
+      headers,
+      redirect: 'manual',
+      signal: controller.signal,
       duplex: 'half',
-      body: req.method !== 'GET' && req.method !== 'HEAD' ? (req as any) : undefined
-    });
+      body:
+        req.method !== 'GET' && req.method !== 'HEAD'
+          ? (Readable.toWeb(req) as ReadableStream<Uint8Array>)
+          : undefined
+    };
+    const response = await fetch(upstreamUrl, options);
 
     const skipHeaders = new Set([
       'content-encoding',
+      'content-length',
       'transfer-encoding',
+      'set-cookie',
+      'location',
       'x-frame-options',
       'content-security-policy'
     ]);
     response.headers.forEach((value, key) => {
       if (!skipHeaders.has(key.toLowerCase())) res.setHeader(key, value);
     });
+    const { appOrigin } = getSandboxProxyOrigins({
+      sandboxId,
+      targetPort: Number(targetPort),
+      host: req.headers.host
+    });
+    res.setHeader('Content-Security-Policy', getSandboxProxyContentSecurityPolicy(appOrigin));
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'no-store');
+    const cookies = response.headers
+      .getSetCookie()
+      .filter((cookie) => !/^(fastgpt_token|fastgpt_sandbox_proxy)=/i.test(cookie))
+      .map((cookie) => `${cookie.replace(/;\s*(domain|path)=[^;]*/gi, '')}; Path=${basePath}/`);
+    if (cookies.length) res.setHeader('Set-Cookie', cookies);
+    const location = response.headers.get('location');
+    if (location) {
+      const redirect = new URL(location, upstreamUrl);
+      const endpoint = new URL(target);
+      const endpointPath = endpoint.pathname.replace(/\/$/, '');
+      if (redirect.origin !== endpoint.origin || !redirect.pathname.startsWith(`${endpointPath}/`))
+        throw Object.assign(new Error('Unsupported upstream redirect'), { statusCode: 502 });
+      const redirectPath = redirect.pathname.slice(endpointPath.length);
+      assertSandboxProxyPath({ target, path: redirectPath });
+      res.setHeader('Location', basePath + redirectPath + redirect.search + redirect.hash);
+      if (redirectPath.includes('/login')) deleteCsSession(sandboxId);
+    }
     res.statusCode = response.status;
 
     const contentType = response.headers.get('content-type') || '';
@@ -200,12 +241,19 @@ async function main() {
     // Only rewrite HTML; stream large or binary responses directly
     if (contentType.includes('text/html') && response.body && contentLength < 10 * 1024 * 1024) {
       const html = await response.text();
-      const basePath = `/absproxy/${sandboxId}/${targetPort}`;
-      const rewritten = rewriteHtml(html, basePath);
+      const rewritten = rewriteHtml(
+        html,
+        basePath,
+        isSandboxPathProxyEnabled() ? basePath + (req.url ?? '/') : undefined
+      );
+      res.removeHeader('etag');
       res.setHeader('content-length', Buffer.byteLength(rewritten));
       res.end(rewritten);
     } else if (response.body) {
-      Readable.fromWeb(response.body as any).pipe(res);
+      await pipeline(
+        Readable.fromWeb(response.body as import('stream/web').ReadableStream<Uint8Array>),
+        res
+      );
     } else {
       res.end();
     }
@@ -263,7 +311,8 @@ async function main() {
     req: IncomingMessage,
     res: ServerResponse,
     sandboxId: string,
-    portNum: number
+    portNum: number,
+    basePath = ''
   ) {
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Cache-Control', 'no-store');
@@ -285,10 +334,7 @@ async function main() {
       if (ticket) {
         if (!session) throw Object.assign(new Error('Unauthorized'), { statusCode: 401 });
         urlObj.searchParams.delete('__pt');
-        res.setHeader(
-          'Set-Cookie',
-          `${SANDBOX_PROXY_COOKIE}=${session}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=${SANDBOX_PROXY_SESSION_SECONDS}`
-        );
+        res.setHeader('Set-Cookie', getSandboxProxySessionCookie({ session, basePath, appOrigin }));
         if (renewal) {
           if (!expiresAt) throw Object.assign(new Error('Unauthorized'), { statusCode: 401 });
           const response = getSandboxProxyRenewalResponse({
@@ -300,7 +346,7 @@ async function main() {
           res.end(response.body);
           return;
         }
-        res.writeHead(302, { Location: urlObj.pathname + urlObj.search });
+        res.writeHead(302, { Location: basePath + urlObj.pathname + urlObj.search });
         res.end();
         return;
       }
@@ -312,6 +358,10 @@ async function main() {
         target: csTarget,
         targetPort: portNum
       });
+      if (basePath) {
+        await handleAbsProxy(req, res, target, sandboxId, String(portNum));
+        return;
+      }
       req.headers['x-fastgpt-sandbox-id'] = sandboxId;
       proxy.web(req, res, {
         target,
@@ -336,7 +386,10 @@ async function main() {
           const authUrl = new URL('/api/core/sandbox/proxyAuth', appOrigin);
           authUrl.searchParams.set('sandboxId', sandboxId);
           authUrl.searchParams.set('port', String(portNum));
-          authUrl.searchParams.set('next', new URL(req.url ?? '/', audience).toString());
+          authUrl.searchParams.set(
+            'next',
+            new URL(basePath + (req.url ?? '/'), audience).toString()
+          );
           res.writeHead(302, { Location: authUrl.toString() });
           res.end();
           return;
@@ -363,8 +416,28 @@ async function main() {
     const match = parsedUrl.pathname?.match(PATH_PROXY_RE);
     if (match) {
       const [, proxyType, sandboxId, portStr] = match;
+      if (!Number.isInteger(Number(portStr)) || Number(portStr) < 1 || Number(portStr) > 65535) {
+        res.writeHead(400);
+        res.end('Invalid port');
+        return;
+      }
       // Strip proxy prefix so upstream sees the real path
       req.url = req.url!.replace(`/${proxyType}/${sandboxId}/${portStr}`, '') || '/';
+      if (isSandboxPathProxyEnabled()) {
+        if (proxyType !== 'absproxy') {
+          res.writeHead(404);
+          res.end();
+          return;
+        }
+        await handleSubdomainProxy(
+          req,
+          res,
+          sandboxId,
+          Number(portStr),
+          getSandboxProxyBasePath({ sandboxId, targetPort: Number(portStr) })
+        );
+        return;
+      }
       await handleProxy(req, res, sandboxId, Number(portStr), proxyType);
       return;
     }
@@ -514,6 +587,11 @@ async function main() {
         return;
       }
       proxyType = match[1];
+      if (isSandboxPathProxyEnabled() && proxyType !== 'absproxy') {
+        socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+        socket.destroy();
+        return;
+      }
       sandboxId = match[2];
       portNum = Number(match[3]);
       req.url = req.url!.replace(`/${proxyType}/${sandboxId}/${portNum}`, '') || '/';
@@ -564,6 +642,7 @@ async function main() {
   server.listen(port, () => {
     console.log(`> Ready on http://localhost:${port} [${dev ? 'dev' : 'production'}]`);
   });
+  return server;
 }
 
 function getProxyErrorStatus(error: unknown): number {
@@ -730,7 +809,9 @@ function encodeWsFrame(data: Buffer): Buffer {
   return Buffer.concat([header, data]);
 }
 
-main().catch((err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  startServer().catch((err) => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
+}

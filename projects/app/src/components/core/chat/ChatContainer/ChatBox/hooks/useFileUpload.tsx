@@ -276,6 +276,7 @@ export const useFileUpload = (props: UseFileUploadOptions) => {
 
   return {
     File,
+    fileType,
     onOpenSelectFile,
     fileList: sortFileList,
     onSelectFile,

@@ -117,9 +117,14 @@ describe('Skill Creator injection and supervised commands', () => {
     const home = await workspace();
     const provider = localProvider(home);
     const resource = await loadSkillCreator();
+    const legacyRoot = `${home}/.fastgpt/skills/skill-creator`;
+    await mkdir(legacyRoot, { recursive: true });
+    await writeFile(`${legacyRoot}/SKILL.md`, 'legacy instructions');
     const first = await syncSkillCreator(provider);
-    expect(first.root).toBe(`${home}/.fastgpt/skills/skill-creator`);
+    expect(first.root).toBe(`${home}/.omni/skills/skill-creator`);
+    expect(first.path).toBe(`${first.root}/SKILL.md`);
     expect(await readFile(first.path, 'utf8')).toBe(resource.content);
+    expect(await readFile(`${legacyRoot}/SKILL.md`, 'utf8')).toBe('legacy instructions');
     const state = `${home}/.fastgpt/runtime/state.json`;
     await writeFile(
       state,

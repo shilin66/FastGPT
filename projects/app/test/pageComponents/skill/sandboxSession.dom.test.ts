@@ -70,6 +70,7 @@ describe('Skill editor lossless session renewal', () => {
     await act(async () => root.unmount());
     container.remove();
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('reauthenticates in a separate frame and renews before expiry without replacing the editor', async () => {
@@ -84,6 +85,19 @@ describe('Skill editor lossless session renewal', () => {
     expect(renewal()).not.toBeNull();
     expect(editor()).toBe(original);
     expect(editor().src).toBe(originalSrc);
+  });
+
+  it('renews on HTTP without randomUUID and accepts only the matching same-origin frame', async () => {
+    vi.spyOn(crypto, 'randomUUID').mockImplementation(() => {
+      throw new Error('secure context only');
+    });
+    await loadEditor();
+    expect(new URL(renewal().src).searchParams.get('requestId')).toMatch(/^[a-f0-9]{48}$/);
+    await act(async () => acknowledge({ origin: window.location.origin, source: window }));
+    expect(renewal()).not.toBeNull();
+    await act(async () => acknowledge({ origin: window.location.origin }));
+    expect(container.textContent).toContain('skill:sandbox_session_active');
+    expect(renewal()).toBeNull();
   });
 
   it.each(['source', 'origin', 'nonce', 'expiry'])(

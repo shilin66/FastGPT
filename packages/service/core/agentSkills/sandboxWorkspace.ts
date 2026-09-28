@@ -199,7 +199,7 @@ try:
         'node_modules', 'bower_components', '.venv', 'venv', 'virtualenv', 'env',
         '.cache', '.npm', '.pnpm-store', '.yarn', '__pycache__', '.pytest_cache',
         '.mypy_cache', '.ruff_cache', '.tox', '.nox', 'logs', '.logs',
-        'provider', '.provider', '.runtime', '.codex', '.fastgpt', '.code-server',
+        'provider', '.provider', '.runtime', '.codex', '.fastgpt', '.omni', '.code-server',
         '.local', '.vscode-server'
     }
     def excluded(name):
