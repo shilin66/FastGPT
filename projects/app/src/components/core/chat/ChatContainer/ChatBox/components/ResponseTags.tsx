@@ -58,7 +58,8 @@ const ResponseTags = ({
   const {
     totalQuoteList: quoteList = [],
     toolCiteLinks = [],
-    useAgentSandbox
+    useAgentSandbox,
+    sandboxId
   } = useMemo(() => {
     return {
       ...addStatisticalDataToHistoryItem(historyItem),
@@ -85,6 +86,7 @@ const ResponseTags = ({
   const { onOpenSandboxModal, SandboxEditorModal } = useSandboxEditor({
     appId,
     chatId,
+    sandboxId,
     outLinkAuthData
   });
 

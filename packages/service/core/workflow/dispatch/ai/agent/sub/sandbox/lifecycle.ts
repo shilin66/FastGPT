@@ -65,6 +65,7 @@ type CreateAgentSandboxParams = {
   teamId: string;
   tmbId: string;
   sessionId: string; // chat 模式 = chatId，debug 模式 = 构造的 key
+  sourceChatId?: string;
   entrypoint?: string; // override default entrypoint for this request
   image?: SandboxImageConfigType; // override default image for this request
   onProgress?: (status: SandboxStatusItemType) => void; // lifecycle progress callback
@@ -73,14 +74,16 @@ type CreateAgentSandboxParams = {
 const logger = getLogger(LogCategories.MODULE.AI.AGENT);
 
 export const getRuntimeSandboxWorkspaceRoot = (
-  instance?: Pick<SandboxInstanceSchemaType, 'metadata'>
+  instance?: Pick<SandboxInstanceSchemaType, 'metadata' | 'provider' | 'storage'>
 ): string =>
   resolveSandboxWorkspacePath({
     workspaceRoot:
       instance?.metadata?.workspaceRoot ??
       (instance?.metadata?.sandboxType === SandboxTypeEnum.sessionRuntime
         ? '/home/sandbox/workspace'
-        : getSandboxDefaults().workDirectory),
+        : instance?.provider === 'opensandbox'
+          ? instance.storage?.mountPath ?? '/home/sandbox'
+          : getSandboxDefaults().workDirectory),
     path: '.'
   });
 
@@ -156,6 +159,7 @@ export async function createAgentSandbox(
     teamId,
     tmbId,
     sessionId,
+    sourceChatId = sessionId,
     entrypoint,
     image,
     onProgress
@@ -169,6 +173,9 @@ export async function createAgentSandbox(
   return withSandboxLease('skill-runtime-init:' + initial.sandboxId, async (lease) => {
     onProgress?.({ sandboxId: sessionId, phase: 'checkExisting' });
     const { identity, sandboxId, instance } = await resolveAppSandboxIdentity(identityProps);
+    if (instance?.sourceChatId !== undefined && instance.sourceChatId !== sourceChatId) {
+      throw new Error('sandbox_identity_migration_required: conflicting source chat');
+    }
     const workDirectory = getRuntimeSandboxWorkspaceRoot(instance);
     if (sandboxId !== initial.sandboxId) throw new Error('sandbox_identity_migration_required');
     await assertSandboxRuntimeIndexCompatibility({ appId, chatId: sessionId, sandboxId });
@@ -203,7 +210,7 @@ export async function createAgentSandbox(
       client = await getSandboxClient(
         { ...identityProps, sandboxId },
         {
-          identity: { ...identity, teamId, ownerTmbId: tmbId },
+          identity: { ...identity, teamId, ownerTmbId: tmbId, sourceChatId },
           workspaceRoot: workDirectory,
           createConfig: {
             image: image ?? defaults.defaultImage,
@@ -249,6 +256,7 @@ export async function createAgentSandbox(
             appId,
             userId: runtimeUserId,
             chatId: sessionId,
+            sourceChatId,
             status: SandboxStatusEnum.provisioning,
             operation: {
               id: lease.token,

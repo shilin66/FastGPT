@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import type { SandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
 import { Types } from '@fastgpt/service/common/mongo';
 import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
 import { MongoAgentSkills } from '@fastgpt/service/core/agentSkills/schema';
@@ -39,6 +41,16 @@ vi.mock('@fastgpt/service/core/workflow/dispatch/ai/agent/sub/sandbox/skill', ()
   dispatchSandboxEditFile: vi.fn(),
   dispatchSandboxSearch: vi.fn(),
   dispatchSandboxFetchUserFile: vi.fn()
+}));
+
+vi.mock('@fastgpt/service/core/ai/sandbox/lease', () => ({
+  withSandboxLease: async (_key: string, run: (lease: SandboxLease) => Promise<unknown>) =>
+    run({
+      token: randomUUID(),
+      isActive: () => true,
+      assertOwned: async () => {},
+      setHeartbeat: vi.fn()
+    })
 }));
 
 describe('Sandbox capability identity propagation', () => {

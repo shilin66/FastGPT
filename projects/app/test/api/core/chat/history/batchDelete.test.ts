@@ -9,10 +9,15 @@ import { MongoChatItem } from '@fastgpt/service/core/chat/chatItemSchema';
 import { MongoChatItemResponse } from '@fastgpt/service/core/chat/chatItemResponseSchema';
 import { getUser } from '@test/datas/users';
 import { Call } from '@test/utils/request';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import { AppReadChatLogPerVal } from '@fastgpt/global/support/permission/app/constant';
 import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
+
+const { deleteSandboxesMock } = vi.hoisted(() => ({ deleteSandboxesMock: vi.fn() }));
+vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
+  deleteSandboxesByChatIds: deleteSandboxesMock
+}));
 
 describe('batchDelete api test', () => {
   let testUser: Awaited<ReturnType<typeof getUser>>;
@@ -20,6 +25,7 @@ describe('batchDelete api test', () => {
   let chatIds: string[];
 
   beforeEach(async () => {
+    deleteSandboxesMock.mockReset().mockResolvedValue(undefined);
     testUser = await getUser('test-user-batch-delete');
 
     // Create test app
@@ -136,6 +142,49 @@ describe('batchDelete api test', () => {
     });
     expect(nonDeletedChat).toBeDefined();
   });
+
+  it.each(['provider unavailable', 'operation_conflict: sandbox lease is busy'])(
+    'preserves chats, messages, and responses when sandbox cleanup fails with %s and supports retry',
+    async (reason) => {
+      const deleteIds = [chatIds[0], chatIds[1]];
+      const cleanupError = new AggregateError(
+        [new Error(reason)],
+        'Failed to delete sandbox resources; retry cleanup'
+      );
+      deleteSandboxesMock.mockRejectedValueOnce(cleanupError);
+      const request = () =>
+        Call<ChatBatchDeleteBodyType, {}>(handler, {
+          auth: testUser,
+          body: { appId, chatIds: deleteIds }
+        });
+
+      const failed = await request();
+
+      expect(failed.code).toBe(500);
+      expect(failed.error).toBeDefined();
+      const preserved = await Promise.all([
+        MongoChat.find({ appId }).lean(),
+        MongoChatItem.find({ appId }).lean(),
+        MongoChatItemResponse.find({ appId }).lean()
+      ]);
+      for (const documents of preserved) {
+        expect(documents.map((document) => document.chatId).sort()).toEqual([...chatIds].sort());
+      }
+
+      const retried = await request();
+
+      expect(retried.code).toBe(200);
+      expect(retried.error).toBeUndefined();
+      const remaining = await Promise.all([
+        MongoChat.find({ appId }).lean(),
+        MongoChatItem.find({ appId }).lean(),
+        MongoChatItemResponse.find({ appId }).lean()
+      ]);
+      for (const documents of remaining) {
+        expect(documents.map((document) => document.chatId)).toEqual([chatIds[2]]);
+      }
+    }
+  );
 
   it('should delete single chat', async () => {
     const deleteIds = [chatIds[0]];

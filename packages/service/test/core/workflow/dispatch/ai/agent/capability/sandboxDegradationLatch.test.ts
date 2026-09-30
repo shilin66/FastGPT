@@ -129,7 +129,9 @@ describe('Agent-wide Sandbox degradation latch', () => {
   it.each(['default', 'pi'])(
     '%s stops capability tools after generic VM degrades',
     async (engine) => {
-      const capability = vi.fn().mockResolvedValue({ response: 'executed' });
+      const capability = vi.fn(async (toolId: string) =>
+        toolId === 'sandbox_shell' ? null : { response: 'executed' }
+      );
       if (engine === 'default') {
         mocks.calls = ['sandbox_shell', 'sandbox_execute'];
         await masterCall({ ...makeMasterParams(), capabilityToolCallHandler: capability });
@@ -150,7 +152,8 @@ describe('Agent-wide Sandbox degradation latch', () => {
         await tools[1].execute('two', { command: 'side_effect' });
       }
       expect(mocks.shell).toHaveBeenCalledTimes(1);
-      expect(capability).not.toHaveBeenCalled();
+      expect(capability).toHaveBeenCalledTimes(1);
+      expect(capability.mock.calls[0][0]).toBe('sandbox_shell');
     }
   );
 

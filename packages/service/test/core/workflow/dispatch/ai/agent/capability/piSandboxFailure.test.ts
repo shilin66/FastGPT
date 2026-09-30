@@ -6,6 +6,33 @@ import { createSandboxTestContext } from './sandboxTestContext';
 
 describe('Pi Sandbox tool errors and audit', () => {
   const context = createSandboxTestContext();
+  it.each(['sandbox_shell', 'sandbox_get_file_url'])(
+    'routes %s through the shared capability before legacy dispatch',
+    async (toolId) => {
+      const capabilityToolCallHandler = vi.fn(async () => ({
+        response: 'shared workspace',
+        usages: []
+      }));
+      const tools = await buildAgentTools({
+        completionTools: [{ type: 'function', function: { name: toolId } }],
+        ctx: context,
+        filesMap: {},
+        getSubApp: () => undefined,
+        getSubAppInfo: () => ({ name: 'Sandbox', avatar: '', toolDescription: '' }),
+        nodeResponses: [],
+        capabilityToolCallHandler
+      });
+      const args = toolId === 'sandbox_shell' ? { command: 'pwd' } : { paths: ['report.txt'] };
+      const result = await tools[0].execute('shared-call', args);
+      expect(result.content).toEqual([{ type: 'text', text: 'shared workspace' }]);
+      expect(capabilityToolCallHandler).toHaveBeenCalledWith(
+        toolId,
+        JSON.stringify(args),
+        'shared-call'
+      );
+    }
+  );
+
   it('preserves assistant audit values from a capability response', async () => {
     const assistantResponses: AIChatItemValueItemType[] = [];
     const audit: AIChatItemValueItemType = {

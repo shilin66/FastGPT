@@ -396,6 +396,7 @@ export type ToolCiteLinksType = z.infer<typeof ToolCiteLinksSchema>;
 
 export const ResponseTagItemSchema = z.object({
   useAgentSandbox: z.boolean().optional(),
+  sandboxId: z.string().optional(),
   totalQuoteList: z.array(SearchDataResponseItemSchema).optional(),
   toolCiteLinks: z.array(ToolCiteLinksSchema).optional(),
   errorText: ErrorTextItemSchema.optional(),

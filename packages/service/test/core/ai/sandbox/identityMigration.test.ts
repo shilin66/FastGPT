@@ -264,9 +264,15 @@ describe('Sandbox identity index migration', () => {
     });
     await expect(collection.listIndexes().toArray()).rejects.toThrow();
     const result = await migrateSandboxIdentityIndexes({ confirmWrite: true });
-    expect(result.createdIndexNames).toHaveLength(7);
+    expect(result.createdIndexNames).toHaveLength(8);
     expect(result.createdIndexNames).toContain('provider_1_sourceType_1_workspaceGeneration_1');
-    const aliasIndex = (await collection.listIndexes().toArray()).find(
+    const indexes = await collection.listIndexes().toArray();
+    const sourceChatIndex = indexes.find(
+      ({ name }) => name === 'sourceType_1_sourceId_1_sourceChatId_1'
+    );
+    expect(sourceChatIndex?.key).toEqual({ sourceType: 1, sourceId: 1, sourceChatId: 1 });
+    expect(sourceChatIndex?.unique).not.toBe(true);
+    const aliasIndex = indexes.find(
       ({ name }) => name === 'provider_1_sourceType_1_workspaceGeneration_1'
     );
     expect(aliasIndex?.key).toEqual({ provider: 1, sourceType: 1, workspaceGeneration: 1 });

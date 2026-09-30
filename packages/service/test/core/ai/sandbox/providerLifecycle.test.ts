@@ -34,7 +34,7 @@ describe.each([
             ? Array.from({ length: duplicate ? 2 : 1 }, (_, index) => ({
                 id: index === 0 ? 'existing-provider' : 'duplicate-provider',
                 metadata: { sessionId: wrongSession ? 'other-session' : 'lifecycle-test' },
-                status: { state: 'Paused' },
+                status: { state: targetState },
                 createdAt: '2026-09-13T00:00:00Z'
               }))
             : []
@@ -53,6 +53,10 @@ describe.each([
         });
       }
       if (request.method === 'DELETE' || path.endsWith('/pause')) {
+        return new Response(null, { status: 204 });
+      }
+      if (path.endsWith('/resume') && request.method === 'POST') {
+        targetState = 'Running';
         return new Response(null, { status: 204 });
       }
       throw new Error(`Unexpected provider request ${request.method} ${path}`);
@@ -82,6 +86,15 @@ describe.each([
     expect(adapter.id).toBe('existing-provider');
     expect(requests.every(({ method }) => method === 'GET')).toBe(true);
     expect(requests.some(({ path }) => path.includes('health'))).toBe(false);
+  });
+
+  it('resumes the same paused container without creating a replacement', async () => {
+    const { adapter, requests } = setup();
+    await adapter.ensureRunning();
+    expect(adapter.id).toBe('existing-provider');
+    expect(requests.filter(({ method }) => method !== 'GET')).toEqual([
+      { method: 'POST', path: '/v1/sandboxes/existing-provider/resume' }
+    ]);
   });
 
   it('returns absent without creating a replacement', async () => {

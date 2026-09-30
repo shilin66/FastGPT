@@ -121,6 +121,52 @@ describe('Skill runtime sandbox identity', () => {
     expect(await MongoSandboxInstance.countDocuments()).toBe(2);
   });
 
+  it('persists and backfills the original chat association while preserving the debug identity', async () => {
+    const sessionId = JSON.stringify(['test', params.appId, 'node', params.sessionId]);
+    const debugParams = { ...params, sessionId, sourceChatId: params.sessionId };
+    const first = await createAgentSandbox(debugParams);
+    expect(await MongoSandboxInstance.findOne({ sandboxId: first.sandboxId }).lean()).toMatchObject(
+      {
+        sessionId,
+        chatId: sessionId,
+        sourceChatId: params.sessionId
+      }
+    );
+    expect(getClientMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        identity: expect.objectContaining({ sourceChatId: params.sessionId })
+      })
+    );
+    await MongoSandboxInstance.updateOne(
+      { sandboxId: first.sandboxId },
+      { $unset: { sourceChatId: 1 } }
+    );
+    const reused = await createAgentSandbox(debugParams);
+    expect(reused.sandboxId).toBe(first.sandboxId);
+    expect(await MongoSandboxInstance.findOne({ sandboxId: first.sandboxId }).lean()).toMatchObject(
+      {
+        sessionId,
+        chatId: sessionId,
+        sourceChatId: params.sessionId
+      }
+    );
+  });
+
+  it('rejects a conflicting persisted source chat before opening a provider', async () => {
+    const existing = await createAgentSandbox({ ...params, sourceChatId: params.sessionId });
+    getClientMock.mockClear();
+    await expect(createAgentSandbox({ ...params, sourceChatId: 'another-chat' })).rejects.toThrow(
+      'conflicting source chat'
+    );
+    expect(getClientMock).not.toHaveBeenCalled();
+    expect(
+      await MongoSandboxInstance.findOne({ sandboxId: existing.sandboxId }).lean()
+    ).toMatchObject({
+      sourceChatId: params.sessionId
+    });
+  });
+
   it('refuses a conflicting old app/chat index before creating another user workspace', async () => {
     await MongoSandboxInstance.collection.createIndex(
       { appId: 1, chatId: 1 },
@@ -171,6 +217,38 @@ describe('Skill runtime sandbox identity', () => {
       storage: { volumes: [{ claimName: 'old-volume' }] }
     });
   });
+
+  it.each([
+    { storage: undefined, expectedRoot: '/home/sandbox' },
+    {
+      storage: {
+        mountPath: '/old-workspace',
+        volumes: [{ name: 'workspace', claimName: 'old', mountPath: '/old-workspace' }]
+      },
+      expectedRoot: '/old-workspace'
+    }
+  ])(
+    'keeps legacy Shell files in their original root $expectedRoot when Skills is enabled',
+    async ({ storage, expectedRoot }) => {
+      await MongoSandboxInstance.create({
+        provider: 'opensandbox',
+        sandboxId: 'legacy-shell',
+        appId: params.appId,
+        userId: params.runtimeUserId,
+        chatId: params.sessionId,
+        storage
+      });
+      const result = await createAgentSandbox(params);
+      expect(result.workDirectory).toBe(expectedRoot);
+      expect(getClientMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ workspaceRoot: expectedRoot })
+      );
+      expect(
+        await MongoSandboxInstance.findOne({ sandboxId: 'legacy-shell' }).lean()
+      ).toMatchObject({ metadata: { workspaceRoot: expectedRoot } });
+    }
+  );
 
   it('does not infer ownership of an old Skill runtime from team and session alone', async () => {
     await MongoSandboxInstance.create({

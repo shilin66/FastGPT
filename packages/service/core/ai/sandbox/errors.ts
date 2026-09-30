@@ -49,6 +49,22 @@ export const isSandboxInfrastructureError = (error: unknown): boolean => {
   return false;
 };
 
+const volumeConfigurationMessages = {
+  volume_manager_disabled:
+    "This workspace uses a persistent volume, but volume support is disabled in this deployment. Check workspace ownership and the owning deployment's volume manager configuration before retrying.",
+  volume_manager_binding_mismatch:
+    "The workspace volume manager binding does not match the current configuration. Check workspace ownership and the owning deployment's volume manager URL and protocol before retrying."
+};
+
+export class SandboxVolumeConfigurationError extends Error {
+  readonly code = 'sandbox_volume_configuration_error';
+
+  constructor(readonly reason: keyof typeof volumeConfigurationMessages) {
+    super(volumeConfigurationMessages[reason]);
+    this.name = 'SandboxVolumeConfigurationError';
+  }
+}
+
 // Only the Volume Manager boundary may attest that its authentication middleware rejected before dispatch.
 export class VolumeManagerAuthRejectedBeforeEffectError extends Error {
   readonly code = 'VOLUME_MANAGER_AUTH_REJECTED';

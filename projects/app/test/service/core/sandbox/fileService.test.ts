@@ -8,6 +8,7 @@ import {
   type SandboxFileEntry
 } from '@/service/core/sandbox/fileService';
 import type { SandboxClient } from '@fastgpt/service/core/ai/sandbox/controller';
+import { getSandboxWorkspaceRoot } from '@fastgpt/service/core/ai/sandbox/workspace';
 type DirectoryEntry = Awaited<ReturnType<SandboxClient['provider']['listDirectory']>>[number];
 type FileInfo =
   Awaited<ReturnType<SandboxClient['provider']['getFileInfo']>> extends Map<string, infer Entry>
@@ -39,7 +40,13 @@ function makeProvider(
 }
 
 function makeSandbox(providerOverrides: Partial<SandboxClient['provider']> = {}): SandboxClient {
-  return { provider: makeProvider(providerOverrides) } as unknown as SandboxClient;
+  const provider = makeProvider(providerOverrides);
+  return {
+    provider,
+    get workspaceRoot() {
+      return getSandboxWorkspaceRoot(provider);
+    }
+  } as SandboxClient;
 }
 
 function makeDirectoryEntry(
@@ -75,6 +82,24 @@ function makeFileInfoMap(path: string, info: Partial<FileInfo>): Map<string, Fil
 // ─── listSandboxDirectory ──────────────────────────────────────────────────
 
 describe('listSandboxDirectory', () => {
+  it('uses the persisted workspace root instead of the provider default for listing and reading', async () => {
+    const sandbox = makeSandbox({
+      rootPath: '/home/sandbox',
+      listDirectory: vi.fn().mockResolvedValue([makeDirectoryEntry('report.txt')]),
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/report.txt', 'shared file')])
+    } as Partial<SandboxClient['provider']>);
+    Object.defineProperty(sandbox, 'workspaceRoot', { value: '/workspace' });
+    expect(await listSandboxDirectory(sandbox, '.')).toEqual([
+      expect.objectContaining({ path: '/workspace/report.txt' })
+    ]);
+    expect((await getSandboxFileContent(sandbox, 'report.txt')).content.toString()).toBe(
+      'shared file'
+    );
+    await expect(getSandboxFileContent(sandbox, '/home/sandbox/private.txt')).rejects.toThrow(
+      'Invalid Sandbox workspace path'
+    );
+  });
+
   it('空目录返回空数组', async () => {
     const sandbox = makeSandbox({ listDirectory: vi.fn().mockResolvedValue([]) });
     const result = await listSandboxDirectory(sandbox, '/workspace');
@@ -354,7 +379,7 @@ describe('addDirectoryToArchive', () => {
     expect(archive.append).toHaveBeenCalledWith(expect.any(Buffer), { name: 'src/index.ts' });
   });
 
-  it('读取失败的文件被跳过，不调用 append', async () => {
+  it('读取失败时拒绝打包，避免静默漏文件', async () => {
     const archive = makeArchive();
     const entries = [makeDirectoryEntry('broken.py', { size: 100 })];
     const sandbox = makeSandbox({
@@ -363,7 +388,9 @@ describe('addDirectoryToArchive', () => {
         .fn()
         .mockResolvedValue([makeReadResult('/workspace/broken.py', '', new Error('read error'))])
     });
-    await addDirectoryToArchive(sandbox, archive, '/workspace', '');
+    await expect(addDirectoryToArchive(sandbox, archive, '/workspace', '')).rejects.toThrow(
+      'read error'
+    );
     expect(archive.append).not.toHaveBeenCalled();
   });
 
@@ -378,7 +405,7 @@ describe('addDirectoryToArchive', () => {
       .mockResolvedValueOnce([makeReadResult('/workspace/ok.py', 'print(1)')])
       .mockResolvedValueOnce([makeReadResult('/workspace/bad.py', '', new Error('fail'))]);
     const sandbox = makeSandbox({ listDirectory: vi.fn().mockResolvedValue(entries), readFiles });
-    await addDirectoryToArchive(sandbox, archive, '/workspace', '');
+    await expect(addDirectoryToArchive(sandbox, archive, '/workspace', '')).rejects.toThrow('fail');
     expect(archive.append).toHaveBeenCalledTimes(1);
     expect(archive.append).toHaveBeenCalledWith(expect.any(Buffer), { name: 'ok.py' });
   });
@@ -398,7 +425,7 @@ describe('addDirectoryToArchive', () => {
     expect(archive.append).toHaveBeenCalledWith(expect.any(Buffer), { name: 'a/b/c.txt' });
   });
 
-  it('超过最大深度限制时停止递归', async () => {
+  it('超过最大深度限制时明确失败', async () => {
     const archive = makeArchive();
     const listDirectory = vi
       .fn()
@@ -406,8 +433,9 @@ describe('addDirectoryToArchive', () => {
         makeDirectoryEntry('sub', { isDirectory: true, path: '/workspace/sub' })
       ]);
     const sandbox = makeSandbox({ listDirectory });
-    // depth=21 超过 MAX_ARCHIVE_DEPTH(20)，应直接返回不做任何操作
-    await addDirectoryToArchive(sandbox, archive, '/workspace/', '', 21);
+    await expect(addDirectoryToArchive(sandbox, archive, '/workspace/', '', 21)).rejects.toThrow(
+      'depth'
+    );
     expect(listDirectory).not.toHaveBeenCalled();
     expect(archive.append).not.toHaveBeenCalled();
   });

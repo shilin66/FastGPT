@@ -173,9 +173,15 @@ describe.each(['app', 'chat'] as const)('Sandbox %s cleanup source isolation', (
       }))
     );
 
-    if (mode === 'app') await deleteSandboxesByAppId(appId1);
-    else
-      await deleteSandboxesByChatIds({ appId: appId1, chatIds: ['selected-chat', 'edit-debug'] });
+    await expect(
+      mode === 'app'
+        ? deleteSandboxesByAppId(appId1)
+        : deleteSandboxesByChatIds({ appId: appId1, chatIds: ['selected-chat', 'edit-debug'] })
+    ).rejects.toMatchObject({
+      errors: expect.arrayContaining([
+        expect.objectContaining({ message: 'sandbox_identity_conflict' })
+      ])
+    });
 
     const deleted = [
       'canonical-runtime',

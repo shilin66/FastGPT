@@ -23,6 +23,7 @@ type SandboxToolCallParams = {
   appId: string;
   userId: string;
   chatId: string;
+  runtime?: Pick<SandboxClient, 'provider' | 'exec'> & { workspaceRoot: string };
 };
 
 export type SandboxToolCallResult = {
@@ -41,7 +42,8 @@ export const callSandboxTool = async ({
   rawArgs,
   appId,
   userId,
-  chatId
+  chatId,
+  runtime
 }: SandboxToolCallParams): Promise<SandboxToolCallResult> => {
   const startTime = Date.now();
   const getDuration = () => +((Date.now() - startTime) / 1000).toFixed(2);
@@ -52,9 +54,9 @@ export const callSandboxTool = async ({
       return { input: {}, response: parsed.error.message, durationSeconds: getDuration() };
     }
     const { command, timeout } = parsed.data;
-    let instance: SandboxClient | undefined;
+    let instance: Pick<SandboxClient, 'provider' | 'exec' | 'workspaceRoot'> | undefined;
     try {
-      instance = await getSandboxClient({ appId, userId, chatId });
+      instance = runtime ?? (await getSandboxClient({ appId, userId, chatId }));
       const result = await instance.exec(command, timeout);
 
       return {
@@ -96,37 +98,47 @@ export const callSandboxTool = async ({
     }
 
     const { paths } = parsed.data;
-    let instance: SandboxClient | undefined;
+    let instance: Pick<SandboxClient, 'provider' | 'exec' | 'workspaceRoot'> | undefined;
     try {
-      instance = await getSandboxClient({ appId, userId, chatId });
+      const client = runtime ? undefined : await getSandboxClient({ appId, userId, chatId });
+      instance = runtime ?? client!;
       const sandbox = instance.provider;
-      const safePaths = await Promise.all(
-        paths.map((path) => assertSandboxWorkspacePath({ provider: sandbox, path }))
-      );
-      const result = await Promise.all(
-        safePaths.map(async (url) => {
-          const filename = path.basename(url);
-          const stream = sandbox.readFileStream(url);
-          const readable = Readable.from(stream); // AsyncIterable<Uint8Array> → Readable
+      const uploadFiles = async () => {
+        const safePaths = await Promise.all(
+          paths.map((path) =>
+            assertSandboxWorkspacePath({
+              provider: sandbox,
+              workspaceRoot: instance?.workspaceRoot,
+              path
+            })
+          )
+        );
+        return Promise.all(
+          safePaths.map(async (url) => {
+            const filename = path.basename(url);
+            const stream = sandbox.readFileStream(url);
+            const readable = Readable.from(stream); // AsyncIterable<Uint8Array> → Readable
 
-          const chatBucket = getS3ChatSource();
-          const expiredTime = addHours(new Date(), 2);
-          const { key } = await chatBucket.uploadChatFile({
-            appId,
-            chatId,
-            uId: userId,
-            filename,
-            body: readable,
-            expiredTime: expiredTime
-          });
-          const fileUrl = jwtSignS3ObjectKey(key, expiredTime);
+            const chatBucket = getS3ChatSource();
+            const expiredTime = addHours(new Date(), 2);
+            const { key } = await chatBucket.uploadChatFile({
+              appId,
+              chatId,
+              uId: userId,
+              filename,
+              body: readable,
+              expiredTime: expiredTime
+            });
+            const fileUrl = jwtSignS3ObjectKey(key, expiredTime);
 
-          return {
-            fileUrl,
-            filename
-          };
-        })
-      );
+            return {
+              fileUrl,
+              filename
+            };
+          })
+        );
+      };
+      const result = client ? await client.withActivity(uploadFiles) : await uploadFiles();
 
       return {
         input: { paths },

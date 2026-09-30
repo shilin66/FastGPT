@@ -20,13 +20,15 @@ type EditorInstance = Parameters<NonNullable<Parameters<typeof Editor>[0]['onMou
 export type Props = {
   appId: string;
   chatId: string;
+  sandboxId?: string;
   outLinkAuthData?: OutLinkChatAuthProps;
 };
 
-const SandboxEditor = ({ appId, chatId, outLinkAuthData }: Props) => {
+const SandboxEditor = ({ appId, chatId, sandboxId, outLinkAuthData }: Props) => {
   const { t } = useTranslation();
   const editorRef = useRef<EditorInstance>();
   const isUpdatingRef = useRef(false); // 防止循环更新
+  const activeSandboxId = useRef(sandboxId);
 
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set([]));
@@ -57,7 +59,14 @@ const SandboxEditor = ({ appId, chatId, outLinkAuthData }: Props) => {
   // 加载目录 - 改为普通异步函数,避免 useRequest 的并发问题
   const { runAsync: loadDirectory } = useRequest(
     async (path: string, level: number) => {
-      const data = await listSandboxFiles({ appId, chatId, outLinkAuthData, path });
+      const data = await listSandboxFiles({
+        appId,
+        chatId,
+        sandboxId: activeSandboxId.current,
+        outLinkAuthData,
+        path
+      });
+      activeSandboxId.current = data.sandboxId ?? activeSandboxId.current;
       const nodes: TreeNode[] = (data.files || []).map((file) => ({
         ...file,
         level,
@@ -89,7 +98,13 @@ const SandboxEditor = ({ appId, chatId, outLinkAuthData }: Props) => {
       filePath: string,
       language: string
     ): Promise<{ content: string; isUnknown: boolean }> => {
-      const response = await getSandboxFile({ appId, chatId, outLinkAuthData, path: filePath });
+      const response = await getSandboxFile({
+        appId,
+        chatId,
+        sandboxId: activeSandboxId.current,
+        outLinkAuthData,
+        path: filePath
+      });
 
       const isBinary = getIsBinaryByLanguage(language);
 
@@ -121,6 +136,7 @@ const SandboxEditor = ({ appId, chatId, outLinkAuthData }: Props) => {
       await writeSandboxFile({
         appId,
         chatId,
+        sandboxId: activeSandboxId.current,
         outLinkAuthData,
         path: targetPath,
         content: targetFile.content
@@ -137,7 +153,7 @@ const SandboxEditor = ({ appId, chatId, outLinkAuthData }: Props) => {
   // 下载工作区
   const { run: downloadWorkspace, loading: downloadingWorkspace } = useRequest(
     async () => {
-      await downloadSandbox({ appId, chatId, outLinkAuthData });
+      await downloadSandbox({ appId, chatId, sandboxId: activeSandboxId.current, outLinkAuthData });
     },
     { manual: true }
   );
@@ -148,7 +164,13 @@ const SandboxEditor = ({ appId, chatId, outLinkAuthData }: Props) => {
       if (!activeFile) return;
 
       // 通过服务端下载接口获取原始文件,支持二进制文件(图片等)
-      await downloadSandbox({ appId, chatId, outLinkAuthData, path: activeFile.path });
+      await downloadSandbox({
+        appId,
+        chatId,
+        sandboxId: activeSandboxId.current,
+        outLinkAuthData,
+        path: activeFile.path
+      });
     },
     { manual: true }
   );
@@ -355,6 +377,7 @@ const SandboxEditor = ({ appId, chatId, outLinkAuthData }: Props) => {
                 isUpdatingRef={isUpdatingRef}
                 appId={appId}
                 chatId={chatId}
+                sandboxId={activeSandboxId.current}
                 outLinkAuthData={outLinkAuthData}
               />
             </>

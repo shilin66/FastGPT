@@ -6,7 +6,10 @@ import type {
   SandboxProviderType
 } from './type';
 import { getLogger, LogCategories } from '../../../common/logger';
-import { VolumeManagerAuthRejectedBeforeEffectError } from './errors';
+import {
+  SandboxVolumeConfigurationError,
+  VolumeManagerAuthRejectedBeforeEffectError
+} from './errors';
 import { isSandboxPublishRejected } from './utils';
 import {
   assertSandboxCapacity,
@@ -102,6 +105,7 @@ const getInstanceBinding = (instance: SandboxInstanceSchemaType, includeStorage 
         'ownerTmbId',
         'runtimeUserId',
         'sessionId',
+        'sourceChatId',
         'appId',
         'userId',
         'chatId',
@@ -118,6 +122,45 @@ type SandboxOperation = {
   remoteEffect: <T>(run: () => Promise<T>) => Promise<T>;
   remove: () => Promise<void>;
 };
+
+export const runSandboxActivity = async <T>(
+  {
+    provider,
+    sandboxId,
+    expectedInstance
+  }: {
+    provider: string;
+    sandboxId: string;
+    expectedInstance?: SandboxInstanceSchemaType;
+  },
+  run: () => Promise<T>
+): Promise<T> =>
+  withSandboxLease(`sandbox:lease:${provider}:${sandboxId}`, async (lease) => {
+    const instance = await MongoSandboxInstance.findOne({ provider, sandboxId }).lean();
+    if (!instance || instance.status !== 'running' || instance.deleteTime) {
+      throw new SandboxOperationConflict('Sandbox is not available for file or tool activity');
+    }
+    const binding = getInstanceBinding(expectedInstance ?? instance, true);
+    const touch = async () => {
+      await lease.assertOwned();
+      const updated = await MongoSandboxInstance.updateOne(
+        { ...binding, status: 'running', deleteTime: null },
+        { $max: { lastActiveAt: new Date() } }
+      );
+      if (updated.matchedCount !== 1)
+        throw new SandboxOperationConflict('Sandbox activity binding changed');
+    };
+    await touch();
+    try {
+      const result = await run();
+      await lease.assertOwned();
+      return result;
+    } finally {
+      await touch().catch((error) =>
+        logger.warn('Failed to renew Sandbox activity', { sandboxId, error })
+      );
+    }
+  });
 
 export const runSandboxOperation = async (
   options: {
@@ -137,9 +180,15 @@ export const runSandboxOperation = async (
   await withSandboxLease(`sandbox:lease:${provider}:${sandboxId}`, async (lease) => {
     await options.assertAuthorized?.();
     const previous = await MongoSandboxInstance.findOne({ provider, sandboxId }).lean();
+    if (!previous && action === 'ensure' && options.expectedInstance) {
+      throw new SandboxOperationConflict('Selected Sandbox workspace no longer exists');
+    }
     if (!previous && action !== 'ensure') return;
     const binding = previous
-      ? getInstanceBinding(options.expectedInstance ?? previous, action !== 'ensure')
+      ? getInstanceBinding(
+          options.expectedInstance ?? previous,
+          !!options.expectedInstance || action !== 'ensure'
+        )
       : {};
     if (previous && !(await MongoSandboxInstance.exists(binding))) {
       throw new SandboxOperationConflict('Sandbox ownership changed');
@@ -344,10 +393,13 @@ export const runSandboxOperation = async (
               : {}),
             'operation.updatedAt': new Date(),
             'operation.failureDisposition': failureDisposition,
-            'operation.error': {
-              code: action === 'ensure' ? 'sandbox_unavailable' : `sandbox_${action}_failed`,
-              message: `Sandbox ${action} failed at ${checkpoint}`
-            }
+            'operation.error':
+              error instanceof SandboxVolumeConfigurationError
+                ? { code: error.code, message: error.message }
+                : {
+                    code: action === 'ensure' ? 'sandbox_unavailable' : `sandbox_${action}_failed`,
+                    message: `Sandbox ${action} failed at ${checkpoint}`
+                  }
           }
         });
       } catch (stateError) {

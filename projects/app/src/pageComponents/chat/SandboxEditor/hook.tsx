@@ -19,19 +19,31 @@ import { addStatisticalDataToHistoryItem } from '@/global/core/chat/utils';
 export const useSandboxEditor = ({
   appId,
   chatId,
+  sandboxId,
   outLinkAuthData,
   afterClose
 }: {
   appId: string;
   chatId: string;
+  sandboxId?: string;
   outLinkAuthData?: OutLinkChatAuthProps;
   afterClose?: () => void;
 }) => {
   const [sandboxModalOpen, setSandboxModalOpen] = useState(false);
+  const [openedSandboxId, setOpenedSandboxId] = useState<string>();
+  const chatRecords = useContextSelector(ChatRecordContext, (v) => v.chatRecords);
+  const activeSandboxId = useMemo(
+    () =>
+      sandboxId ??
+      chatRecords.map(addStatisticalDataToHistoryItem).findLast((record) => record.sandboxId)
+        ?.sandboxId,
+    [sandboxId, chatRecords]
+  );
 
   const onOpenSandboxModal = useCallback(() => {
+    setOpenedSandboxId(activeSandboxId);
     setSandboxModalOpen(true);
-  }, []);
+  }, [activeSandboxId]);
 
   const onCloseSandboxModal = useCallback(() => {
     setSandboxModalOpen(false);
@@ -44,10 +56,11 @@ export const useSandboxEditor = ({
         onClose={onCloseSandboxModal}
         appId={appId}
         chatId={chatId}
+        sandboxId={openedSandboxId}
         outLinkAuthData={outLinkAuthData}
       />
     ) : null;
-  }, [sandboxModalOpen, onCloseSandboxModal, appId, chatId, outLinkAuthData]);
+  }, [sandboxModalOpen, onCloseSandboxModal, appId, chatId, openedSandboxId, outLinkAuthData]);
 
   return {
     SandboxEditorModal: SandboxEditorModalDom,
@@ -76,10 +89,11 @@ export const useSandboxStatus = ({
 }) => {
   const { t } = useTranslation();
   const [apiSandboxExists, setApiSandboxExists] = useState(false);
-  const lastChatIdRef = useRef(chatId);
+  const scopeKey = JSON.stringify([appId, chatId, outLinkAuthData]);
+  const lastChatIdRef = useRef(scopeKey);
 
-  if (lastChatIdRef.current !== chatId) {
-    lastChatIdRef.current = chatId;
+  if (lastChatIdRef.current !== scopeKey) {
+    lastChatIdRef.current = scopeKey;
     setApiSandboxExists(false);
   }
 
@@ -109,7 +123,7 @@ export const useSandboxStatus = ({
     return () => {
       cancelled = true;
     };
-  }, [appId, chatId]);
+  }, [appId, chatId, scopeKey]);
 
   const sandboxExists = hasSandboxInHistory || apiSandboxExists;
 

@@ -190,6 +190,28 @@ export async function buildAgentTools({
             return { response: result.response, usages: result.usages };
           }
 
+          // Capability tools (e.g. sandbox skills)
+          const capResult = await capabilityToolCallHandler?.(toolId, argStr, callId);
+          if (capResult != null) {
+            sandboxUnavailable ||= !!capResult.assistantResponses?.some(
+              (value) => value.sandboxEvent?.status === 'degraded'
+            );
+            if (capResult.assistantResponses?.length)
+              assistantResponses?.push(...capResult.assistantResponses);
+            const subInfo = getSubAppInfo(toolId);
+            nodeResponses.push({
+              toolId,
+              nodeId: callId,
+              id: callId,
+              moduleType: FlowNodeTypeEnum.tool,
+              moduleName: subInfo.name,
+              moduleLogo: subInfo.avatar,
+              toolInput: parseJsonArgs(argStr),
+              toolRes: capResult.response
+            });
+            return { response: capResult.response, usages: capResult.usages };
+          }
+
           if (toolId === SANDBOX_TOOL_NAME) {
             const toolParams = SandboxShellToolSchema.safeParse(args);
             if (!toolParams.success) return { response: toolParams.error.message };
@@ -227,27 +249,6 @@ export async function buildAgentTools({
               (value) => value.sandboxEvent?.status === 'degraded'
             );
             return { response: result.response, usages: result.usages };
-          }
-
-          // Capability tools (e.g. sandbox skills)
-          const capResult = await capabilityToolCallHandler?.(toolId, argStr, callId);
-          if (capResult != null) {
-            sandboxUnavailable ||= !!capResult.assistantResponses?.some(
-              (value) => value.sandboxEvent?.status === 'degraded'
-            );
-            if (capResult.assistantResponses?.length)
-              assistantResponses?.push(...capResult.assistantResponses);
-            const subInfo = getSubAppInfo(toolId);
-            nodeResponses.push({
-              nodeId: callId,
-              id: callId,
-              moduleType: FlowNodeTypeEnum.tool,
-              moduleName: subInfo.name,
-              moduleLogo: subInfo.avatar,
-              toolInput: parseJsonArgs(argStr),
-              toolRes: capResult.response
-            });
-            return { response: capResult.response, usages: capResult.usages };
           }
 
           // User sub-apps

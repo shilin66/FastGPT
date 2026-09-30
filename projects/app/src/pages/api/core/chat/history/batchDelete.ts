@@ -23,11 +23,7 @@ async function handler(req: ApiRequestProps, res: NextApiResponse) {
     per: AppReadChatLogPerVal
   });
 
-  await Promise.all([
-    MongoChatItemResponse.deleteMany({ ...getChatSourceFilter(), appId, chatId: { $in: chatIds } }),
-    // Delete sandboxes
-    deleteSandboxesByChatIds({ appId, chatIds })
-  ]);
+  await deleteSandboxesByChatIds({ appId, chatIds });
   await mongoSessionRun(async (session) => {
     const chatList = await MongoChat.find(
       { ...getChatSourceFilter(), appId, chatId: { $in: chatIds } },
@@ -43,6 +39,10 @@ async function handler(req: ApiRequestProps, res: NextApiResponse) {
       ...(await MongoChatItemResponse.distinct('chatId', skillSource).session(session))
     ]);
 
+    await MongoChatItemResponse.deleteMany(
+      { ...getChatSourceFilter(), appId, chatId: { $in: chatIds } },
+      { session }
+    );
     await MongoChatItem.deleteMany(
       { ...getChatSourceFilter(), appId, chatId: { $in: chatIds } },
       { session }

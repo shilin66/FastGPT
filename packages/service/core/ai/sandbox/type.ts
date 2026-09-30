@@ -97,6 +97,7 @@ export const SandboxInstanceZodSchema = z.object({
   ownerTmbId: z.string().optional(),
   runtimeUserId: z.string().optional(),
   sessionId: z.string().optional(),
+  sourceChatId: z.string().optional(),
   baseVersionId: z.string().optional(),
   workspaceGeneration: z.string().optional(),
   currentDeploymentHash: z.string().optional(),

@@ -3,6 +3,12 @@ import { ConnectionError } from '@fastgpt-sdk/sandbox-adapter';
 import { SandboxToolIds } from '@fastgpt/global/core/workflow/node/agent/skillTools';
 import { createSandboxSkillsCapability } from '../../../../../../../core/workflow/dispatch/ai/agent/capability/sandboxSkills';
 import { SandboxUnavailableError } from '../../../../../../../core/workflow/dispatch/ai/agent/sub/sandbox/errors';
+import { SandboxVolumeConfigurationError } from '../../../../../../../core/ai/sandbox/errors';
+
+vi.mock('@fastgpt/service/core/ai/sandbox/operation', async (original) => ({
+  ...(await original<typeof import('@fastgpt/service/core/ai/sandbox/operation')>()),
+  runSandboxActivity: async (_scope: unknown, run: () => Promise<unknown>) => run()
+}));
 
 const mocks = vi.hoisted(() => ({
   resolve: vi.fn(),
@@ -106,6 +112,34 @@ describe('Runtime Skill capability failure and lazy resolution', () => {
     await execute(capability);
     expect(mocks.create).toHaveBeenCalledTimes(1);
   });
+  it.each(['volume_manager_disabled', 'volume_manager_binding_mismatch'] as const)(
+    'reports a safe actionable configuration diagnostic for %s',
+    async (reason) => {
+      const failure = new SandboxVolumeConfigurationError(reason);
+      mocks.create.mockRejectedValue(failure);
+      const capability = await createSandboxSkillsCapability(params);
+      await expect(execute(capability)).rejects.toMatchObject({
+        code: 'sandbox_unavailable',
+        message: `sandbox_unavailable: ${failure.message}`,
+        assistantResponses: [{ sandboxEvent: { status: 'failed', code: 'sandbox_unavailable' } }]
+      });
+      expect(mocks.execute).not.toHaveBeenCalled();
+    }
+  );
+  it('includes the configuration recovery hint in an unbound App tool result', async () => {
+    mocks.resolve.mockResolvedValue([]);
+    const failure = new SandboxVolumeConfigurationError('volume_manager_disabled');
+    mocks.create.mockRejectedValue(failure);
+    const capability = await createSandboxSkillsCapability({ ...params, skillIds: [] });
+    const result = await execute(capability);
+    expect(JSON.parse(result!.response)).toMatchObject({
+      code: 'sandbox_unavailable',
+      status: 'degraded',
+      retryable: false,
+      message: failure.message
+    });
+    expect(mocks.execute).not.toHaveBeenCalled();
+  });
   it('never replays an execute with an unknown transport outcome', async () => {
     mocks.execute.mockRejectedValue(new ConnectionError('connection lost'));
     const capability = await createSandboxSkillsCapability(params);
@@ -126,6 +160,29 @@ describe('Runtime Skill capability failure and lazy resolution', () => {
     );
     expect(result?.response).toContain('string');
     expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it('does not allocate or run a workspace after the conversation is stopped', async () => {
+    const capability = await createSandboxSkillsCapability({
+      ...params,
+      checkIsStopping: () => true
+    });
+    expect((await execute(capability))?.response).toContain('cancelled');
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.execute).not.toHaveBeenCalled();
+  });
+  it('does not execute a queued tool when stop arrives during sandbox initialization', async () => {
+    let stopped = false;
+    const context = await mocks.create();
+    mocks.create.mockClear().mockImplementationOnce(async () => {
+      stopped = true;
+      return context;
+    });
+    const capability = await createSandboxSkillsCapability({
+      ...params,
+      checkIsStopping: () => stopped
+    });
+    expect((await execute(capability))?.response).toContain('cancelled');
+    expect(mocks.execute).not.toHaveBeenCalled();
   });
   it('restores paused version bindings and exposes the resolved snapshot for persistence', async () => {
     const versions = { [params.skillIds[0]]: 'e'.repeat(24) };

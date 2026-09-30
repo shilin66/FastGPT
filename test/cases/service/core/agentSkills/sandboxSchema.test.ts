@@ -38,6 +38,24 @@ describe('SandboxInstance Schema', () => {
     expect(doc.schemaVersion).toBe(2);
   });
 
+  it('persists sourceChatId independently from the composite runtime session identity', async () => {
+    const sessionId = JSON.stringify(['test', 'app-1', 'node-1', 'chat-1']);
+    const doc = await MongoSandboxInstance.create({
+      provider: 'opensandbox',
+      sandboxId: 'source-chat-association',
+      sourceType: 'appRuntime',
+      sourceId: 'app-1',
+      runtimeUserId: 'user-1',
+      sessionId,
+      chatId: sessionId,
+      sourceChatId: 'chat-1',
+      status: 'running'
+    });
+
+    const persisted = await MongoSandboxInstance.findById(doc._id).lean();
+    expect(persisted).toMatchObject({ sourceChatId: 'chat-1', sessionId, chatId: sessionId });
+  });
+
   it('should have default values for optional fields', async () => {
     const doc = new MongoSandboxInstance({
       provider: 'opensandbox',

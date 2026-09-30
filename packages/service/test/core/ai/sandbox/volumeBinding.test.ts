@@ -132,6 +132,79 @@ describe('persistent volume binding lifecycle', () => {
     ).toBe(true);
   });
 
+  it.each([
+    ['disabled', 'volume_manager_disabled'],
+    ['changed-url', 'volume_manager_binding_mismatch'],
+    ['changed-protocol', 'volume_manager_binding_mismatch']
+  ] as const)(
+    'diagnoses %s on resume and recovers with the original volume',
+    async (change, reason) => {
+      const storage = storedVolume();
+      await MongoSandboxInstance.create({
+        sandboxId,
+        provider: 'opensandbox',
+        status: 'stopped',
+        metadata: { volumeEnabled: true, workspaceRoot: '/workspace' },
+        storage
+      });
+      if (change === 'disabled') settings.enabled = false;
+      if (change === 'changed-url') settings.url = 'http://replacement.test';
+      if (change === 'changed-protocol') settings.protocol = 'sessionId';
+
+      await expect(getSandboxClient({ sandboxId })).rejects.toMatchObject({
+        code: 'sandbox_volume_configuration_error',
+        reason
+      });
+      expect(providerEnsure).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
+        storage,
+        operation: {
+          checkpoint: 'pending',
+          failureDisposition: 'retryable',
+          error: {
+            code: 'sandbox_volume_configuration_error',
+            message: expect.stringContaining('volume')
+          }
+        }
+      });
+
+      settings.enabled = true;
+      settings.url = 'http://volume.test';
+      settings.protocol = 'claimName';
+      await getSandboxClient({ sandboxId });
+      expect(await MongoSandboxInstance.countDocuments({ sandboxId })).toBe(1);
+      expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
+        status: 'running',
+        storage
+      });
+      expect(providerEnsure).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({
+        claimName: 'saved-claim'
+      });
+    }
+  );
+
+  it.each([false, true])(
+    'preserves a non-volume workspace when volume configuration becomes %s',
+    async (enabled) => {
+      settings.enabled = enabled;
+      await MongoSandboxInstance.create({
+        sandboxId,
+        provider: 'opensandbox',
+        status: 'stopped',
+        metadata: { volumeEnabled: false, workspaceRoot: '/home/sandbox/workspace' }
+      });
+      await getSandboxClient({ sandboxId });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(providerEnsure).toHaveBeenCalledTimes(1);
+      expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
+        status: 'running',
+        metadata: { volumeEnabled: false, workspaceRoot: '/home/sandbox/workspace' }
+      });
+    }
+  );
+
   it.each(['changed-service', 'legacy'] as const)(
     'rejects %s before deleting the provider',
     async (mode) => {

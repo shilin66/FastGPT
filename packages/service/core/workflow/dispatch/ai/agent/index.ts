@@ -229,6 +229,7 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
         teamId: runningAppInfo.teamId,
         tmbId: runningAppInfo.tmbId,
         sessionId: sandboxSessionId,
+        sourceChatId: chatId,
         mode: sandboxMode,
         checkIsStopping,
         workflowStreamResponse,

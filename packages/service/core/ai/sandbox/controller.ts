@@ -28,11 +28,16 @@ import { setCron } from '../../../common/system/cron';
 import { checkTimerLock } from '../../../common/system/timerLock/utils';
 import { subMinutes } from 'date-fns';
 import { batchRun } from '@fastgpt/global/common/system/utils';
-import { recoverSandboxOperationCheckpoint, runSandboxOperation } from './operation';
+import {
+  recoverSandboxOperationCheckpoint,
+  runSandboxOperation,
+  runSandboxActivity
+} from './operation';
+export { runSandboxActivity } from './operation';
 import { SandboxOperationConflict } from './lease';
 import { withSandboxLease } from './lease';
 import { resolveAppSandboxIdentity } from './identity';
-import { resolveSandboxWorkspacePath } from './workspace';
+import { getSandboxWorkspaceRoot, resolveSandboxWorkspacePath } from './workspace';
 import { getSandboxCapacityType } from './capacity';
 import type { SandboxIdentity } from '@fastgpt/global/core/ai/sandbox/type';
 import {
@@ -75,7 +80,12 @@ type UnionIdType = {
 };
 
 type SandboxClientIdentity = SandboxIdentity &
-  Partial<Pick<SandboxInstanceSchemaType, 'teamId' | 'ownerTmbId' | 'runtimeUserId' | 'sessionId'>>;
+  Partial<
+    Pick<
+      SandboxInstanceSchemaType,
+      'teamId' | 'ownerTmbId' | 'runtimeUserId' | 'sessionId' | 'sourceChatId'
+    >
+  >;
 
 export class SandboxClient {
   private appId?: string;
@@ -128,6 +138,14 @@ export class SandboxClient {
     return this.providerInstance;
   }
 
+  get workspaceRoot(): string {
+    return this.opts.workspaceRoot ?? getSandboxWorkspaceRoot(this.provider);
+  }
+
+  get id(): string {
+    return this.sandboxId;
+  }
+
   private createProvider(): ISandbox {
     const providerName = this.providerName;
 
@@ -175,6 +193,7 @@ export class SandboxClient {
         provider: this.providerName,
         sandboxId: this.sandboxId,
         action: 'ensure',
+        expectedInstance: this.opts.expectedInstance,
         insert: {
           ...this.opts.identity,
           ...(this.opts.workspaceRoot || capacityType
@@ -206,6 +225,9 @@ export class SandboxClient {
         ) {
           throw new Error('Sandbox workspace root does not match the existing instance');
         }
+        if (this.opts.expectedInstance && !(await this.connectExistingProvider())) {
+          throw new SandboxOperationConflict('Selected Sandbox provider no longer exists');
+        }
         const preparedVolume = prepareVolumeManagerConfig({
           sandboxId: this.sandboxId,
           previous: operation.previous
@@ -231,6 +253,15 @@ export class SandboxClient {
           lastActiveAt: new Date(),
           ...(this.provider.id ? { 'metadata.providerSandboxId': this.provider.id } : {})
         });
+        if (this.opts.expectedInstance) {
+          const available = await MongoSandboxInstance.findOne({
+            provider: this.providerName,
+            sandboxId: this.sandboxId
+          }).lean();
+          if (!available)
+            throw new SandboxOperationConflict('Selected Sandbox workspace disappeared');
+          this.opts.expectedInstance = available;
+        }
       }
     );
   }
@@ -340,14 +371,28 @@ export class SandboxClient {
       throw err;
     }
 
-    return await this.provider
-      .execute(command, {
-        timeoutMs: timeout ? timeout * 1000 : undefined
-      })
-      .catch((err) => {
-        logger.error('Failed to execute sandbox', { sandboxId: this.sandboxId, error: err });
-        throw err;
-      });
+    return this.withActivity(() =>
+      this.provider
+        .execute(command, {
+          ...(this.opts.workspaceRoot ? { workingDirectory: this.opts.workspaceRoot } : {}),
+          timeoutMs: timeout ? timeout * 1000 : undefined
+        })
+        .catch((err) => {
+          logger.error('Failed to execute sandbox', { sandboxId: this.sandboxId, error: err });
+          throw err;
+        })
+    );
+  }
+
+  withActivity<T>(run: () => Promise<T>): Promise<T> {
+    return runSandboxActivity(
+      {
+        provider: this.providerName,
+        sandboxId: this.sandboxId,
+        expectedInstance: this.opts.expectedInstance
+      },
+      run
+    );
   }
 
   async delete({ assertAuthorized }: { assertAuthorized?: () => Promise<void> } = {}) {
@@ -619,41 +664,79 @@ export const getSandboxClient = async (
     workspaceRoot?: string;
   } = {}
 ) => {
-  const { sandboxId, identity } =
+  const { sandboxId, identity, instance } =
     'sandboxId' in props
-      ? { sandboxId: props.sandboxId, identity: opts.identity }
+      ? { sandboxId: props.sandboxId, identity: opts.identity, instance: undefined }
       : await resolveAppSandboxIdentity(props);
   const sandbox = new SandboxClient(
     { ...props, sandboxId },
-    { ...opts, identity: identity ? { ...opts.identity, ...identity } : undefined }
+    {
+      ...opts,
+      workspaceRoot: opts.workspaceRoot ?? instance?.metadata?.workspaceRoot,
+      identity: identity ? { ...opts.identity, ...identity } : undefined
+    }
   );
   await sandbox.ensureAvailable();
   return sandbox;
 };
 
 // ==== Delete Sandboxes ====
+const getLegacySourceChatId = (appId: string, sessionId: string): string => {
+  try {
+    const parts: unknown = JSON.parse(sessionId);
+    if (
+      Array.isArray(parts) &&
+      parts.length === 4 &&
+      parts.every((part) => typeof part === 'string') &&
+      (parts[0] === 'test' || parts[0] === 'debug') &&
+      parts[1] === appId
+    ) {
+      return parts[3];
+    }
+  } catch {
+    // Ordinary chat IDs are not JSON.
+  }
+  return sessionId;
+};
+
 const findAppRuntimeSandboxes = async ({
   appId,
-  chatIds
+  chatIds,
+  onIdentityConflict
 }: {
   appId: string;
   chatIds?: string[];
+  onIdentityConflict?: (error: Error) => void;
 }) => {
+  if (chatIds?.length === 0) return [];
+  const matchesChat = (field: 'sessionId' | 'chatId') =>
+    chatIds
+      ? {
+          $or: [
+            { sourceChatId: { $in: chatIds } },
+            {
+              sourceChatId: { $exists: false },
+              $or: [{ [field]: { $in: chatIds } }, { [field]: { $regex: '^\\["(test|debug)",' } }]
+            }
+          ]
+        }
+      : {};
   const instances = await MongoSandboxInstance.find({
     $or: [
       {
         sourceType: 'appRuntime',
         sourceId: appId,
-        ...(chatIds ? { sessionId: { $in: chatIds } } : {})
+        ...matchesChat('sessionId')
       },
       {
         sourceType: { $exists: false },
         sourceId: { $exists: false },
         appId,
-        ...(chatIds ? { chatId: { $in: chatIds } } : {})
+        ...matchesChat('chatId')
       }
     ]
   }).lean();
+  const requestedChats = chatIds ? new Set(chatIds) : undefined;
   return instances.filter((doc) => {
     if (
       doc.metadata?.skillId !== undefined ||
@@ -661,23 +744,91 @@ const findAppRuntimeSandboxes = async ({
         doc.metadata.sandboxType !== SandboxTypeEnum.sessionRuntime)
     )
       return false;
+    const sessionId = doc.sourceType === 'appRuntime' ? doc.sessionId : doc.chatId;
+    if (
+      requestedChats &&
+      (!sessionId ||
+        !requestedChats.has(doc.sourceChatId ?? getLegacySourceChatId(appId, sessionId)))
+    )
+      return false;
     if (doc.sourceType === 'appRuntime') {
-      return (
+      const valid =
         !!doc.runtimeUserId &&
         !!doc.sessionId &&
         (doc.appId == null || doc.appId === appId) &&
         (doc.userId == null || doc.userId === doc.runtimeUserId) &&
-        (doc.chatId == null || doc.chatId === doc.sessionId)
-      );
+        (doc.chatId == null || doc.chatId === doc.sessionId);
+      if (!valid) onIdentityConflict?.(new Error('sandbox_identity_conflict'));
+      return valid;
     }
-    return (
+    const valid =
       doc.runtimeUserId === undefined &&
       doc.sessionId === undefined &&
       !!doc.userId &&
       !!doc.chatId &&
-      doc.chatId !== 'edit-debug'
-    );
+      doc.chatId !== 'edit-debug';
+    if (!valid) onIdentityConflict?.(new Error('sandbox_identity_conflict'));
+    return valid;
   });
+};
+
+type ChatSandboxFileScope = UnionIdType & { sandboxId?: string };
+
+export const findChatSandboxInstance = async ({
+  appId,
+  userId,
+  chatId,
+  sandboxId
+}: ChatSandboxFileScope) => {
+  const instances = await findAppRuntimeSandboxes({ appId, chatIds: [chatId] });
+  return instances
+    .filter(
+      (doc) =>
+        doc.provider === env.AGENT_SANDBOX_PROVIDER &&
+        (doc.runtimeUserId ?? doc.userId) === userId &&
+        !doc.deleteTime &&
+        doc.status !== SandboxStatusEnum.deleting &&
+        (sandboxId === undefined || doc.sandboxId === sandboxId)
+    )
+    .sort(
+      (a, b) =>
+        b.lastActiveAt.getTime() - a.lastActiveAt.getTime() ||
+        b.createdAt.getTime() - a.createdAt.getTime() ||
+        a.sandboxId.localeCompare(b.sandboxId)
+    )[0];
+};
+
+export const getChatSandboxClient = async (scope: ChatSandboxFileScope) => {
+  const instance = await findChatSandboxInstance(scope);
+  if (!instance) throw new Error('Sandbox workspace not found');
+  const sessionId = instance.sessionId ?? instance.chatId;
+  if (!sessionId) throw new Error('Sandbox workspace not found');
+  return new SandboxClient(
+    {
+      sandboxId: instance.sandboxId,
+      appId: scope.appId,
+      userId: scope.userId,
+      chatId: sessionId
+    },
+    {
+      provider: instance.provider,
+      expectedInstance: instance,
+      identity: {
+        sourceType: 'appRuntime',
+        sourceId: scope.appId,
+        runtimeUserId: scope.userId,
+        sessionId,
+        sourceChatId: instance.sourceChatId,
+        teamId: instance.teamId,
+        ownerTmbId: instance.ownerTmbId
+      },
+      workspaceRoot:
+        instance.metadata?.workspaceRoot ??
+        (instance.metadata?.sandboxType === SandboxTypeEnum.sessionRuntime
+          ? '/home/sandbox/workspace'
+          : undefined)
+    }
+  );
 };
 
 export const deleteSandboxesByChatIds = async ({
@@ -687,31 +838,42 @@ export const deleteSandboxesByChatIds = async ({
   appId: string;
   chatIds: string[];
 }) => {
-  const instances = await findAppRuntimeSandboxes({ appId, chatIds });
-  if (!instances.length) return;
-
-  await Promise.allSettled(
-    instances.map(async (doc) => {
-      const client = getExistingSandboxClient(doc);
-      await client.delete().catch((err) => {
-        logger.error('Failed to delete sandbox', { sandboxId: doc.sandboxId, error: err });
-        return Promise.reject(err);
-      });
-    })
-  );
+  const errors: Error[] = [];
+  const instances = await findAppRuntimeSandboxes({
+    appId,
+    chatIds,
+    onIdentityConflict: (error) => errors.push(error)
+  });
+  await deleteSandboxInstances(instances, errors);
 };
 export const deleteSandboxesByAppId = async (appId: string) => {
-  const instances = await findAppRuntimeSandboxes({ appId });
-  if (!instances.length) return;
+  const errors: Error[] = [];
+  const instances = await findAppRuntimeSandboxes({
+    appId,
+    onIdentityConflict: (error) => errors.push(error)
+  });
+  await deleteSandboxInstances(instances, errors);
+};
 
-  await Promise.allSettled(
+const deleteSandboxInstances = async (
+  instances: SandboxInstanceSchemaType[],
+  identityErrors: Error[]
+) => {
+  const results = await Promise.allSettled(
     instances.map(async (doc) => {
       const client = getExistingSandboxClient(doc);
       await client.delete().catch((err) => {
         logger.error('Failed to delete sandbox', { sandboxId: doc.sandboxId, error: err });
+        throw err;
       });
     })
   );
+  const errors = [
+    ...identityErrors,
+    ...results.flatMap((result) => (result.status === 'rejected' ? [result.reason] : []))
+  ];
+  if (errors.length)
+    throw new AggregateError(errors, 'Failed to delete sandbox resources; retry cleanup');
 };
 
 // 5 分钟检查一遍，暂停

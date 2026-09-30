@@ -207,26 +207,35 @@ export async function dispatchSandboxEditFile(
 /**
  * Execute a shell command in sandbox
  */
+export async function executeAgentSandboxCommand(
+  ctx: AgentSandboxContext,
+  params: z.input<typeof SandboxExecuteSchema>
+) {
+  const workingDirectory = await validateToolPath(ctx, { path: params.workingDirectory ?? '.' });
+  if (ctx.builtinSkillRoot) {
+    return executeWorkspaceCommand({
+      provider: ctx.sandbox,
+      workspaceRoot: ctx.workDirectory,
+      ...params,
+      workingDirectory,
+      shouldStop: ctx.shouldStop
+    });
+  }
+  return ctx.sandbox.execute(params.command, {
+    workingDirectory,
+    timeoutMs: params.timeoutMs
+  });
+}
+
 export async function dispatchSandboxExecute(
   ctx: AgentSandboxContext,
   params: z.infer<typeof SandboxExecuteSchema>
 ): Promise<DispatchResult> {
   try {
-    const workingDirectory = await validateToolPath(ctx, { path: params.workingDirectory ?? '.' });
+    const result = await executeAgentSandboxCommand(ctx, params);
     if (ctx.builtinSkillRoot) {
-      const result = await executeWorkspaceCommand({
-        provider: ctx.sandbox,
-        workspaceRoot: ctx.workDirectory,
-        ...params,
-        workingDirectory,
-        shouldStop: ctx.shouldStop
-      });
       return { response: JSON.stringify(result), usages: [] };
     }
-    const result = await ctx.sandbox.execute(params.command, {
-      workingDirectory,
-      timeoutMs: params.timeoutMs
-    });
 
     const parts: string[] = [];
     parts.push(`Exit code: ${result.exitCode}`);

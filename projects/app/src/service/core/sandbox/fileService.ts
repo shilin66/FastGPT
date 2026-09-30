@@ -4,7 +4,6 @@ import mime from 'mime';
 import { posix } from 'node:path';
 import {
   assertSandboxWorkspacePath,
-  getSandboxWorkspaceRoot,
   resolveSandboxWorkspacePath
 } from '@fastgpt/service/core/ai/sandbox/workspace';
 
@@ -25,9 +24,13 @@ export async function listSandboxDirectory(
   sandbox: SandboxClient,
   path: string
 ): Promise<SandboxFileEntry[]> {
-  const dirPath = await assertSandboxWorkspacePath({ provider: sandbox.provider, path });
+  const dirPath = await assertSandboxWorkspacePath({
+    provider: sandbox.provider,
+    workspaceRoot: sandbox.workspaceRoot,
+    path
+  });
   const entries = await sandbox.provider.listDirectory(dirPath);
-  const workspaceRoot = getSandboxWorkspaceRoot(sandbox.provider);
+  const workspaceRoot = sandbox.workspaceRoot;
   const files: SandboxFileEntry[] = [];
   for (const entry of entries) {
     if (
@@ -46,7 +49,11 @@ export async function listSandboxDirectory(
     if (entryPath !== expectedPath || posix.dirname(entryPath) !== dirPath) {
       throw new Error('Invalid Sandbox directory entry');
     }
-    await assertSandboxWorkspacePath({ provider: sandbox.provider, path: entryPath });
+    await assertSandboxWorkspacePath({
+      provider: sandbox.provider,
+      workspaceRoot: sandbox.workspaceRoot,
+      path: entryPath
+    });
     files.push({
       name: entry.name,
       path: entryPath,
@@ -67,7 +74,7 @@ const assertProviderResultPath = ({
   returnedPath: string;
 }) => {
   const path = resolveSandboxWorkspacePath({
-    workspaceRoot: getSandboxWorkspaceRoot(sandbox.provider),
+    workspaceRoot: sandbox.workspaceRoot,
     path: returnedPath
   });
   if (path !== expectedPath) throw new Error('Unexpected Sandbox file result');
@@ -80,6 +87,7 @@ export async function writeSandboxFile(
 ): Promise<void> {
   const safePath = await assertSandboxWorkspacePath({
     provider: sandbox.provider,
+    workspaceRoot: sandbox.workspaceRoot,
     path,
     allowMissing: true
   });
@@ -96,7 +104,11 @@ export async function isSandboxPathDirectory(
   sandbox: SandboxClient,
   path: string
 ): Promise<boolean> {
-  const safePath = await assertSandboxWorkspacePath({ provider: sandbox.provider, path });
+  const safePath = await assertSandboxWorkspacePath({
+    provider: sandbox.provider,
+    workspaceRoot: sandbox.workspaceRoot,
+    path
+  });
   const fileInfoMap = await sandbox.provider.getFileInfo([safePath]);
   const fileInfo = fileInfoMap.get(safePath);
   if (fileInfo)
@@ -109,7 +121,11 @@ export async function getSandboxFileContent(
   path: string,
   preview?: boolean
 ): Promise<SandboxFileContent> {
-  const safePath = await assertSandboxWorkspacePath({ provider: sandbox.provider, path });
+  const safePath = await assertSandboxWorkspacePath({
+    provider: sandbox.provider,
+    workspaceRoot: sandbox.workspaceRoot,
+    path
+  });
   const results = await sandbox.provider.readFiles([safePath]);
   const result = results[0];
   if (!result) throw new Error('Missing Sandbox file result');
@@ -141,11 +157,16 @@ export async function addDirectoryToArchive(
   archivePath: string,
   depth: number = 0
 ): Promise<void> {
-  if (depth > MAX_ARCHIVE_DEPTH) return;
+  const assertActive = () => {
+    if (archive.destroyed) throw new Error('Sandbox download cancelled');
+  };
+  assertActive();
+  if (depth > MAX_ARCHIVE_DEPTH) throw new Error('Sandbox archive exceeds maximum directory depth');
 
   if (posix.isAbsolute(archivePath)) throw new Error('Invalid Sandbox archive path');
   resolveSandboxWorkspacePath({ workspaceRoot: '/archive', path: archivePath });
   const entries = await listSandboxDirectory(sandbox, dirPath);
+  assertActive();
 
   for (const entry of entries) {
     const entryArchivePath = archivePath ? `${archivePath}/${entry.name}` : entry.name;
@@ -155,15 +176,17 @@ export async function addDirectoryToArchive(
     } else {
       const safePath = await assertSandboxWorkspacePath({
         provider: sandbox.provider,
+        workspaceRoot: sandbox.workspaceRoot,
         path: entry.path
       });
+      assertActive();
       const results = await sandbox.provider.readFiles([safePath]);
+      assertActive();
       const result = results[0];
       if (!result) throw new Error('Missing Sandbox file result');
-      if (!result.error) {
-        assertProviderResultPath({ sandbox, expectedPath: safePath, returnedPath: result.path });
-        archive.append(Buffer.from(result.content), { name: entryArchivePath });
-      }
+      if (result.error) throw new Error(`Failed to archive file: ${result.error.message}`);
+      assertProviderResultPath({ sandbox, expectedPath: safePath, returnedPath: result.path });
+      archive.append(Buffer.from(result.content), { name: entryArchivePath });
     }
   }
 }

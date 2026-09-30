@@ -7,7 +7,7 @@ import { SandboxGetHtmlPreviewLinkBodySchema } from '@fastgpt/global/openapi/cor
 import { S3PrivateBucket } from '@fastgpt/service/common/s3/buckets/private';
 import { getFileS3Key } from '@fastgpt/service/common/s3/utils';
 import { addMinutes } from 'date-fns';
-import { getSandboxClient } from '@fastgpt/service/core/ai/sandbox/controller';
+import { getChatSandboxClient } from '@fastgpt/service/core/ai/sandbox/controller';
 import { getSandboxFileContent } from '@/service/core/sandbox/fileService';
 
 // 在 <head> 中注入 CSP，禁止外部脚本加载，仅允许 inline（沙箱预览场景）
@@ -23,9 +23,8 @@ function injectCspMetaTag(html: string): string {
 }
 
 async function handler(req: ApiRequestProps, res: NextApiResponse): Promise<void> {
-  const { appId, chatId, filePath, outLinkAuthData } = SandboxGetHtmlPreviewLinkBodySchema.parse(
-    req.body
-  );
+  const { appId, chatId, sandboxId, filePath, outLinkAuthData } =
+    SandboxGetHtmlPreviewLinkBodySchema.parse(req.body);
 
   // 1. 鉴权
   const { teamId, uid } = await authChatCrud({
@@ -38,33 +37,35 @@ async function handler(req: ApiRequestProps, res: NextApiResponse): Promise<void
   });
 
   // 2. 从沙箱读取实际文件内容，避免客户端传入任意 HTML
-  const sandbox = await getSandboxClient({ appId, userId: uid, chatId });
+  const sandbox = await getChatSandboxClient({ appId, userId: uid, chatId, sandboxId });
   await sandbox.ensureAvailable();
 
-  const { content, contentType } = await getSandboxFileContent(sandbox, filePath, true);
+  return sandbox.withActivity(async () => {
+    const { content, contentType } = await getSandboxFileContent(sandbox, filePath, true);
 
-  if (!contentType.startsWith('text/html')) {
-    return jsonRes(res, { code: 400, message: 'File is not an HTML file' });
-  }
+    if (!contentType.startsWith('text/html')) {
+      return jsonRes(res, { code: 400, message: 'File is not an HTML file' });
+    }
 
-  // 3. 注入 CSP meta tag 后上传到 S3
-  const safeHtml = injectCspMetaTag(content.toString('utf-8'));
-  const bucket = new S3PrivateBucket();
-  const { fileKey } = getFileS3Key.temp({ teamId, filename: 'preview.html' });
-  const expiredTime = addMinutes(new Date(), 30);
+    // 3. 注入 CSP meta tag 后上传到 S3
+    const safeHtml = injectCspMetaTag(content.toString('utf-8'));
+    const bucket = new S3PrivateBucket();
+    const { fileKey } = getFileS3Key.temp({ teamId, filename: 'preview.html' });
+    const expiredTime = addMinutes(new Date(), 30);
 
-  const {
-    accessUrl: { url }
-  } = await bucket.uploadFileByBody({
-    key: fileKey,
-    body: Buffer.from(safeHtml, 'utf-8'),
-    filename: 'preview.html',
-    contentType: 'text/html; charset=utf-8',
-    expiredTime
-  });
+    const {
+      accessUrl: { url }
+    } = await bucket.uploadFileByBody({
+      key: fileKey,
+      body: Buffer.from(safeHtml, 'utf-8'),
+      filename: 'preview.html',
+      contentType: 'text/html; charset=utf-8',
+      expiredTime
+    });
 
-  return jsonRes(res, {
-    data: url
+    return jsonRes(res, {
+      data: url
+    });
   });
 }
 

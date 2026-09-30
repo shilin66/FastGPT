@@ -6,11 +6,16 @@ const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
   readFileStream: vi.fn(),
   uploadChatFile: vi.fn(),
-  jwtSignS3ObjectKey: vi.fn()
+  jwtSignS3ObjectKey: vi.fn(),
+  workspaceRoot: '/workspace'
 }));
 
 vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
   getSandboxClient: vi.fn(async () => ({
+    withActivity: async (run: () => Promise<unknown>) => run(),
+    get workspaceRoot() {
+      return mocks.workspaceRoot;
+    },
     provider: {
       rootPath: '/workspace',
       execute: mocks.execute,
@@ -37,6 +42,7 @@ const callFileTool = (paths: string[]) =>
 describe('Sandbox file URL workspace boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.workspaceRoot = '/workspace';
     mocks.execute.mockResolvedValue({
       stdout: 'FASTGPT_WORKSPACE_PATH_OK',
       stderr: '',
@@ -65,6 +71,11 @@ describe('Sandbox file URL workspace boundary', () => {
     expect(JSON.parse(result.response)).toEqual([
       { filename: 'report.csv', fileUrl: 'https://files.example.test/report' }
     ]);
+  });
+  it('uses the persisted runtime root after falling back to the legacy download tool', async () => {
+    mocks.workspaceRoot = '/saved-workspace';
+    await callFileTool(['report.csv']);
+    expect(mocks.readFileStream).toHaveBeenCalledWith('/saved-workspace/report.csv');
   });
 
   it('整批路径先校验，避免前半批上传后才发现越界', async () => {

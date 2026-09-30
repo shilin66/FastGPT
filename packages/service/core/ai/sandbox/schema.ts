@@ -58,6 +58,7 @@ const SandboxInstanceSchema = new Schema(
     ownerTmbId: Schema.Types.ObjectId,
     runtimeUserId: String,
     sessionId: String,
+    sourceChatId: String,
     baseVersionId: Schema.Types.ObjectId,
     workspaceGeneration: String,
     currentDeploymentHash: String,
@@ -126,6 +127,10 @@ export const sandboxInstanceIndexDefinitions: {
     }
   },
   { key: { status: 1, lastActiveAt: 1 }, options: { name: 'status_1_lastActiveAt_1' } },
+  {
+    key: { sourceType: 1, sourceId: 1, sourceChatId: 1 },
+    options: { name: 'sourceType_1_sourceId_1_sourceChatId_1' }
+  },
   {
     key: { provider: 1, sandboxId: 1 },
     options: { name: 'provider_1_sandboxId_1', unique: true }

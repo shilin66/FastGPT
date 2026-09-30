@@ -61,6 +61,11 @@ export const SandboxProxyInternalResponseSchema = z.object({
 const SandboxBaseSchema = z.object({
   appId: z.string(),
   chatId: z.string(),
+  sandboxId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('本次回答使用的沙箱；仍校验应用、用户和会话归属'),
   outLinkAuthData: OutLinkChatAuthSchema.optional().describe('外链鉴权数据')
 });
 
@@ -81,6 +86,7 @@ export const SandboxFileItemSchema = z.object({
 export type SandboxFileItem = z.infer<typeof SandboxFileItemSchema>;
 
 export const SandboxListResponseSchema = z.object({
+  sandboxId: z.string().optional(),
   files: z.array(SandboxFileItemSchema)
 });
 export type SandboxListResponse = z.infer<typeof SandboxListResponseSchema>;

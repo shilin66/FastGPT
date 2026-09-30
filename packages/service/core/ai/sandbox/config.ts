@@ -11,7 +11,10 @@ import {
   type SandboxInstanceSchemaType
 } from './type';
 import { resolveSandboxWorkspacePath } from './workspace';
-import { VolumeManagerAuthRejectedBeforeEffectError } from './errors';
+import {
+  SandboxVolumeConfigurationError,
+  VolumeManagerAuthRejectedBeforeEffectError
+} from './errors';
 
 // ---- sealosdevbox ----
 export type SealosConnectionConfig = {
@@ -184,18 +187,16 @@ export const prepareVolumeManagerConfig = ({
   );
   const service = getVolumeManagerServiceConfig();
   if (!service) {
-    if (hasVolume)
-      throw new Error('Sandbox volume cleanup requires the volume manager to be enabled');
+    if (hasVolume) throw new SandboxVolumeConfigurationError('volume_manager_disabled');
     return undefined;
   }
-  if (action === 'delete' && previous?.metadata?.volumeEnabled === false && !hasVolume)
-    return undefined;
+  if (previous?.metadata?.volumeEnabled === false && !hasVolume) return undefined;
   if (!sandboxId || /[\u0000-\u001f\u007f]/.test(sandboxId))
     throw new Error('Invalid volume sessionId');
   const { baseUrl, protocol, token } = service;
   const savedBinding = storage.volumeManager;
   if (savedBinding && (savedBinding.baseUrl !== baseUrl || savedBinding.protocol !== protocol)) {
-    throw new Error('Sandbox volume manager binding does not match current configuration');
+    throw new SandboxVolumeConfigurationError('volume_manager_binding_mismatch');
   }
   if (!savedBinding && protocol === 'claimName' && (previous || action === 'delete')) {
     throw new Error('An existing Sandbox volume requires its volume manager binding');

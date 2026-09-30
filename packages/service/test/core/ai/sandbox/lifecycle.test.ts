@@ -3,11 +3,13 @@ import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
 import { MongoTimerLock } from '@fastgpt/service/common/system/timerLock/schema';
 import {
   getSandboxClient,
+  getChatSandboxClient,
   getExistingSandboxClient,
   deleteSandboxesByAppId,
   deleteSandboxesByChatIds,
   diagnoseSandboxOperation,
   recoverSandboxOperation,
+  runSandboxActivity,
   cronJob
 } from '@fastgpt/service/core/ai/sandbox/controller';
 import { withSandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
@@ -104,7 +106,68 @@ vi.mock('@fastgpt/service/common/redis', async (importOriginal) => {
 
 const sandboxId = 'lifecycle-session';
 
+describe('file browser instance binding', () => {
+  const scope = { appId: 'app', userId: 'reader', chatId: 'chat' };
+  const seedBrowser = async () => {
+    await getSandboxClient(scope, { workspaceRoot: '/workspace' });
+    const selected = await getChatSandboxClient(scope);
+    providerEnsure.mockClear();
+    volumeEnsure.mockClear();
+    return selected;
+  };
+
+  it('does not recreate a workspace deleted after the file browser selected it', async () => {
+    const client = await seedBrowser();
+    await MongoSandboxInstance.deleteMany({ sandboxId: client.id });
+    await expect(client.ensureAvailable()).rejects.toThrow('operation_conflict');
+    expect(await MongoSandboxInstance.countDocuments()).toBe(0);
+    expect(providerEnsure).not.toHaveBeenCalled();
+    expect(volumeEnsure).not.toHaveBeenCalled();
+  });
+  it('does not provision an empty container when the selected remote workspace is gone', async () => {
+    const client = await seedBrowser();
+    providerConnect.mockResolvedValue(false);
+    providerInspect.mockResolvedValue(null);
+    await expect(client.ensureAvailable()).rejects.toThrow('operation_conflict');
+    expect(providerEnsure).not.toHaveBeenCalled();
+    expect(volumeEnsure).not.toHaveBeenCalled();
+  });
+
+  it('can read a legacy workspace after ensure records its provider binding', async () => {
+    await getSandboxClient(scope, { workspaceRoot: '/workspace' });
+    await MongoSandboxInstance.updateOne(
+      { appId: scope.appId, userId: scope.userId, chatId: scope.chatId },
+      { $unset: { 'metadata.providerSandboxId': '' } }
+    );
+    const client = await getChatSandboxClient(scope);
+    await client.ensureAvailable();
+    await expect(client.withActivity(async () => 'existing file')).resolves.toBe('existing file');
+  });
+
+  it.each([
+    { sourceChatId: 'another-chat' },
+    { runtimeUserId: 'another-user', userId: 'another-user' },
+    { 'metadata.workspaceRoot': '/different-root' }
+  ])('rejects a changed workspace binding before connecting: %j', async (changes) => {
+    const client = await seedBrowser();
+    await MongoSandboxInstance.updateOne({ sandboxId: client.id }, { $set: changes });
+    await expect(client.ensureAvailable()).rejects.toThrow('operation_conflict');
+    expect(providerEnsure).not.toHaveBeenCalled();
+    expect(volumeEnsure).not.toHaveBeenCalled();
+  });
+});
+
 describe('workspace root persistence', () => {
+  it('uses the saved Skills workspace when the legacy Shell path is selected on a later turn', async () => {
+    const scope = { appId: 'app', userId: 'owner', chatId: 'chat' };
+    await getSandboxClient(scope, { workspaceRoot: '/workspace/custom' });
+    const client = await getSandboxClient(scope);
+    await client.exec('pwd', 5);
+    expect(providerExecute).toHaveBeenLastCalledWith('pwd', {
+      timeoutMs: 5000,
+      workingDirectory: '/workspace/custom'
+    });
+  });
   it('records the workspace root before provider creation fails', async () => {
     providerEnsure.mockRejectedValueOnce(new Error('provider failed'));
     await expect(
@@ -1403,4 +1466,81 @@ describe('Sandbox token lease', () => {
     });
     expect(redisStorage.get('test-lease')?.token).toBe('replacement');
   });
+});
+
+describe('Sandbox activity lifecycle protection', () => {
+  const scope = { provider: 'opensandbox' as const, sandboxId };
+
+  it('refreshes lastActiveAt before invoking a running workspace callback', async () => {
+    const oldActivity = new Date('2026-01-01T00:00:00Z');
+    await seedInstance({ lastActiveAt: oldActivity });
+    const startedAt = Date.now();
+    const result = await runSandboxActivity(scope, async () => {
+      const current = await MongoSandboxInstance.findOne(scope).lean();
+      expect(current?.status).toBe('running');
+      expect(current?.lastActiveAt.getTime()).toBeGreaterThanOrEqual(startedAt);
+      return 'workspace-result';
+    });
+    expect(result).toBe('workspace-result');
+    expect(providerEnsure).not.toHaveBeenCalled();
+  });
+
+  it('prevents stop and delete from reaching the provider while a callback is pending', async () => {
+    const client = getExistingSandboxClient(await seedInstance());
+    const entered = deferred();
+    const finish = deferred();
+    const activity = runSandboxActivity(scope, async () => {
+      entered.resolve();
+      await finish.promise;
+      return 'finished';
+    });
+    await entered.promise;
+    try {
+      await expect(client.stop()).rejects.toThrow('operation_conflict');
+      await expect(client.delete()).rejects.toThrow('operation_conflict');
+      expect(providerStop).not.toHaveBeenCalled();
+      expect(providerDelete).not.toHaveBeenCalled();
+      expect(providerConnect).not.toHaveBeenCalled();
+      expect(volumeDelete).not.toHaveBeenCalled();
+      expect(await MongoSandboxInstance.findOne(scope).lean()).toMatchObject({ status: 'running' });
+    } finally {
+      finish.resolve();
+      await activity;
+    }
+  });
+
+  it('releases the activity lease after completion so a workspace can stop', async () => {
+    const client = getExistingSandboxClient(await seedInstance());
+    await expect(runSandboxActivity(scope, async () => 'done')).resolves.toBe('done');
+    await client.stop();
+    expect(providerStop).toHaveBeenCalledTimes(1);
+    expect(await MongoSandboxInstance.findOne(scope).lean()).toMatchObject({ status: 'stopped' });
+  });
+
+  it('preserves the callback error and releases the lease so a workspace can stop', async () => {
+    const client = getExistingSandboxClient(await seedInstance());
+    const failure = new Error('tool command failed');
+    await expect(
+      runSandboxActivity(scope, async () => {
+        throw failure;
+      })
+    ).rejects.toBe(failure);
+    await client.stop();
+    expect(providerStop).toHaveBeenCalledTimes(1);
+    expect(await MongoSandboxInstance.findOne(scope).lean()).toMatchObject({ status: 'stopped' });
+  });
+
+  it.each(['missing', 'stopped', 'deleting'])(
+    'does not execute a callback for a %s workspace',
+    async (status) => {
+      if (status !== 'missing') await seedInstance({ status });
+      const callback = vi.fn().mockResolvedValue('must not execute');
+      await expect(runSandboxActivity(scope, callback)).rejects.toThrow('operation_conflict');
+      expect(callback).not.toHaveBeenCalled();
+      expect(providerEnsure).not.toHaveBeenCalled();
+      expect(providerConnect).not.toHaveBeenCalled();
+      expect(volumeEnsure).not.toHaveBeenCalled();
+      expect(await MongoSandboxInstance.countDocuments(scope)).toBe(status === 'missing' ? 0 : 1);
+    }
+  );
 });

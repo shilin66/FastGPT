@@ -29,6 +29,7 @@ type Props = {
   isUpdatingRef: React.MutableRefObject<boolean>;
   appId: string;
   chatId: string;
+  sandboxId?: string;
   outLinkAuthData?: OutLinkChatAuthProps;
 };
 
@@ -45,6 +46,7 @@ const EditorContent = ({
   isUpdatingRef,
   appId,
   chatId,
+  sandboxId,
   outLinkAuthData
 }: Props) => {
   const { t } = useTranslation();
@@ -70,6 +72,7 @@ const EditorContent = ({
       const url = await getHtmlPreviewLink({
         appId,
         chatId,
+        sandboxId,
         filePath: activeFile.path,
         outLinkAuthData
       });

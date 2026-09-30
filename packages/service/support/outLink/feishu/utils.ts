@@ -13,7 +13,7 @@ import { getOrCreateOutLinkChatId } from '../session';
 
 const resetCommand = /^reset$/i;
 const mentionPattern = /@_user_\d+\s*/g;
-const mentionAllPattern = /(^|\s)@_all(?=\s|$)/;
+const mentionAllPattern = /@_all/;
 const feishuOpenIdPattern = /^ou_[A-Za-z0-9_-]+$/;
 
 export const parseFeishuPayload = (body: any): FeishuCallbackPayload | undefined => {

@@ -420,6 +420,36 @@ export const masterCall = async ({
               usages: result.usages
             };
           }
+          // Capability tools (e.g. sandbox skills)
+          const capResult = await capabilityToolCallHandler?.(
+            toolId,
+            call.function.arguments ?? '',
+            callId
+          );
+          if (capResult != null) {
+            sandboxState.unavailable ||= !!capResult.assistantResponses?.some(
+              (value) => value.sandboxEvent?.status === 'degraded'
+            );
+            if (capResult.assistantResponses?.length) {
+              capabilityAssistantResponses.push(...capResult.assistantResponses);
+            }
+            const subInfo = getSubAppInfo(toolId);
+            childrenResponses.push({
+              toolId,
+              nodeId: callId,
+              id: callId,
+              moduleType: FlowNodeTypeEnum.tool,
+              moduleName: subInfo.name,
+              moduleLogo: subInfo.avatar,
+              toolInput: parseJsonArgs(call.function.arguments),
+              toolRes: capResult.response
+            });
+            return {
+              response: capResult.response,
+              usages: capResult.usages || []
+            };
+          }
+
           if (toolId === SANDBOX_TOOL_NAME) {
             const toolParams = SandboxShellToolSchema.safeParse(
               parseJsonArgs(call.function.arguments)
@@ -526,35 +556,6 @@ export const masterCall = async ({
           }
 
           // TODO: 所有内置工具，合并成一个 function
-          // Capability tools (e.g. sandbox skills)
-          const capResult = await capabilityToolCallHandler?.(
-            toolId,
-            call.function.arguments ?? '',
-            callId
-          );
-          if (capResult != null) {
-            sandboxState.unavailable ||= !!capResult.assistantResponses?.some(
-              (value) => value.sandboxEvent?.status === 'degraded'
-            );
-            if (capResult.assistantResponses?.length) {
-              capabilityAssistantResponses.push(...capResult.assistantResponses);
-            }
-            const subInfo = getSubAppInfo(toolId);
-            childrenResponses.push({
-              nodeId: callId,
-              id: callId,
-              moduleType: FlowNodeTypeEnum.tool,
-              moduleName: subInfo.name,
-              moduleLogo: subInfo.avatar,
-              toolInput: parseJsonArgs(call.function.arguments),
-              toolRes: capResult.response
-            });
-            return {
-              response: capResult.response,
-              usages: capResult.usages || []
-            };
-          }
-
           // User Sub App
           const tool = getSubApp(toolId);
           if (!tool) {
