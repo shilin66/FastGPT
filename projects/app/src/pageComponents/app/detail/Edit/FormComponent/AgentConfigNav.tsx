@@ -15,15 +15,18 @@ export type AgentConfigTask<Key extends string> = {
 const AgentConfigNav = <Key extends string>({
   tasks,
   activeKey,
-  onSelect
+  onSelect,
+  forceCollapsed = false
 }: {
   readonly tasks: readonly AgentConfigTask<Key>[];
   readonly activeKey?: Key;
   readonly onSelect: (key: Key) => void;
+  readonly forceCollapsed?: boolean;
 }) => {
   const { t } = useTranslation();
   const navId = useId();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const collapsed = isCollapsed || forceCollapsed;
 
   useEffect(() => {
     setIsCollapsed(localStorage.getItem(CONFIG_NAV_COLLAPSED_KEY) === '1');
@@ -44,14 +47,10 @@ const AgentConfigNav = <Key extends string>({
       aria-label={String(t('app:agent_config_map'))}
       direction={'column'}
       w={
-        isCollapsed
-          ? omniTheme.layout.agentNavCollapsedWidth
-          : omniTheme.layout.agentNavExpandedWidth
+        collapsed ? omniTheme.layout.agentNavCollapsedWidth : omniTheme.layout.agentNavExpandedWidth
       }
       minW={
-        isCollapsed
-          ? omniTheme.layout.agentNavCollapsedWidth
-          : omniTheme.layout.agentNavExpandedWidth
+        collapsed ? omniTheme.layout.agentNavCollapsedWidth : omniTheme.layout.agentNavExpandedWidth
       }
       h={'full'}
       overflow={'hidden'}
@@ -63,10 +62,10 @@ const AgentConfigNav = <Key extends string>({
         h={omniTheme.layout.agentNavHeaderHeight}
         minH={omniTheme.layout.agentNavHeaderHeight}
         alignItems={'center'}
-        justifyContent={isCollapsed ? 'center' : 'space-between'}
-        px={isCollapsed ? 2 : 3}
+        justifyContent={collapsed ? 'center' : 'space-between'}
+        px={collapsed ? 2 : 3}
       >
-        {!isCollapsed && (
+        {!collapsed && (
           <Box
             color={omniTheme.colors.muted}
             fontSize={omniTheme.typography.agentMicro}
@@ -78,7 +77,7 @@ const AgentConfigNav = <Key extends string>({
         )}
         <MyTooltip
           label={t(
-            isCollapsed
+            collapsed
               ? 'app:agent_config_expand_navigation'
               : 'app:agent_config_collapse_navigation'
           )}
@@ -87,13 +86,14 @@ const AgentConfigNav = <Key extends string>({
           <IconButton
             aria-label={String(
               t(
-                isCollapsed
+                collapsed
                   ? 'app:agent_config_expand_navigation'
                   : 'app:agent_config_collapse_navigation'
               )
             )}
             aria-controls={navId}
-            aria-expanded={!isCollapsed}
+            aria-expanded={!collapsed}
+            isDisabled={forceCollapsed}
             size={'sm'}
             minW={8}
             w={8}
@@ -109,15 +109,13 @@ const AgentConfigNav = <Key extends string>({
               borderColor: omniTheme.colors.saturatedBlue
             }}
             _focusVisible={{ boxShadow: `0 0 0 2px ${omniTheme.colors.saturatedBlueSoft}` }}
-            icon={
-              <MyIcon name={isCollapsed ? 'common/arrowRight' : 'common/arrowLeft'} w={'14px'} />
-            }
+            icon={<MyIcon name={collapsed ? 'common/arrowRight' : 'common/arrowLeft'} w={'14px'} />}
             onClick={toggleCollapsed}
           />
         </MyTooltip>
       </Flex>
 
-      <Flex direction={'column'} gap={1} px={isCollapsed ? 2 : 2.5}>
+      <Flex direction={'column'} gap={1} px={collapsed ? 2 : 2.5}>
         {tasks.map((task, index) => {
           const isActive = activeKey === task.key;
           const number = String(index + 1).padStart(2, '0');
@@ -130,11 +128,11 @@ const AgentConfigNav = <Key extends string>({
               aria-current={isActive ? 'location' : undefined}
               position={'relative'}
               alignItems={'center'}
-              justifyContent={isCollapsed ? 'center' : 'flex-start'}
+              justifyContent={collapsed ? 'center' : 'flex-start'}
               gap={2}
               w={'full'}
               minH={omniTheme.layout.agentNavItemMinHeight}
-              px={isCollapsed ? 0 : 2}
+              px={collapsed ? 0 : 2}
               borderRadius={omniTheme.radii.sm}
               color={isActive ? omniTheme.colors.saturatedBlue : omniTheme.colors.muted}
               bg={isActive ? omniTheme.colors.pageBg : 'transparent'}
@@ -150,7 +148,7 @@ const AgentConfigNav = <Key extends string>({
                 position: 'absolute',
                 top: 2,
                 bottom: 2,
-                left: isCollapsed ? '-8px' : '-10px',
+                left: collapsed ? '-8px' : '-10px',
                 w: '2px',
                 bg: isActive ? omniTheme.colors.saturatedBlue : 'transparent'
               }}
@@ -165,7 +163,7 @@ const AgentConfigNav = <Key extends string>({
               >
                 {number}
               </Box>
-              {!isCollapsed && (
+              {!collapsed && (
                 <Box
                   minW={0}
                   noOfLines={1}
@@ -178,7 +176,7 @@ const AgentConfigNav = <Key extends string>({
             </Flex>
           );
 
-          return isCollapsed ? (
+          return collapsed ? (
             <MyTooltip key={task.key} label={task.label} placement={'right'}>
               {taskButton}
             </MyTooltip>

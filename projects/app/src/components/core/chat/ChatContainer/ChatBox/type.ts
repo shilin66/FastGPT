@@ -2,7 +2,8 @@ import type { ChatFileTypeEnum, ChatStatusEnum } from '@fastgpt/global/core/chat
 import type {
   ChatHistoryItemResType,
   ChatItemObjItemType,
-  ResponseTagItemType
+  ResponseTagItemType,
+  SandboxStatusPhase
 } from '@fastgpt/global/core/chat/type';
 import type { WorkflowInteractiveResponseType } from '@fastgpt/global/core/workflow/template/system/interactive/type';
 
@@ -52,6 +53,7 @@ export type ChatSiteItemType = ChatItemObjItemType & {
   dataId: string;
   status: `${ChatStatusEnum}`;
   moduleName?: string;
+  sandboxPhase?: SandboxStatusPhase;
   ttsBuffer?: Uint8Array;
   responseData?: ChatHistoryItemResType[];
   time?: Date;

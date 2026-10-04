@@ -278,12 +278,12 @@ describe.each(actions)('Sandbox %s ownership fence', (action) => {
     expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toEqual(before);
   });
 
-  it.each(['archived', 'archiving', 'restoring'] as const)(
-    'does not mutate unsupported %s resources',
+  it.each(['archiving', 'restoring'] as const)(
+    'does not take over active %s resources',
     async (status) => {
       const before = await seed({ status, operation: operation('archive', 'uploaded') });
       const run = vi.fn();
-      await expect(execute(action, run)).rejects.toThrow('archive');
+      await expect(execute(action, run)).rejects.toThrow('operation_conflict');
       expect(run).not.toHaveBeenCalled();
       expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toEqual(before);
     }
@@ -531,7 +531,17 @@ describe('Sandbox rolling-upgrade stop compatibility', () => {
     }
   );
 
-  describe.each(['stop', 'delete'] as const)('%s remains fenced', (action) => {
+  it.each(completedOperations)(
+    'allows deleting a stopped %s/%s workspace through its current binding',
+    async (type, checkpoint) => {
+      await seed({ status: 'stopped', operation: operation(type, checkpoint) });
+      const run = vi.fn();
+      await execute('delete', run);
+      expect(run).toHaveBeenCalledOnce();
+    }
+  );
+
+  describe.each(['stop'] as const)('%s remains fenced', (action) => {
     it.each(completedOperations)(
       'does not extend %s/%s legacy stopped compatibility to other actions',
       async (type, checkpoint) => {

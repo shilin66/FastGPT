@@ -210,12 +210,12 @@ describe.each([SandboxTypeEnum.editDebug, SandboxTypeEnum.sessionRuntime])(
         }
       );
 
-      it('does not infer Runtime capacity from the ordinary VM appRuntime identity alone', async () => {
+      it('applies the Runtime quota to ordinary appRuntime instances without metadata enrichment', async () => {
         limit(0);
         const sandboxId = await seed({ sourceType: 'appRuntime', metadata: {} });
         const run = vi.fn(ready);
-        await ensure(sandboxId, run);
-        expect(run).toHaveBeenCalledOnce();
+        await expect(ensure(sandboxId, run)).rejects.toThrow('sandbox limit reached');
+        expect(run).not.toHaveBeenCalled();
       });
     }
   }

@@ -43,7 +43,13 @@ GET /health
 POST /v1/volumes/ensure
 Content-Type: application/json
 
-{ "sessionId": "<24位十六进制字符串>" }
+{ "sessionId": "<会话 ID>" }
+```
+
+或直接指定卷名：
+
+```json
+{ "claimName": "omni-<UUID>" }
 ```
 
 - 卷已存在：返回 `200`，`{ "claimName": "...", "created": false }`
@@ -53,6 +59,12 @@ Content-Type: application/json
 
 ```
 DELETE /v1/volumes/:sessionId
+```
+
+按卷名删除时使用：
+
+```
+DELETE /v1/volumes/:claimName?mode=claimName
 ```
 
 响应：`204 No Content`（幂等，卷不存在时同样返回 204）
@@ -65,7 +77,7 @@ DELETE /v1/volumes/:sessionId
 | `VM_RUNTIME` | | `kubernetes` | 运行时：`kubernetes` 或 `docker` |
 | `VM_PORT` | | `3001` | 监听端口 |
 | `VM_LOG_LEVEL` | | `info` | 日志级别：`debug` / `info` / `none` |
-| `VM_VOLUME_NAME_PREFIX` | | `fastgpt-session` | 卷名前缀 |
+| `VM_VOLUME_NAME_PREFIX` | | `omni` | 通过 sessionId 创建卷时使用的前缀 |
 | `VM_DOCKER_SOCKET` | | `/var/run/docker.sock` | Docker socket 路径（docker 模式） |
 | `VM_K8S_NAMESPACE` | | `opensandbox` | PVC 所在命名空间（k8s 模式） |
 | `VM_K8S_PVC_STORAGE_CLASS` | | `standard` | PVC StorageClass（k8s 模式） |

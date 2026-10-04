@@ -4,12 +4,18 @@ import { ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { MongoApp } from '@fastgpt/service/core/app/schema';
 import { MongoChat } from '@fastgpt/service/core/chat/chatSchema';
+import { MongoOutLink } from '@fastgpt/service/support/outLink/schema';
 import { getUser } from '@test/datas/users';
 import { Call } from '@test/utils/request';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MongoResourcePermission } from '@fastgpt/service/support/permission/schema';
 import { AppReadChatLogPerVal } from '@fastgpt/global/support/permission/app/constant';
 import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant';
+
+const { deleteSandboxesMock } = vi.hoisted(() => ({ deleteSandboxesMock: vi.fn() }));
+vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
+  deleteSandboxesByChatIds: deleteSandboxesMock
+}));
 
 describe('clearHistories api test', () => {
   let testUser: Awaited<ReturnType<typeof getUser>>;
@@ -17,6 +23,7 @@ describe('clearHistories api test', () => {
   let chatIds: string[];
 
   beforeEach(async () => {
+    deleteSandboxesMock.mockReset().mockResolvedValue(undefined);
     testUser = await getUser('test-user-clear-histories');
 
     // Create test app
@@ -77,6 +84,63 @@ describe('clearHistories api test', () => {
       expect(chat.deleteTime).toBeDefined();
       expect(chat.deleteTime).toBeInstanceOf(Date);
     });
+    expect(deleteSandboxesMock).toHaveBeenCalledExactlyOnceWith({
+      appId,
+      chatIds: expect.arrayContaining(chatIds),
+      runtimeUserId: testUser.tmbId
+    });
+    expect(deleteSandboxesMock.mock.calls[0][0].chatIds).toHaveLength(chatIds.length);
+  });
+
+  it('keeps all histories visible when one sandbox cleanup fails', async () => {
+    deleteSandboxesMock.mockRejectedValueOnce(new Error('sandbox cleanup failed'));
+
+    const failed = await Call(handler, { auth: testUser, query: { appId } });
+    expect(failed.code).toBe(500);
+    expect(await MongoChat.countDocuments({ appId, deleteTime: null })).toBe(chatIds.length);
+
+    const retried = await Call(handler, { auth: testUser, query: { appId } });
+    expect(retried.code).toBe(200);
+    expect(await MongoChat.countDocuments({ appId, deleteTime: null })).toBe(0);
+    expect(deleteSandboxesMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears only the published portal user's chats and sandboxes", async () => {
+    const shareId = getNanoid();
+    const outLinkUid = getNanoid();
+    const portalChatId = getNanoid();
+    await MongoOutLink.create({
+      appId,
+      teamId: testUser.teamId,
+      tmbId: testUser.tmbId,
+      name: 'Portal',
+      shareId,
+      type: 'share'
+    });
+    await MongoChat.create({
+      appId,
+      teamId: testUser.teamId,
+      tmbId: testUser.tmbId,
+      chatId: portalChatId,
+      outLinkUid,
+      source: ChatSourceEnum.online
+    });
+
+    const res = await Call(handler, { query: { appId, shareId, outLinkUid } });
+
+    expect(res.code).toBe(200);
+    expect(deleteSandboxesMock).toHaveBeenCalledExactlyOnceWith({
+      appId,
+      chatIds: [portalChatId],
+      runtimeUserId: outLinkUid
+    });
+    expect(
+      (await MongoChat.findOne({ appId, chatId: portalChatId }, { deleteTime: 1 }).lean())
+        ?.deleteTime
+    ).toBeInstanceOf(Date);
+    expect(
+      await MongoChat.countDocuments({ appId, chatId: { $in: chatIds }, deleteTime: null })
+    ).toBe(chatIds.length);
   });
 
   it('should only clear chats for the specific user', async () => {

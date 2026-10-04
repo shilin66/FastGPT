@@ -143,8 +143,7 @@ const AppChatWindow = () => {
 
   return (
     <Flex h={'100%'} flexDirection={['column', 'row']}>
-      {/* set window title and icon */}
-      <NextHead title={chatBoxData.app.name} icon={chatBoxData.app.avatar} />
+      <NextHead title={chatBoxData.app.name} />
 
       {!isPc && (
         <ChatSliderMobileDrawer

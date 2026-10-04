@@ -55,6 +55,14 @@ export const env = createEnv({
 
     AGENT_SANDBOX_MAX_EDIT_DEBUG: NumSchema.default(100),
     AGENT_SANDBOX_MAX_SESSION_RUNTIME: NumSchema.optional(),
+    AGENT_SANDBOX_SUSPEND_MINUTES: NumSchema.pipe(z.number().int().positive()).default(60),
+    AGENT_SANDBOX_ARCHIVE_INACTIVE_DAYS: NumSchema.pipe(z.number().int().positive()).default(7),
+    AGENT_SANDBOX_ORPHAN_SWEEP_ENABLED: BoolSchema.default(true),
+    AGENT_SANDBOX_ORPHAN_GRACE_HOURS: NumSchema.pipe(z.number().int().positive()).default(24),
+    AGENT_SANDBOX_ORPHAN_BATCH_SIZE: NumSchema.pipe(z.number().int().min(1).max(500)).default(100),
+    AGENT_SANDBOX_ARCHIVE_MAX_BYTES: NumSchema.pipe(z.number().int().positive()).default(
+      200 * 1024 * 1024
+    ),
 
     // 对象存储
     STORAGE_VENDOR: StorageVendorSchema.default('minio'),

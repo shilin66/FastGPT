@@ -52,7 +52,8 @@ export const SandboxStorageSchema = z.object({
       protocol: z.enum(['sessionId', 'claimName']),
       baseUrl: z.string().url(),
       target: z.string().min(1),
-      ensured: z.boolean().optional()
+      ensured: z.boolean().optional(),
+      generationId: z.string().optional()
     })
     .optional()
 });
@@ -91,6 +92,7 @@ export const SandboxInstanceZodSchema = z.object({
   _id: z.string(),
   schemaVersion: z.number().optional(),
   sandboxId: z.string(),
+  providerScope: z.string().optional(),
   sourceType: SandboxSourceTypeSchema.optional(),
   sourceId: z.string().optional(),
   teamId: z.string().optional(),
@@ -98,11 +100,19 @@ export const SandboxInstanceZodSchema = z.object({
   runtimeUserId: z.string().optional(),
   sessionId: z.string().optional(),
   sourceChatId: z.string().optional(),
+  reuseScope: z.enum(['user', 'session']).optional(),
   baseVersionId: z.string().optional(),
   workspaceGeneration: z.string().optional(),
   currentDeploymentHash: z.string().optional(),
   capacityReserved: z.boolean().optional(),
   operation: SandboxOperationSchema.optional(),
+  orphan: z
+    .object({
+      reason: z.enum(['source_deleted', 'chat_unreferenced', 'deletion_pending']),
+      detectedAt: z.coerce.date(),
+      lastActiveAt: z.coerce.date()
+    })
+    .optional(),
   appId: z.string().nullish(),
   userId: z.string().nullish(),
   chatId: z.string().nullish(),
@@ -111,6 +121,16 @@ export const SandboxInstanceZodSchema = z.object({
   createdAt: z.coerce.date(),
   archiveAt: z.coerce.date().nullable().optional(),
   deleteTime: z.coerce.date().nullable().optional(),
+  releasedAt: z.coerce.date().nullable().optional(),
+  archive: z
+    .object({
+      key: z.string(),
+      size: z.number().int().positive(),
+      hash: z.string().regex(/^[a-f0-9]{64}$/),
+      createdAt: z.coerce.date()
+    })
+    .optional(),
+  archiveKeys: z.array(z.string()).optional(),
   limit: SandboxLimitSchema.nullish(),
   provider: SandboxProviderSchema,
   storage: SandboxStorageSchema.nullish(),
@@ -137,6 +157,7 @@ export const SandboxOperationDiagnosisSchema = z.object({
     'remote_outcome_unknown',
     'pre_effect_retry_confirmed',
     'provider_stop_confirmed',
+    'provider_release_confirmed',
     'provider_delete_confirmed'
   ])
 });

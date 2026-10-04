@@ -36,7 +36,7 @@ const AppDetail = () => {
 
   return (
     <>
-      <NextHead title={appDetail.name} icon={appDetail.avatar}></NextHead>
+      <NextHead title={appDetail.name}></NextHead>
       <Box h={'100%'} position={'relative'} bg={'myGray.25'}>
         {!appDetail._id ? (
           <Loading fixed={false} />

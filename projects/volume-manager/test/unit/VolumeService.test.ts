@@ -28,17 +28,17 @@ describe('VolumeService', () => {
 
   it('delegates ensure to driver', async () => {
     vi.mocked(driver.ensure).mockResolvedValue({
-      claimName: 'fastgpt-session-' + VALID_ID,
+      claimName: 'omni-' + VALID_ID,
       created: true
     });
     const result = await service.ensure(VALID_ID);
-    expect(driver.ensure).toHaveBeenCalledWith(VALID_ID);
+    expect(driver.ensure).toHaveBeenCalledWith(VALID_ID, 'sessionId');
     expect(result.created).toBe(true);
   });
 
   it('delegates remove to driver', async () => {
     vi.mocked(driver.remove).mockResolvedValue(undefined);
     await service.remove(VALID_ID);
-    expect(driver.remove).toHaveBeenCalledWith(VALID_ID);
+    expect(driver.remove).toHaveBeenCalledWith(VALID_ID, 'sessionId');
   });
 });

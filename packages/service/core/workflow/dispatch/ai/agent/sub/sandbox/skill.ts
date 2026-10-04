@@ -26,7 +26,8 @@ import { isSandboxInfrastructureError } from '../../../../../../ai/sandbox/error
 import { serverRequestBaseUrl } from '../../../../../../../common/api/serverRequest';
 import {
   assertSandboxWorkspacePath,
-  resolveSandboxWorkspacePath
+  resolveSandboxWorkspacePath,
+  resolveSandboxToolPath
 } from '../../../../../../ai/sandbox/workspace';
 
 type DispatchResult = {
@@ -34,14 +35,22 @@ type DispatchResult = {
   usages: [];
 };
 
+const resolveToolPath = (ctx: AgentSandboxContext, path: string) =>
+  resolveSandboxToolPath({
+    workspaceRoot: ctx.workspaceRoot ?? ctx.workDirectory,
+    workingDirectory: ctx.workDirectory,
+    path
+  });
+
 const validateToolPath = (
   ctx: AgentSandboxContext,
   options: { path: string; allowMissing?: boolean }
 ) =>
   assertSandboxWorkspacePath({
     provider: ctx.sandbox,
-    workspaceRoot: ctx.workDirectory,
-    ...options
+    workspaceRoot: ctx.workspaceRoot ?? ctx.workDirectory,
+    ...options,
+    path: resolveToolPath(ctx, options.path)
   });
 
 const assertFileResult = (
@@ -54,7 +63,7 @@ const assertFileResult = (
   if (!file) throw new Error('Missing Sandbox file result');
   if (file.error) throw file.error;
   const returnedPath = resolveSandboxWorkspacePath({
-    workspaceRoot: ctx.workDirectory,
+    workspaceRoot: ctx.workspaceRoot ?? ctx.workDirectory,
     path: file.path
   });
   if (returnedPath !== expectedPath) throw new Error('Unexpected Sandbox file result');
@@ -74,15 +83,18 @@ export async function dispatchSandboxReadFile(
           const workspaceRoot =
             ctx.builtinSkillRoot && path === `${ctx.builtinSkillRoot}/SKILL.md`
               ? ctx.builtinSkillRoot
-              : ctx.workDirectory;
+              : ctx.workspaceRoot ?? ctx.workDirectory;
           const result = await readSandboxTextRange({
             provider: ctx.sandbox,
             workspaceRoot,
-            path,
+            path:
+              ctx.builtinSkillRoot && path === `${ctx.builtinSkillRoot}/SKILL.md`
+                ? path
+                : resolveToolPath(ctx, path),
             startLine: params.startLine,
             maxLines: params.maxLines
           });
-          return `--- ${resolveSandboxWorkspacePath({ workspaceRoot, path })} ---\n${result.type === 'binary' ? `[Binary file: ${result.size} bytes]` : result.content}${result.truncated ? '\n[Truncated; request a later startLine or inspect the log with a bounded command.]' : ''}`;
+          return `--- ${resolveSandboxWorkspacePath({ workspaceRoot, path: ctx.builtinSkillRoot && path === `${ctx.builtinSkillRoot}/SKILL.md` ? path : resolveToolPath(ctx, path) })} ---\n${result.type === 'binary' ? `[Binary file: ${result.size} bytes]` : result.content}${result.truncated ? '\n[Truncated; request a later startLine or inspect the log with a bounded command.]' : ''}`;
         })
       );
       return { response: results.join('\n\n'), usages: [] };
@@ -141,7 +153,7 @@ export async function dispatchSandboxWriteFile(
     ]);
     assertFileResult(ctx, { file: files[0], expectedPath: path });
 
-    return { response: `File written successfully: ${params.path}`, usages: [] };
+    return { response: `File written successfully: ${path}`, usages: [] };
   } catch (error) {
     if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
     return {
@@ -193,7 +205,7 @@ export async function dispatchSandboxEditFile(
       assertFileResult(ctx, { file: results[0], expectedPath: path });
     }
 
-    const editedPaths = params.entries.map((e) => e.path).join(', ');
+    const editedPaths = entries.map((e) => e.path).join(', ');
     return { response: `Files edited successfully: ${editedPaths}`, usages: [] };
   } catch (error) {
     if (isSandboxInfrastructureError(error)) throw new SandboxUnavailableError();
@@ -211,19 +223,12 @@ export async function executeAgentSandboxCommand(
   ctx: AgentSandboxContext,
   params: z.input<typeof SandboxExecuteSchema>
 ) {
-  const workingDirectory = await validateToolPath(ctx, { path: params.workingDirectory ?? '.' });
-  if (ctx.builtinSkillRoot) {
-    return executeWorkspaceCommand({
-      provider: ctx.sandbox,
-      workspaceRoot: ctx.workDirectory,
-      ...params,
-      workingDirectory,
-      shouldStop: ctx.shouldStop
-    });
-  }
-  return ctx.sandbox.execute(params.command, {
-    workingDirectory,
-    timeoutMs: params.timeoutMs
+  return executeWorkspaceCommand({
+    provider: ctx.sandbox,
+    workspaceRoot: ctx.workspaceRoot ?? ctx.workDirectory,
+    ...params,
+    workingDirectory: resolveToolPath(ctx, params.workingDirectory ?? '.'),
+    shouldStop: ctx.shouldStop
   });
 }
 
@@ -239,6 +244,8 @@ export async function dispatchSandboxExecute(
 
     const parts: string[] = [];
     parts.push(`Exit code: ${result.exitCode}`);
+    if (result.reason !== 'completed' && result.reason !== 'failed')
+      parts.push(`Termination reason: ${result.reason}`);
     if (result.stdout) parts.push(`stdout:\n${result.stdout}`);
     if (result.stderr) parts.push(`stderr:\n${result.stderr}`);
 

@@ -1,7 +1,13 @@
 diff --git a/dist/adapters/OpenSandboxAdapter/index.d.ts b/dist/adapters/OpenSandboxAdapter/index.d.ts
-index ab6400afa..320b03be9 100644
+index ab6400afa0eb955ffd478c23ca3336149c3ce41e..d0b6160aa67204b9165824300cf71a6b0406a3fd 100644
 --- a/dist/adapters/OpenSandboxAdapter/index.d.ts
 +++ b/dist/adapters/OpenSandboxAdapter/index.d.ts
+@@ -1,4 +1,4 @@
+-import type { Endpoint, ExecuteOptions, ExecuteResult, FileWriteEntry, FileWriteResult, SandboxId, SandboxInfo, SandboxMetrics, StreamHandlers } from '@/types';
++import type { Endpoint, ExecuteOptions, ExecuteResult, FileWriteEntry, FileWriteResult, FileReadResult, FileInfo, ReadFileOptions, SandboxId, SandboxInfo, SandboxMetrics, StreamHandlers } from '@/types';
+ import { BaseSandboxAdapter } from '../BaseSandboxAdapter';
+ import type { OpenSandboxConfigType } from './type';
+ export type { OpenSandboxConfigType } from './type';
 @@ -71,6 +71,8 @@ export declare class OpenSandboxAdapter extends BaseSandboxAdapter {
      private parseResourceLimits;
      private extractExitCode;
@@ -11,11 +17,20 @@ index ab6400afa..320b03be9 100644
      ensureRunning(): Promise<void>;
      create(): Promise<void>;
      connect(sandboxId: string): Promise<void>;
+@@ -92,6 +94,8 @@ export declare class OpenSandboxAdapter extends BaseSandboxAdapter {
+     getEndpoint(port: number): Promise<Endpoint>;
+     getInfo(): Promise<SandboxInfo | null>;
+     renewExpiration(additionalSeconds: number): Promise<void>;
++    readFiles(paths: string[], options?: ReadFileOptions): Promise<FileReadResult[]>;
++    getFileInfo(paths: string[]): Promise<Map<string, FileInfo>>;
+     writeFiles(entries: FileWriteEntry[]): Promise<FileWriteResult[]>;
+     execute(command: string, options?: ExecuteOptions): Promise<ExecuteResult>;
+     executeStream(command: string, handlers: StreamHandlers, options?: ExecuteOptions): Promise<void>;
 diff --git a/dist/index.cjs b/dist/index.cjs
-index 4dd189779..43dc978d4 100644
+index 4dd1897796ff6fb9915d9451cc3fb29cee28e930..c98a586d14c6e11ef1e9e1e0a209dcb57d56692b 100644
 --- a/dist/index.cjs
 +++ b/dist/index.cjs
-@@ -45054,7 +45054,9 @@ class CommandPolyfillService {
+@@ -45056,7 +45056,9 @@ class CommandPolyfillService {
          throw error;
        }
        if (error instanceof CommandExecutionError) {
@@ -26,7 +41,7 @@ index 4dd189779..43dc978d4 100644
        }
        throw error;
      }
-@@ -48171,8 +48171,16 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48171,8 +48173,16 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
    async getSandboxBySessionId() {
      const manager = SandboxManager.create({ connectionConfig: this._connection });
      const result = await manager.listSandboxInfos({
@@ -44,7 +59,7 @@ index 4dd189779..43dc978d4 100644
      const val = result.items[0];
      if (val) {
        const status = this.mapStatus(val.status);
-@@ -48182,6 +48190,39 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48182,6 +48192,39 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
        };
      }
    }
@@ -84,7 +99,7 @@ index 4dd189779..43dc978d4 100644
    async ensureRunning() {
      const sandbox = await this.getSandboxBySessionId();
      if (sandbox) {
-@@ -48234,6 +48275,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48234,6 +48277,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
            sessionId: this.connectionConfig.sessionId
          },
          volumes: cfg.volumes,
@@ -92,7 +107,7 @@ index 4dd189779..43dc978d4 100644
          skipHealthCheck: cfg.skipHealthCheck,
          readyTimeoutSeconds: cfg.readyTimeoutSeconds,
          healthCheckPollingInterval: cfg.healthCheckPollingInterval
-@@ -48298,7 +48340,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48298,7 +48342,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
    async stop() {
      try {
        this._status = { state: "Stopping" };
@@ -101,11 +116,60 @@ index 4dd189779..43dc978d4 100644
        this._status = { state: "Stopped" };
      } catch (error) {
        const message = error instanceof SandboxException2 ? error.error.message : undefined;
+@@ -48370,6 +48414,48 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+       throw new CommandExecutionError("Failed to renew sandbox expiration", "renew", error instanceof Error ? error : undefined);
+     }
+   }
++  async readFiles(paths, options) {
++    // Keep the adapter's end-exclusive range contract used by archive streaming.
++    if (options?.range) return super.readFiles(paths, options);
++    const results = [];
++    for (const path of paths.map((value) => this.normalizePath(value))) {
++      try {
++        const content = await this.sandbox.files.readBytes(path);
++        results.push({ path, content, error: null });
++      } catch (error) {
++        results.push({
++          path,
++          content: new Uint8Array,
++          error: error instanceof Error ? error : new Error(String(error))
++        });
++      }
++    }
++    return results;
++  }
++  async getFileInfo(paths) {
++    const results = new Map;
++    for (const path of paths.map((value) => this.normalizePath(value))) {
++      try {
++        const info = (await this.sandbox.files.getFileInfo([path]))[path];
++        if (!info) continue;
++        results.set(path, {
++          path: info.path,
++          size: info.size,
++          modifiedAt: info.modifiedAt,
++          createdAt: info.createdAt,
++          mode: info.mode === undefined ? undefined : Number.parseInt(String(info.mode), 8),
++          owner: info.owner,
++          group: info.group,
++          isDirectory: info.type === "directory",
++          isFile: info.type === "file",
++          isSymlink: info.type === "symlink"
++        });
++      } catch {
++        // Match the base adapter's partial-result behavior for unavailable paths.
++      }
++    }
++    return results;
++  }
+   async writeFiles(entries) {
+     const results = [];
+     for (const entry of entries) {
 diff --git a/dist/index.js b/dist/index.js
-index 315731e1b..ba930c262 100644
+index 315731e1b8b9fe29bf9033cae284d31474b84a05..c2ab20e9e5d0514b808a8643a9bed71c76c3df63 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -45038,7 +45038,9 @@ class CommandPolyfillService {
+@@ -45040,7 +45040,9 @@ class CommandPolyfillService {
          throw error;
        }
        if (error instanceof CommandExecutionError) {
@@ -116,7 +180,7 @@ index 315731e1b..ba930c262 100644
        }
        throw error;
      }
-@@ -48155,8 +48155,16 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48155,8 +48157,16 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
    async getSandboxBySessionId() {
      const manager = SandboxManager.create({ connectionConfig: this._connection });
      const result = await manager.listSandboxInfos({
@@ -134,7 +198,7 @@ index 315731e1b..ba930c262 100644
      const val = result.items[0];
      if (val) {
        const status = this.mapStatus(val.status);
-@@ -48166,6 +48174,39 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48166,6 +48176,39 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
        };
      }
    }
@@ -174,7 +238,7 @@ index 315731e1b..ba930c262 100644
    async ensureRunning() {
      const sandbox = await this.getSandboxBySessionId();
      if (sandbox) {
-@@ -48218,6 +48259,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48218,6 +48261,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
            sessionId: this.connectionConfig.sessionId
          },
          volumes: cfg.volumes,
@@ -182,7 +246,7 @@ index 315731e1b..ba930c262 100644
          skipHealthCheck: cfg.skipHealthCheck,
          readyTimeoutSeconds: cfg.readyTimeoutSeconds,
          healthCheckPollingInterval: cfg.healthCheckPollingInterval
-@@ -48282,7 +48324,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48282,7 +48326,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
    async stop() {
      try {
        this._status = { state: "Stopping" };
@@ -191,3 +255,52 @@ index 315731e1b..ba930c262 100644
        this._status = { state: "Stopped" };
      } catch (error) {
        const message = error instanceof SandboxException2 ? error.error.message : undefined;
+@@ -48354,6 +48398,48 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+       throw new CommandExecutionError("Failed to renew sandbox expiration", "renew", error instanceof Error ? error : undefined);
+     }
+   }
++  async readFiles(paths, options) {
++    // Keep the adapter's end-exclusive range contract used by archive streaming.
++    if (options?.range) return super.readFiles(paths, options);
++    const results = [];
++    for (const path of paths.map((value) => this.normalizePath(value))) {
++      try {
++        const content = await this.sandbox.files.readBytes(path);
++        results.push({ path, content, error: null });
++      } catch (error) {
++        results.push({
++          path,
++          content: new Uint8Array,
++          error: error instanceof Error ? error : new Error(String(error))
++        });
++      }
++    }
++    return results;
++  }
++  async getFileInfo(paths) {
++    const results = new Map;
++    for (const path of paths.map((value) => this.normalizePath(value))) {
++      try {
++        const info = (await this.sandbox.files.getFileInfo([path]))[path];
++        if (!info) continue;
++        results.set(path, {
++          path: info.path,
++          size: info.size,
++          modifiedAt: info.modifiedAt,
++          createdAt: info.createdAt,
++          mode: info.mode === undefined ? undefined : Number.parseInt(String(info.mode), 8),
++          owner: info.owner,
++          group: info.group,
++          isDirectory: info.type === "directory",
++          isFile: info.type === "file",
++          isSymlink: info.type === "symlink"
++        });
++      } catch {
++        // Match the base adapter's partial-result behavior for unavailable paths.
++      }
++    }
++    return results;
++  }
+   async writeFiles(entries) {
+     const results = [];
+     for (const entry of entries) {

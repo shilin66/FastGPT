@@ -29,7 +29,8 @@ function escapeXml(str: string): string {
  */
 export function buildSkillsContextPrompt(
   deployedSkills: DeployedSkillInfo[],
-  workDirectory: string
+  workDirectory: string,
+  workspaceRoot = workDirectory
 ): string {
   const lines: string[] = [];
 
@@ -60,7 +61,11 @@ export function buildSkillsContextPrompt(
 
   // Sandbox environment section: always present
   lines.push('<sandbox_environment>');
-  lines.push(`Workspace root: ${workDirectory}`);
+  lines.push(`Workspace root: ${workspaceRoot}`);
+  lines.push(`Current working directory: ${workDirectory}`);
+  lines.push(
+    'All relative file paths and the default command cwd use this current working directory.'
+  );
   lines.push(
     'You have access to sandbox_* tools: read, write, edit, execute, search files, and fetch user-uploaded files.'
   );
@@ -68,9 +73,12 @@ export function buildSkillsContextPrompt(
     'If the conversation includes <available_files>, use sandbox_fetch_user_file to copy files into the workspace.'
   );
   lines.push(
-    'Always use RELATIVE paths for target_path (e.g. "uploads/file.pdf"), never absolute paths or "..".'
+    'For output files, prefer relative paths such as "helloworld.html" or "outputs/report.csv". Absolute paths inside the workspace must keep the leading "/". Never use "..".'
   );
-  lines.push(`Files are placed at: ${workDirectory}/<target_path>`);
+  lines.push(
+    'Do not repeat the current working directory in a relative path or remove the leading "/" from an absolute path.'
+  );
+  lines.push(`Example: "helloworld.html" resolves to "${workDirectory}/helloworld.html".`);
   lines.push('</sandbox_environment>');
 
   return lines.join('\n');

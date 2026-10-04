@@ -1,5 +1,5 @@
-import type { IVolumeDriver, EnsureResult } from './IVolumeDriver';
-import { toVolumeName } from '../utils/naming';
+import type { IVolumeDriver, EnsureResult, VolumeAddressMode } from './IVolumeDriver';
+import { toClaimName, toVolumeName } from '../utils/naming';
 import { env } from '../env';
 import { logDebug } from '../utils/logger';
 
@@ -21,8 +21,9 @@ export class DockerVolumeDriver implements IVolumeDriver {
     });
   }
 
-  async ensure(sessionId: string): Promise<EnsureResult> {
-    const name = toVolumeName(this.prefix, sessionId);
+  async ensure(sessionId: string, mode: VolumeAddressMode = 'sessionId'): Promise<EnsureResult> {
+    const name =
+      mode === 'claimName' ? toClaimName(sessionId) : toVolumeName(this.prefix, sessionId);
 
     // Check if volume already exists
     logDebug(`Docker inspect volume name=${name}`);
@@ -55,8 +56,9 @@ export class DockerVolumeDriver implements IVolumeDriver {
     return { claimName: name, created: true };
   }
 
-  async remove(sessionId: string): Promise<void> {
-    const name = toVolumeName(this.prefix, sessionId);
+  async remove(sessionId: string, mode: VolumeAddressMode = 'sessionId'): Promise<void> {
+    const name =
+      mode === 'claimName' ? toClaimName(sessionId) : toVolumeName(this.prefix, sessionId);
     logDebug(`Docker remove volume name=${name}`);
     const res = await this.dockerFetch(`/volumes/${name}`, { method: 'DELETE' });
     logDebug(`Docker remove volume status=${res.status}`);

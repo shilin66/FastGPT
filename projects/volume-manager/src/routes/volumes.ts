@@ -3,9 +3,10 @@ import { z } from 'zod';
 import type { VolumeService } from '../services/VolumeService';
 import { logInfo } from '../utils/logger';
 
-const ensureBodySchema = z.object({
-  sessionId: z.string()
-});
+const ensureBodySchema = z.union([
+  z.object({ sessionId: z.string() }).strict(),
+  z.object({ claimName: z.string() }).strict()
+]);
 
 export function volumeRoutes(service: VolumeService): Hono {
   const app = new Hono();
@@ -18,20 +19,25 @@ export function volumeRoutes(service: VolumeService): Hono {
       return c.json({ error: 'Invalid request body', details: parsed.error.issues }, 400);
     }
 
-    const { sessionId } = parsed.data;
-    logInfo(`POST /v1/volumes/ensure sessionId=${sessionId}`);
-    const result = await service.ensure(sessionId);
+    const mode = 'claimName' in parsed.data ? 'claimName' : 'sessionId';
+    const target = 'claimName' in parsed.data ? parsed.data.claimName : parsed.data.sessionId;
+    logInfo(`POST /v1/volumes/ensure ${mode}=${target}`);
+    const result = await service.ensure(target, mode);
     const status = result.created ? 201 : 200;
     logInfo(`ensure done claimName=${result.claimName} created=${result.created} status=${status}`);
     return c.json(result, status);
   });
 
-  // DELETE /v1/volumes/:sessionId
-  app.delete('/:sessionId', async (c) => {
-    const sessionId = c.req.param('sessionId');
-    logInfo(`DELETE /v1/volumes/${sessionId}`);
-    await service.remove(sessionId);
-    logInfo(`remove done sessionId=${sessionId}`);
+  // DELETE /v1/volumes/:target
+  app.delete('/:target', async (c) => {
+    const target = c.req.param('target');
+    const mode = c.req.query('mode') ?? 'sessionId';
+    if (mode !== 'sessionId' && mode !== 'claimName') {
+      return c.json({ error: 'Invalid volume mode' }, 400);
+    }
+    logInfo(`DELETE /v1/volumes/${target} mode=${mode}`);
+    await service.remove(target, mode);
+    logInfo(`remove done target=${target}`);
     return c.body(null, 204);
   });
 

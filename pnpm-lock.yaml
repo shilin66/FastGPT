@@ -180,7 +180,7 @@ overrides:
 
 patchedDependencies:
   '@fastgpt-sdk/sandbox-adapter@0.0.36':
-    hash: b3ab6bffa40d3238c6f336b337245d1b44bdec6a0758c638b77b3e2bdf08f3e6
+    hash: 452ce72e14f071510435271a48e20bc6974a61e5c38befd123b2f7ddb02787c2
     path: packages/service/patches/@fastgpt-sdk__sandbox-adapter@0.0.36.patch
 
 importers:
@@ -386,7 +386,7 @@ importers:
         version: link:../../sdk/otel
       '@fastgpt-sdk/sandbox-adapter':
         specifier: ^0.0.36
-        version: 0.0.36(patch_hash=b3ab6bffa40d3238c6f336b337245d1b44bdec6a0758c638b77b3e2bdf08f3e6)
+        version: 0.0.36(patch_hash=452ce72e14f071510435271a48e20bc6974a61e5c38befd123b2f7ddb02787c2)
       '@fastgpt-sdk/storage':
         specifier: workspace:*
         version: link:../../sdk/storage
@@ -14953,7 +14953,7 @@ snapshots:
       '@fortaine/fetch-event-source': 3.0.6
       zod: 4.1.12
 
-  '@fastgpt-sdk/sandbox-adapter@0.0.36(patch_hash=b3ab6bffa40d3238c6f336b337245d1b44bdec6a0758c638b77b3e2bdf08f3e6)':
+  '@fastgpt-sdk/sandbox-adapter@0.0.36(patch_hash=452ce72e14f071510435271a48e20bc6974a61e5c38befd123b2f7ddb02787c2)':
     dependencies:
       '@alibaba-group/opensandbox': 0.1.6
       '@e2b/code-interpreter': 2.4.0

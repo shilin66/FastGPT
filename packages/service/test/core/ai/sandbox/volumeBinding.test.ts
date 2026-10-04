@@ -53,6 +53,9 @@ vi.mock('@fastgpt-sdk/sandbox-adapter', async (importOriginal) => {
     ensureRunning = providerEnsure;
     delete = providerDelete;
     connectExisting = providerConnect;
+    async getInfo() {
+      return { id: this.id, status: { state: 'Running' }, image: { repository: 'test-image' } };
+    }
   }
   return { ...original, OpenSandboxAdapter, createSandbox: () => new OpenSandboxAdapter() };
 });
@@ -88,7 +91,7 @@ describe('persistent volume binding lifecycle', () => {
   it('persists the claim and protocol before ensure HTTP and retains them after provider failure', async () => {
     fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
       const claimName = JSON.parse(String(init.body)).claimName;
-      expect(claimName).toMatch(/^fastgpt-/);
+      expect(claimName).toMatch(/^omni-[0-9a-f-]{36}$/);
       const saved = await MongoSandboxInstance.findOne({ sandboxId }).lean();
       expect(saved?.storage?.volumeManager).toMatchObject({
         protocol: 'claimName',
@@ -112,9 +115,38 @@ describe('persistent volume binding lifecycle', () => {
     const failed = await MongoSandboxInstance.findOne({ sandboxId }).lean();
     expect(failed?.operation?.failureDisposition).toBe('retryable');
     const claimName = failed?.storage?.volumeManager?.target;
-    expect(claimName).toMatch(/^fastgpt-/);
+    expect(claimName).toMatch(/^omni-[0-9a-f-]{36}$/);
     await getSandboxClient({ sandboxId }, {});
     expect(JSON.parse(String(fetchMock.mock.calls[1][1].body))).toEqual({ claimName });
+  });
+
+  it('reuses an existing sessionId volume by its saved exact name after the prefix changes', async () => {
+    settings.protocol = 'sessionId';
+    const legacyClaimName = 'fastgpt-session-legacy-workspace';
+    await MongoSandboxInstance.create({
+      sandboxId,
+      provider: 'opensandbox',
+      status: 'stopped',
+      storage: {
+        mountPath: '/workspace',
+        volumes: [{ name: 'workspace', claimName: legacyClaimName, mountPath: '/workspace' }],
+        volumeManager: {
+          protocol: 'sessionId',
+          baseUrl: 'http://volume.test',
+          target: sandboxId,
+          ensured: true
+        }
+      }
+    });
+    await getSandboxClient({ sandboxId });
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({
+      claimName: legacyClaimName
+    });
+    const instance = await MongoSandboxInstance.findOne({ sandboxId }).lean();
+    await getExistingSandboxClient(instance!).delete();
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toBe(
+      `http://volume.test/v1/volumes/${legacyClaimName}?mode=claimName`
+    );
   });
 
   it('validates missing configuration before inserting a resource and allows corrected configuration', async () => {
@@ -275,8 +307,8 @@ describe('persistent volume binding lifecycle', () => {
     await getExistingSandboxClient(saved!).delete();
     expect(providerDelete).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      'http://volume.test/v1/volumes/saved-claim',
-      'http://volume.test/v1/volumes/saved-claim'
+      'http://volume.test/v1/volumes/saved-claim?mode=claimName',
+      'http://volume.test/v1/volumes/saved-claim?mode=claimName'
     ]);
     expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toBeNull();
   });

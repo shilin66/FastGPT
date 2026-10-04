@@ -29,14 +29,11 @@ import ChatSliderMobileDrawer from '@/pageComponents/chat/slider/ChatSliderMobil
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import { ChatContext } from '@/web/core/chat/context/chatContext';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
-import { useSystemStore } from '@/web/common/system/useSystemStore';
-import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 import { useUserStore } from '@/web/support/user/useUserStore';
 
 const ChatFavouriteApp = () => {
   const { isPc } = useSystem();
   const { t } = useTranslation();
-  const { feConfigs } = useSystemStore();
   const { userInfo } = useUserStore();
 
   const onOpenSlider = useContextSelector(ChatContext, (v) => v.onOpenSlider);
@@ -115,7 +112,7 @@ const ChatFavouriteApp = () => {
 
   return (
     <MyBox isLoading={isSearching} display="flex" flexDirection={'column'} h={'100%'}>
-      <NextHead title={homeTabTitle} icon={getWebReqUrl(feConfigs?.favicon)} />
+      <NextHead title={homeTabTitle} />
 
       {!isPc && (
         <Flex

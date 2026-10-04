@@ -1,8 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Box, Flex } from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
 import { omniTheme } from '@/web/common/brand/theme';
 import AgentConfigNav, { type AgentConfigTask } from './AgentConfigNav';
+import { useSize } from 'ahooks';
+import PaneActionButton from '@/components/common/PaneActionButton';
 
 export type { AgentConfigTask } from './AgentConfigNav';
 
@@ -25,13 +27,17 @@ const ParameterChannelGlyph = () => (
 const AgentConfigWorkspace = <Key extends string>({
   tasks,
   sectionIds,
-  children
+  children,
+  onCollapse
 }: {
   readonly tasks: readonly AgentConfigTask<Key>[];
   readonly sectionIds: Readonly<Record<Key, string>>;
   readonly children: React.ReactNode;
+  readonly onCollapse?: () => void;
 }) => {
   const { t } = useTranslation();
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const workspaceSize = useSize(workspaceRef);
   const [activeKey, setActiveKey] = useState<Key | undefined>(tasks[0]?.key);
 
   const syncActiveSection = useCallback(
@@ -67,6 +73,7 @@ const AgentConfigWorkspace = <Key extends string>({
 
   return (
     <Flex
+      ref={workspaceRef}
       direction={'column'}
       h={'full'}
       minW={0}
@@ -95,10 +102,23 @@ const AgentConfigWorkspace = <Key extends string>({
         <Box color={omniTheme.colors.muted} fontSize={omniTheme.typography.agentCaption}>
           {t('app:agent_config_continuous_view')}
         </Box>
+        {onCollapse && (
+          <PaneActionButton
+            ml={'auto'}
+            action="collapse"
+            label={String(t('chat:sandbox_collapse_config'))}
+            onClick={onCollapse}
+          />
+        )}
       </Flex>
 
       <Flex flex={'1 1 0'} minH={0} minW={0} overflow={'hidden'}>
-        <AgentConfigNav tasks={tasks} activeKey={activeKey} onSelect={onSelect} />
+        <AgentConfigNav
+          tasks={tasks}
+          activeKey={activeKey}
+          onSelect={onSelect}
+          forceCollapsed={(workspaceSize?.width ?? 560) < 430}
+        />
         <Box
           flex={'1 1 0'}
           minW={0}
@@ -107,6 +127,7 @@ const AgentConfigWorkspace = <Key extends string>({
           overflowX={'hidden'}
           onScroll={syncActiveSection}
           sx={{
+            containerType: 'inline-size',
             scrollbarWidth: 'thin',
             scrollbarColor: `${omniTheme.colors.border} transparent`,
             '&::-webkit-scrollbar-thumb': { bg: omniTheme.colors.border }

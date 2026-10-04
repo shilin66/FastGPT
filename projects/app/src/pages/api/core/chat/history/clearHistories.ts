@@ -6,6 +6,7 @@ import { ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
 import { NextAPI } from '@/service/middleware/entry';
 import { type ApiRequestProps } from '@fastgpt/service/type/next';
 import { authChatCrud } from '@/service/support/permission/auth/chat';
+import { deleteSandboxesByChatIds } from '@fastgpt/service/core/ai/sandbox/controller';
 
 /* clear all chat histories of an app */
 export async function handler(req: ApiRequestProps, res: NextApiResponse) {
@@ -56,10 +57,26 @@ export async function handler(req: ApiRequestProps, res: NextApiResponse) {
   })();
 
   // find chatIds
-  const list = await MongoChat.find({ ...match, ...getChatSourceFilter() }, 'chatId').lean();
+  const list = await MongoChat.find(
+    { ...match, ...getChatSourceFilter() },
+    'chatId tmbId outLinkUid'
+  ).lean();
+
+  const chatIdsByUser = new Map<string, string[]>();
+  for (const chat of list) {
+    const userId = String(chat.outLinkUid ?? chat.tmbId);
+    const chatIds = chatIdsByUser.get(userId) ?? [];
+    chatIds.push(chat.chatId);
+    chatIdsByUser.set(userId, chatIds);
+  }
+  await Promise.all(
+    [...chatIdsByUser].map(([runtimeUserId, chatIds]) =>
+      deleteSandboxesByChatIds({ appId, chatIds, runtimeUserId })
+    )
+  );
 
   await MongoChat.updateMany(
-    { ...getChatSourceFilter(), appId, chatId: { $in: list.map((item) => item.chatId) } },
+    { ...match, ...getChatSourceFilter(), chatId: { $in: list.map((item) => item.chatId) } },
     {
       $set: {
         deleteTime: new Date()

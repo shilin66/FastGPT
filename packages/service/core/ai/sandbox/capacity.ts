@@ -34,9 +34,15 @@ export const withSandboxCapacityTransaction = <T>(
 
 export const getSandboxCapacityType = (instance: {
   sourceType?: unknown;
+  provider?: unknown;
   metadata?: { sandboxType?: unknown } | null;
 }): SandboxTypeEnum | undefined => {
   if (instance.sourceType === 'skillEdit') return SandboxTypeEnum.editDebug;
+  if (
+    instance.sourceType === 'appRuntime' &&
+    (instance.provider === undefined || instance.provider === 'opensandbox')
+  )
+    return SandboxTypeEnum.sessionRuntime;
   const type = instance.metadata?.sandboxType;
   return type === SandboxTypeEnum.editDebug || type === SandboxTypeEnum.sessionRuntime
     ? type
@@ -59,7 +65,13 @@ export const assertSandboxCapacity = async (
       $and: [
         type === SandboxTypeEnum.editDebug
           ? { $or: [{ sourceType: 'skillEdit' }, { 'metadata.sandboxType': type }] }
-          : { sourceType: { $ne: 'skillEdit' }, 'metadata.sandboxType': type },
+          : {
+              sourceType: { $ne: 'skillEdit' },
+              $or: [
+                { sourceType: 'appRuntime', provider: 'opensandbox' },
+                { 'metadata.sandboxType': type }
+              ]
+            },
         {
           $or: [
             { capacityReserved: true },

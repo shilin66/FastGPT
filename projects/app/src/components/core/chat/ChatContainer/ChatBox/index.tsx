@@ -417,6 +417,7 @@ const ChatBox = ({
             return {
               ...item,
               status: 'loading' as const,
+              sandboxPhase: sandboxStatus.phase,
               moduleName: getSandboxPhaseLabel()
             };
           }

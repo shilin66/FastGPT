@@ -13,7 +13,8 @@ async function handler(
   req: ApiRequestProps,
   res: NextApiResponse<SandboxListResponse>
 ): Promise<SandboxListResponse> {
-  const { appId, chatId, sandboxId, path, outLinkAuthData } = SandboxListBodySchema.parse(req.body);
+  const { appId, chatId, sandboxId, path, allowStart, outLinkAuthData } =
+    SandboxListBodySchema.parse(req.body);
 
   const { uid } = await authChatCrud({
     req,
@@ -25,12 +26,13 @@ async function handler(
   });
 
   const sandbox = await getChatSandboxClient({ appId, userId: uid, chatId, sandboxId });
-  await sandbox.ensureAvailable();
+  if (allowStart && path === '.') await sandbox.ensureAvailable('interactive');
 
   return sandbox.withActivity(async () => {
+    await sandbox.connectRunning();
     const files = await listSandboxDirectory(sandbox, path);
-    return { files, sandboxId: sandbox.id };
-  });
+    return { files, sandboxId: sandbox.id, workspaceGeneration: sandbox.workspaceGeneration };
+  }, 'read');
 }
 
 export default NextAPI(handler);

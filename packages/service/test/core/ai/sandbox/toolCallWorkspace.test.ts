@@ -78,6 +78,12 @@ describe('Sandbox file URL workspace boundary', () => {
     expect(mocks.readFileStream).toHaveBeenCalledWith('/saved-workspace/report.csv');
   });
 
+  it('下载工具使用同一会话目录，纠正缺少开头斜杠的完整目录前缀', async () => {
+    mocks.workspaceRoot = '/workspace/sessions/chat';
+    await callFileTool(['workspace/sessions/chat/report.csv']);
+    expect(mocks.readFileStream).toHaveBeenCalledWith('/workspace/sessions/chat/report.csv');
+  });
+
   it('整批路径先校验，避免前半批上传后才发现越界', async () => {
     await callFileTool(['report.csv', '/etc/passwd']);
     expect(mocks.uploadChatFile).not.toHaveBeenCalled();

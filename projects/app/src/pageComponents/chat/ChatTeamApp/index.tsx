@@ -16,7 +16,6 @@ import NextHead from '@/components/common/NextHead';
 import { ChatPageContext } from '@/web/core/chat/context/chatPageContext';
 import ChatSliderMobileDrawer from '@/pageComponents/chat/slider/ChatSliderMobileDrawer';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
-import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 
 const MyApps = () => {
   const { t } = useTranslation();
@@ -55,10 +54,7 @@ const MyApps = () => {
 
   return (
     <Flex flexDirection={'column'} h={'100%'} bg={'myGray.25'}>
-      <NextHead
-        title={chatSettings?.homeTabTitle || feConfigs?.systemTitle}
-        icon={getWebReqUrl(feConfigs?.favicon)}
-      />
+      <NextHead title={chatSettings?.homeTabTitle || feConfigs?.systemTitle} />
 
       {!isPc && (
         <Flex

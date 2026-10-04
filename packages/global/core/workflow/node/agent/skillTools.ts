@@ -77,17 +77,19 @@ export const skillToolsMap = {
     },
     avatar: 'core/workflow/template/readFiles',
     toolDescription:
-      'Download a user-uploaded file (document or image) from the conversation and write it as a binary file into the sandbox filesystem. Use this when a skill script needs to process a raw file. Workflow: call this tool first to place the file at target_path (relative to workspace), then run skill scripts that read from that path.'
+      'Download a user-uploaded file (document or image) from the conversation and write it as a binary file into the sandbox filesystem. Use this when a skill script needs to process a raw file. Workflow: call this tool first to place the file at target_path (relative to the current working directory), then run skill scripts that read from that path.'
   }
 };
 
+const filePathDescription =
+  'File path relative to the current working directory (e.g. "report.txt"), or an absolute path inside the workspace starting with "/". Do not repeat the current working directory in a relative path or use "..".';
+const directoryPathDescription =
+  'Directory relative to the current working directory, or an absolute directory inside the workspace starting with "/". Defaults to the current working directory. Do not repeat its prefix in a relative path or use "..".';
+const filePathsDescription = `Array of up to four file paths. ${filePathDescription}`;
+
 // Zod parameter schemas (runtime validation)
 export const SandboxReadFileSchema = z.object({
-  paths: z
-    .array(z.string().max(1024))
-    .min(1)
-    .max(4)
-    .describe('Array of up to four absolute file paths'),
+  paths: z.array(z.string().max(1024)).min(1).max(4).describe(filePathsDescription),
   startLine: z.number().int().min(1).max(100000).optional().describe('First line, one-based'),
   maxLines: z
     .number()
@@ -98,14 +100,14 @@ export const SandboxReadFileSchema = z.object({
     .describe('Maximum lines per file, default 200; output is also byte-limited')
 });
 export const SandboxWriteFileSchema = z.object({
-  path: z.string().describe('Absolute file path'),
+  path: z.string().describe(filePathDescription),
   content: z.string().max(262144).describe('File content')
 });
 export const SandboxEditFileSchema = z.object({
   entries: z
     .array(
       z.object({
-        path: z.string().describe('Absolute file path'),
+        path: z.string().describe(filePathDescription),
         oldContent: z.string().min(1).max(262144).describe('Original content to replace'),
         newContent: z.string().max(262144).describe('New content after replacement')
       })
@@ -115,7 +117,7 @@ export const SandboxEditFileSchema = z.object({
 });
 export const SandboxExecuteSchema = z.object({
   command: z.string().min(1).max(65536).describe('Shell command to execute'),
-  workingDirectory: z.string().optional().describe('Working directory (optional)'),
+  workingDirectory: z.string().optional().describe(directoryPathDescription),
   timeoutMs: z
     .number()
     .int()
@@ -127,15 +129,11 @@ export const SandboxExecuteSchema = z.object({
 });
 export const SandboxSearchSchema = z.object({
   pattern: z.string().describe('Search pattern (filename or glob)'),
-  path: z.string().optional().describe('Starting path for search (optional)')
+  path: z.string().optional().describe(directoryPathDescription)
 });
 export const SandboxFetchUserFileSchema = z.object({
   file_index: z.string().describe('File index from available_files (e.g. "1")'),
-  target_path: z
-    .string()
-    .describe(
-      'Relative path from workspace root to write the file (e.g. "uploads/document.pdf"). Do NOT use absolute paths or "..".'
-    )
+  target_path: z.string().describe(filePathDescription)
 });
 
 // ChatCompletionTool definitions (exposed to LLM)
@@ -151,7 +149,7 @@ export const sandboxReadFileTool: ChatCompletionTool = {
           type: 'array',
           items: { type: 'string' },
           maxItems: 4,
-          description: 'Array of up to four absolute file paths'
+          description: filePathsDescription
         },
         startLine: {
           type: 'integer',
@@ -179,7 +177,7 @@ export const sandboxWriteFileTool: ChatCompletionTool = {
     parameters: {
       type: 'object',
       properties: {
-        path: { type: 'string', description: 'Absolute file path' },
+        path: { type: 'string', description: filePathDescription },
         content: { type: 'string', description: 'File content' }
       },
       required: ['path', 'content']
@@ -200,7 +198,7 @@ export const sandboxEditFileTool: ChatCompletionTool = {
           items: {
             type: 'object',
             properties: {
-              path: { type: 'string', description: 'Absolute file path' },
+              path: { type: 'string', description: filePathDescription },
               oldContent: { type: 'string', description: 'Original content to replace' },
               newContent: { type: 'string', description: 'New content after replacement' }
             },
@@ -223,7 +221,7 @@ export const sandboxExecuteTool: ChatCompletionTool = {
       type: 'object',
       properties: {
         command: { type: 'string', description: 'Shell command to execute' },
-        workingDirectory: { type: 'string', description: 'Working directory (optional)' },
+        workingDirectory: { type: 'string', description: directoryPathDescription },
         timeoutMs: { type: 'number', description: 'Timeout in milliseconds (default 30000)' }
       },
       required: ['command']
@@ -240,7 +238,7 @@ export const sandboxSearchTool: ChatCompletionTool = {
       type: 'object',
       properties: {
         pattern: { type: 'string', description: 'Search pattern (filename or glob)' },
-        path: { type: 'string', description: 'Starting path for search (optional)' }
+        path: { type: 'string', description: directoryPathDescription }
       },
       required: ['pattern']
     }
@@ -261,8 +259,7 @@ export const sandboxFetchUserFileTool: ChatCompletionTool = {
         },
         target_path: {
           type: 'string',
-          description:
-            'Relative path from workspace root (e.g. "uploads/document.pdf"). Must not start with "/" or contain "..".'
+          description: filePathDescription
         }
       },
       required: ['file_index', 'target_path']

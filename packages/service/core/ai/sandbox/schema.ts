@@ -44,6 +44,7 @@ const SandboxInstanceSchema = new Schema(
       enum: SandboxProviderSchema.options,
       required: true
     },
+    providerScope: String,
     // 唯一 id，chat 模式下，由 3 个 id hash 获取。
     sandboxId: {
       type: String,
@@ -59,11 +60,27 @@ const SandboxInstanceSchema = new Schema(
     runtimeUserId: String,
     sessionId: String,
     sourceChatId: String,
+    reuseScope: { type: String, enum: ['user', 'session'] },
     baseVersionId: Schema.Types.ObjectId,
     workspaceGeneration: String,
     currentDeploymentHash: String,
     capacityReserved: Boolean,
     operation: SandboxOperationSchema,
+    orphan: {
+      type: new Schema(
+        {
+          reason: {
+            type: String,
+            enum: ['source_deleted', 'chat_unreferenced', 'deletion_pending'],
+            required: true
+          },
+          detectedAt: { type: Date, required: true },
+          lastActiveAt: { type: Date, required: true }
+        },
+        { _id: false }
+      ),
+      default: undefined
+    },
     // Chat 模式和 skill sandbox 都会复用这组根字段。
     appId: String,
     userId: String,
@@ -93,6 +110,12 @@ const SandboxInstanceSchema = new Schema(
       type: Date,
       default: null
     },
+    releasedAt: {
+      type: Date,
+      default: null
+    },
+    archive: { type: Schema.Types.Mixed },
+    archiveKeys: { type: [String], default: undefined },
     limit: {
       type: SandboxLimitSchema.shape
     },
@@ -111,9 +134,17 @@ export const sandboxInstanceIndexDefinitions: {
   options: {
     name: string;
     unique?: boolean;
-    partialFilterExpression?: Record<string, { $exists: true }>;
+    partialFilterExpression?: Record<string, unknown>;
   };
 }[] = [
+  {
+    key: { provider: 1, sourceType: 1, sourceId: 1, runtimeUserId: 1 },
+    options: {
+      name: 'sandbox_user_identity_unique',
+      unique: true,
+      partialFilterExpression: { reuseScope: 'user' }
+    }
+  },
   {
     key: { provider: 1, appId: 1, userId: 1, chatId: 1 },
     options: {
@@ -127,6 +158,7 @@ export const sandboxInstanceIndexDefinitions: {
     }
   },
   { key: { status: 1, lastActiveAt: 1 }, options: { name: 'status_1_lastActiveAt_1' } },
+  { key: { provider: 1, _id: 1 }, options: { name: 'sandbox_provider_scan' } },
   {
     key: { sourceType: 1, sourceId: 1, sourceChatId: 1 },
     options: { name: 'sourceType_1_sourceId_1_sourceChatId_1' }

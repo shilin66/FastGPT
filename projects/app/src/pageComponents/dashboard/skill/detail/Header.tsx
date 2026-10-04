@@ -30,6 +30,9 @@ import type { EditResourceInfoFormType } from '@/components/common/Modal/EditRes
 
 const EditResourceModal = dynamic(() => import('@/components/common/Modal/EditResourceModal'));
 const ConfigPerModal = dynamic(() => import('@/components/support/permission/ConfigPerModal'));
+const SandboxManagementModal = dynamic(
+  () => import('@/components/core/sandbox/SandboxManagementModal')
+);
 
 const RouteTab = () => {
   const { t } = useTranslation();
@@ -103,6 +106,7 @@ const Header = () => {
 
   const [editedSkill, setEditedSkill] = useState<EditResourceInfoFormType>();
   const [showPermModal, setShowPermModal] = useState(false);
+  const [showSandboxManagement, setShowSandboxManagement] = useState(false);
 
   const { openConfirm: openConfirmDel, ConfirmModal: DelConfirmModal } = useConfirm({
     type: 'delete'
@@ -288,6 +292,16 @@ const Header = () => {
       {/* 右侧按钮组（历史版本抽屉打开时隐藏） */}
       {!showHistories && (
         <HStack spacing={3}>
+          {skillDetail.permission.hasWritePer && (
+            <Button
+              size={'sm'}
+              h={'34px'}
+              variant={'whitePrimary'}
+              onClick={() => setShowSandboxManagement(true)}
+            >
+              {t('chat:sandbox_manage_title')}
+            </Button>
+          )}
           <IconButton
             icon={<MyIcon name={'history'} w={'18px'} />}
             aria-label={t('skill:history_versions')}
@@ -319,6 +333,14 @@ const Header = () => {
 
       {/* 历史版本抽屉 */}
       {showHistories && <SkillHistoriesSlider onClose={() => setShowHistories(false)} />}
+
+      {showSandboxManagement && (
+        <SandboxManagementModal
+          isOpen={showSandboxManagement}
+          onClose={() => setShowSandboxManagement(false)}
+          scope={{ sourceType: 'skillEdit', sourceId: skillDetail._id }}
+        />
+      )}
 
       {/* 删除确认弹窗 */}
       <DelConfirmModal />

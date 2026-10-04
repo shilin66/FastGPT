@@ -17,12 +17,19 @@ import ChatQuoteList from '@/pageComponents/chat/ChatQuoteList';
 import VariablePopover from '@/components/core/chat/ChatContainer/components/VariablePopover';
 import { ChatTypeEnum } from '@/components/core/chat/ChatContainer/ChatBox/constants';
 import type { Form2WorkflowFnType } from '../FormComponent/type';
-import { useSandboxEditor, useSandboxStatus } from '@/pageComponents/chat/SandboxEditor/hook';
+import {
+  useAutoOpenSandboxFiles,
+  useSandboxEditor,
+  useSandboxStatus
+} from '@/pageComponents/chat/SandboxEditor/hook';
 import { getWebLLMModel } from '@/web/common/system/utils';
+import { useSandboxFilePanel } from '@/pageComponents/chat/SandboxEditor/PanelContext';
 
 type Props = {
   appForm: AppFormEditFormType;
   setRenderEdit: React.Dispatch<React.SetStateAction<boolean>>;
+  showConfig: boolean;
+  onToggleConfig: () => void;
   form2WorkflowFn: Form2WorkflowFnType;
 };
 const SummaryChip = ({
@@ -47,11 +54,19 @@ const SummaryChip = ({
   </Flex>
 );
 
-const ChatTest = ({ appForm, setRenderEdit, form2WorkflowFn }: Props) => {
+const ChatTest = ({
+  appForm,
+  setRenderEdit,
+  showConfig,
+  onToggleConfig,
+  form2WorkflowFn
+}: Props) => {
   const { t } = useTranslation();
   const { chatId } = useChatStore();
 
   const { appDetail } = useContextSelector(AppContext, (v) => v);
+  useAutoOpenSandboxFiles({ appId: appDetail._id, chatId });
+  const closeFilePanel = useSandboxFilePanel()?.close;
   const datasetCiteData = useContextSelector(ChatItemContext, (v) => v.datasetCiteData);
   const setCiteModalData = useContextSelector(ChatItemContext, (v) => v.setCiteModalData);
   // agentForm2AppWorkflow dependent allDatasets
@@ -79,7 +94,8 @@ const ChatTest = ({ appForm, setRenderEdit, form2WorkflowFn }: Props) => {
 
   useEffect(() => {
     setRenderEdit(!datasetCiteData);
-  }, [datasetCiteData, setRenderEdit]);
+    if (datasetCiteData) closeFilePanel?.();
+  }, [datasetCiteData, setRenderEdit, closeFilePanel]);
 
   const { ChatContainer, restartChat } = useChatTest({
     ...workflowData,
@@ -132,6 +148,23 @@ const ChatTest = ({ appForm, setRenderEdit, form2WorkflowFn }: Props) => {
           borderBottom={'1px solid'}
           borderColor={'#DFE5EE'}
         >
+          <MyTooltip
+            label={t(showConfig ? 'chat:sandbox_collapse_config' : 'chat:sandbox_expand_config')}
+          >
+            <IconButton
+              size={'smSquare'}
+              variant={'whiteBase'}
+              mr={2}
+              aria-label={String(
+                t(showConfig ? 'chat:sandbox_collapse_config' : 'chat:sandbox_expand_config')
+              )}
+              aria-expanded={showConfig}
+              icon={
+                <MyIcon name={showConfig ? 'common/arrowLeft' : 'common/arrowRight'} w={'14px'} />
+              }
+              onClick={onToggleConfig}
+            />
+          </MyTooltip>
           <Box fontSize={['md', 'lg']} fontWeight={'bold'} color={'myGray.900'} mr={3}>
             {t('app:chat_debug')}
           </Box>
@@ -222,7 +255,7 @@ const ChatTest = ({ appForm, setRenderEdit, form2WorkflowFn }: Props) => {
   );
 };
 
-const Render = ({ appForm, setRenderEdit, form2WorkflowFn }: Props) => {
+const Render = ({ appForm, setRenderEdit, showConfig, onToggleConfig, form2WorkflowFn }: Props) => {
   const { chatId } = useChatStore();
   const { appDetail } = useContextSelector(AppContext, (v) => v);
 
@@ -248,6 +281,8 @@ const Render = ({ appForm, setRenderEdit, form2WorkflowFn }: Props) => {
         <ChatTest
           appForm={appForm}
           setRenderEdit={setRenderEdit}
+          showConfig={showConfig}
+          onToggleConfig={onToggleConfig}
           form2WorkflowFn={form2WorkflowFn}
         />
       </ChatRecordContextProvider>

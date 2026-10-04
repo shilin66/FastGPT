@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Flex, IconButton, Center } from '@chakra-ui/react';
+import { Box, Flex, IconButton, Center, Button, Text } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import Editor from '@monaco-editor/react';
 import { useTranslation } from 'next-i18next';
@@ -23,6 +23,8 @@ type Props = {
   downloadingFile: boolean;
   downloadCurrentFile: () => void;
   saveFile: (path?: string) => void;
+  fileStatus?: string;
+  reloadFile: () => void;
   setOpenedFiles: React.Dispatch<React.SetStateAction<OpenedFile[]>>;
   openedFiles: OpenedFile[];
   editorRef: React.MutableRefObject<EditorInstance | undefined>;
@@ -40,6 +42,8 @@ const EditorContent = ({
   downloadingFile,
   downloadCurrentFile,
   saveFile,
+  fileStatus,
+  reloadFile,
   setOpenedFiles,
   openedFiles,
   editorRef,
@@ -62,7 +66,7 @@ const EditorContent = ({
     } else {
       setViewMode('source');
     }
-  }, [activeFilePath]);
+  }, [activeFilePath, activeFile?.language]);
 
   const handleHtmlPreview = async () => {
     if (!activeFile) return;
@@ -205,7 +209,7 @@ const EditorContent = ({
           if (isUpdatingRef.current) return;
 
           // 更新当前文件内容
-          if (activeFilePath && value !== undefined) {
+          if (activeFilePath && value !== undefined && value !== activeFile?.content) {
             setOpenedFiles((prev) =>
               prev.map((f) =>
                 f.path === activeFilePath ? { ...f, content: value, isDirty: true } : f
@@ -232,15 +236,17 @@ const EditorContent = ({
       <Flex
         align="center"
         justify="space-between"
+        flexWrap="wrap"
+        gap={2}
         borderBottom={'sm'}
         mt={'-3px'}
         pb={'9px'}
         mb={3}
       >
-        <Box fontSize="20px" fontWeight="500" color="black">
+        <Box fontSize="20px" fontWeight="500" color="black" minW={0} maxW={'full'} noOfLines={1}>
           {activeFile?.name || ''}
         </Box>
-        <Flex align="center" gap={2}>
+        <Flex align="center" gap={2} flexWrap={'wrap'}>
           {/* HTML Preview Icon */}
           {activeFile?.language === 'html' && (
             <IconButton
@@ -288,6 +294,28 @@ const EditorContent = ({
           )}
         </Flex>
       </Flex>
+
+      {(activeFile?.remoteChanged || fileStatus) && (
+        <Flex
+          align="center"
+          justify="space-between"
+          gap={2}
+          mb={2}
+          px={3}
+          py={2}
+          borderRadius="md"
+          bg={activeFile?.remoteChanged ? 'orange.50' : 'red.50'}
+          color={activeFile?.remoteChanged ? 'orange.800' : 'red.700'}
+          fontSize="sm"
+        >
+          <Text>{t(activeFile?.remoteChanged ? 'chat:sandbox_file_changed' : fileStatus!)}</Text>
+          {activeFile?.remoteChanged && (
+            <Button size="xs" variant="outline" onClick={reloadFile}>
+              {t('chat:sandbox_reload_file')}
+            </Button>
+          )}
+        </Flex>
+      )}
 
       <Box flex={1} overflow="hidden" position="relative" zIndex={1} minH={0}>
         {renderFileContent()}

@@ -19,14 +19,16 @@ async function handler(req: ApiRequestProps, res: NextApiResponse): Promise<void
   });
 
   const sandbox = await getChatSandboxClient({ appId, userId: uid, chatId, sandboxId });
-  await sandbox.ensureAvailable();
-
   return sandbox.withActivity(async () => {
-    const { content, contentType } = await getSandboxFileContent(sandbox, path, true);
+    await sandbox.connectRunning();
+    const { content, contentType, hash } = await getSandboxFileContent(sandbox, path, true);
 
     res.setHeader('Content-Type', contentType);
+    res.setHeader('X-Sandbox-Content-Hash', hash);
+    if (sandbox.workspaceGeneration)
+      res.setHeader('X-Sandbox-Workspace-Generation', sandbox.workspaceGeneration);
     res.send(content);
-  });
+  }, 'read');
 }
 
 export default NextAPI(handler);

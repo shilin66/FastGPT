@@ -1,7 +1,4 @@
-import {
-  SandboxStatusEnum,
-  SANDBOX_SUSPEND_MINUTES
-} from '@fastgpt/global/core/ai/sandbox/constants';
+import { SandboxStatusEnum } from '@fastgpt/global/core/ai/sandbox/constants';
 import { SandboxTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
 import { env } from '../../../env';
 import { MongoSandboxInstance } from './schema';
@@ -15,11 +12,13 @@ import {
 } from '@fastgpt-sdk/sandbox-adapter';
 import {
   getOpenSandboxConnectionConfig,
+  getSandboxProviderScope,
   getSealosConnectionConfig,
   buildOpenSandboxCreateConfig,
   getVolumeManagerServiceConfig,
   prepareVolumeManagerConfig,
   getVolumeManagerConfig,
+  ensureSessionVolume,
   deleteSessionVolume,
   type VolumeManagerResult
 } from './config';
@@ -31,14 +30,25 @@ import { batchRun } from '@fastgpt/global/common/system/utils';
 import {
   recoverSandboxOperationCheckpoint,
   runSandboxOperation,
-  runSandboxActivity
+  runSandboxActivity,
+  getInstanceBinding
 } from './operation';
 export { runSandboxActivity } from './operation';
-import { SandboxOperationConflict } from './lease';
+import { SandboxBusyBeforeEffectError, SandboxOperationConflict } from './lease';
 import { withSandboxLease } from './lease';
 import { resolveAppSandboxIdentity } from './identity';
-import { getSandboxWorkspaceRoot, resolveSandboxWorkspacePath } from './workspace';
+import { assertSandboxSourceActive } from './sourceGuard';
+import {
+  getSandboxWorkspaceRoot,
+  resolveSandboxWorkspacePath,
+  getSandboxSessionDirectory,
+  prepareSandboxSessionDirectory
+} from './workspace';
+import { getRuntimeSandboxWorkspaceRoot } from '../../agentSkills/sandboxConfig';
 import { getSandboxCapacityType } from './capacity';
+import { getSandboxOwnershipMetadata } from './display';
+import { getLegacySourceChatId } from './ownership';
+import { createHash } from 'node:crypto';
 import type { SandboxIdentity } from '@fastgpt/global/core/ai/sandbox/type';
 import {
   SandboxProviderSchema,
@@ -83,7 +93,7 @@ type SandboxClientIdentity = SandboxIdentity &
   Partial<
     Pick<
       SandboxInstanceSchemaType,
-      'teamId' | 'ownerTmbId' | 'runtimeUserId' | 'sessionId' | 'sourceChatId'
+      'teamId' | 'ownerTmbId' | 'runtimeUserId' | 'sessionId' | 'sourceChatId' | 'reuseScope'
     >
   >;
 
@@ -111,6 +121,8 @@ export class SandboxClient {
       expectedInstance?: SandboxInstanceSchemaType;
       identity?: SandboxClientIdentity;
       workspaceRoot?: string;
+      sessionDirectory?: string;
+      requestTimeoutSeconds?: number;
     }
   ) {
     this.sandboxId = props.sandboxId;
@@ -139,11 +151,19 @@ export class SandboxClient {
   }
 
   get workspaceRoot(): string {
-    return this.opts.workspaceRoot ?? getSandboxWorkspaceRoot(this.provider);
+    return (
+      this.opts.sessionDirectory ??
+      this.opts.workspaceRoot ??
+      getSandboxWorkspaceRoot(this.provider)
+    );
   }
 
   get id(): string {
     return this.sandboxId;
+  }
+
+  get workspaceGeneration(): string | undefined {
+    return this.opts.expectedInstance?.workspaceGeneration;
   }
 
   private createProvider(): ISandbox {
@@ -155,16 +175,51 @@ export class SandboxClient {
     } else if (providerName === 'opensandbox') {
       // volumes always come from vmConfig (ensures PVC binding is correct);
       // custom createConfig takes priority for image/entrypoint/env/metadata
+      const createConfig = this.opts.existingOnly
+        ? undefined
+        : buildOpenSandboxCreateConfig({
+            resourceLimits: this.opts.resourceLimits,
+            volumes: this.opts.vmConfig?.volumes,
+            createConfig: this.opts.createConfig
+          });
+      const identity = this.opts.identity;
+      if (createConfig && identity?.sourceType === 'appRuntime' && this.opts.workspaceRoot) {
+        createConfig.env = { ...createConfig.env, FASTGPT_WORKDIR: this.opts.workspaceRoot };
+        // Ordinary Agent images may not initialize a workspace through their own entrypoint.
+        createConfig.entrypoint ??= [
+          '/bin/sh',
+          '-c',
+          'mkdir -p -- "$FASTGPT_WORKDIR" && exec sleep infinity'
+        ];
+      }
+      if (
+        createConfig &&
+        env.AGENT_SANDBOX_OPENSANDBOX_RUNTIME === 'docker' &&
+        identity?.sourceType &&
+        identity.sourceId
+      ) {
+        createConfig.metadata = {
+          ...createConfig.metadata,
+          ...getSandboxOwnershipMetadata({
+            sourceType: identity.sourceType,
+            sourceId: identity.sourceId,
+            runtimeUserId: identity.runtimeUserId,
+            reuseScope: identity.reuseScope,
+            sourceChatId: identity.sourceChatId,
+            sessionId: identity.sessionId,
+            sandboxId: this.sandboxId
+          })
+        };
+      }
       return createSandbox(
         'opensandbox',
-        getOpenSandboxConnectionConfig({ sessionId: this.sandboxId }),
-        this.opts.existingOnly
-          ? undefined
-          : buildOpenSandboxCreateConfig({
-              resourceLimits: this.opts.resourceLimits,
-              volumes: this.opts.vmConfig?.volumes,
-              createConfig: this.opts.createConfig
-            })
+        {
+          ...getOpenSandboxConnectionConfig({ sessionId: this.sandboxId }),
+          ...(this.opts.requestTimeoutSeconds
+            ? { requestTimeoutSeconds: this.opts.requestTimeoutSeconds }
+            : {})
+        },
+        createConfig
       );
     } else if (providerName === 'e2b') {
       if (!env.AGENT_SANDBOX_E2B_API_KEY) {
@@ -179,13 +234,182 @@ export class SandboxClient {
     }
   }
 
-  async ensureAvailable() {
+  async ensureAvailable(priority: 'agent' | 'lifecycle' | 'interactive' = 'lifecycle') {
     if (this.opts.existingOnly) {
       throw new Error('An existing-only Sandbox client cannot ensure or create a workspace');
     }
     getVolumeManagerServiceConfig();
+    if (this.opts.identity?.sourceType) {
+      await assertSandboxSourceActive(this.opts.identity);
+    }
+    let lifecycle = await MongoSandboxInstance.findOne({
+      provider: this.providerName,
+      sandboxId: this.sandboxId
+    }).lean();
+    if (
+      lifecycle?.providerScope &&
+      lifecycle.providerScope !== getSandboxProviderScope(lifecycle.provider)
+    )
+      throw new SandboxOperationConflict('Sandbox provider deployment changed');
+    if (
+      lifecycle?.reuseScope === 'user' &&
+      lifecycle.provider === 'opensandbox' &&
+      lifecycle.metadata?.image &&
+      ['running', 'stopped'].includes(lifecycle.status)
+    ) {
+      const desired = buildOpenSandboxCreateConfig({ createConfig: this.opts.createConfig }).image;
+      const image = lifecycle.metadata.image;
+      if (
+        image.repository !== desired.repository ||
+        (image.tag ?? 'latest') !== (desired.tag ?? 'latest')
+      ) {
+        if (!lifecycle.storage?.volumeManager?.ensured)
+          throw new Error('sandbox_image_upgrade_requires_persistent_volume');
+        const { upgradeSandboxImage } = await import('./archive');
+        await upgradeSandboxImage(lifecycle, this.opts.createConfig, async () => {
+          await assertSandboxSourceActive(lifecycle!);
+        });
+        lifecycle = await MongoSandboxInstance.findOne({
+          provider: this.providerName,
+          sandboxId: this.sandboxId
+        }).lean();
+        if (!lifecycle) throw new SandboxOperationConflict();
+        this.opts.expectedInstance = lifecycle;
+        this.providerInstance = undefined;
+      }
+    }
+    if (lifecycle?.status === 'archiving') {
+      const { archiveSandboxWorkspace } = await import('./archive');
+      await archiveSandboxWorkspace(lifecycle, {
+        assertAuthorized: lifecycle.sourceType
+          ? async () => {
+              await assertSandboxSourceActive(lifecycle!);
+            }
+          : undefined
+      });
+      lifecycle = await MongoSandboxInstance.findOne({
+        provider: this.providerName,
+        sandboxId: this.sandboxId
+      }).lean();
+    }
+    if (lifecycle && ['archived', 'restoring'].includes(lifecycle.status)) {
+      const { restoreSandboxWorkspace } = await import('./archive');
+      await restoreSandboxWorkspace(
+        lifecycle,
+        this.opts.createConfig,
+        lifecycle.sourceType
+          ? async () => {
+              await assertSandboxSourceActive(lifecycle!);
+            }
+          : undefined
+      );
+      {
+        const restored = await MongoSandboxInstance.findOne({
+          provider: this.providerName,
+          sandboxId: this.sandboxId
+        }).lean();
+        if (!restored) throw new SandboxOperationConflict();
+        this.opts.expectedInstance = restored;
+        this.opts.workspaceRoot ??= restored.metadata?.workspaceRoot;
+      }
+      this.providerInstance = undefined;
+    }
+    // File browsing may run alongside Agent deployment; avoid replacing its operation with start.
+    const selected = this.opts.expectedInstance;
+    const latest = selected
+      ? await MongoSandboxInstance.findOne({
+          _id: selected._id,
+          provider: selected.provider,
+          sandboxId: selected.sandboxId,
+          deleteTime: null
+        }).lean()
+      : null;
+    if (
+      latest?.status === SandboxStatusEnum.provisioning &&
+      latest.operation?.type === 'deploy' &&
+      latest.operation.checkpoint === 'deploying'
+    ) {
+      // The file request can retry with a fresh authorized instance after deployment.
+      throw new SandboxBusyBeforeEffectError();
+    }
+    if (
+      selected?.status === SandboxStatusEnum.provisioning &&
+      latest?.status === SandboxStatusEnum.running
+    ) {
+      // Re-select the now-ready workspace using the file request's authorization scope.
+      throw new SandboxBusyBeforeEffectError();
+    }
+    if (
+      selected?.status === SandboxStatusEnum.running &&
+      selected.metadata?.providerSandboxId &&
+      this.providerName === 'opensandbox'
+    ) {
+      const current = await MongoSandboxInstance.findOne({
+        ...getInstanceBinding(selected, true),
+        status: SandboxStatusEnum.running,
+        deleteTime: null,
+        $or: [
+          {
+            'operation.type': {
+              $in: [
+                'provision',
+                'start',
+                'restore',
+                'editInitialize',
+                'publish',
+                'resetWorkspace',
+                'debug'
+              ]
+            },
+            'operation.checkpoint': 'ready'
+          },
+          { 'operation.type': 'deploy', 'operation.checkpoint': 'completed' }
+        ],
+        'operation.failureDisposition': { $ne: 'unknown' },
+        'operation.error': { $exists: false }
+      }).lean();
+      if (current) {
+        prepareVolumeManagerConfig({ sandboxId: this.sandboxId, previous: current });
+        if (await this.connectExistingProvider()) {
+          const info = await this.provider.getInfo();
+          if (info?.status.state === 'Running') {
+            if (info.id !== current.metadata?.providerSandboxId)
+              throw new SandboxOperationConflict('Sandbox provider identity changed');
+            const fields = {
+              ...(!current.providerScope
+                ? { providerScope: getSandboxProviderScope(this.providerName) }
+                : {}),
+              ...(!current.metadata?.image && info.image ? { 'metadata.image': info.image } : {})
+            };
+            if (Object.keys(fields).length) {
+              const result = await MongoSandboxInstance.findOneAndUpdate(
+                {
+                  ...getInstanceBinding(current, true),
+                  status: 'running',
+                  deleteTime: null,
+                  'operation.id': current.operation?.id
+                },
+                { $set: fields },
+                { new: true }
+              ).lean();
+              if (!result) throw new SandboxBusyBeforeEffectError();
+              this.opts.expectedInstance = result;
+            }
+            return;
+          }
+        }
+      } else if (
+        latest?.status === SandboxStatusEnum.running &&
+        latest.operation?.type === 'deploy' &&
+        latest.operation.checkpoint === 'completed'
+      ) {
+        // Deployment may have updated the binding after this file request selected it.
+        throw new SandboxBusyBeforeEffectError();
+      }
+    }
     const capacityType = getSandboxCapacityType({
       sourceType: this.opts.identity?.sourceType,
+      provider: this.providerName,
       metadata: this.opts.createConfig?.metadata
     });
     await runSandboxOperation(
@@ -193,8 +417,17 @@ export class SandboxClient {
         provider: this.providerName,
         sandboxId: this.sandboxId,
         action: 'ensure',
+        priority,
         expectedInstance: this.opts.expectedInstance,
+        assertAuthorized: this.opts.identity?.sourceType
+          ? async () => {
+              await assertSandboxSourceActive(this.opts.identity!);
+            }
+          : undefined,
         insert: {
+          ...(this.providerName === 'opensandbox'
+            ? { providerScope: getSandboxProviderScope(this.providerName) }
+            : {}),
           ...this.opts.identity,
           ...(this.opts.workspaceRoot || capacityType
             ? {
@@ -206,7 +439,13 @@ export class SandboxClient {
             : {}),
           ...(this.appId ? { appId: this.appId } : {}),
           ...(this.userId ? { userId: this.userId } : {}),
-          ...(this.chatId ? { chatId: this.chatId } : {}),
+          ...(this.chatId &&
+          this.opts.identity?.sourceType === 'appRuntime' &&
+          this.opts.identity.reuseScope === 'user'
+            ? {}
+            : this.chatId
+              ? { chatId: this.chatId }
+              : {}),
           ...(this.opts?.resourceLimits && {
             limit: {
               cpuCount: this.opts?.resourceLimits?.cpuCount,
@@ -214,6 +453,10 @@ export class SandboxClient {
               diskGiB: this.opts?.resourceLimits?.diskGiB
             }
           }),
+          ...(this.opts.identity?.sourceType === 'appRuntime' &&
+          this.opts.identity.reuseScope === 'user'
+            ? { schemaVersion: 3 }
+            : {}),
           createdAt: new Date()
         }
       },
@@ -225,12 +468,21 @@ export class SandboxClient {
         ) {
           throw new Error('Sandbox workspace root does not match the existing instance');
         }
-        if (this.opts.expectedInstance && !(await this.connectExistingProvider())) {
+        if (
+          this.opts.expectedInstance &&
+          !(await this.connectExistingProvider()) &&
+          !operation.previous?.releasedAt
+        ) {
           throw new SandboxOperationConflict('Selected Sandbox provider no longer exists');
         }
         const preparedVolume = prepareVolumeManagerConfig({
           sandboxId: this.sandboxId,
-          previous: operation.previous
+          previous: operation.previous,
+          ...(this.opts.identity?.sourceType === 'appRuntime' &&
+          this.opts.identity.reuseScope === 'user' &&
+          !operation.previous?.storage
+            ? { newGeneration: '0' }
+            : {})
         });
         await operation.checkpoint(
           'volume_ensure',
@@ -243,15 +495,25 @@ export class SandboxClient {
           : undefined;
         await operation.checkpoint('provider_ensure', {
           ...(this.opts.vmConfig ? { storage: this.opts.vmConfig.storage } : {}),
-          'metadata.volumeEnabled': !!this.opts.vmConfig
+          'metadata.volumeEnabled': !!this.opts.vmConfig,
+          ...(this.opts.workspaceRoot ? { 'metadata.workspaceRoot': this.opts.workspaceRoot } : {})
         });
         this.providerInstance = undefined;
         const provider = this.provider;
         await operation.remoteEffect(() => provider.ensureRunning());
+        const info = this.providerName === 'opensandbox' ? await provider.getInfo() : undefined;
         await operation.checkpoint('ready', {
           status: SandboxStatusEnum.running,
+          releasedAt: null,
           lastActiveAt: new Date(),
-          ...(this.provider.id ? { 'metadata.providerSandboxId': this.provider.id } : {})
+          ...(this.provider.id ? { 'metadata.providerSandboxId': this.provider.id } : {}),
+          ...(info?.image ? { 'metadata.image': info.image } : {}),
+          ...(this.providerName === 'opensandbox' &&
+          (!operation.previous ||
+            operation.previous.releasedAt ||
+            this.provider.id === operation.previous.metadata?.providerSandboxId)
+            ? { providerScope: getSandboxProviderScope(this.providerName) }
+            : {})
         });
         if (this.opts.expectedInstance) {
           const available = await MongoSandboxInstance.findOne({
@@ -264,6 +526,42 @@ export class SandboxClient {
         }
       }
     );
+  }
+
+  /** Attach to a selected running workspace without claiming a start operation. */
+  async connectRunning() {
+    const selected = this.opts.expectedInstance;
+    if (!selected) throw new SandboxOperationConflict('Selected Sandbox workspace is required');
+    const current = await MongoSandboxInstance.findOne({
+      ...getInstanceBinding(selected, true),
+      status: SandboxStatusEnum.running,
+      deleteTime: null,
+      $or: [
+        { operation: { $exists: false } },
+        {
+          'operation.type': {
+            $in: [
+              'provision',
+              'start',
+              'restore',
+              'editInitialize',
+              'publish',
+              'resetWorkspace',
+              'debug'
+            ]
+          },
+          'operation.checkpoint': 'ready'
+        },
+        { 'operation.type': 'deploy', 'operation.checkpoint': 'completed' }
+      ],
+      'operation.failureDisposition': { $ne: 'unknown' },
+      'operation.error': { $exists: false }
+    }).lean();
+    if (!current) throw new SandboxBusyBeforeEffectError();
+    prepareVolumeManagerConfig({ sandboxId: this.sandboxId, previous: current });
+    if (!(await this.connectExistingProvider())) throw new SandboxBusyBeforeEffectError();
+    const info = await this.provider.getInfo();
+    if (info?.status.state !== 'Running') throw new SandboxBusyBeforeEffectError();
   }
 
   async maintainWorkspace({
@@ -374,7 +672,9 @@ export class SandboxClient {
     return this.withActivity(() =>
       this.provider
         .execute(command, {
-          ...(this.opts.workspaceRoot ? { workingDirectory: this.opts.workspaceRoot } : {}),
+          ...(this.opts.workspaceRoot || this.opts.sessionDirectory
+            ? { workingDirectory: this.workspaceRoot }
+            : {}),
           timeoutMs: timeout ? timeout * 1000 : undefined
         })
         .catch((err) => {
@@ -384,25 +684,34 @@ export class SandboxClient {
     );
   }
 
-  withActivity<T>(run: () => Promise<T>): Promise<T> {
+  withActivity<T>(run: () => Promise<T>, mode: 'read' | 'write' = 'write'): Promise<T> {
     return runSandboxActivity(
       {
         provider: this.providerName,
         sandboxId: this.sandboxId,
-        expectedInstance: this.opts.expectedInstance
+        expectedInstance: this.opts.expectedInstance,
+        mode,
+        priority: 'interactive'
       },
       run
     );
   }
 
-  async delete({ assertAuthorized }: { assertAuthorized?: () => Promise<void> } = {}) {
+  async delete({
+    assertAuthorized,
+    shouldRun
+  }: {
+    assertAuthorized?: () => Promise<void>;
+    shouldRun?: (doc: SandboxInstanceSchemaType) => boolean | Promise<boolean>;
+  } = {}) {
     await runSandboxOperation(
       {
         provider: this.providerName,
         sandboxId: this.sandboxId,
         action: 'delete',
         expectedInstance: this.opts.expectedInstance,
-        assertAuthorized
+        assertAuthorized,
+        shouldRun
       },
       async (operation) => {
         const verifyCapacity =
@@ -427,8 +736,16 @@ export class SandboxClient {
           await operation.assertActive();
           if (exists) {
             await operation.checkpoint('provider_delete', {
+              ...(this.providerName === 'opensandbox'
+                ? { providerScope: getSandboxProviderScope(this.providerName) }
+                : {}),
               ...(this.provider.id ? { 'operation.providerSandboxId': this.provider.id } : {})
             });
+            if (this.opts.expectedInstance && this.providerName === 'opensandbox')
+              this.opts.expectedInstance = {
+                ...this.opts.expectedInstance,
+                providerScope: getSandboxProviderScope(this.providerName)
+              };
             try {
               await operation.remoteEffect(() => this.provider.delete());
             } catch (error) {
@@ -461,47 +778,191 @@ export class SandboxClient {
           if (preparedVolume) await deleteSessionVolume(this.sandboxId, preparedVolume);
           await operation.checkpoint('volume_deleted');
         }
+        const archiveKeys = [
+          ...new Set([
+            ...(operation.previous?.archiveKeys ?? []),
+            ...(operation.previous?.archive ? [operation.previous.archive.key] : [])
+          ])
+        ];
+        if (archiveKeys.length) {
+          const { getSandboxArchiveStorage } = await import('./archiveStorage');
+          for (const key of archiveKeys) {
+            await operation.assertActive();
+            await getSandboxArchiveStorage().remove(this.sandboxId, key);
+          }
+        }
         await operation.remove();
       }
     );
   }
 
-  async stop({ inactiveBefore }: { inactiveBefore?: Date } = {}) {
+  async stop({
+    inactiveBefore,
+    assertAuthorized
+  }: { inactiveBefore?: Date; assertAuthorized?: () => Promise<void> } = {}) {
     await runSandboxOperation(
       {
         provider: this.providerName,
         sandboxId: this.sandboxId,
         action: 'stop',
         expectedInstance: this.opts.expectedInstance,
+        assertAuthorized,
         shouldRun: inactiveBefore
-          ? (doc) => doc.status === SandboxStatusEnum.running && doc.lastActiveAt < inactiveBefore
+          ? async (doc) => {
+              const retryingStop =
+                doc.status === SandboxStatusEnum.failed &&
+                doc.operation?.type === 'stop' &&
+                doc.operation.failureDisposition === 'retryable';
+              if (
+                (!retryingStop && doc.status !== SandboxStatusEnum.running) ||
+                doc.lastActiveAt >= inactiveBefore
+              )
+                return false;
+              if (this.providerName !== 'opensandbox') return true;
+              const providerId = doc.metadata?.providerSandboxId;
+              if (!providerId) return false;
+              const remote = await (this.provider as OpenSandboxAdapter).inspectExisting(
+                providerId
+              );
+              // The MongoDB may be shared by deployments backed by different OpenSandbox servers.
+              // Absence on this server does not prove that the other server paused the container.
+              return (
+                remote?.id === providerId ||
+                (remote === null && doc.providerScope === getSandboxProviderScope(doc.provider))
+              );
+            }
           : undefined
       },
       async (operation) => {
         const verifyCapacity =
           !!getSandboxCapacityType(operation.previous ?? {}) ||
           operation.previous?.capacityReserved === true;
+        const persistent =
+          this.providerName === 'opensandbox' &&
+          operation.previous?.storage?.volumeManager?.ensured === true &&
+          !!operation.previous.storage.volumes?.[0]?.claimName;
+        if (persistent) {
+          const prepared = prepareVolumeManagerConfig({
+            sandboxId: this.sandboxId,
+            previous: operation.previous
+          });
+          await operation.checkpoint('volume_ensure');
+          await operation.remoteEffect(() => ensureSessionVolume(this.sandboxId, prepared));
+        }
         await operation.checkpoint('provider_stop');
         const exists = await this.connectExistingProvider();
         const providerId = this.provider.id ?? operation.previous?.metadata?.providerSandboxId;
         await operation.assertActive();
         if (exists) {
           await operation.checkpoint('provider_stop', {
+            ...(this.providerName === 'opensandbox'
+              ? { providerScope: getSandboxProviderScope(this.providerName) }
+              : {}),
             ...(this.provider.id ? { 'operation.providerSandboxId': this.provider.id } : {})
           });
-          await operation.remoteEffect(() => this.provider.stop());
+          if (this.opts.expectedInstance && this.providerName === 'opensandbox')
+            this.opts.expectedInstance = {
+              ...this.opts.expectedInstance,
+              providerScope: getSandboxProviderScope(this.providerName)
+            };
+          await operation.remoteEffect(() =>
+            persistent ? this.provider.delete() : this.provider.stop()
+          );
         }
         await operation.assertActive();
-        if (verifyCapacity) {
+        if (verifyCapacity || persistent) {
           await this.confirmCapacityRelease(
             providerId,
-            'stop',
+            persistent ? 'delete' : 'stop',
             operation.previous?.capacityReserved === false && !exists
           );
         }
         await operation.checkpoint('provider_stopped', {
           status: SandboxStatusEnum.stopped,
-          ...(verifyCapacity ? { capacityReserved: false } : {})
+          ...(persistent ? { releasedAt: new Date() } : {}),
+          ...(verifyCapacity || persistent ? { capacityReserved: false } : {})
+        });
+      }
+    );
+  }
+
+  async archive(options: { inactiveBefore?: Date; assertAuthorized?: () => Promise<void> } = {}) {
+    const instance =
+      this.opts.expectedInstance ??
+      (await MongoSandboxInstance.findOne({
+        provider: this.providerName,
+        sandboxId: this.sandboxId
+      }).lean());
+    if (!instance) throw new SandboxOperationConflict('Sandbox workspace no longer exists');
+    const { archiveSandboxWorkspace } = await import('./archive');
+    await archiveSandboxWorkspace(instance, options);
+  }
+
+  async release({ assertAuthorized }: { assertAuthorized?: () => Promise<void> } = {}) {
+    if (this.providerName !== 'opensandbox' || env.AGENT_SANDBOX_OPENSANDBOX_RUNTIME !== 'docker') {
+      throw new Error('sandbox_release_provider_unsupported');
+    }
+    const assertPersistentStorage = (instance: SandboxInstanceSchemaType) => {
+      const volume = prepareVolumeManagerConfig({
+        sandboxId: this.sandboxId,
+        previous: instance
+      });
+      if (
+        !volume?.binding.ensured ||
+        !instance.storage?.volumes?.[0]?.claimName ||
+        instance.storage.volumes.length !== 1
+      ) {
+        throw new Error('sandbox_storage_not_persistent');
+      }
+      return volume;
+    };
+    const selected =
+      this.opts.expectedInstance ??
+      (await MongoSandboxInstance.findOne({
+        provider: this.providerName,
+        sandboxId: this.sandboxId
+      }).lean());
+    if (!selected) throw new SandboxOperationConflict('Sandbox workspace no longer exists');
+    assertPersistentStorage(selected);
+    await runSandboxOperation(
+      {
+        provider: this.providerName,
+        sandboxId: this.sandboxId,
+        action: 'release',
+        expectedInstance: this.opts.expectedInstance,
+        assertAuthorized
+      },
+      async (operation) => {
+        const previous = operation.previous;
+        if (!previous) throw new SandboxOperationConflict('Sandbox workspace no longer exists');
+        const volume = assertPersistentStorage(previous);
+        await ensureSessionVolume(this.sandboxId, volume);
+        await operation.assertActive();
+        const providerId = previous.metadata?.providerSandboxId;
+        if (!providerId) throw new SandboxOperationConflict('Sandbox provider target is missing');
+        if (!(await this.connectExistingProvider())) {
+          throw new SandboxOperationConflict('Sandbox provider target cannot be confirmed');
+        }
+        const remote = await (this.provider as OpenSandboxAdapter).inspectExisting(providerId);
+        if (!remote || remote.id !== providerId) {
+          throw new SandboxOperationConflict('Sandbox provider target cannot be confirmed');
+        }
+        await operation.checkpoint('provider_delete', {
+          providerScope: getSandboxProviderScope(this.providerName),
+          'operation.providerSandboxId': providerId
+        });
+        if (this.opts.expectedInstance)
+          this.opts.expectedInstance = {
+            ...this.opts.expectedInstance,
+            providerScope: getSandboxProviderScope(this.providerName)
+          };
+        await operation.remoteEffect(() => this.provider.delete());
+        await operation.assertActive();
+        await this.confirmCapacityRelease(providerId, 'delete');
+        await operation.checkpoint('provider_released', {
+          status: SandboxStatusEnum.stopped,
+          capacityReserved: false,
+          releasedAt: new Date()
         });
       }
     );
@@ -533,6 +994,9 @@ export class SandboxClient {
   }
 
   private async connectExistingProvider(): Promise<boolean> {
+    const bound = this.opts.expectedInstance;
+    if (bound?.providerScope && bound.providerScope !== getSandboxProviderScope(bound.provider))
+      throw new SandboxOperationConflict('Sandbox provider deployment changed');
     if (this.providerName === 'e2b') {
       throw new Error('Sandbox provider e2b does not support non-creating lifecycle operations');
     }
@@ -554,10 +1018,13 @@ export class SandboxClient {
   }
 }
 
-export const getExistingSandboxClient = (doc: SandboxInstanceSchemaType) =>
+export const getExistingSandboxClient = (
+  doc: SandboxInstanceSchemaType,
+  options: { requestTimeoutSeconds?: number } = {}
+) =>
   new SandboxClient(
     { sandboxId: doc.sandboxId },
-    { provider: doc.provider, existingOnly: true, expectedInstance: doc }
+    { provider: doc.provider, existingOnly: true, expectedInstance: doc, ...options }
   );
 
 const diagnoseInstanceOperation = async (
@@ -570,6 +1037,11 @@ const diagnoseInstanceOperation = async (
     operation: instance.operation
   };
   const operation = instance.operation;
+  if (
+    instance.providerScope &&
+    instance.providerScope !== getSandboxProviderScope(instance.provider)
+  )
+    throw new SandboxOperationConflict('Sandbox provider deployment changed');
   if (!operation)
     return {
       ...result,
@@ -582,6 +1054,15 @@ const diagnoseInstanceOperation = async (
     return { ...result, code: 'not_required' };
   }
   const unknownCreate = ['provision', 'start'].includes(operation.type);
+  // These stop checkpoints precede compute dispatch, including legacy volume checks at pending.
+  if (
+    instance.provider === 'opensandbox' &&
+    operation.type === 'stop' &&
+    ['stopping', 'failed'].includes(instance.status) &&
+    !instance.deleteTime &&
+    ['pending', 'volume_ensure'].includes(operation.checkpoint)
+  )
+    return { ...result, code: 'pre_effect_retry_confirmed' };
   if (
     instance.provider === 'opensandbox' &&
     unknownCreate &&
@@ -601,7 +1082,12 @@ const diagnoseInstanceOperation = async (
     operation.type === 'delete' &&
     operation.checkpoint === 'provider_delete' &&
     instance.status === 'deleting';
-  if (!unknownCreate && !stopping && !deleting) return { ...result, code: 'unsupported_operation' };
+  const releasing =
+    operation.type === 'release' &&
+    operation.checkpoint === 'provider_delete' &&
+    ['stopping', 'failed'].includes(instance.status);
+  if (!unknownCreate && !stopping && !releasing && !deleting)
+    return { ...result, code: 'unsupported_operation' };
   if (!unknownCreate && !operation.providerSandboxId)
     return { ...result, code: 'provider_id_missing' };
   if (instance.provider !== 'opensandbox') return { ...result, code: 'unsupported_operation' };
@@ -622,6 +1108,8 @@ const diagnoseInstanceOperation = async (
       return { ...result, remote, code: 'provider_stop_confirmed' };
     if (deleting && remote === null)
       return { ...result, remote, code: 'provider_delete_confirmed' };
+    if (releasing && remote === null)
+      return { ...result, remote, code: 'provider_release_confirmed' };
     return { ...result, remote, code: 'remote_outcome_unknown' };
   } catch {
     return { ...result, code: 'provider_lookup_failed' };
@@ -662,50 +1150,66 @@ export const getSandboxClient = async (
     createConfig?: OpenSandboxConfigType;
     identity?: SandboxClientIdentity;
     workspaceRoot?: string;
+    priority?: 'agent' | 'lifecycle';
   } = {}
 ) => {
   const { sandboxId, identity, instance } =
     'sandboxId' in props
       ? { sandboxId: props.sandboxId, identity: opts.identity, instance: undefined }
       : await resolveAppSandboxIdentity(props);
-  const sandbox = new SandboxClient(
-    { ...props, sandboxId },
-    {
-      ...opts,
-      workspaceRoot: opts.workspaceRoot ?? instance?.metadata?.workspaceRoot,
-      identity: identity ? { ...opts.identity, ...identity } : undefined
+  const acquire = async () => {
+    const workspaceRoot =
+      opts.workspaceRoot ??
+      instance?.metadata?.workspaceRoot ??
+      (!('sandboxId' in props) && env.AGENT_SANDBOX_PROVIDER === 'opensandbox'
+        ? getRuntimeSandboxWorkspaceRoot(instance)
+        : !('sandboxId' in props) && env.AGENT_SANDBOX_PROVIDER === 'sealosdevbox'
+          ? '/home/devbox/workspace'
+          : undefined);
+    const sessionDirectory =
+      identity?.sourceType === 'appRuntime' &&
+      identity.reuseScope === 'user' &&
+      'chatId' in props &&
+      workspaceRoot
+        ? getSandboxSessionDirectory(workspaceRoot, props.chatId)
+        : undefined;
+    const shared = identity?.sourceType === 'appRuntime' && identity.reuseScope === 'user';
+    const source = shared
+      ? await assertSandboxSourceActive({ ...opts.identity, ...identity })
+      : undefined;
+    const sandbox = new SandboxClient(
+      { ...props, sandboxId },
+      {
+        ...opts,
+        workspaceRoot,
+        sessionDirectory,
+        expectedInstance: instance?.toObject(),
+        identity: identity ? { ...source, ...opts.identity, ...identity } : undefined
+      }
+    );
+    await sandbox.ensureAvailable(opts.priority);
+    if (sessionDirectory && workspaceRoot) {
+      await sandbox.withActivity(() =>
+        prepareSandboxSessionDirectory(sandbox.provider, workspaceRoot, sessionDirectory)
+      );
     }
-  );
-  await sandbox.ensureAvailable();
-  return sandbox;
+    return sandbox;
+  };
+  return identity?.sourceType === 'appRuntime' && identity.reuseScope === 'user'
+    ? withSandboxLease(`sandbox-source:${identity.sourceType}:${identity.sourceId}`, acquire)
+    : acquire();
 };
 
 // ==== Delete Sandboxes ====
-const getLegacySourceChatId = (appId: string, sessionId: string): string => {
-  try {
-    const parts: unknown = JSON.parse(sessionId);
-    if (
-      Array.isArray(parts) &&
-      parts.length === 4 &&
-      parts.every((part) => typeof part === 'string') &&
-      (parts[0] === 'test' || parts[0] === 'debug') &&
-      parts[1] === appId
-    ) {
-      return parts[3];
-    }
-  } catch {
-    // Ordinary chat IDs are not JSON.
-  }
-  return sessionId;
-};
-
 const findAppRuntimeSandboxes = async ({
   appId,
   chatIds,
+  runtimeUserId,
   onIdentityConflict
 }: {
   appId: string;
   chatIds?: string[];
+  runtimeUserId?: string;
   onIdentityConflict?: (error: Error) => void;
 }) => {
   if (chatIds?.length === 0) return [];
@@ -738,6 +1242,8 @@ const findAppRuntimeSandboxes = async ({
   }).lean();
   const requestedChats = chatIds ? new Set(chatIds) : undefined;
   return instances.filter((doc) => {
+    if (runtimeUserId !== undefined && (doc.runtimeUserId ?? doc.userId) !== runtimeUserId)
+      return false;
     if (
       doc.metadata?.skillId !== undefined ||
       (doc.metadata?.sandboxType !== undefined &&
@@ -752,6 +1258,17 @@ const findAppRuntimeSandboxes = async ({
     )
       return false;
     if (doc.sourceType === 'appRuntime') {
+      if (doc.reuseScope === 'user') {
+        const valid =
+          !requestedChats &&
+          !!doc.runtimeUserId &&
+          doc.sessionId === undefined &&
+          doc.chatId == null &&
+          (doc.appId == null || doc.appId === appId) &&
+          (doc.userId == null || doc.userId === doc.runtimeUserId);
+        if (!valid && !requestedChats) onIdentityConflict?.(new Error('sandbox_identity_conflict'));
+        return valid;
+      }
       const valid =
         !!doc.runtimeUserId &&
         !!doc.sessionId &&
@@ -780,18 +1297,36 @@ export const findChatSandboxInstance = async ({
   chatId,
   sandboxId
 }: ChatSandboxFileScope) => {
-  const instances = await findAppRuntimeSandboxes({ appId, chatIds: [chatId] });
+  const [legacy, shared] = await Promise.all([
+    findAppRuntimeSandboxes({ appId, chatIds: [chatId] }),
+    MongoSandboxInstance.find({
+      sourceType: 'appRuntime',
+      sourceId: appId,
+      reuseScope: 'user',
+      runtimeUserId: userId
+    }).lean()
+  ]);
+  const instances = [...shared, ...legacy];
   return instances
     .filter(
       (doc) =>
         doc.provider === env.AGENT_SANDBOX_PROVIDER &&
         (doc.runtimeUserId ?? doc.userId) === userId &&
+        (doc.reuseScope !== 'user' ||
+          (doc.sessionId === undefined &&
+            doc.chatId == null &&
+            (doc.appId == null || doc.appId === appId) &&
+            (doc.userId == null || doc.userId === userId) &&
+            !doc.metadata?.skillId &&
+            (!doc.metadata?.sandboxType ||
+              doc.metadata.sandboxType === SandboxTypeEnum.sessionRuntime))) &&
         !doc.deleteTime &&
         doc.status !== SandboxStatusEnum.deleting &&
         (sandboxId === undefined || doc.sandboxId === sandboxId)
     )
     .sort(
       (a, b) =>
+        Number(b.reuseScope === 'user') - Number(a.reuseScope === 'user') ||
         b.lastActiveAt.getTime() - a.lastActiveAt.getTime() ||
         b.createdAt.getTime() - a.createdAt.getTime() ||
         a.sandboxId.localeCompare(b.sandboxId)
@@ -801,7 +1336,8 @@ export const findChatSandboxInstance = async ({
 export const getChatSandboxClient = async (scope: ChatSandboxFileScope) => {
   const instance = await findChatSandboxInstance(scope);
   if (!instance) throw new Error('Sandbox workspace not found');
-  const sessionId = instance.sessionId ?? instance.chatId;
+  const sessionId =
+    instance.reuseScope === 'user' ? scope.chatId : instance.sessionId ?? instance.chatId;
   if (!sessionId) throw new Error('Sandbox workspace not found');
   return new SandboxClient(
     {
@@ -817,42 +1353,60 @@ export const getChatSandboxClient = async (scope: ChatSandboxFileScope) => {
         sourceType: 'appRuntime',
         sourceId: scope.appId,
         runtimeUserId: scope.userId,
-        sessionId,
+        ...(instance.reuseScope === 'user' ? { reuseScope: 'user' as const } : { sessionId }),
         sourceChatId: instance.sourceChatId,
         teamId: instance.teamId,
         ownerTmbId: instance.ownerTmbId
       },
+      ...(instance.reuseScope === 'user'
+        ? {
+            sessionDirectory: getSandboxSessionDirectory(
+              getRuntimeSandboxWorkspaceRoot(instance),
+              scope.chatId
+            )
+          }
+        : {}),
       workspaceRoot:
-        instance.metadata?.workspaceRoot ??
-        (instance.metadata?.sandboxType === SandboxTypeEnum.sessionRuntime
-          ? '/home/sandbox/workspace'
-          : undefined)
+        instance.provider === 'opensandbox'
+          ? getRuntimeSandboxWorkspaceRoot(instance)
+          : instance.metadata?.workspaceRoot ??
+            (instance.metadata?.sandboxType === SandboxTypeEnum.sessionRuntime
+              ? '/home/sandbox/workspace'
+              : undefined)
     }
   );
 };
 
 export const deleteSandboxesByChatIds = async ({
   appId,
-  chatIds
+  chatIds,
+  runtimeUserId
 }: {
   appId: string;
   chatIds: string[];
+  runtimeUserId?: string;
 }) => {
   const errors: Error[] = [];
   const instances = await findAppRuntimeSandboxes({
     appId,
     chatIds,
+    runtimeUserId,
     onIdentityConflict: (error) => errors.push(error)
   });
-  await deleteSandboxInstances(instances, errors);
+  await deleteSandboxInstances(
+    instances.filter((doc) => doc.reuseScope !== 'user'),
+    errors
+  );
 };
 export const deleteSandboxesByAppId = async (appId: string) => {
-  const errors: Error[] = [];
-  const instances = await findAppRuntimeSandboxes({
-    appId,
-    onIdentityConflict: (error) => errors.push(error)
+  await withSandboxLease(`sandbox-source:appRuntime:${appId}`, async () => {
+    const errors: Error[] = [];
+    const instances = await findAppRuntimeSandboxes({
+      appId,
+      onIdentityConflict: (error) => errors.push(error)
+    });
+    await deleteSandboxInstances(instances, errors);
   });
-  await deleteSandboxInstances(instances, errors);
 };
 
 const deleteSandboxInstances = async (
@@ -876,22 +1430,32 @@ const deleteSandboxInstances = async (
     throw new AggregateError(errors, 'Failed to delete sandbox resources; retry cleanup');
 };
 
-// 5 分钟检查一遍，暂停
+const lifecycleProviderScope = () => {
+  const provider = env.AGENT_SANDBOX_PROVIDER ?? 'opensandbox';
+  const url =
+    provider === 'sealosdevbox'
+      ? env.AGENT_SANDBOX_SEALOS_BASEURL
+      : env.AGENT_SANDBOX_OPENSANDBOX_BASEURL;
+  const scope = createHash('sha256')
+    .update(`${provider}:${env.AGENT_SANDBOX_OPENSANDBOX_RUNTIME}:${url ?? ''}`)
+    .digest('hex')
+    .slice(0, 16);
+  return { provider, scope };
+};
+
 export const cronJob = async () => {
-  setCron('*/5 * * * *', async () => {
-    if (!(await checkTimerLock({ timerId: 'sandboxIdleStop', lockMinuted: 4 }))) return;
-    const inactiveBefore = subMinutes(new Date(), SANDBOX_SUSPEND_MINUTES);
+  setCron('*/10 * * * *', async () => {
+    const { provider, scope } = lifecycleProviderScope();
+    if (!(await checkTimerLock({ timerId: `sandboxIdleStop:${scope}`, lockMinuted: 9 }))) return;
+    const inactiveBefore = subMinutes(new Date(), env.AGENT_SANDBOX_SUSPEND_MINUTES);
     const instances = await MongoSandboxInstance.find({
+      provider,
+      deleteTime: null,
       status: SandboxStatusEnum.running,
       lastActiveAt: { $lt: inactiveBefore }
     }).lean();
-    if (!instances.length) return;
-
-    logger.info('Found running sandboxes inactive > 5 min', { count: instances.length });
-
     await batchRun(instances, async (doc) => {
-      const client = getExistingSandboxClient(doc);
-      const stop = () => client.stop({ inactiveBefore });
+      const stop = () => getExistingSandboxClient(doc).stop({ inactiveBefore });
       const stopping =
         doc.sourceType === 'skillEdit' && doc.sourceId
           ? withSandboxLease(`skill-edit-activity:${doc.sourceId}`, async () => {
@@ -900,10 +1464,124 @@ export const cronJob = async () => {
               await stop();
             })
           : stop();
-      await stopping.catch((err) => {
-        if (err instanceof SandboxOperationConflict) return;
-        logger.error('Failed to stop sandbox', { sandboxId: doc.sandboxId, error: err });
+      await stopping.catch((error) => {
+        if (!(error instanceof SandboxOperationConflict))
+          logger.error('Failed to stop sandbox', { sandboxId: doc.sandboxId, error });
       });
     });
+  });
+  setCron('0 */12 * * *', async () => {
+    const { provider, scope } = lifecycleProviderScope();
+    if (
+      provider !== 'opensandbox' ||
+      !(await checkTimerLock({ timerId: `sandboxColdArchive:${scope}`, lockMinuted: 60 }))
+    )
+      return;
+    const inactiveBefore = subMinutes(
+      new Date(),
+      env.AGENT_SANDBOX_ARCHIVE_INACTIVE_DAYS * 24 * 60
+    );
+    const instances = await MongoSandboxInstance.find({
+      provider,
+      deleteTime: null,
+      status: SandboxStatusEnum.stopped,
+      lastActiveAt: { $lt: inactiveBefore },
+      'storage.volumeManager.ensured': true,
+      $or: [{ reuseScope: 'user' }, { sourceType: 'skillEdit' }]
+    }).lean();
+    await batchRun(instances, async (doc) => {
+      const archive = () => getExistingSandboxClient(doc).archive({ inactiveBefore });
+      try {
+        if (doc.sourceType === 'skillEdit' && doc.sourceId)
+          await withSandboxLease(`skill-edit-activity:${doc.sourceId}`, archive);
+        else await archive();
+      } catch (error) {
+        if (!(error instanceof SandboxOperationConflict))
+          logger.error('Failed to archive sandbox', { sandboxId: doc.sandboxId, error });
+      }
+    });
+  });
+  setCron('*/10 * * * *', async () => {
+    const { provider, scope } = lifecycleProviderScope();
+    if (!(await checkTimerLock({ timerId: `sandboxLifecycleRecovery:${scope}`, lockMinuted: 9 })))
+      return;
+    const instances = await MongoSandboxInstance.find({
+      provider,
+      deleteTime: null,
+      status: { $in: ['archiving', 'stopping', 'failed'] },
+      $or: [
+        {
+          'operation.type': 'archive',
+          'operation.heartbeatAt': { $lt: subMinutes(new Date(), 45) }
+        },
+        { 'operation.type': 'stop', 'operation.heartbeatAt': { $lt: subMinutes(new Date(), 15) } }
+      ]
+    }).lean();
+    await batchRun(instances, async (doc) => {
+      try {
+        if (doc.operation?.type === 'archive') await getExistingSandboxClient(doc).archive();
+        else if (doc.operation?.id) {
+          const operationId = doc.operation.id;
+          const recover = async () => {
+            const result = await recoverSandboxOperation({
+              provider: doc.provider,
+              sandboxId: doc.sandboxId,
+              operationId
+            });
+            if (result.code !== 'pre_effect_retry_confirmed') return;
+            const recovered = await MongoSandboxInstance.findOne({
+              _id: doc._id,
+              status: 'failed',
+              'operation.type': 'stop',
+              'operation.recoveredFromOperationId': operationId,
+              deleteTime: null
+            }).lean();
+            const inactiveBefore = subMinutes(new Date(), env.AGENT_SANDBOX_SUSPEND_MINUTES);
+            if (!recovered || recovered.lastActiveAt >= inactiveBefore) return;
+            if (recovered.sourceType === 'skillEdit') {
+              const { assertSkillWorkspaceTerminalIdle } = await import('./terminal');
+              await assertSkillWorkspaceTerminalIdle(recovered);
+            }
+            await getExistingSandboxClient(recovered).stop({ inactiveBefore });
+          };
+          if (doc.sourceType === 'skillEdit' && doc.sourceId)
+            await withSandboxLease(`skill-edit-activity:${doc.sourceId}`, recover);
+          else await recover();
+        }
+      } catch (error) {
+        if (!(error instanceof SandboxOperationConflict))
+          logger.error('Failed to recover sandbox lifecycle', { sandboxId: doc.sandboxId, error });
+      }
+    });
+  });
+  setCron('0 * * * *', async () => {
+    if (!env.AGENT_SANDBOX_ORPHAN_SWEEP_ENABLED) return;
+    const { provider, scope } = lifecycleProviderScope();
+    if (!(await checkTimerLock({ timerId: `sandboxOrphanSweep:${scope}`, lockMinuted: 55 })))
+      return;
+    try {
+      // The renewable lock also prevents overlap if a large scan takes longer than an hour.
+      await withSandboxLease(`sandbox-orphan-sweep:${scope}`, async (lease) => {
+        const tasks: [string, () => Promise<unknown>][] = [
+          ['instances', async () => (await import('./orphan')).sweepOrphanSandboxes({ provider })],
+          [
+            'deletedApps',
+            async () => (await import('./orphanMaintenance')).retryDeletedAppCleanup()
+          ],
+          ['archives', async () => (await import('./orphanMaintenance')).auditSandboxArchives()]
+        ];
+        for (const [task, run] of tasks) {
+          await lease.assertOwned();
+          try {
+            await run();
+          } catch (error) {
+            logger.error('Sandbox orphan maintenance failed', { task, provider, error });
+          }
+        }
+      });
+    } catch (error) {
+      if (!(error instanceof SandboxOperationConflict))
+        logger.error('Failed to run sandbox orphan sweep', { provider, error });
+    }
   });
 };

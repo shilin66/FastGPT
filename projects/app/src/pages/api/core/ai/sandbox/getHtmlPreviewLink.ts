@@ -38,9 +38,8 @@ async function handler(req: ApiRequestProps, res: NextApiResponse): Promise<void
 
   // 2. 从沙箱读取实际文件内容，避免客户端传入任意 HTML
   const sandbox = await getChatSandboxClient({ appId, userId: uid, chatId, sandboxId });
-  await sandbox.ensureAvailable();
-
   return sandbox.withActivity(async () => {
+    await sandbox.connectRunning();
     const { content, contentType } = await getSandboxFileContent(sandbox, filePath, true);
 
     if (!contentType.startsWith('text/html')) {
@@ -66,7 +65,7 @@ async function handler(req: ApiRequestProps, res: NextApiResponse): Promise<void
     return jsonRes(res, {
       data: url
     });
-  });
+  }, 'read');
 }
 
 export default NextAPI(handler);

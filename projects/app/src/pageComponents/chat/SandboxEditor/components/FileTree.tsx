@@ -34,10 +34,12 @@ type Props = {
   expandedDirs: Set<string>;
   loadingDirs: Set<string>;
   activeFilePath: string;
+  openingFilePath?: string;
   openFile: (path: string) => void;
   toggleDirectory: (node: TreeNode) => void;
   downloadingWorkspace: boolean;
   downloadWorkspace: () => void;
+  fullWidth?: boolean;
 };
 
 const FileTree = ({
@@ -47,10 +49,12 @@ const FileTree = ({
   expandedDirs,
   loadingDirs,
   activeFilePath,
+  openingFilePath,
   openFile,
   toggleDirectory,
   downloadingWorkspace,
-  downloadWorkspace
+  downloadWorkspace,
+  fullWidth = false
 }: Props) => {
   const { t } = useTranslation();
 
@@ -58,6 +62,7 @@ const FileTree = ({
     const isExpanded = expandedDirs.has(node.path);
     const isLoading = loadingDirs.has(node.path);
     const isActive = activeFilePath === node.path;
+    const isOpening = openingFilePath === node.path;
 
     const shouldShowArrow =
       node.type === 'directory' && (!node.loaded || (node.children && node.children.length > 0));
@@ -65,6 +70,14 @@ const FileTree = ({
     return (
       <React.Fragment key={node.path}>
         <Flex
+          as={'button'}
+          type={'button'}
+          w={'full'}
+          textAlign={'left'}
+          title={node.path}
+          aria-expanded={node.type === 'directory' ? isExpanded : undefined}
+          aria-current={isActive ? 'true' : undefined}
+          aria-busy={isOpening ? true : undefined}
           pl={`${node.level * 16 + 4}px`}
           pr={2}
           py="6px"
@@ -72,6 +85,7 @@ const FileTree = ({
           _hover={{ bg: 'rgba(17, 24, 36, 0.05)' }}
           bg={isActive ? 'rgba(17, 24, 36, 0.05)' : 'transparent'}
           borderRadius="4px"
+          _focusVisible={{ boxShadow: 'inset 0 0 0 2px #2563EB' }}
           onClick={() => {
             if (node.type === 'file') {
               openFile(node.path);
@@ -84,7 +98,9 @@ const FileTree = ({
           color={isActive ? 'myGray.600' : 'myGray.600'}
         >
           <Flex justify="center" align="center" w="16px" h="16px">
-            {shouldShowArrow ? (
+            {isOpening ? (
+              <Spinner size="xs" color="myGray.500" w="12px" h="12px" />
+            ) : shouldShowArrow ? (
               isLoading ? (
                 <Spinner size="xs" color="primary.400" w="12px" h="12px" />
               ) : (
@@ -104,11 +120,8 @@ const FileTree = ({
             color={node.type === 'directory' ? '#EF7623' : 'myGray.600'}
           />
           <Text
-            flex={1}
-            minW={0}
-            noOfLines={1}
-            overflow="hidden"
-            textOverflow="ellipsis"
+            flexShrink={0}
+            whiteSpace="nowrap"
             fontWeight={isActive ? '600' : '400'}
             letterSpacing="0.5px"
           >
@@ -122,8 +135,9 @@ const FileTree = ({
 
   return (
     <Box
-      flex="0 0 224px"
-      w={0}
+      flex={fullWidth ? 1 : '0 0 224px'}
+      w={'full'}
+      h={'full'}
       borderRight="1px solid"
       borderColor="myGray.200"
       bg="myGray.25"
@@ -149,8 +163,8 @@ const FileTree = ({
         </InputGroup>
       </Box>
 
-      <Box flex={1} overflowY="auto" overflowX="hidden" px={2}>
-        <VStack align="stretch" spacing="0" pb={2}>
+      <Box data-testid="sandbox-file-tree-scroll" flex={1} minH={0} overflow="auto" px={2}>
+        <VStack align="stretch" spacing="0" pb={2} w="max-content" minW="full">
           {filteredTree.map(renderTreeNode)}
         </VStack>
       </Box>

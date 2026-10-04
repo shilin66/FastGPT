@@ -1,15 +1,7 @@
 import Head from 'next/head';
-import React, { useMemo } from 'react';
+import React from 'react';
 
-const NextHead = ({ title, icon, desc }: { title?: string; icon?: string; desc?: string }) => {
-  const formatIcon = useMemo(() => {
-    if (!icon) return '/favicon.ico';
-    if (icon.startsWith('http') || icon.startsWith('/')) {
-      return icon;
-    }
-    return '/favicon.ico';
-  }, [icon]);
-
+const NextHead = ({ title, desc }: { title?: string; desc?: string }) => {
   return (
     <Head>
       <title>{title}</title>
@@ -19,7 +11,6 @@ const NextHead = ({ title, icon, desc }: { title?: string; icon?: string; desc?:
       />
       <meta httpEquiv="Content-Security-Policy" content="img-src * data: blob:;" />
       {desc && <meta name="description" content={desc} />}
-      {icon && <link rel="icon" href={formatIcon} />}
     </Head>
   );
 };

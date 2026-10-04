@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import NextHead from '@/components/common/NextHead';
 import { Box, Flex } from '@chakra-ui/react';
 import { useChatStore } from '@/web/core/chat/context/useChatStore';
@@ -11,7 +11,9 @@ import { useContextSelector } from 'use-context-selector';
 import { useSystem } from '@fastgpt/web/hooks/useSystem';
 import { GetChatTypeEnum, ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
 import ChatItemContextProvider, { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
-import ChatRecordContextProvider from '@/web/core/chat/context/chatRecordContext';
+import ChatRecordContextProvider, {
+  ChatRecordContext
+} from '@/web/core/chat/context/chatRecordContext';
 import ChatQuoteList from '@/pageComponents/chat/ChatQuoteList';
 import LoginModal from '@/pageComponents/login/LoginModal';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
@@ -27,22 +29,88 @@ import { getLogger, LogCategories } from '@fastgpt/service/common/logger';
 import { PublishChannelEnum } from '@fastgpt/global/support/outLink/constant';
 import type { LoginSuccessResponseType } from '@fastgpt/global/openapi/support/user/account/login/api';
 import AppListContextProvider from '@/pageComponents/dashboard/agent/context';
+import {
+  SandboxFilePanelProvider,
+  useSandboxFilePanel
+} from '@/pageComponents/chat/SandboxEditor/PanelContext';
+import SandboxFilePanel from '@/pageComponents/chat/SandboxEditor/Panel';
+import ResizeDivider from '@/pageComponents/chat/SandboxEditor/ResizeDivider';
+import { useSize } from 'ahooks';
+import { useAutoOpenSandboxFiles } from '@/pageComponents/chat/SandboxEditor/hook';
 
 const logger = getLogger(LogCategories.MODULE.CHAT.ITEM);
 
 const Chat = () => {
   const { isPc } = useSystem();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const size = useSize(containerRef);
+  const panel = useSandboxFilePanel();
+  const closeFilePanel = panel?.close;
+  const refreshFilePanel = panel?.refresh;
+  const isFilePanelOpen = panel?.isOpen;
+  const [fileWidth, setFileWidth] = useState(280);
+  useEffect(() => {
+    const storedWidth = Number(localStorage.getItem('chat_file_pane_width_v2'));
+    if (Number.isFinite(storedWidth) && storedWidth > 0) setFileWidth(storedWidth);
+  }, []);
 
-  const { appId } = useChatStore();
+  const { appId, chatId } = useChatStore();
 
   const datasetCiteData = useContextSelector(ChatItemContext, (v) => v.datasetCiteData);
   const setCiteModalData = useContextSelector(ChatItemContext, (v) => v.setCiteModalData);
 
   const collapse = useContextSelector(ChatPageContext, (v) => v.collapse);
   const pane = useContextSelector(ChatPageContext, (v) => v.pane);
+  const chatRecords = useContextSelector(ChatRecordContext, (v) => v.chatRecords);
+  const isConversationPane =
+    pane === ChatSidebarPaneEnum.RECENTLY_USED_APPS || pane === ChatSidebarPaneEnum.HOME;
+  useAutoOpenSandboxFiles({
+    appId,
+    chatId,
+    enabled: isPc && isConversationPane && !datasetCiteData
+  });
+  const fileOpen = !!isFilePanelOpen && isPc && !datasetCiteData && isConversationPane;
+  const autoFileWidth = 248;
+  const maxFileWidth = Math.max(248, (size?.width ?? 1440) - (collapse ? 64 : 268) - 480 - 8);
+  const actualFileWidth = Math.max(
+    248,
+    Math.min(
+      panel?.isExpanded ? 760 : panel?.isAutoOpened ? autoFileWidth : fileWidth,
+      maxFileWidth
+    )
+  );
+
+  useEffect(() => {
+    if (datasetCiteData || !isConversationPane) closeFilePanel?.();
+  }, [datasetCiteData, isConversationPane, closeFilePanel]);
+
+  useEffect(() => {
+    if (!isFilePanelOpen || !refreshFilePanel) return;
+    const timer = window.setTimeout(refreshFilePanel, 1500);
+    return () => window.clearTimeout(timer);
+  }, [chatRecords, isFilePanelOpen, refreshFilePanel]);
+
+  const moveFile = useCallback(
+    (delta: number) => {
+      if (panel?.isExpanded) panel.restore();
+      panel?.markManuallyResized();
+      setFileWidth((currentWidth) => {
+        const next = Math.max(
+          248,
+          Math.min(
+            (panel?.isExpanded || panel?.isAutoOpened ? actualFileWidth : currentWidth) - delta,
+            maxFileWidth
+          )
+        );
+        localStorage.setItem('chat_file_pane_width_v2', String(next));
+        return next;
+      });
+    },
+    [actualFileWidth, maxFileWidth, panel]
+  );
 
   return (
-    <Flex h={'100%'}>
+    <Flex ref={containerRef} h={'100%'} minW={0} overflow={'hidden'}>
       {/* Side bar */}
       {isPc && (
         <Box
@@ -62,6 +130,7 @@ const Chat = () => {
         <PageContainer
           flex="1 0 0"
           w={0}
+          minW={fileOpen ? '480px' : 0}
           position="relative"
           py={0}
           pr={0}
@@ -87,6 +156,16 @@ const Chat = () => {
           {pane === ChatSidebarPaneEnum.SETTING && <ChatSetting />}
         </PageContainer>
       )}
+
+      {fileOpen && <ResizeDivider label={'调整文件区域宽度'} onMove={moveFile} />}
+      <Box
+        w={`${fileOpen ? actualFileWidth : 0}px`}
+        flexShrink={0}
+        display={fileOpen ? 'block' : 'none'}
+        overflow={'hidden'}
+      >
+        <SandboxFilePanel headerHeight={56} />
+      </Box>
 
       {datasetCiteData && (
         <PageContainer
@@ -126,7 +205,7 @@ type ChatPageProps = {
 
 const ChatContent = (props: ChatPageProps) => {
   const { appId, isStandalone } = props;
-  const { chatId } = useChatStore();
+  const { chatId, appId: currentAppId } = useChatStore();
   const { setUserInfo } = useUserStore();
   const { feConfigs } = useSystemStore();
 
@@ -157,7 +236,7 @@ const ChatContent = (props: ChatPageProps) => {
   if (!isInitedUser) {
     return (
       <PageContainer isLoading flex={'1'} p={4}>
-        <NextHead title={feConfigs?.systemTitle} icon={feConfigs?.favicon} />
+        <NextHead title={feConfigs?.systemTitle} />
       </PageContainer>
     );
   }
@@ -187,7 +266,9 @@ const ChatContent = (props: ChatPageProps) => {
       >
         <ChatRecordContextProvider params={chatRecordProviderParams}>
           <AppListContextProvider>
-            <Chat />
+            <SandboxFilePanelProvider scopeKey={`${currentAppId}:${chatId}`}>
+              <Chat />
+            </SandboxFilePanelProvider>
           </AppListContextProvider>
         </ChatRecordContextProvider>
       </ChatItemContextProvider>

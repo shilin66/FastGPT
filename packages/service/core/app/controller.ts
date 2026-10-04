@@ -31,7 +31,7 @@ import { MongoMcpKey } from '../../support/mcp/schema';
 import { MongoAppRecord } from './record/schema';
 import { mongoSessionRun } from '../../common/mongo/sessionRun';
 import { getLogger, LogCategories } from '../../common/logger';
-import { deleteSandboxesByAppId, deleteSandboxesByChatIds } from '../ai/sandbox/controller';
+import { deleteSandboxesByAppId } from '../ai/sandbox/controller';
 
 const logger = getLogger(LogCategories.MODULE.APP.FOLDER);
 
@@ -152,21 +152,13 @@ export const deleteAppDataProcessor = async ({
 }) => {
   const appId = String(app._id);
 
+  // Sandbox cleanup must succeed before other app data is removed so the delete job can retry.
+  await deleteSandboxesByAppId(appId);
+
   // 1. 删除应用头像
   await removeImageByPath(app.avatar);
 
   // 2. 删除聊天记录和S3文件
-  // 删除沙盒实例
-  {
-    // 对话生成的
-    await deleteSandboxesByAppId(appId);
-    // 编辑 skill 生成的
-    const appChatIds = (
-      await MongoChat.find({ ...getChatSourceFilter(), appId }, { _id: 1 }).lean()
-    ).map((c) => String(c._id));
-    await deleteSandboxesByChatIds({ appId, chatIds: appChatIds });
-  }
-
   const skillSource = { appId, sourceType: 'skillEdit' };
   const hasSkillDebugFiles = (
     await Promise.all([

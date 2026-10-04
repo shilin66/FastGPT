@@ -10,6 +10,7 @@ import { useInitApp } from '@/web/context/useInitApp';
 import { useTranslation } from 'next-i18next';
 import '@/web/styles/reset.scss';
 import NextHead from '@/components/common/NextHead';
+import Head from 'next/head';
 import { type ReactElement, useEffect } from 'react';
 import { type NextPage } from 'next';
 import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
@@ -56,17 +57,23 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
   const router = useRouter();
   const showHead = !router?.pathname || !routesWithCustomHead.includes(router.pathname);
   const shouldUseLayout = !router?.pathname || !routesWithoutLayout.includes(router.pathname);
+  const favicon = getWebReqUrl(
+    feConfigs?.favicon || process.env.SYSTEM_FAVICON || OMNICOCKPIT_ASSETS.favicon
+  );
+  const faviconHead = (
+    <Head>
+      <link rel="icon" href={favicon} key="favicon" />
+    </Head>
+  );
 
   if (router.pathname === '/openapi') {
     return (
       <>
+        {faviconHead}
         {showHead && (
           <NextHead
             title={title}
             desc={process.env.SYSTEM_DESCRIPTION || t('common:system_intro', { title })}
-            icon={getWebReqUrl(
-              feConfigs?.favicon || process.env.SYSTEM_FAVICON || OMNICOCKPIT_ASSETS.favicon
-            )}
           />
         )}
         {setLayout(<Component {...pageProps} />)}
@@ -76,13 +83,11 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
 
   return (
     <>
+      {faviconHead}
       {showHead && (
         <NextHead
           title={title}
           desc={process.env.SYSTEM_DESCRIPTION || t('common:system_intro', { title })}
-          icon={getWebReqUrl(
-            feConfigs?.favicon || process.env.SYSTEM_FAVICON || OMNICOCKPIT_ASSETS.favicon
-          )}
         />
       )}
 

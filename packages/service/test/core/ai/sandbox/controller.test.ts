@@ -34,6 +34,7 @@ vi.mock('@fastgpt/service/env', async (importOriginal) => {
     env: {
       ...original.env,
       AGENT_SANDBOX_PROVIDER: 'opensandbox',
+      AGENT_SANDBOX_OPENSANDBOX_RUNTIME: 'docker',
       AGENT_SANDBOX_OPENSANDBOX_BASEURL: 'http://mock-sandbox.local',
       AGENT_SANDBOX_VOLUME_MANAGER_URL: 'http://volume.test',
       AGENT_SANDBOX_ENABLE_VOLUME: true
@@ -55,6 +56,9 @@ vi.mock('@fastgpt-sdk/sandbox-adapter', async (importOriginal) => {
     }
     connectExisting() {
       return providerConnect(this.sandboxId);
+    }
+    async getInfo() {
+      return { id: this.id, status: { state: 'Running' }, image: { repository: 'test-image' } };
     }
     delete() {
       return providerDelete(this.sandboxId);
@@ -88,7 +92,9 @@ vi.mock('@fastgpt/service/common/logger', async (importOriginal) => {
 import { connectionMongo } from '@fastgpt/service/common/mongo';
 import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
 import { SandboxStatusEnum } from '@fastgpt/global/core/ai/sandbox/constants';
+import { createLeaseRedisEval } from './leaseRedisMock';
 import {
+  SandboxClient,
   deleteSandboxesByChatIds,
   deleteSandboxesByAppId
 } from '@fastgpt/service/core/ai/sandbox/controller';
@@ -109,15 +115,7 @@ beforeEach(() => {
     redisStorage.set(key, { token, expiresAt: Date.now() + ttl });
     return 'OK';
   });
-  redisEval.mockImplementation(
-    async (script: string, _keys: number, key: string, token: string, ttl?: number) => {
-      const current = redisStorage.get(key);
-      if (!current || current.token !== token || current.expiresAt <= Date.now()) return 0;
-      if (script.includes('pexpire') && ttl) current.expiresAt = Date.now() + ttl;
-      else redisStorage.delete(key);
-      return 1;
-    }
-  );
+  redisEval.mockImplementation(createLeaseRedisEval(redisStorage));
 });
 
 afterEach(() => {
@@ -130,6 +128,36 @@ afterEach(() => {
 
 const appId1 = oid();
 const appId2 = oid();
+
+it('adds Agent ownership labels to new Docker sandbox creation', () => {
+  const client = new SandboxClient(
+    { sandboxId: 'workspace-1' },
+    {
+      provider: 'opensandbox',
+      createConfig: { image: { repository: 'test-image' } },
+      identity: {
+        sourceType: 'appRuntime',
+        sourceId: 'agent-1',
+        runtimeUserId: 'user-1',
+        sessionId: 'chat-1',
+        sourceChatId: 'chat-1'
+      }
+    }
+  );
+  void client.provider;
+  expect(createProvider).toHaveBeenCalledWith(
+    'opensandbox',
+    expect.anything(),
+    expect.objectContaining({
+      metadata: expect.objectContaining({
+        'fastgpt.io/kind': 'agent',
+        'fastgpt.io/source': 'agent-1',
+        'fastgpt.io/chat': 'chat-1',
+        'omni.io/ref': expect.stringMatching(/^agent-/)
+      })
+    })
+  );
+});
 
 describe.each(['app', 'chat'] as const)('Sandbox %s cleanup source isolation', (mode) => {
   it('deletes only canonical or unambiguous legacy runtime records and preserves Skill Edit', async () => {
@@ -190,7 +218,13 @@ describe.each(['app', 'chat'] as const)('Sandbox %s cleanup source isolation', (
       'legacy-session-runtime'
     ];
     expect(providerDelete.mock.calls.map(([id]) => id).sort()).toEqual(deleted.sort());
-    expect(providerInspect).toHaveBeenCalledExactlyOnceWith('provider-legacy-session-runtime');
+    expect(providerInspect.mock.calls.map(([id]) => id).sort()).toEqual(
+      [
+        'provider-canonical-runtime',
+        'provider-canonical-without-legacy-fields',
+        'provider-legacy-session-runtime'
+      ].sort()
+    );
     expect(volumeDelete.mock.calls.map(([id]) => id).sort()).toEqual(deleted.sort());
     expect(
       (await MongoSandboxInstance.find().lean()).map(({ sandboxId }) => sandboxId).sort()
@@ -288,6 +322,57 @@ describe('deleteSandboxesByChatIds', () => {
         binding: expect.objectContaining({ protocol: 'sessionId', target: 'sb1' })
       })
     );
+  });
+
+  it('deletes only the requested runtime user when chat IDs overlap', async () => {
+    await MongoSandboxInstance.create([
+      {
+        provider: 'opensandbox',
+        sandboxId: 'other-user-legacy',
+        appId: appId1,
+        userId: 'u2',
+        chatId: 'c1',
+        status: 'running'
+      },
+      {
+        provider: 'opensandbox',
+        sandboxId: 'other-user-canonical',
+        sourceType: 'appRuntime',
+        sourceId: appId1,
+        runtimeUserId: 'u2',
+        sessionId: 'c1',
+        sourceChatId: 'c1',
+        status: 'running'
+      }
+    ]);
+
+    await deleteSandboxesByChatIds({ appId: appId1, chatIds: ['c1'], runtimeUserId: 'u1' });
+
+    expect(await MongoSandboxInstance.exists({ sandboxId: 'sb1' })).toBeNull();
+    expect(await MongoSandboxInstance.exists({ sandboxId: 'other-user-legacy' })).not.toBeNull();
+    expect(await MongoSandboxInstance.exists({ sandboxId: 'other-user-canonical' })).not.toBeNull();
+    expect(providerDelete).toHaveBeenCalledExactlyOnceWith('sb1');
+  });
+
+  it('deletes a stopped sandbox whose completed deployment remains the latest operation', async () => {
+    await MongoSandboxInstance.updateOne(
+      { sandboxId: 'sb1' },
+      {
+        status: 'stopped',
+        operation: {
+          id: 'completed-deployment',
+          type: 'deploy',
+          checkpoint: 'completed',
+          failureDisposition: 'retryable'
+        }
+      }
+    );
+
+    await deleteSandboxesByChatIds({ appId: appId1, chatIds: ['c1'], runtimeUserId: 'u1' });
+
+    expect(await MongoSandboxInstance.exists({ sandboxId: 'sb1' })).toBeNull();
+    expect(providerDelete).toHaveBeenCalledExactlyOnceWith('sb1');
+    expect(volumeDelete).toHaveBeenCalledExactlyOnceWith('sb1', expect.anything());
   });
 });
 

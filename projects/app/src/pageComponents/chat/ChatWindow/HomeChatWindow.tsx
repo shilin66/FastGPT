@@ -43,7 +43,6 @@ import { ChatRecordContext } from '@/web/core/chat/context/chatRecordContext';
 import { ChatSidebarPaneEnum } from '../constants';
 import ChatHistorySidebar from '@/pageComponents/chat/slider/ChatSliderSidebar';
 import ChatSliderMobileDrawer from '@/pageComponents/chat/slider/ChatSliderMobileDrawer';
-import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 import { form2AppWorkflow } from '@/pageComponents/app/detail/Edit/SimpleApp/utils';
 
 const defaultFileSelectConfig: AppFileSelectConfigType = {
@@ -409,11 +408,7 @@ const HomeChatWindow = () => {
 
   return (
     <Flex h={'100%'} flexDirection={['column', 'row']}>
-      {/* set window title and icon */}
-      <NextHead
-        title={chatSettings?.homeTabTitle || feConfigs?.systemTitle}
-        icon={getWebReqUrl(feConfigs?.favicon)}
-      />
+      <NextHead title={chatSettings?.homeTabTitle || feConfigs?.systemTitle} />
 
       {/* show history slider */}
       {isPc ? (

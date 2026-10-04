@@ -125,6 +125,7 @@ const AIContentCard = React.memo(function AIContentCard({
         return (
           <Box
             key={key}
+            _empty={{ display: 'none' }}
             _notFirst={
               value.stepId
                 ? {

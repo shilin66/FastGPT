@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getClient: vi.fn(),
   createClient: vi.fn(),
   ensureAvailable: vi.fn(),
+  connectRunning: vi.fn(),
   list: vi.fn(),
   read: vi.fn(),
   write: vi.fn(),
@@ -70,7 +71,9 @@ describe('Chat sandbox file API context routing', () => {
   };
   const client = {
     id: sandboxId,
+    workspaceGeneration: 'workspace-generation',
     ensureAvailable: mocks.ensureAvailable,
+    connectRunning: mocks.connectRunning,
     withActivity: async (run: () => Promise<unknown>) => run()
   };
   const files = [{ name: 'index.html', path: 'index.html', type: 'file', size: 12 }];
@@ -102,9 +105,10 @@ describe('Chat sandbox file API context routing', () => {
     mocks.read.mockResolvedValue({
       content: Buffer.from('<head></head>file content'),
       contentType: 'text/html',
-      fileName: 'index.html'
+      fileName: 'index.html',
+      hash: 'content-hash'
     });
-    mocks.write.mockResolvedValue(undefined);
+    mocks.write.mockResolvedValue('new-content-hash');
     mocks.isDirectory.mockResolvedValue(false);
     mocks.upload.mockResolvedValue({ accessUrl: { url: 'https://preview.example.test/file' } });
     mocks.fileKey.mockReturnValue({ fileKey: 'temporary/preview.html' });
@@ -140,6 +144,10 @@ describe('Chat sandbox file API context routing', () => {
           lookup.mock.invocationCallOrder[0]
         );
         expect(mocks.createClient).not.toHaveBeenCalled();
+        if (name !== 'checkExist') {
+          expect(mocks.ensureAvailable).not.toHaveBeenCalled();
+          expect(mocks.connectRunning).toHaveBeenCalledOnce();
+        }
       }
     );
 
@@ -164,8 +172,49 @@ describe('Chat sandbox file API context routing', () => {
       makeRequest(),
       makeResponse() as unknown as NextApiResponse
     );
-    expect(result).toEqual({ files, sandboxId });
+    expect(result).toEqual({ files, sandboxId, workspaceGeneration: 'workspace-generation' });
     expect(mocks.list).toHaveBeenCalledExactlyOnceWith(client, 'index.html');
+  });
+
+  it('only starts a stopped sandbox for an explicit root directory open', async () => {
+    const root = makeRequest();
+    root.body.path = '.';
+    root.body.allowStart = true;
+    await (list as Handler)(root, makeResponse() as unknown as NextApiResponse);
+    expect(mocks.ensureAvailable).toHaveBeenCalledExactlyOnceWith('interactive');
+    expect(mocks.ensureAvailable.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.connectRunning.mock.invocationCallOrder[0]
+    );
+
+    vi.clearAllMocks();
+    const folder = makeRequest();
+    folder.body.allowStart = true;
+    await (list as Handler)(folder, makeResponse() as unknown as NextApiResponse);
+    expect(mocks.ensureAvailable).not.toHaveBeenCalled();
+  });
+
+  it('returns file hash and workspace generation with a raw preview', async () => {
+    const res = makeResponse();
+    await (read as Handler)(makeRequest(), res as unknown as NextApiResponse);
+    expect(res.setHeader).toHaveBeenCalledWith('X-Sandbox-Content-Hash', 'content-hash');
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'X-Sandbox-Workspace-Generation',
+      'workspace-generation'
+    );
+  });
+
+  it('rejects a save from an older workspace before writing', async () => {
+    const req = makeRequest();
+    req.body.expectedWorkspaceGeneration = 'older-workspace';
+    const res = makeResponse();
+    expect(await (write as Handler)(req, res as unknown as NextApiResponse)).toEqual({
+      success: false
+    });
+    expect(mocks.jsonRes).toHaveBeenCalledWith(res, {
+      code: 409,
+      message: 'sandbox_workspace_changed'
+    });
+    expect(mocks.write).not.toHaveBeenCalled();
   });
 
   it('reports false when the authenticated conversation has no existing workspace', async () => {

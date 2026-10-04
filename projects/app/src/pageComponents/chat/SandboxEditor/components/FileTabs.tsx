@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Flex, Text } from '@chakra-ui/react';
+import { Box, Flex, IconButton, Text } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { getIconByFilename } from '../utils';
+import { useTranslation } from 'next-i18next';
 
 export type OpenedFile = {
   path: string;
@@ -10,6 +11,9 @@ export type OpenedFile = {
   language: string;
   isBinary: boolean;
   isDirty: boolean;
+  hash?: string;
+  workspaceGeneration?: string;
+  remoteChanged?: boolean;
   // 非媒体文件 UTF-8 解码失败时为 true，前端走「无法预览」兜底
   isUnknown?: boolean;
 };
@@ -22,6 +26,7 @@ type Props = {
 };
 
 const FileTabs = ({ openedFiles, activeFilePath, setActiveFilePath, closeFile }: Props) => {
+  const { t } = useTranslation();
   return (
     <Box
       flexShrink={0}
@@ -62,7 +67,6 @@ const FileTabs = ({ openedFiles, activeFilePath, setActiveFilePath, closeFile }:
               gap={1}
               fontSize="12px"
               cursor="pointer"
-              onClick={() => setActiveFilePath(file.path)}
               maxW="150px"
               flexShrink={0}
               position="relative"
@@ -71,24 +75,32 @@ const FileTabs = ({ openedFiles, activeFilePath, setActiveFilePath, closeFile }:
                 bg: active ? 'white' : 'myGray.50'
               }}
             >
-              <MyIcon name={getIconByFilename(file.name)} w="16px" color="myGray.600" />
-              <Text
-                flex={1}
-                noOfLines={1}
-                fontWeight={active ? '500' : '400'}
-                color={active ? 'primary.700' : 'myGray.500'}
+              <Flex
+                as={'button'}
+                type={'button'}
+                aria-current={active ? 'page' : undefined}
+                align={'center'}
+                gap={1}
+                minW={0}
+                onClick={() => setActiveFilePath(file.path)}
               >
-                {file.name}
-              </Text>
-              {file.isDirty && <Box w="6px" h="6px" borderRadius="50%" bg="yellow.600" />}
-              <MyIcon
-                name="common/closeLight"
-                w="16px"
-                color="myGray.500"
-                _hover={{
-                  color: 'primary.500'
-                }}
-                onClick={(e) => closeFile(file.path, e)}
+                <MyIcon name={getIconByFilename(file.name)} w="16px" color="myGray.600" />
+                <Text
+                  flex={1}
+                  noOfLines={1}
+                  fontWeight={active ? '500' : '400'}
+                  color={active ? 'primary.700' : 'myGray.500'}
+                >
+                  {file.name}
+                </Text>
+                {file.isDirty && <Box w="6px" h="6px" borderRadius="50%" bg="yellow.600" />}
+              </Flex>
+              <IconButton
+                aria-label={`${t('common:Close')} ${file.name}`}
+                size={'xs'}
+                variant={'ghost'}
+                icon={<MyIcon name="common/closeLight" w="14px" color="myGray.500" />}
+                onClick={(event) => closeFile(file.path, event)}
               />
             </Flex>
           );

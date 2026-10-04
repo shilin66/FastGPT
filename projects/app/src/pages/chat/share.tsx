@@ -52,7 +52,6 @@ type Props = {
   appId: string;
   appName: string;
   appIntro: string;
-  appAvatar: string;
   shareId: string;
   authToken: string;
   customUid: string;
@@ -258,7 +257,6 @@ const OutLink = (props: Props) => {
       <NextHead
         title={props.appName || data?.app?.name || 'AI'}
         desc={props.appIntro || data?.app?.intro}
-        icon={props.appAvatar || data?.app?.avatar}
       />
       <Flex
         h={'full'}
@@ -411,7 +409,7 @@ const Render = (props: Props) => {
       </ChatItemContextProvider>
     </ChatContextProvider>
   ) : (
-    <NextHead title={props.appName} desc={props.appIntro} icon={props.appAvatar} />
+    <NextHead title={props.appName} desc={props.appIntro} />
   );
 };
 
@@ -445,7 +443,6 @@ export async function getServerSideProps(context: any) {
     props: {
       appId: app?.appId ? String(app?.appId) : '',
       appName: app?.associatedApp?.name ?? 'AI',
-      appAvatar: app?.associatedApp?.avatar ?? '',
       appIntro: app?.associatedApp?.intro ?? 'AI',
       canDownloadSource: app?.canDownloadSource ?? false,
       isShowCite: app?.showCite ?? false,

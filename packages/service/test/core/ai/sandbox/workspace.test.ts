@@ -6,8 +6,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   assertSandboxWorkspacePath,
+  assertSandboxWorkspacePaths,
   getSandboxWorkspaceRoot,
-  resolveSandboxWorkspacePath
+  resolveSandboxWorkspacePath,
+  resolveSandboxToolPath
 } from '../../../../core/ai/sandbox/workspace';
 
 describe('Sandbox workspace root and lexical path', () => {
@@ -49,6 +51,49 @@ describe('Sandbox workspace root and lexical path', () => {
       expect(() => resolveSandboxWorkspacePath({ workspaceRoot, path: '.' })).toThrow();
     }
   );
+});
+
+describe('Sandbox tool working directory paths', () => {
+  const resolve = (path: string) =>
+    resolveSandboxToolPath({
+      workspaceRoot: '/workspace',
+      workingDirectory: '/workspace/sessions/chat',
+      path
+    });
+
+  it.each([
+    'report.txt',
+    '/workspace/sessions/chat/report.txt',
+    'workspace/sessions/chat/report.txt'
+  ])('将 %s 解析到同一会话文件', (path) => {
+    expect(resolve(path)).toBe('/workspace/sessions/chat/report.txt');
+  });
+  it.each(['', '.', 'workspace/sessions/chat', '/workspace/sessions/chat/'])(
+    '将 %s 解析为当前工作目录',
+    (path) => {
+      expect(resolve(path)).toBe('/workspace/sessions/chat');
+    }
+  );
+  it('按完整目录边界匹配，保留普通子目录、显式相对目录及历史绝对目录', () => {
+    expect(resolve('outputs/report.txt')).toBe('/workspace/sessions/chat/outputs/report.txt');
+    expect(resolve('workspace/sessions/chat-other/report.txt')).toBe(
+      '/workspace/sessions/chat/workspace/sessions/chat-other/report.txt'
+    );
+    const nested = '/workspace/sessions/chat/workspace/sessions/chat/report.txt';
+    expect(resolve('./workspace/sessions/chat/report.txt')).toBe(nested);
+    expect(resolve(nested)).toBe(nested);
+    expect(resolve('/workspace/.runtime/current/skill/SKILL.md')).toBe(
+      '/workspace/.runtime/current/skill/SKILL.md'
+    );
+  });
+  it.each([
+    '../other',
+    '/etc/passwd',
+    'workspace/sessions/chat/../secret',
+    'workspace/sessions/chat/$(id)'
+  ])('路径纠正仍拒绝不安全输入 %s', (path) => {
+    expect(() => resolve(path)).toThrow('Invalid Sandbox workspace path');
+  });
 });
 
 describe('Sandbox provider-side realpath boundary', () => {
@@ -96,6 +141,26 @@ describe('Sandbox provider-side realpath boundary', () => {
   it('拒绝指向根外文件的符号链接', async () => {
     await symlink(join(fixturePath, 'outside', 'secret.txt'), join(workspaceRoot, 'external-link'));
     await expect(check('external-link')).rejects.toThrow('Invalid Sandbox workspace path');
+  });
+
+  it('批量校验每个目录条目，任一符号链接越界时整体拒绝', async () => {
+    await writeFile(join(workspaceRoot, 'second.txt'), 'safe');
+    await expect(
+      assertSandboxWorkspacePaths({
+        provider: { execute },
+        workspaceRoot,
+        paths: ['report.txt', 'second.txt']
+      })
+    ).resolves.toEqual([join(workspaceRoot, 'report.txt'), join(workspaceRoot, 'second.txt')]);
+
+    await symlink(join(fixturePath, 'outside', 'secret.txt'), join(workspaceRoot, 'external-link'));
+    await expect(
+      assertSandboxWorkspacePaths({
+        provider: { execute },
+        workspaceRoot,
+        paths: ['report.txt', 'external-link']
+      })
+    ).rejects.toThrow('Invalid Sandbox workspace path');
   });
 
   it('拒绝中间目录符号链接逃逸，包括新写入文件', async () => {

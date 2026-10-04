@@ -104,6 +104,12 @@ export const AgentParameterRow = ({
       borderBottom={'1px solid'}
       borderColor={omniTheme.colors.border}
       _last={{ borderBottom: 0 }}
+      sx={{
+        '@container (max-width: 420px)': {
+          gridTemplateColumns: 'minmax(0, 1fr)',
+          rowGap: 8
+        }
+      }}
     >
       <Box minW={0} pt={align === 'start' ? 1 : 0}>
         <Box

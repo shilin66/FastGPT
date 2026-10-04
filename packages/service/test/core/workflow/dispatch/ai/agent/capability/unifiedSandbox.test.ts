@@ -6,7 +6,6 @@ import {
   SANDBOX_TOOL_NAME
 } from '@fastgpt/global/core/ai/sandbox/constants';
 import { SandboxToolIds } from '@fastgpt/global/core/workflow/node/agent/skillTools';
-import { ConnectionError } from '@fastgpt-sdk/sandbox-adapter';
 
 vi.mock('@fastgpt/service/core/ai/sandbox/operation', async (original) => ({
   ...(await original<typeof import('@fastgpt/service/core/ai/sandbox/operation')>()),
@@ -17,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   edit: vi.fn(),
   getClient: vi.fn(),
+  executeCommand: vi.fn(),
   upload: vi.fn(),
   runEdit: vi.fn(async ({ execute }: { execute: () => Promise<unknown> }) => execute())
 }));
@@ -41,6 +41,10 @@ vi.mock(
 );
 vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
   getSandboxClient: mocks.getClient
+}));
+vi.mock('@fastgpt/service/core/ai/sandbox/command', async (original) => ({
+  ...(await original<typeof import('@fastgpt/service/core/ai/sandbox/command')>()),
+  executeWorkspaceCommand: mocks.executeCommand
 }));
 vi.mock('@fastgpt/service/core/ai/sandbox/identity', () => ({
   resolveAppSandboxIdentity: async () => ({})
@@ -109,6 +113,25 @@ describe('Agent sandbox tools share one workspace', () => {
     mocks.create.mockResolvedValue(context);
     mocks.edit.mockResolvedValue(context);
     mocks.getClient.mockRejectedValue(new Error('Unexpected second sandbox'));
+    mocks.executeCommand.mockImplementation(
+      async ({
+        provider,
+        workspaceRoot,
+        command,
+        timeoutMs
+      }: {
+        provider: typeof context.sandbox;
+        workspaceRoot: string;
+        command: string;
+        timeoutMs: number;
+      }) => {
+        const result = await provider.execute(command, {
+          workingDirectory: workspaceRoot,
+          timeoutMs
+        });
+        return { ...result, reason: result.exitCode === 0 ? 'completed' : 'failed' };
+      }
+    );
     mocks.upload.mockImplementation(async ({ body }: { body: AsyncIterable<Uint8Array> }) => {
       for await (const chunk of body) downloaded += new TextDecoder().decode(chunk);
       return { key: 'report' };
@@ -183,6 +206,29 @@ describe('Agent sandbox tools share one workspace', () => {
     expect(mocks.upload).not.toHaveBeenCalled();
   });
 
+  it('writes and downloads the model path with a missing leading slash in one session directory', async () => {
+    context.workspaceRoot = '/workspace';
+    context.workDirectory = '/workspace/sessions/chat';
+    const capability = await createSandboxSkillsCapability(params);
+    const modelPath = 'workspace/sessions/chat/report.txt';
+    const written = await capability.handleToolCall!(
+      SandboxToolIds.writeFile,
+      JSON.stringify({ path: modelPath, content: 'single workspace' }),
+      'write'
+    );
+    expect(written?.response).toBe(
+      'File written successfully: /workspace/sessions/chat/report.txt'
+    );
+    expect([...files.keys()]).toEqual(['/workspace/sessions/chat/report.txt']);
+    await capability.handleToolCall!(
+      SANDBOX_GET_FILE_URL_TOOL_NAME,
+      JSON.stringify({ paths: [modelPath] }),
+      'download'
+    );
+    expect(downloaded).toBe('single workspace');
+    expect(mocks.getClient).not.toHaveBeenCalled();
+  });
+
   it('initializes only once when shell and file tools are the first parallel calls', async () => {
     const capability = await createSandboxSkillsCapability(params);
     await Promise.all([
@@ -198,7 +244,9 @@ describe('Agent sandbox tools share one workspace', () => {
   });
 
   it('latches infrastructure failure across both tool families without a second sandbox', async () => {
-    vi.mocked(context.sandbox.execute).mockRejectedValue(new ConnectionError('transport failed'));
+    vi.mocked(context.sandbox.execute).mockRejectedValue(
+      Object.assign(new Error('transport failed'), { code: 'ECONNRESET' })
+    );
     const capability = await createSandboxSkillsCapability(params);
     const failed = await capability.handleToolCall!(
       SANDBOX_TOOL_NAME,

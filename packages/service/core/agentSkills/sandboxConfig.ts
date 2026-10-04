@@ -14,6 +14,8 @@ import type { OpenSandboxAdapter } from '@fastgpt-sdk/sandbox-adapter';
 import { env } from '../../env';
 import { resolveSandboxWorkspacePath } from '../ai/sandbox/workspace';
 import type { SandboxProviderConfig } from '../ai/sandbox/config';
+import type { SandboxInstanceSchemaType } from '../ai/sandbox/type';
+import { SandboxTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
 
 export type SandboxDefaults = {
   defaultImage: SandboxImageConfigType;
@@ -59,6 +61,20 @@ export function getSandboxDefaults(): SandboxDefaults {
     // entrypoint: env.AGENT_SANDBOX_OPENSANDBOX_ENTRYPOINT ?? '/home/sandbox/entrypoint.sh'
   };
 }
+
+export const getRuntimeSandboxWorkspaceRoot = (
+  instance?: Pick<SandboxInstanceSchemaType, 'metadata' | 'provider' | 'storage'>
+): string =>
+  resolveSandboxWorkspacePath({
+    workspaceRoot:
+      instance?.metadata?.workspaceRoot ??
+      (instance?.metadata?.sandboxType === SandboxTypeEnum.sessionRuntime
+        ? '/home/sandbox/workspace'
+        : instance?.provider === 'opensandbox'
+          ? instance.storage?.mountPath ?? '/home/sandbox'
+          : getSandboxDefaults().workDirectory),
+    path: '.'
+  });
 
 export function getSkillEditWorkspaceRoot(existing?: { metadata?: unknown }): string {
   if (!existing) return `${getSandboxDefaults().workDirectory}/edit`;

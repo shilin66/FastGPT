@@ -40,7 +40,7 @@ streams = {name: open(os.path.join(folder, name + '.log'), 'xb') for name in ('s
 sizes = dict.fromkeys(streams, 0)
 tails = dict.fromkeys(streams, b'')
 truncated = False
-process = subprocess.Popen(arg['command'], shell=True, cwd=arg['cwd'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+process = subprocess.Popen(arg['command'], shell=True, executable='/bin/bash', cwd=arg['cwd'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ, 'stdout')
 selector.register(process.stderr, selectors.EVENT_READ, 'stderr')
@@ -146,7 +146,7 @@ export const executeWorkspaceCommand = async ({
           folder,
           cwd,
           command,
-          timeoutMs: Math.min(120000, Math.max(100, timeoutMs))
+          timeoutMs: Math.min(600000, Math.max(100, timeoutMs))
         })
       ]
         .map(quote)

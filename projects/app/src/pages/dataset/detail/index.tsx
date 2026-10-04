@@ -63,7 +63,7 @@ const Detail = ({ datasetId, currentTab }: Props) => {
 
   return (
     <>
-      <NextHead title={datasetDetail?.name} icon={datasetDetail?.avatar} />
+      <NextHead title={datasetDetail?.name} />
 
       {isPc ? (
         <Flex

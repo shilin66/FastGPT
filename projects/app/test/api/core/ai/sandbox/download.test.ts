@@ -92,6 +92,7 @@ describe('Sandbox directory download stream failures', () => {
       workspaceRoot: '/workspace',
       provider: { ...makeProvider(listDirectory), readFiles },
       withActivity: async (run: () => Promise<unknown>) => run(),
+      connectRunning: vi.fn().mockResolvedValue(undefined),
       ensureAvailable: vi.fn().mockResolvedValue(undefined)
     });
     return Promise.resolve(download(request, response as unknown as NextApiResponse)).then(

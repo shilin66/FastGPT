@@ -10,6 +10,7 @@ import {
   dispatchSandboxWriteFile,
   dispatchSandboxEditFile,
   dispatchSandboxExecute,
+  executeAgentSandboxCommand,
   dispatchSandboxSearch,
   dispatchSandboxFetchUserFile
 } from '../../../../core/workflow/dispatch/ai/agent/sub/sandbox/skill';
@@ -49,7 +50,18 @@ describe('Skill tools workspace boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     executeMock.mockImplementation(async (command: string) => ({
-      stdout: command.startsWith("'python3'") ? 'FASTGPT_WORKSPACE_PATH_OK' : 'executed',
+      stdout: command.includes('subprocess.Popen')
+        ? JSON.stringify({
+            exitCode: 0,
+            reason: 'completed',
+            stdout: 'executed',
+            stderr: '',
+            truncated: false,
+            logDirectory: '/workspace/skill/.runtime/commands/test'
+          })
+        : command.startsWith("'python3'")
+          ? 'FASTGPT_WORKSPACE_PATH_OK'
+          : 'executed',
       stderr: '',
       exitCode: 0
     }));
@@ -165,6 +177,66 @@ describe('Skill tools workspace boundary', () => {
     ]);
   });
 
+  it.each([
+    'report.txt',
+    '/workspace/sessions/chat/report.txt',
+    'workspace/sessions/chat/report.txt'
+  ])('用户共享沙箱中写入 %s 不重复拼接会话工作目录', async (path) => {
+    const sharedContext = {
+      ...context,
+      workspaceRoot: '/workspace',
+      workDirectory: '/workspace/sessions/chat'
+    };
+    const result = await dispatchSandboxWriteFile(sharedContext, { path, content: 'report' });
+    expect(writeMock).toHaveBeenCalledWith([
+      { path: '/workspace/sessions/chat/report.txt', data: new TextEncoder().encode('report') }
+    ]);
+    expect(result.response).toBe('File written successfully: /workspace/sessions/chat/report.txt');
+    const read = await dispatchSandboxReadFile(sharedContext, { paths: [path] });
+    expect(read.response).toContain('--- /workspace/sessions/chat/report.txt ---');
+    await dispatchSandboxEditFile(sharedContext, {
+      entries: [{ path, oldContent: 'old', newContent: 'new' }]
+    });
+    expect(writeMock.mock.calls.at(-1)?.[0][0].path).toBe('/workspace/sessions/chat/report.txt');
+    await dispatchSandboxFetchUserFile(
+      sharedContext,
+      { file_index: '1', target_path: path },
+      availableFiles
+    );
+    expect(writeMock.mock.calls.at(-1)?.[0][0].path).toBe('/workspace/sessions/chat/report.txt');
+  });
+
+  it.each(['outputs', '/workspace/sessions/chat/outputs', 'workspace/sessions/chat/outputs'])(
+    '搜索和命令 cwd 使用相同目录 %s',
+    async (path) => {
+      const sharedContext = {
+        ...context,
+        workspaceRoot: '/workspace',
+        workDirectory: '/workspace/sessions/chat'
+      };
+      await dispatchSandboxSearch(sharedContext, { pattern: '*.txt', path });
+      expect(searchMock).toHaveBeenCalledWith('*.txt', '/workspace/sessions/chat/outputs');
+      await executeAgentSandboxCommand(sharedContext, { command: 'true', workingDirectory: path });
+      expect(executeMock.mock.calls.at(-1)?.[0]).toContain(
+        JSON.stringify({ cwd: '/workspace/sessions/chat/outputs' }).slice(1, -1)
+      );
+    }
+  );
+
+  it('显式相对路径仍可读取已存在的历史嵌套目录', async () => {
+    const sharedContext = {
+      ...context,
+      workspaceRoot: '/workspace',
+      workDirectory: '/workspace/sessions/chat'
+    };
+    await dispatchSandboxReadFile(sharedContext, {
+      paths: ['./workspace/sessions/chat/report.txt']
+    });
+    expect(readMock).toHaveBeenCalledWith([
+      '/workspace/sessions/chat/workspace/sessions/chat/report.txt'
+    ]);
+  });
+
   it('编辑支持单引号、多行和字面量正则字符，不调用 SDK sed', async () => {
     const content = "first\nold 'quoted'.*\nlast";
     readMock.mockImplementation(async (paths: string[]) =>
@@ -218,11 +290,66 @@ describe('Skill tools workspace boundary', () => {
     const command = 'printf \'%s\' "$(echo command)"';
     const result = await dispatchSandboxExecute(context, { command, timeoutMs: 30000 });
     expect(result.response).toContain('executed');
-    expect(executeMock).toHaveBeenLastCalledWith(command, {
-      workingDirectory: workDirectory,
-      timeoutMs: 30000
-    });
+    const supervisedCommand = executeMock.mock.calls.at(-1)?.[0];
+    expect(supervisedCommand).toContain(JSON.stringify({ cwd: workDirectory }).slice(1, -1));
+    expect(supervisedCommand).toContain('subprocess.Popen');
   });
+
+  it.each(['timed_out', 'cancelled'] as const)(
+    '普通 Agent 命令在 provider 忽略 timeout 时仍会 %s 并终止子进程',
+    async (reason) => {
+      const root = await mkdtemp(join(await realpath(tmpdir()), 'fastgpt-agent-command-'));
+      let stopped = false;
+      let stopTimer: ReturnType<typeof setTimeout> | undefined;
+      executeMock.mockImplementation(
+        (command: string, options: ExecuteOptions) =>
+          new Promise((resolve) => {
+            execFile(
+              '/bin/sh',
+              ['-c', command],
+              { cwd: options?.workingDirectory ?? root },
+              (error, stdout, stderr) => resolve({ stdout, stderr, exitCode: error ? 1 : 0 })
+            );
+          })
+      );
+      writeMock.mockImplementation(async (entries: FileWriteEntries) =>
+        Promise.all(
+          entries.map(async (entry) => {
+            if (!(entry.data instanceof Uint8Array)) throw new Error('Expected bytes');
+            await writeFile(entry.path, entry.data);
+            return { path: entry.path, bytesWritten: entry.data.byteLength, error: null };
+          })
+        )
+      );
+      try {
+        if (reason === 'cancelled')
+          stopTimer = setTimeout(() => {
+            stopped = true;
+          }, 300);
+        const result = await executeAgentSandboxCommand(
+          { ...context, workDirectory: root, shouldStop: () => stopped },
+          {
+            command: 'sleep 2; printf late > late.txt',
+            timeoutMs: reason === 'timed_out' ? 150 : 10000
+          }
+        );
+        expect(result).toMatchObject({ reason });
+        expect(result.exitCode).not.toBe(0);
+        await expect(readFile(join(root, 'late.txt'))).rejects.toMatchObject({ code: 'ENOENT' });
+        const next = await executeAgentSandboxCommand(
+          { ...context, workDirectory: root },
+          {
+            command: '[[ "$PWD" == "' + root + '" ]] && printf \'%s\' "$(echo ready)"',
+            timeoutMs: 1000
+          }
+        );
+        expect(next.stdout).toBe('ready');
+      } finally {
+        clearTimeout(stopTimer);
+        await rm(root, { recursive: true, force: true });
+      }
+    }
+  );
 
   it('搜索默认目录使用 Skill 根并校验返回结果', async () => {
     searchMock.mockResolvedValue([{ path: `${workDirectory}/report.txt` }]);
@@ -363,6 +490,15 @@ describe('Skill tools workspace boundary', () => {
       const write = await dispatchSandboxWriteFile(realContext, { path: 'report.txt', content });
       expect(write.response).toContain('File written successfully');
       expect(await readFile(join(root, 'report.txt'), 'utf8')).toBe(content);
+      const corrected = await dispatchSandboxWriteFile(realContext, {
+        path: `${root.slice(1)}/single.txt`,
+        content: 'single directory'
+      });
+      expect(corrected.response).toBe(`File written successfully: ${root}/single.txt`);
+      expect(await readFile(join(root, 'single.txt'), 'utf8')).toBe('single directory');
+      await expect(readFile(join(root, root.slice(1), 'single.txt'))).rejects.toMatchObject({
+        code: 'ENOENT'
+      });
       const edited = await dispatchSandboxEditFile(realContext, {
         entries: [
           {

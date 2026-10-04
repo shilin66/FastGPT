@@ -38,6 +38,9 @@ const WhisperConfig = dynamic(() => import('@/components/core/app/WhisperConfig'
 const InputGuideConfig = dynamic(() => import('@/components/core/app/InputGuideConfig'));
 const WelcomeTextConfig = dynamic(() => import('@/components/core/app/WelcomeTextConfig'));
 const FileSelectConfig = dynamic(() => import('@/components/core/app/FileSelect'));
+const SandboxManagementModal = dynamic(
+  () => import('@/components/core/sandbox/SandboxManagementModal')
+);
 
 const BoxStyles: BoxProps = {
   px: 0,
@@ -67,8 +70,8 @@ const ConfigSection = ({
     model: '01',
     dataset: '02',
     tools: '03',
-    interaction: '04',
-    runtime: '05'
+    runtime: '04',
+    interaction: '05'
   } satisfies Record<SimpleConfigSectionKey, string>;
 
   return (
@@ -97,6 +100,7 @@ const EditForm = ({
   const { t } = useTranslation();
   const { defaultModels, feConfigs } = useSystemStore();
   const showSandbox = feConfigs.show_agent_sandbox;
+  const sandboxManagement = useDisclosure();
   const { teamPlanStatus } = useUserStore();
   const enableSandbox = !teamPlanStatus?.standard || !!teamPlanStatus?.standard?.enableSandbox;
   const { appDetail } = useContextSelector(AppContext, (v) => v);
@@ -435,6 +439,68 @@ const EditForm = ({
       </ConfigSection>
 
       <ConfigSection
+        sectionKey="runtime"
+        title={t('app:agent_config_runtime')}
+        desc={t('app:agent_config_runtime_desc')}
+        onActiveSectionChange={onActiveSectionChange}
+      >
+        <AgentParameterRow
+          label={
+            <Flex alignItems={'center'}>
+              {t('app:use_agent_sandbox')}
+              <QuestionTip ml={1} label={t('app:use_computer_desc')} />
+            </Flex>
+          }
+          description={t('app:agent_config_runtime_field_desc')}
+        >
+          <Flex alignItems={'center'} justifyContent={'flex-end'} gap={3}>
+            {showSandbox && (
+              <Button
+                size={'sm'}
+                h={'30px'}
+                px={2}
+                variant={'ghost'}
+                color={omniTheme.colors.text}
+                fontSize={omniTheme.typography.agentBody}
+                fontWeight={600}
+                leftIcon={<MyIcon name={'common/layer'} w={'14px'} />}
+                _hover={{ bg: omniTheme.colors.activeBg, color: omniTheme.colors.graphite }}
+                onClick={sandboxManagement.onOpen}
+              >
+                {t('chat:sandbox_manage_title')}
+              </Button>
+            )}
+            {showSandbox ? (
+              enableSandbox ? (
+                <>
+                  <Box mr={2}>
+                    <SandboxTipTag />
+                  </Box>
+                  <Switch
+                    aria-label={String(t('app:use_agent_sandbox'))}
+                    isChecked={appForm.aiSettings.useAgentSandbox ?? false}
+                    onChange={(e) => {
+                      setAppForm((state) => ({
+                        ...state,
+                        aiSettings: {
+                          ...state.aiSettings,
+                          useAgentSandbox: e.target.checked
+                        }
+                      }));
+                    }}
+                  />
+                </>
+              ) : (
+                <SandboxNotSupportTip type="freeDisable" />
+              )
+            ) : (
+              <SandboxNotSupportTip type="systemDisable" />
+            )}
+          </Flex>
+        </AgentParameterRow>
+      </ConfigSection>
+
+      <ConfigSection
         sectionKey="interaction"
         title={t('app:agent_config_interaction')}
         desc={t('app:agent_config_legacy_interaction_desc')}
@@ -555,51 +621,6 @@ const EditForm = ({
         </Box>
       </ConfigSection>
 
-      <ConfigSection
-        sectionKey="runtime"
-        title={t('app:agent_config_runtime')}
-        desc={t('app:agent_config_runtime_desc')}
-        onActiveSectionChange={onActiveSectionChange}
-      >
-        <AgentParameterRow
-          label={
-            <Flex alignItems={'center'}>
-              {t('app:use_agent_sandbox')}
-              <QuestionTip ml={1} label={t('app:use_computer_desc')} />
-            </Flex>
-          }
-          description={t('app:agent_config_runtime_field_desc')}
-        >
-          <Flex alignItems={'center'} justifyContent={'flex-end'}>
-            {showSandbox ? (
-              enableSandbox ? (
-                <>
-                  <Box mr={2}>
-                    <SandboxTipTag />
-                  </Box>
-                  <Switch
-                    isChecked={appForm.aiSettings.useAgentSandbox ?? false}
-                    onChange={(e) => {
-                      setAppForm((state) => ({
-                        ...state,
-                        aiSettings: {
-                          ...state.aiSettings,
-                          useAgentSandbox: e.target.checked
-                        }
-                      }));
-                    }}
-                  />
-                </>
-              ) : (
-                <SandboxNotSupportTip type="freeDisable" />
-              )
-            ) : (
-              <SandboxNotSupportTip type="systemDisable" />
-            )}
-          </Flex>
-        </AgentParameterRow>
-      </ConfigSection>
-
       {isOpenDatasetSelect && (
         <DatasetSelectModal
           defaultSelectedDatasets={selectDatasets.map((item) => ({
@@ -634,6 +655,13 @@ const EditForm = ({
               }
             }));
           }}
+        />
+      )}
+      {sandboxManagement.isOpen && (
+        <SandboxManagementModal
+          isOpen={sandboxManagement.isOpen}
+          onClose={sandboxManagement.onClose}
+          scope={{ sourceType: 'appRuntime', sourceId: appDetail._id }}
         />
       )}
     </>

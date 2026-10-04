@@ -15,6 +15,9 @@ vi.mock('@fastgpt/service/env', async (importOriginal) => {
     env: {
       ...original.env,
       AGENT_SANDBOX_PROVIDER: 'opensandbox',
+      AGENT_SANDBOX_ENABLE_VOLUME: true,
+      AGENT_SANDBOX_VOLUME_MANAGER_URL: 'http://volume.test',
+      AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH: '/workspace',
       AGENT_SANDBOX_OPENSANDBOX_BASEURL: 'http://sandbox.example.test:8090'
     }
   };
@@ -28,7 +31,8 @@ vi.mock('@fastgpt/service/core/agentSkills/sandboxDeployment', () => ({
     deployedSkills: []
   })
 }));
-vi.mock('@fastgpt/service/core/ai/sandbox/lease', () => ({
+vi.mock('@fastgpt/service/core/ai/sandbox/lease', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@fastgpt/service/core/ai/sandbox/lease')>()),
   withSandboxLease: async (_key: string, run: (lease: SandboxLease) => Promise<unknown>) =>
     run({ token: randomUUID(), assertOwned: async () => undefined, setHeartbeat: vi.fn() })
 }));
@@ -47,7 +51,7 @@ describe('Skill runtime sandbox identity', () => {
     sourceType: 'appRuntime',
     sourceId: params.appId,
     runtimeUserId: params.runtimeUserId,
-    sessionId: params.sessionId
+    reuseScope: 'user'
   });
 
   beforeEach(() => {
@@ -55,11 +59,27 @@ describe('Skill runtime sandbox identity', () => {
     previousFeConfigs = global.feConfigs;
     global.feConfigs = { ...global.feConfigs, limit: {} };
     getClientMock.mockImplementation(
-      async (props: { sandboxId: string; appId?: string; userId?: string; chatId?: string }) => {
+      async (props: { sandboxId?: string; appId: string; userId: string; chatId: string }) => {
+        const sandboxId =
+          props.sandboxId ??
+          generateSandboxIdentityId({
+            sourceType: 'appRuntime',
+            sourceId: props.appId,
+            runtimeUserId: props.userId,
+            reuseScope: 'user'
+          });
         await MongoSandboxInstance.updateOne(
-          { provider: 'opensandbox', sandboxId: props.sandboxId },
+          { provider: 'opensandbox', sandboxId: sandboxId },
           {
-            $setOnInsert: props,
+            $setOnInsert: {
+              sandboxId,
+              appId: props.appId,
+              userId: props.userId,
+              sourceType: 'appRuntime',
+              sourceId: props.appId,
+              runtimeUserId: props.userId,
+              reuseScope: 'user'
+            },
             $set: {
               status: SandboxStatusEnum.running,
               operation: {
@@ -77,7 +97,7 @@ describe('Skill runtime sandbox identity', () => {
           provider: {
             provider: 'opensandbox',
             getInfo: async () => ({
-              id: `provider-${props.sandboxId}`,
+              id: `provider-${sandboxId}`,
               image: { repository: 'test-image', tag: 'latest' },
               createdAt: new Date()
             }),
@@ -85,7 +105,7 @@ describe('Skill runtime sandbox identity', () => {
             readFiles: async () => [],
             close: async () => undefined
           },
-          delete: async () => MongoSandboxInstance.deleteOne({ sandboxId: props.sandboxId })
+          delete: async () => MongoSandboxInstance.deleteOne({ sandboxId: sandboxId })
         };
       }
     );
@@ -105,11 +125,10 @@ describe('Skill runtime sandbox identity', () => {
     expect(await MongoSandboxInstance.findOne({ sandboxId: expectedId }).lean()).toMatchObject({
       appId: params.appId,
       userId: params.runtimeUserId,
-      chatId: params.sessionId,
+      reuseScope: 'user',
       sourceType: 'appRuntime',
       sourceId: params.appId,
       runtimeUserId: params.runtimeUserId,
-      sessionId: params.sessionId,
       metadata: { providerSandboxId: `provider-${expectedId}` }
     });
   });
@@ -121,77 +140,23 @@ describe('Skill runtime sandbox identity', () => {
     expect(await MongoSandboxInstance.countDocuments()).toBe(2);
   });
 
-  it('persists and backfills the original chat association while preserving the debug identity', async () => {
-    const sessionId = JSON.stringify(['test', params.appId, 'node', params.sessionId]);
-    const debugParams = { ...params, sessionId, sourceChatId: params.sessionId };
-    const first = await createAgentSandbox(debugParams);
-    expect(await MongoSandboxInstance.findOne({ sandboxId: first.sandboxId }).lean()).toMatchObject(
-      {
-        sessionId,
-        chatId: sessionId,
-        sourceChatId: params.sessionId
-      }
-    );
-    expect(getClientMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        identity: expect.objectContaining({ sourceChatId: params.sessionId })
-      })
-    );
-    await MongoSandboxInstance.updateOne(
-      { sandboxId: first.sandboxId },
-      { $unset: { sourceChatId: 1 } }
-    );
-    const reused = await createAgentSandbox(debugParams);
-    expect(reused.sandboxId).toBe(first.sandboxId);
-    expect(await MongoSandboxInstance.findOne({ sandboxId: first.sandboxId }).lean()).toMatchObject(
-      {
-        sessionId,
-        chatId: sessionId,
-        sourceChatId: params.sessionId
-      }
-    );
-  });
-
-  it('rejects a conflicting persisted source chat before opening a provider', async () => {
-    const existing = await createAgentSandbox({ ...params, sourceChatId: params.sessionId });
-    getClientMock.mockClear();
-    await expect(createAgentSandbox({ ...params, sourceChatId: 'another-chat' })).rejects.toThrow(
-      'conflicting source chat'
-    );
-    expect(getClientMock).not.toHaveBeenCalled();
-    expect(
-      await MongoSandboxInstance.findOne({ sandboxId: existing.sandboxId }).lean()
-    ).toMatchObject({
-      sourceChatId: params.sessionId
+  it('shares a workspace across chat and debug sessions without changing root ownership', async () => {
+    const first = await createAgentSandbox(params);
+    const second = await createAgentSandbox({
+      ...params,
+      sessionId: 'debug-run',
+      sourceChatId: 'another-chat'
     });
+    expect(second.sandboxId).toBe(first.sandboxId);
+    expect(first.workDirectory).toBe('/workspace/sessions/shared-chat');
+    expect(second.workDirectory).toBe('/workspace/sessions/another-chat');
+    const saved = await MongoSandboxInstance.findOne({ sandboxId: first.sandboxId }).lean();
+    expect(saved?.chatId).toBeUndefined();
+    expect(saved?.sessionId).toBeUndefined();
+    expect(saved?.sourceChatId).toBeUndefined();
   });
 
-  it('refuses a conflicting old app/chat index before creating another user workspace', async () => {
-    await MongoSandboxInstance.collection.createIndex(
-      { appId: 1, chatId: 1 },
-      {
-        unique: true,
-        partialFilterExpression: {
-          appId: { $exists: true },
-          chatId: { $exists: true },
-          'metadata.sandboxType': { $exists: true }
-        }
-      }
-    );
-    await createAgentSandbox(params);
-    getClientMock.mockClear();
-    await expect(
-      createAgentSandbox({ ...params, runtimeUserId: 'different-user' })
-    ).rejects.toThrow('sandbox_identity_migration_required');
-    expect(getClientMock).not.toHaveBeenCalled();
-  });
-
-  it('preserves a strictly matching generic legacy sandbox and its volume identity', async () => {
-    global.feConfigs = {
-      ...global.feConfigs,
-      limit: { ...global.feConfigs.limit, agentSandboxMaxSessionRuntime: 0 }
-    };
+  it('preserves a legacy volume while provisioning a separate shared workspace', async () => {
     await MongoSandboxInstance.create({
       provider: 'opensandbox',
       sandboxId: 'legacy-generic',
@@ -199,56 +164,18 @@ describe('Skill runtime sandbox identity', () => {
       userId: params.runtimeUserId,
       chatId: params.sessionId,
       storage: {
-        mountPath: '/workspace',
-        volumes: [{ name: 'existing', claimName: 'old-volume', mountPath: '/workspace' }]
+        mountPath: '/old-workspace',
+        volumes: [{ name: 'workspace', claimName: 'old-volume', mountPath: '/old-workspace' }]
       }
     });
     const result = await createAgentSandbox(params);
-    expect(result).toMatchObject({
-      sandboxId: 'legacy-generic',
-      providerSandboxId: 'provider-legacy-generic'
-    });
-    expect(await MongoSandboxInstance.countDocuments()).toBe(1);
+    expect(result.sandboxId).toBe(expectedId);
+    expect(result.workDirectory).toBe('/workspace/sessions/shared-chat');
+    expect(await MongoSandboxInstance.countDocuments()).toBe(2);
     expect(
       await MongoSandboxInstance.findOne({ sandboxId: 'legacy-generic' }).lean()
-    ).toMatchObject({
-      sourceType: 'appRuntime',
-      sourceId: params.appId,
-      storage: { volumes: [{ claimName: 'old-volume' }] }
-    });
+    ).toMatchObject({ storage: { volumes: [{ claimName: 'old-volume' }] } });
   });
-
-  it.each([
-    { storage: undefined, expectedRoot: '/home/sandbox' },
-    {
-      storage: {
-        mountPath: '/old-workspace',
-        volumes: [{ name: 'workspace', claimName: 'old', mountPath: '/old-workspace' }]
-      },
-      expectedRoot: '/old-workspace'
-    }
-  ])(
-    'keeps legacy Shell files in their original root $expectedRoot when Skills is enabled',
-    async ({ storage, expectedRoot }) => {
-      await MongoSandboxInstance.create({
-        provider: 'opensandbox',
-        sandboxId: 'legacy-shell',
-        appId: params.appId,
-        userId: params.runtimeUserId,
-        chatId: params.sessionId,
-        storage
-      });
-      const result = await createAgentSandbox(params);
-      expect(result.workDirectory).toBe(expectedRoot);
-      expect(getClientMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ workspaceRoot: expectedRoot })
-      );
-      expect(
-        await MongoSandboxInstance.findOne({ sandboxId: 'legacy-shell' }).lean()
-      ).toMatchObject({ metadata: { workspaceRoot: expectedRoot } });
-    }
-  );
 
   it('does not infer ownership of an old Skill runtime from team and session alone', async () => {
     await MongoSandboxInstance.create({
@@ -279,6 +206,25 @@ describe('Skill runtime sandbox identity', () => {
       providerSandboxId: first.providerSandboxId
     });
     expect(await MongoSandboxInstance.countDocuments()).toBe(1);
+  });
+
+  it('can reuse a completed deployment without forcing another provider start', async () => {
+    const first = await createAgentSandbox(params);
+    getClientMock.mockImplementationOnce(async () => ({
+      provider: {
+        provider: 'opensandbox',
+        getInfo: async () => ({
+          id: first.providerSandboxId,
+          image: { repository: 'test-image', tag: 'latest' },
+          createdAt: new Date()
+        }),
+        execute: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+        close: async () => undefined
+      }
+    }));
+    const second = await createAgentSandbox({ ...params, sessionId: 'next-chat' });
+    expect(second.sandboxId).toBe(first.sandboxId);
+    expect(second.workDirectory).toBe('/workspace/sessions/next-chat');
   });
 
   it.each([

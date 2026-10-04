@@ -16,7 +16,7 @@ import type {
   ToolModuleResponseItemType,
   SkillModuleResponseItemType
 } from '@fastgpt/global/core/chat/type';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import type {
@@ -159,29 +159,52 @@ const RenderTool = React.memo(
     }, []);
     const params = useMemo(() => formatJson(tool.params), [formatJson, tool.params]);
     const response = useMemo(() => formatJson(tool.response || ''), [formatJson, tool.response]);
+    const [isOpen, setIsOpen] = useState(false);
 
     return (
-      <Accordion allowToggle>
-        <AccordionItem borderTop={'none'} borderBottom={'none'}>
-          <AccordionButton {...accordionButtonStyle}>
-            <Avatar src={tool.toolAvatar} w={'1.25rem'} h={'1.25rem'} borderRadius={'sm'} />
-            <Box mx={2} fontSize={'sm'} color={'myGray.900'}>
-              {t(tool.toolName)}
-            </Box>
-            {showAnimation && tool.response === undefined && (
-              <MyIcon name={'common/loading'} w={'14px'} />
-            )}
-            <AccordionIcon color={'myGray.600'} ml={5} />
-          </AccordionButton>
-          <AccordionPanel
-            py={0}
-            px={0}
-            mt={3}
-            borderRadius={'md'}
-            overflow={'hidden'}
-            maxH={'500px'}
-            overflowY={'auto'}
-          >
+      <Box>
+        <Flex
+          as={'button'}
+          type={'button'}
+          alignItems={'center'}
+          w={'auto'}
+          minH={'42px'}
+          px={2.5}
+          py={1.5}
+          bg={'white'}
+          border={'1px solid'}
+          borderColor={'myGray.200'}
+          borderRadius={'md'}
+          boxShadow={'1'}
+          textAlign={'left'}
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen((value) => !value)}
+          _hover={{ bg: 'myGray.50', borderColor: 'myGray.300' }}
+          _focusVisible={{ boxShadow: 'inset 0 0 0 2px #2563EB' }}
+        >
+          <Avatar
+            src={tool.toolAvatar}
+            w={'26px'}
+            h={'26px'}
+            fill={'none'}
+            borderRadius={'8px'}
+            flexShrink={0}
+          />
+          <Box ml={2} mr={2.5} fontSize={'sm'} color={'myGray.900'} whiteSpace={'nowrap'}>
+            {t(tool.toolName)}
+          </Box>
+          {showAnimation && tool.response === undefined && (
+            <MyIcon name={'common/loading'} w={'14px'} />
+          )}
+          <MyIcon
+            name={'core/chat/chevronDown'}
+            w={'16px'}
+            color={'myGray.600'}
+            transform={isOpen ? 'rotate(180deg)' : undefined}
+          />
+        </Flex>
+        {isOpen && (
+          <Box mt={3} maxH={'500px'} overflowY={'auto'} borderRadius={'md'}>
             {params && params !== '{}' && (
               <Box mb={3}>
                 <Markdown
@@ -196,9 +219,9 @@ ${params}`}
 ${response}`}
               />
             )}
-          </AccordionPanel>
-        </AccordionItem>
-      </Accordion>
+          </Box>
+        )}
+      </Box>
     );
   },
   (prevProps, nextProps) => isEqual(prevProps, nextProps)

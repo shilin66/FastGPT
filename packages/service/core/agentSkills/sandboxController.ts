@@ -129,8 +129,10 @@ async function deployEditPackage({
 export async function createEditDebugSandbox(
   params: CreateEditDebugSandboxParams
 ): Promise<CreateEditDebugSandboxResult> {
-  return withSandboxLease(`skill-edit-init:${params.skillId}`, (lease) =>
-    initializeEditDebugSandbox(params, lease)
+  return withSandboxLease(`sandbox-source:skillEdit:${params.skillId}`, () =>
+    withSandboxLease(`skill-edit-init:${params.skillId}`, (lease) =>
+      initializeEditDebugSandbox(params, lease)
+    )
   );
 }
 
@@ -197,7 +199,7 @@ async function initializeEditDebugSandbox(
       status: SandboxStatusEnum.running,
       deleteTime: null,
       'operation.checkpoint': 'ready',
-      'operation.type': { $in: ['start', 'provision'] }
+      'operation.type': { $in: ['start', 'provision', 'restore'] }
     }).lean();
     if (!readyInstance?.operation) throw new Error('operation_conflict');
     await lease.assertOwned();
@@ -649,7 +651,20 @@ export async function deleteSandbox(params: DeleteSandboxParams): Promise<void> 
  * Force delete all sandbox instances related to the given skill IDs
  * Called when a skill is deleted to clean up provider resources
  */
-export async function deleteSkillRelatedSandboxes({
+export async function deleteSkillRelatedSandboxes(options: {
+  skillIds: string[];
+  teamId: string;
+  assertAuthorized: () => Promise<void>;
+}): Promise<void> {
+  const ids = [...new Set(options.skillIds)].sort();
+  const acquire = async (index: number): Promise<void> => {
+    if (index === ids.length) return deleteSkillSandboxesInsideSourceLease(options);
+    await withSandboxLease(`sandbox-source:skillEdit:${ids[index]}`, () => acquire(index + 1));
+  };
+  await acquire(0);
+}
+
+async function deleteSkillSandboxesInsideSourceLease({
   skillIds,
   teamId,
   assertAuthorized

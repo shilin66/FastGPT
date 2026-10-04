@@ -34,6 +34,27 @@ const canonicalRecord = (sandboxId: string) => ({
 describe('Sandbox identity index migration', () => {
   beforeEach(createLegacyIndex);
 
+  it('rejects duplicate user identities before replacing any indexes', async () => {
+    const record = {
+      provider: 'opensandbox',
+      sourceType: 'appRuntime',
+      sourceId: 'app',
+      runtimeUserId: 'user',
+      reuseScope: 'user'
+    };
+    await collection.insertMany([
+      { ...record, sandboxId: 'one' },
+      { ...record, sandboxId: 'two' }
+    ]);
+    expect((await auditSandboxIdentityIndexes()).duplicateUserIdentityCount).toBe(1);
+    await expect(migrateSandboxIdentityIndexes({ confirmWrite: true })).rejects.toThrow(
+      'duplicate_identity'
+    );
+    expect(
+      (await collection.listIndexes().toArray()).some((index) => index.name === legacyIndexName)
+    ).toBe(true);
+  });
+
   it('blocks a different sandbox sharing a legacy app/chat unique key', async () => {
     await collection.insertOne({
       appId: 'app-a',
@@ -264,7 +285,8 @@ describe('Sandbox identity index migration', () => {
     });
     await expect(collection.listIndexes().toArray()).rejects.toThrow();
     const result = await migrateSandboxIdentityIndexes({ confirmWrite: true });
-    expect(result.createdIndexNames).toHaveLength(8);
+    expect(result.createdIndexNames).toHaveLength(10);
+    expect(result.createdIndexNames).toContain('sandbox_provider_scan');
     expect(result.createdIndexNames).toContain('provider_1_sourceType_1_workspaceGeneration_1');
     const indexes = await collection.listIndexes().toArray();
     const sourceChatIndex = indexes.find(

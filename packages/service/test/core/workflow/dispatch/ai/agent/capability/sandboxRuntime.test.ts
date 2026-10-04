@@ -1,9 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConnectionError } from '@fastgpt-sdk/sandbox-adapter';
 import { SandboxToolIds } from '@fastgpt/global/core/workflow/node/agent/skillTools';
 import { createSandboxSkillsCapability } from '../../../../../../../core/workflow/dispatch/ai/agent/capability/sandboxSkills';
 import { SandboxUnavailableError } from '../../../../../../../core/workflow/dispatch/ai/agent/sub/sandbox/errors';
 import { SandboxVolumeConfigurationError } from '../../../../../../../core/ai/sandbox/errors';
+import {
+  SandboxBusyBeforeEffectError,
+  SandboxOperationConflict
+} from '../../../../../../../core/ai/sandbox/lease';
+import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
+import type { SandboxStatusItemType } from '@fastgpt/global/core/chat/type';
 
 vi.mock('@fastgpt/service/core/ai/sandbox/operation', async (original) => ({
   ...(await original<typeof import('@fastgpt/service/core/ai/sandbox/operation')>()),
@@ -71,6 +77,17 @@ describe('Runtime Skill capability failure and lazy resolution', () => {
     });
     mocks.execute.mockResolvedValue({ response: 'Exit code: 1', usages: [] });
   });
+  afterEach(() => vi.useRealTimers());
+  it('passes the runtime stop signal to the command executor', async () => {
+    let stopped = false;
+    const checkIsStopping = () => stopped;
+    const capability = await createSandboxSkillsCapability({ ...params, checkIsStopping });
+    await execute(capability);
+    const context = mocks.execute.mock.calls[0][0];
+    expect(context.shouldStop).toBe(checkIsStopping);
+    stopped = true;
+    expect(context.shouldStop()).toBe(true);
+  });
   it('resolves owner metadata and pins the version without starting a container', async () => {
     const capability = await createSandboxSkillsCapability(params);
     expect(mocks.resolve).toHaveBeenCalledWith(
@@ -98,6 +115,83 @@ describe('Runtime Skill capability failure and lazy resolution', () => {
         assistantResponses: [{ sandboxEvent: { status: 'failed', code: 'sandbox_unavailable' } }]
       });
     }
+    expect(mocks.execute).not.toHaveBeenCalled();
+  });
+  it('retries a transient lifecycle lease conflict before running the first tool', async () => {
+    const stream = vi.fn();
+    const announce = (onProgress: (status: SandboxStatusItemType) => void) => {
+      onProgress({ sandboxId: params.sessionId, phase: 'checkExisting' });
+      onProgress({ sandboxId: params.sessionId, phase: 'connecting' });
+    };
+    mocks.create
+      .mockImplementationOnce(
+        async ({ onProgress }: { onProgress: (status: SandboxStatusItemType) => void }) => {
+          announce(onProgress);
+          throw new SandboxBusyBeforeEffectError();
+        }
+      )
+      .mockImplementationOnce(
+        async ({ onProgress }: { onProgress: (status: SandboxStatusItemType) => void }) => {
+          announce(onProgress);
+          onProgress({ sandboxId: params.sessionId, phase: 'ready' });
+          return {
+            sandboxId: 'logical',
+            operationId: 'deployment',
+            sandbox: { provider: 'opensandbox' },
+            deployedSkills: [],
+            skills: [],
+            workDirectory: '/workspace'
+          };
+        }
+      );
+    const capability = await createSandboxSkillsCapability({
+      ...params,
+      workflowStreamResponse: stream
+    });
+    expect((await execute(capability))?.response).toBe('Exit code: 1');
+    expect(mocks.create).toHaveBeenCalledTimes(2);
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
+    expect(
+      stream.mock.calls
+        .filter(([event]) => event.event === SseResponseEventEnum.sandboxStatus)
+        .map(([event]) => event.data.phase)
+    ).toEqual(['lazyInit', 'checkExisting', 'connecting', 'connecting', 'ready']);
+  });
+  it('does not retry an unrelated sandbox initialization error', async () => {
+    mocks.create.mockRejectedValue(new Error('provider configuration failed'));
+    const capability = await createSandboxSkillsCapability(params);
+    await expect(execute(capability)).rejects.toBeInstanceOf(SandboxUnavailableError);
+    expect(mocks.create).toHaveBeenCalledTimes(1);
+  });
+  it('does not retry lost ownership after deployment may have started', async () => {
+    mocks.create.mockRejectedValue(new SandboxOperationConflict());
+    const capability = await createSandboxSkillsCapability(params);
+    await expect(execute(capability)).rejects.toBeInstanceOf(SandboxUnavailableError);
+    expect(mocks.create).toHaveBeenCalledOnce();
+  });
+  it('bounds retries when another lifecycle operation keeps the lease', async () => {
+    vi.useFakeTimers();
+    mocks.create.mockRejectedValue(new SandboxBusyBeforeEffectError());
+    const capability = await createSandboxSkillsCapability(params);
+    const result = execute(capability);
+    const assertion = expect(result).rejects.toBeInstanceOf(SandboxUnavailableError);
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(mocks.create).toHaveBeenCalledTimes(9);
+    expect(mocks.execute).not.toHaveBeenCalled();
+  });
+  it('does not start another sandbox attempt after cancellation during a retry', async () => {
+    let stopped = false;
+    mocks.create.mockImplementationOnce(async () => {
+      stopped = true;
+      throw new SandboxBusyBeforeEffectError();
+    });
+    const capability = await createSandboxSkillsCapability({
+      ...params,
+      checkIsStopping: () => stopped
+    });
+    expect((await execute(capability))?.response).toContain('cancelled');
+    expect(mocks.create).toHaveBeenCalledTimes(1);
     expect(mocks.execute).not.toHaveBeenCalled();
   });
   it('degrades an unbound App once and disables further sandbox attempts', async () => {

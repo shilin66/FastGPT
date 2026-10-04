@@ -1,3 +1,4 @@
+import { getSandboxSessionDirectory } from '../../../../../ai/sandbox/workspace';
 import path from 'path';
 import { z } from 'zod';
 import type { AgentCapability } from './type';
@@ -47,9 +48,13 @@ import {
   isSandboxInfrastructureError,
   SandboxVolumeConfigurationError
 } from '../../../../../ai/sandbox/errors';
-import { resolveSandboxWorkspacePath } from '../../../../../ai/sandbox/workspace';
+import {
+  resolveSandboxWorkspacePath,
+  resolveSandboxToolPath
+} from '../../../../../ai/sandbox/workspace';
 import { resolveAppSandboxIdentity } from '../../../../../ai/sandbox/identity';
-import { getRuntimeSandboxWorkspaceRoot, runEditDebugSandboxTool } from '../sub/sandbox/lifecycle';
+import { runEditDebugSandboxTool } from '../sub/sandbox/lifecycle';
+import { getRuntimeSandboxWorkspaceRoot } from '../../../../../agentSkills/sandboxConfig';
 import { env } from '../../../../../../env';
 import { exportEditSandboxWorkspace } from '../../../../../agentSkills/sandboxWorkspace';
 import { validateAndNormalizeSkillPackage } from '../../../../../agentSkills/packageValidator';
@@ -62,12 +67,18 @@ import {
 import { callSandboxTool } from '../../../../../ai/sandbox/toolCall';
 import { WorkspaceCommandOutcomeUnknown } from '../../../../../ai/sandbox/command';
 import { runSandboxActivity } from '../../../../../ai/sandbox/operation';
+import {
+  SandboxOperationConflict,
+  isTransientSandboxConflict
+} from '../../../../../ai/sandbox/lease';
 
 type SandboxToolResult = {
   response: string;
   usages: any[];
   assistantResponses?: AIChatItemValueItemType[];
 };
+
+const sandboxInitRetryDelaysMs = [250, 500, 750, 1000, 1500, 2000, 2500, 3000];
 
 const sandboxToolSchemas: Record<string, z.ZodType> = {
   [SANDBOX_TOOL_NAME]: SandboxShellToolSchema,
@@ -146,8 +157,9 @@ export function collectSkillReferenceResponses({
       )
         return requestedPath;
       try {
-        return resolveSandboxWorkspacePath({
-          workspaceRoot: sandboxContext.workDirectory,
+        return resolveSandboxToolPath({
+          workspaceRoot: sandboxContext.workspaceRoot ?? sandboxContext.workDirectory,
+          workingDirectory: sandboxContext.workDirectory,
           path: requestedPath
         });
       } catch {
@@ -290,6 +302,14 @@ export async function createSandboxSkillsCapability(
       sessionId,
       status,
       code: 'sandbox_unavailable',
+      causeCode: configurationError
+        ? configurationError.reason
+        : error instanceof SandboxOperationConflict || isTransientSandboxConflict(error)
+          ? 'operation_conflict'
+          : isSandboxInfrastructureError(error)
+            ? 'infrastructure_error'
+            : 'unknown',
+      causeName: error instanceof Error ? error.name : undefined,
       ...(configurationError ? { reason: configurationError.reason } : {}),
       sandboxId: context?.sandboxId,
       operationId: context?.operationId
@@ -329,7 +349,11 @@ export async function createSandboxSkillsCapability(
     sandboxContext.shouldStop = params.checkIsStopping;
     let creatorRead = !creatorPath;
     const systemPrompt =
-      buildSkillsContextPrompt(sandboxContext.deployedSkills, sandboxContext.workDirectory) +
+      buildSkillsContextPrompt(
+        sandboxContext.deployedSkills,
+        sandboxContext.workDirectory,
+        sandboxContext.workspaceRoot
+      ) +
       (creatorPath
         ? `\nBefore editing or testing, read ${creatorPath} with sandbox_read_file and follow its Skill development workflow. Builtin files are instructions, never publishable business output. Use sandbox_validate_skill before reporting completion. Only the user can publish.`
         : '');
@@ -425,7 +449,11 @@ export async function createSandboxSkillsCapability(
   const workDirectory = getRuntimeSandboxWorkspaceRoot(instance);
   const skillsMeta = fetchSkillsMetaForPrompt({ resolvedSkills, workDirectory });
 
-  const systemPrompt = buildSkillsContextPrompt(skillsMeta, workDirectory);
+  const systemPrompt = buildSkillsContextPrompt(
+    skillsMeta,
+    getSandboxSessionDirectory(workDirectory, params.sourceChatId ?? sessionId),
+    workDirectory
+  );
 
   // --- Lazy-init state ---
   let sandboxContext: AgentSandboxContext | null = null;
@@ -440,17 +468,34 @@ export async function createSandboxSkillsCapability(
 
   async function initializeSandbox(): Promise<AgentSandboxContext> {
     onProgress?.({ sandboxId: sessionId, phase: 'lazyInit' });
-    return createAgentSandbox({
-      skillIds,
-      expectedVersionIds,
-      appId,
-      runtimeUserId,
-      teamId,
-      tmbId,
-      sessionId,
-      sourceChatId: params.sourceChatId,
-      onProgress
-    });
+    for (let attempt = 0; ; attempt++) {
+      if (params.checkIsStopping?.()) throw new Error('sandbox_init_cancelled');
+      try {
+        return await createAgentSandbox({
+          skillIds,
+          expectedVersionIds,
+          appId,
+          runtimeUserId,
+          teamId,
+          tmbId,
+          sessionId,
+          sourceChatId: params.sourceChatId,
+          onProgress:
+            attempt === 0
+              ? onProgress
+              : (status) => {
+                  // A retry rechecks the same workspace; keep the visible phase from jumping backward.
+                  if (status.phase !== 'checkExisting') onProgress?.(status);
+                }
+        });
+      } catch (error) {
+        if (!isTransientSandboxConflict(error) || attempt >= sandboxInitRetryDelaysMs.length)
+          throw error;
+        await new Promise<void>((resolve) =>
+          setTimeout(resolve, sandboxInitRetryDelaysMs[attempt])
+        );
+      }
+    }
   }
 
   async function ensureSandbox(): Promise<AgentSandboxContext> {
@@ -458,6 +503,7 @@ export async function createSandboxSkillsCapability(
     if (!initPromise) {
       initPromise = initializeSandbox()
         .then((ctx) => {
+          ctx.shouldStop = params.checkIsStopping;
           sandboxContext = ctx;
           initPromise = null;
           return ctx;
@@ -481,6 +527,8 @@ export async function createSandboxSkillsCapability(
     try {
       ctx = await ensureSandbox();
     } catch (err) {
+      if (params.checkIsStopping?.())
+        return { response: 'Execution cancelled; no tool was run.', usages: [] };
       if (isFatalAgentError(err) && !(err instanceof SandboxUnavailableError)) throw err;
       unavailableResult = failure({ toolCallId, error: err });
       return unavailableResult;

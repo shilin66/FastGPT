@@ -27,9 +27,8 @@ async function handler(req: ApiRequestProps, res: NextApiResponse): Promise<void
   });
 
   const sandbox = await getChatSandboxClient({ appId, userId: uid, chatId, sandboxId });
-  await sandbox.ensureAvailable();
-
   return sandbox.withActivity(async () => {
+    await sandbox.connectRunning();
     const isDirectory = await isSandboxPathDirectory(sandbox, path);
 
     if (isDirectory) {
@@ -81,7 +80,7 @@ async function handler(req: ApiRequestProps, res: NextApiResponse): Promise<void
       );
       res.send(content);
     }
-  });
+  }, 'read');
 }
 
 export default NextAPI(handler);

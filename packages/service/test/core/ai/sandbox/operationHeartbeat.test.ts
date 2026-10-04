@@ -3,6 +3,7 @@ import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
 import { SandboxOperationSchema } from '@fastgpt/service/core/ai/sandbox/type';
 import { runSandboxOperation } from '@fastgpt/service/core/ai/sandbox/operation';
 import { withSandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
+import { createLeaseRedisEval } from './leaseRedisMock';
 
 const { redisSet, redisEval, redisStorage } = vi.hoisted(() => ({
   redisSet: vi.fn(),
@@ -36,13 +37,7 @@ beforeEach(() => {
     redisStorage.set(key, { token, expiresAt: Date.now() + ttl });
     return 'OK';
   });
-  redisEval.mockReset().mockImplementation(async (script, _keys, key, token, ttl) => {
-    const current = redisStorage.get(key);
-    if (!current || current.token !== token || current.expiresAt <= Date.now()) return 0;
-    if (script.includes('pexpire')) current.expiresAt = Date.now() + ttl;
-    else redisStorage.delete(key);
-    return 1;
-  });
+  redisEval.mockReset().mockImplementation(createLeaseRedisEval(redisStorage));
 });
 
 afterEach(() => {

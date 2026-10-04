@@ -3,7 +3,9 @@ export type EnsureResult = {
   created: boolean;
 };
 
+export type VolumeAddressMode = 'sessionId' | 'claimName';
+
 export interface IVolumeDriver {
-  ensure(sessionId: string): Promise<EnsureResult>;
-  remove(sessionId: string): Promise<void>;
+  ensure(sessionId: string, mode?: VolumeAddressMode): Promise<EnsureResult>;
+  remove(sessionId: string, mode?: VolumeAddressMode): Promise<void>;
 }

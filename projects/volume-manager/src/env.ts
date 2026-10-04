@@ -9,7 +9,7 @@ const schema = z.object({
   VM_K8S_NAMESPACE: z.string().default('opensandbox'),
   VM_K8S_PVC_STORAGE_CLASS: z.string().default('standard'),
   VM_K8S_PVC_STORAGE_SIZE: z.string().default('1Gi'),
-  VM_VOLUME_NAME_PREFIX: z.string().default('fastgpt-session'),
+  VM_VOLUME_NAME_PREFIX: z.string().default('omni'),
   VM_LOG_LEVEL: z.enum(['debug', 'info', 'none']).default('info')
 });
 

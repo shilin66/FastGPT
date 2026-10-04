@@ -23,6 +23,15 @@ import { MongoAppLogKeys } from '@fastgpt/service/core/app/logs/logkeysSchema';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
 
+const { deleteSandboxesMock } = vi.hoisted(() => ({ deleteSandboxesMock: vi.fn() }));
+vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
+  deleteSandboxesByAppId: deleteSandboxesMock
+}));
+
+beforeEach(() => {
+  deleteSandboxesMock.mockReset().mockResolvedValue(undefined);
+});
+
 // Mock dependencies for queue functionality
 vi.mock('@fastgpt/service/common/bullmq', () => ({
   getQueue: vi.fn(),
@@ -272,6 +281,21 @@ describe('App Delete Data Cleanup Verification', () => {
   });
 
   describe('Complete Data Deletion Verification', () => {
+    it('keeps app data for retry when sandbox cleanup fails', async () => {
+      await MongoApp.updateOne({ _id: appId }, { deleteTime: new Date() });
+      deleteSandboxesMock.mockRejectedValueOnce(new Error('sandbox cleanup failed'));
+      const job = { data: { teamId, appId }, id: 'retry-sandbox-cleanup' };
+
+      await expect(appDeleteProcessor(job)).rejects.toThrow('sandbox cleanup failed');
+      expect(await MongoApp.exists({ _id: appId })).not.toBeNull();
+      expect(await MongoChat.exists({ appId })).not.toBeNull();
+
+      await appDeleteProcessor(job);
+      expect(deleteSandboxesMock).toHaveBeenCalledTimes(2);
+      expect(deleteSandboxesMock).toHaveBeenCalledWith(appId);
+      expect(await MongoApp.exists({ _id: appId })).toBeNull();
+    });
+
     it('should delete ALL related data when app deletion queue job is processed', async () => {
       // 1. 验证测试数据创建成功
       await verifyTestDataExists(appId, teamId);

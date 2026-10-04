@@ -85,37 +85,59 @@ export const assertSandboxRuntimeIndexCompatibility = async ({
 
 export const auditSandboxIdentityIndexes = async () => {
   const indexes = await listIndexes();
-  const [totalCount, canonicalIdentityCount, duplicateGroups] = await Promise.all([
-    collection.countDocuments({}),
-    collection.countDocuments(identityFilter),
-    collection
-      .aggregate<{
-        count: { total: number }[];
-        samples: { identity: Record<(typeof identityFields)[number], unknown>; count: number }[];
-      }>([
-        { $match: identityFilter },
-        {
-          $group: {
-            _id: Object.fromEntries(identityFields.map((field) => [field, `$${field}`])),
-            count: { $sum: 1 }
+  const [totalCount, canonicalIdentityCount, duplicateGroups, duplicateUserGroups] =
+    await Promise.all([
+      collection.countDocuments({}),
+      collection.countDocuments(identityFilter),
+      collection
+        .aggregate<{
+          count: { total: number }[];
+          samples: { identity: Record<(typeof identityFields)[number], unknown>; count: number }[];
+        }>([
+          { $match: identityFilter },
+          {
+            $group: {
+              _id: Object.fromEntries(identityFields.map((field) => [field, `$${field}`])),
+              count: { $sum: 1 }
+            }
+          },
+          { $match: { count: { $gt: 1 } } },
+          {
+            $facet: {
+              count: [{ $count: 'total' }],
+              samples: [{ $limit: 20 }, { $project: { _id: 0, identity: '$_id', count: 1 } }]
+            }
           }
-        },
-        { $match: { count: { $gt: 1 } } },
-        {
-          $facet: {
-            count: [{ $count: 'total' }],
-            samples: [{ $limit: 20 }, { $project: { _id: 0, identity: '$_id', count: 1 } }]
-          }
-        }
-      ])
-      .toArray()
-  ]);
+        ])
+        .toArray(),
+      collection
+        .aggregate<{
+          count: number;
+        }>([
+          { $match: { reuseScope: 'user' } },
+          {
+            $group: {
+              _id: {
+                provider: '$provider',
+                sourceType: '$sourceType',
+                sourceId: '$sourceId',
+                runtimeUserId: '$runtimeUserId'
+              },
+              count: { $sum: 1 }
+            }
+          },
+          { $match: { count: { $gt: 1 } } },
+          { $count: 'count' }
+        ])
+        .toArray()
+    ]);
   const knownDefinitions = [...sandboxInstanceIndexDefinitions, legacyIndex];
   return {
     indexes,
     totalCount,
     canonicalIdentityCount,
     legacyIdentityCount: totalCount - canonicalIdentityCount,
+    duplicateUserIdentityCount: duplicateUserGroups[0]?.count ?? 0,
     duplicateIdentityCount: duplicateGroups[0]?.count[0]?.total ?? 0,
     duplicateIdentitySamples: duplicateGroups[0]?.samples ?? [],
     legacyIndexNames: indexes
@@ -150,7 +172,7 @@ export const migrateSandboxIdentityIndexes = async ({
       'sandbox_identity_migration_unknown_index: inspect conflicting index definitions before cutover'
     );
   }
-  if (audit.duplicateIdentityCount > 0) {
+  if (audit.duplicateIdentityCount > 0 || audit.duplicateUserIdentityCount > 0) {
     throw new Error(
       'sandbox_identity_migration_duplicate_identity: resolve canonical identity conflicts before cutover'
     );

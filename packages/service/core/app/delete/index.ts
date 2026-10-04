@@ -18,9 +18,8 @@ export const initAppDeleteWorker = () => {
 };
 
 // 添加删除任务
-export const addAppDeleteJob = (data: AppDeleteJobData) => {
-  // 创建删除队列
-  const appDeleteQueue = getQueue<AppDeleteJobData>(QueueNames.appDelete, {
+const getAppDeleteQueue = () =>
+  getQueue<AppDeleteJobData>(QueueNames.appDelete, {
     defaultJobOptions: {
       attempts: 10,
       backoff: {
@@ -32,6 +31,8 @@ export const addAppDeleteJob = (data: AppDeleteJobData) => {
     }
   });
 
+export const addAppDeleteJob = (data: AppDeleteJobData) => {
+  const appDeleteQueue = getAppDeleteQueue();
   const jobId = `${String(data.teamId)}-${String(data.appId)}`;
 
   // Use jobId to automatically prevent duplicate deletion tasks (BullMQ feature)
@@ -39,4 +40,11 @@ export const addAppDeleteJob = (data: AppDeleteJobData) => {
     jobId,
     delay: 1000 // Delay 1 second to ensure API response completes
   });
+};
+
+export const retryAppDeleteJob = async (data: AppDeleteJobData) => {
+  const queue = getAppDeleteQueue();
+  const job = await queue.getJob(`${String(data.teamId)}-${String(data.appId)}`);
+  if (!job) return addAppDeleteJob(data);
+  if ((await job.getState()) === 'failed') await job.retry('failed');
 };

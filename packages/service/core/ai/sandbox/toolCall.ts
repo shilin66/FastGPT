@@ -15,7 +15,7 @@ import { addHours } from 'date-fns';
 import { Readable } from 'stream';
 import { getLogger } from '@fastgpt-sdk/otel';
 import { LogCategories } from '../../../common/logger';
-import { assertSandboxWorkspacePath } from './workspace';
+import { assertSandboxWorkspacePath, resolveSandboxToolPath } from './workspace';
 
 type SandboxToolCallParams = {
   toolName: string;
@@ -103,13 +103,14 @@ export const callSandboxTool = async ({
       const client = runtime ? undefined : await getSandboxClient({ appId, userId, chatId });
       instance = runtime ?? client!;
       const sandbox = instance.provider;
+      const workspaceRoot = instance.workspaceRoot;
       const uploadFiles = async () => {
         const safePaths = await Promise.all(
           paths.map((path) =>
             assertSandboxWorkspacePath({
               provider: sandbox,
-              workspaceRoot: instance?.workspaceRoot,
-              path
+              workspaceRoot,
+              path: resolveSandboxToolPath({ workspaceRoot, path })
             })
           )
         );

@@ -73,7 +73,8 @@ const SandboxBaseSchema = z.object({
  * 列出目录 - 请求/响应
  */
 export const SandboxListBodySchema = SandboxBaseSchema.extend({
-  path: z.string().default('.').describe('目录路径')
+  path: z.string().default('.').describe('目录路径'),
+  allowStart: z.boolean().optional().describe('用户首次打开文件栏时允许恢复已停止的沙箱')
 });
 export type SandboxListBody = z.infer<typeof SandboxListBodySchema>;
 
@@ -81,12 +82,14 @@ export const SandboxFileItemSchema = z.object({
   name: z.string().describe('文件名'),
   path: z.string().describe('完整路径'),
   type: z.enum(['file', 'directory']).describe('文件类型'),
-  size: z.number().optional().describe('文件大小(字节数)')
+  size: z.number().optional().describe('文件大小(字节数)'),
+  version: z.string().optional().describe('文件轻量版本标识')
 });
 export type SandboxFileItem = z.infer<typeof SandboxFileItemSchema>;
 
 export const SandboxListResponseSchema = z.object({
   sandboxId: z.string().optional(),
+  workspaceGeneration: z.string().optional(),
   files: z.array(SandboxFileItemSchema)
 });
 export type SandboxListResponse = z.infer<typeof SandboxListResponseSchema>;
@@ -96,12 +99,18 @@ export type SandboxListResponse = z.infer<typeof SandboxListResponseSchema>;
  */
 export const SandboxWriteBodySchema = SandboxBaseSchema.extend({
   path: z.string().describe('文件路径'),
-  content: z.string().describe('文件内容')
+  content: z.string().describe('文件内容'),
+  expectedHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
+  expectedWorkspaceGeneration: z.string().min(1).max(128).optional()
 });
 export type SandboxWriteBody = z.infer<typeof SandboxWriteBodySchema>;
 
 export const SandboxWriteResponseSchema = z.object({
-  success: z.boolean()
+  success: z.boolean(),
+  hash: z.string().optional()
 });
 export type SandboxWriteResponse = z.infer<typeof SandboxWriteResponseSchema>;
 

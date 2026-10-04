@@ -3,8 +3,8 @@ export const simpleConfigSectionIds = {
   model: 'simple-config-model',
   dataset: 'simple-config-dataset',
   tools: 'simple-config-tools',
-  interaction: 'simple-config-interaction',
-  runtime: 'simple-config-runtime'
+  runtime: 'simple-config-runtime',
+  interaction: 'simple-config-interaction'
 } as const;
 
 export type SimpleConfigSectionKey = keyof typeof simpleConfigSectionIds;

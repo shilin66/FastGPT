@@ -24,6 +24,7 @@ export type AgentSandboxContext = {
   skills: AgentSkillSchemaType[];
   deployedSkills: DeployedSkillInfo[];
   workDirectory: string;
+  workspaceRoot?: string;
   isReady: boolean;
   builtinSkillRoot?: string;
   shouldStop?: () => boolean;

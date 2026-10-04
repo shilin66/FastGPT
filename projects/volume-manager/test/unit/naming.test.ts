@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { toVolumeName } from '../../src/utils/naming';
+import { toClaimName, toVolumeName } from '../../src/utils/naming';
 
 describe('toVolumeName', () => {
   it('returns prefix-sessionId for valid 24-char hex', () => {
     const id = 'a'.repeat(24);
-    expect(toVolumeName('fastgpt-session', id)).toBe(`fastgpt-session-${id}`);
+    expect(toVolumeName('omni', id)).toBe(`omni-${id}`);
   });
 
   it('normalizes uppercase to lowercase', () => {
@@ -13,7 +13,7 @@ describe('toVolumeName', () => {
 
   it('accepts debug-mode sessionId', () => {
     const id = 'debug-69bb6a1aee77d10e6fb58e2d-7BdojPlukIQw';
-    expect(toVolumeName('fastgpt-session', id)).toBe(`fastgpt-session-${id.toLowerCase()}`);
+    expect(toVolumeName('omni', id)).toBe(`omni-${id.toLowerCase()}`);
   });
 
   it('accepts single character sessionId', () => {
@@ -34,5 +34,11 @@ describe('toVolumeName', () => {
 
   it('throws for sessionId with invalid characters', () => {
     expect(() => toVolumeName('pfx', 'abc_123')).toThrow('Invalid sessionId');
+  });
+
+  it('accepts an exact claim without changing its name', () => {
+    expect(toClaimName('omni-abc123')).toBe('omni-abc123');
+    expect(toClaimName('fastgpt-session-legacy')).toBe('fastgpt-session-legacy');
+    expect(() => toClaimName('../other-volume')).toThrow('Invalid claimName');
   });
 });

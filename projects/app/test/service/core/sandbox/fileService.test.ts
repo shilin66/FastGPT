@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createHash } from 'node:crypto';
 import {
   listSandboxDirectory,
   writeSandboxFile,
@@ -120,6 +121,18 @@ describe('listSandboxDirectory', () => {
     });
   });
 
+  it('保留 provider 相对于工作区的普通文件路径', async () => {
+    const sandbox = makeSandbox({
+      listDirectory: vi
+        .fn()
+        .mockResolvedValue([makeDirectoryEntry('report.txt', { path: 'report.txt' })])
+    });
+
+    await expect(listSandboxDirectory(sandbox, '/workspace')).resolves.toEqual([
+      { name: 'report.txt', path: '/workspace/report.txt', type: 'file', size: undefined }
+    ]);
+  });
+
   it('正确映射目录条目，size 为 undefined', async () => {
     const entries = [makeDirectoryEntry('src', { isDirectory: true })];
     const sandbox = makeSandbox({ listDirectory: vi.fn().mockResolvedValue(entries) });
@@ -147,6 +160,53 @@ describe('listSandboxDirectory', () => {
     expect(result[1].size).toBe(512);
   });
 
+  it('同一目录的多个条目只需一次批量路径校验', async () => {
+    const entries = Array.from({ length: 12 }, (_, index) =>
+      makeDirectoryEntry(`file-${index}.txt`)
+    );
+    const sandbox = makeSandbox({ listDirectory: vi.fn().mockResolvedValue(entries) });
+
+    await expect(listSandboxDirectory(sandbox, '/workspace')).resolves.toHaveLength(12);
+    expect(sandbox.provider.execute).toHaveBeenCalledTimes(2);
+  });
+
+  it('将 ls 显示的符号链接目标从目录名中分离', async () => {
+    const sandbox = makeSandbox({
+      listDirectory: vi.fn().mockResolvedValue([
+        makeDirectoryEntry('current -> sets/active', {
+          isDirectory: true,
+          path: '/workspace/.runtime/current -> sets/active'
+        })
+      ])
+    });
+
+    await expect(listSandboxDirectory(sandbox, '/workspace/.runtime')).resolves.toEqual([
+      { name: 'current', path: '/workspace/.runtime/current', type: 'directory', size: undefined }
+    ]);
+  });
+
+  it('列出符号链接目录的实际内容', async () => {
+    const linkPath = '/workspace/.runtime/current';
+    const listDirectory = vi
+      .fn()
+      .mockResolvedValueOnce([
+        makeDirectoryEntry(`${linkPath} -> sets/active`, {
+          isDirectory: true,
+          path: `${linkPath}/${linkPath} -> sets/active`
+        })
+      ])
+      .mockResolvedValueOnce([
+        makeDirectoryEntry('config.json', { path: `${linkPath}//config.json` })
+      ]);
+    const sandbox = makeSandbox({ listDirectory });
+
+    await expect(listSandboxDirectory(sandbox, linkPath)).resolves.toEqual([
+      { name: 'config.json', path: `${linkPath}/config.json`, type: 'file', size: undefined }
+    ]);
+    expect(listDirectory).toHaveBeenNthCalledWith(1, linkPath);
+    expect(listDirectory).toHaveBeenNthCalledWith(2, `${linkPath}/`);
+  });
+
   it('传递正确的 path 参数给 provider', async () => {
     const listDirectory = vi.fn().mockResolvedValue([]);
     const sandbox = makeSandbox({ listDirectory });
@@ -161,9 +221,9 @@ describe('writeSandboxFile', () => {
   it('写入成功时正常返回', async () => {
     const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/workspace/file.txt')]);
     const sandbox = makeSandbox({ writeFiles });
-    await expect(
-      writeSandboxFile(sandbox, '/workspace/file.txt', 'hello')
-    ).resolves.toBeUndefined();
+    await expect(writeSandboxFile(sandbox, '/workspace/file.txt', 'hello')).resolves.toBe(
+      createHash('sha256').update('hello').digest('hex')
+    );
   });
 
   it('传递正确的 path 和 content 给 provider', async () => {
@@ -185,7 +245,35 @@ describe('writeSandboxFile', () => {
   it('写入空字符串不会报错', async () => {
     const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/workspace/empty.txt')]);
     const sandbox = makeSandbox({ writeFiles });
-    await expect(writeSandboxFile(sandbox, '/workspace/empty.txt', '')).resolves.toBeUndefined();
+    await expect(writeSandboxFile(sandbox, '/workspace/empty.txt', '')).resolves.toBe(
+      createHash('sha256').update('').digest('hex')
+    );
+  });
+
+  it('rejects a stale expected hash before changing the file', async () => {
+    const writeFiles = vi.fn();
+    const sandbox = makeSandbox({
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/file.txt', 'new')]),
+      writeFiles
+    });
+    const oldHash = createHash('sha256').update('old').digest('hex');
+    await expect(
+      writeSandboxFile(sandbox, '/workspace/file.txt', 'draft', oldHash)
+    ).rejects.toThrow('sandbox_file_changed');
+    expect(writeFiles).not.toHaveBeenCalled();
+  });
+
+  it('writes when the expected hash matches current content', async () => {
+    const writeFiles = vi.fn().mockResolvedValue([makeWriteResult('/workspace/file.txt')]);
+    const sandbox = makeSandbox({
+      readFiles: vi.fn().mockResolvedValue([makeReadResult('/workspace/file.txt', 'old')]),
+      writeFiles
+    });
+    const oldHash = createHash('sha256').update('old').digest('hex');
+    await expect(writeSandboxFile(sandbox, '/workspace/file.txt', 'draft', oldHash)).resolves.toBe(
+      createHash('sha256').update('draft').digest('hex')
+    );
+    expect(writeFiles).toHaveBeenCalledOnce();
   });
 });
 
@@ -315,6 +403,40 @@ describe('getSandboxFileContent', () => {
     });
     const result = await getSandboxFileContent(sandbox, '/workspace/f.txt');
     expect(result.content).toEqual(Buffer.from(text));
+    expect(result.hash).toBe(createHash('sha256').update(text).digest('hex'));
+  });
+
+  it('rejects a file that changes during the read', async () => {
+    const path = '/workspace/f.txt';
+    const getFileInfo = vi
+      .fn()
+      .mockResolvedValueOnce(makeFileInfoMap(path, { size: 3, modifiedAt: new Date(1000) }))
+      .mockResolvedValueOnce(makeFileInfoMap(path, { size: 4, modifiedAt: new Date(2000) }))
+      .mockResolvedValueOnce(makeFileInfoMap(path, { size: 4, modifiedAt: new Date(2000) }))
+      .mockResolvedValueOnce(makeFileInfoMap(path, { size: 5, modifiedAt: new Date(3000) }));
+    const sandbox = makeSandbox({
+      readFiles: vi.fn().mockResolvedValue([makeReadResult(path, 'data')]),
+      getFileInfo
+    });
+    await expect(getSandboxFileContent(sandbox, path)).rejects.toThrow('sandbox_file_changing');
+  });
+
+  it('retries a preview once when the file changes during the first read', async () => {
+    const path = '/workspace/f.txt';
+    const getFileInfo = vi
+      .fn()
+      .mockResolvedValueOnce(makeFileInfoMap(path, { size: 3, modifiedAt: new Date(1000) }))
+      .mockResolvedValueOnce(makeFileInfoMap(path, { size: 4, modifiedAt: new Date(2000) }))
+      .mockResolvedValue(makeFileInfoMap(path, { size: 4, modifiedAt: new Date(2000) }));
+    const readFiles = vi
+      .fn()
+      .mockResolvedValueOnce([makeReadResult(path, 'old')])
+      .mockResolvedValueOnce([makeReadResult(path, 'new!')]);
+    const sandbox = makeSandbox({ getFileInfo, readFiles });
+    await expect(getSandboxFileContent(sandbox, path)).resolves.toMatchObject({
+      content: Buffer.from('new!')
+    });
+    expect(readFiles).toHaveBeenCalledTimes(2);
   });
 
   it('传递正确的 path 数组给 readFiles', async () => {

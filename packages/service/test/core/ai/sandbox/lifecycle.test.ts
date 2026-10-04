@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
 import { MongoTimerLock } from '@fastgpt/service/common/system/timerLock/schema';
 import {
+  SandboxClient,
   getSandboxClient,
   getChatSandboxClient,
   getExistingSandboxClient,
@@ -13,8 +14,10 @@ import {
   cronJob
 } from '@fastgpt/service/core/ai/sandbox/controller';
 import { withSandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
+import { createLeaseRedisEval } from './leaseRedisMock';
 import { runSandboxOperation } from '@fastgpt/service/core/ai/sandbox/operation';
 import { generateSandboxIdentityId } from '@fastgpt/service/core/ai/sandbox/identity';
+import { SandboxStatusEnum } from '@fastgpt/global/core/ai/sandbox/constants';
 
 const {
   providerEnsure,
@@ -24,13 +27,18 @@ const {
   providerInspect,
   providerConnect,
   volumeEnsure,
+  volumeConfirm,
   volumeDelete,
   redisSet,
   redisEval,
   redisStorage,
   createProvider,
   setCron,
-  volumeSettings
+  volumeSettings,
+  orphanSweep,
+  archiveAudit,
+  deletedAppRetry,
+  orphanSettings
 } = vi.hoisted(() => ({
   providerEnsure: vi.fn(),
   providerStop: vi.fn(),
@@ -39,13 +47,18 @@ const {
   providerInspect: vi.fn(),
   providerConnect: vi.fn(),
   volumeEnsure: vi.fn(),
+  volumeConfirm: vi.fn(),
   volumeDelete: vi.fn(),
   redisSet: vi.fn(),
   redisEval: vi.fn(),
   redisStorage: new Map<string, { token: string; expiresAt: number }>(),
   createProvider: vi.fn(),
   setCron: vi.fn(),
-  volumeSettings: { enabled: true }
+  volumeSettings: { enabled: true, mountPath: '/workspace' },
+  orphanSweep: vi.fn(),
+  archiveAudit: vi.fn(),
+  deletedAppRetry: vi.fn(),
+  orphanSettings: { enabled: true }
 }));
 
 vi.mock('@fastgpt/service/env', async (importOriginal) => {
@@ -53,6 +66,9 @@ vi.mock('@fastgpt/service/env', async (importOriginal) => {
   return {
     env: {
       ...original.env,
+      get AGENT_SANDBOX_ORPHAN_SWEEP_ENABLED() {
+        return orphanSettings.enabled;
+      },
       AGENT_SANDBOX_PROVIDER: 'opensandbox',
       get AGENT_SANDBOX_ENABLE_VOLUME() {
         return volumeSettings.enabled;
@@ -61,7 +77,10 @@ vi.mock('@fastgpt/service/env', async (importOriginal) => {
       AGENT_SANDBOX_VOLUME_MANAGER_URL: 'http://volume.test',
       AGENT_SANDBOX_SEALOS_BASEURL: 'http://sandbox.example.test',
       AGENT_SANDBOX_SEALOS_TOKEN: 'test-token',
-      AGENT_SANDBOX_OPENSANDBOX_IMAGE_REPO: 'test-image'
+      AGENT_SANDBOX_OPENSANDBOX_IMAGE_REPO: 'test-image',
+      get AGENT_SANDBOX_VOLUME_MANAGER_MOUNT_PATH() {
+        return volumeSettings.mountPath;
+      }
     }
   };
 });
@@ -91,10 +110,23 @@ vi.mock('@fastgpt-sdk/sandbox-adapter', async (importOriginal) => {
     }
   };
 });
+vi.mock('@fastgpt/service/core/ai/sandbox/sourceGuard', () => ({
+  assertSandboxSourceActive: vi.fn().mockResolvedValue({})
+}));
 vi.mock('@fastgpt/service/common/system/cron', () => ({ setCron }));
+vi.mock('@fastgpt/service/core/ai/sandbox/orphan', () => ({ sweepOrphanSandboxes: orphanSweep }));
+vi.mock('@fastgpt/service/core/ai/sandbox/orphanMaintenance', () => ({
+  auditSandboxArchives: archiveAudit,
+  retryDeletedAppCleanup: deletedAppRetry
+}));
 vi.mock('@fastgpt/service/core/ai/sandbox/config', async (importOriginal) => {
   const original = await importOriginal<typeof import('@fastgpt/service/core/ai/sandbox/config')>();
-  return { ...original, getVolumeManagerConfig: volumeEnsure, deleteSessionVolume: volumeDelete };
+  return {
+    ...original,
+    getVolumeManagerConfig: volumeEnsure,
+    ensureSessionVolume: volumeConfirm,
+    deleteSessionVolume: volumeDelete
+  };
 });
 vi.mock('@fastgpt/service/common/redis', async (importOriginal) => {
   const original = await importOriginal<typeof import('@fastgpt/service/common/redis')>();
@@ -115,6 +147,109 @@ describe('file browser instance binding', () => {
     volumeEnsure.mockClear();
     return selected;
   };
+
+  it('reads a running selected workspace without claiming another start operation', async () => {
+    const client = await seedBrowser();
+    const before = await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean();
+    await client.ensureAvailable();
+    await client.ensureAvailable();
+    const after = await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean();
+    expect(after?.operation?.id).toBe(before?.operation?.id);
+    expect(after?.operation?.type).toBe(before?.operation?.type);
+    expect(providerEnsure).not.toHaveBeenCalled();
+    expect(volumeEnsure).not.toHaveBeenCalled();
+    await expect(
+      client.withActivity(async () => {
+        await client.connectRunning();
+        return 'existing file';
+      }, 'read')
+    ).resolves.toBe('existing file');
+  });
+
+  it('resumes a selected workspace that was stopped before file browsing', async () => {
+    const client = await seedBrowser();
+    await MongoSandboxInstance.updateOne(
+      { sandboxId: client.id },
+      { $set: { status: SandboxStatusEnum.stopped } }
+    );
+    await client.ensureAvailable();
+    expect(providerEnsure).toHaveBeenCalledOnce();
+    expect(await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean()).toMatchObject({
+      status: SandboxStatusEnum.running,
+      operation: { type: 'start', checkpoint: 'ready' }
+    });
+  });
+
+  it('does not start a stopped workspace for a background file read', async () => {
+    const client = await seedBrowser();
+    await MongoSandboxInstance.updateOne(
+      { sandboxId: client.id },
+      { $set: { status: SandboxStatusEnum.stopped } }
+    );
+    await expect(client.withActivity(async () => client.connectRunning(), 'read')).rejects.toThrow(
+      'operation_conflict'
+    );
+    expect(providerEnsure).not.toHaveBeenCalled();
+  });
+
+  it('does not read through an unfinished selected lifecycle operation', async () => {
+    const client = await seedBrowser();
+    await MongoSandboxInstance.updateOne(
+      { sandboxId: client.id },
+      { $set: { 'operation.checkpoint': 'deploying' } }
+    );
+    await expect(client.ensureAvailable()).rejects.toThrow('operation_conflict');
+    expect(providerEnsure).not.toHaveBeenCalled();
+    expect(volumeEnsure).not.toHaveBeenCalled();
+  });
+
+  it('does not claim start while a selected workspace is deploying', async () => {
+    const client = await seedBrowser();
+    await MongoSandboxInstance.updateOne(
+      { sandboxId: client.id },
+      {
+        $set: {
+          status: SandboxStatusEnum.provisioning,
+          'operation.type': 'deploy',
+          'operation.checkpoint': 'deploying'
+        }
+      }
+    );
+    await expect(client.ensureAvailable()).rejects.toThrow('operation_conflict');
+    expect(providerEnsure).not.toHaveBeenCalled();
+    expect(volumeEnsure).not.toHaveBeenCalled();
+    expect(await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean()).toMatchObject({
+      status: SandboxStatusEnum.provisioning,
+      operation: { type: 'deploy', checkpoint: 'deploying' }
+    });
+  });
+
+  it('reselects a workspace when deployment finishes after the file request selected it', async () => {
+    const initial = await seedBrowser();
+    await MongoSandboxInstance.updateOne(
+      { sandboxId: initial.id },
+      {
+        $set: {
+          status: SandboxStatusEnum.provisioning,
+          'operation.type': 'deploy',
+          'operation.checkpoint': 'deploying'
+        }
+      }
+    );
+    const selectedDuringDeploy = await getChatSandboxClient(scope);
+    await MongoSandboxInstance.updateOne(
+      { sandboxId: initial.id },
+      { $set: { status: SandboxStatusEnum.running, 'operation.checkpoint': 'completed' } }
+    );
+    await expect(selectedDuringDeploy.ensureAvailable()).rejects.toThrow(
+      'operation_conflict: Sandbox is busy before execution'
+    );
+    expect(providerEnsure).not.toHaveBeenCalled();
+    expect(await MongoSandboxInstance.findOne({ sandboxId: initial.id }).lean()).toMatchObject({
+      status: SandboxStatusEnum.running,
+      operation: { type: 'deploy', checkpoint: 'completed' }
+    });
+  });
 
   it('does not recreate a workspace deleted after the file browser selected it', async () => {
     const client = await seedBrowser();
@@ -158,6 +293,109 @@ describe('file browser instance binding', () => {
 });
 
 describe('workspace root persistence', () => {
+  it.each([
+    { enabled: true, workspaceRoot: '/workspace' },
+    { enabled: true, workspaceRoot: '/persistent/workspace' },
+    { enabled: false, workspaceRoot: '/home/sandbox/workspace' }
+  ])(
+    'unifies ordinary Agent commands and file browsing at $workspaceRoot',
+    async ({ enabled, workspaceRoot }) => {
+      volumeSettings.enabled = enabled;
+      if (enabled) {
+        volumeSettings.mountPath = workspaceRoot;
+        volumeEnsure.mockResolvedValue({
+          volumes: [
+            { name: 'workspace', pvc: { claimName: 'session-volume' }, mountPath: workspaceRoot }
+          ],
+          storage: {
+            mountPath: workspaceRoot,
+            volumes: [{ name: 'workspace', claimName: 'session-volume', mountPath: workspaceRoot }]
+          }
+        });
+      }
+      const scope = { appId: 'app', userId: 'owner', chatId: 'ordinary-agent' };
+      const client = await getSandboxClient(scope);
+      expect(client.workspaceRoot).toBe(`${workspaceRoot}/sessions/${scope.chatId}`);
+      expect(await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean()).toMatchObject({
+        metadata: { workspaceRoot }
+      });
+      expect((await getChatSandboxClient(scope)).workspaceRoot).toBe(
+        `${workspaceRoot}/sessions/${scope.chatId}`
+      );
+      await client.exec('pwd', 5);
+      expect(providerExecute).toHaveBeenLastCalledWith('pwd', {
+        timeoutMs: 5000,
+        workingDirectory: `${workspaceRoot}/sessions/${scope.chatId}`
+      });
+    }
+  );
+
+  it('initializes the ordinary Agent workspace before accepting commands without a volume', async () => {
+    volumeSettings.enabled = false;
+    await getSandboxClient(
+      { appId: 'app', userId: 'owner', chatId: 'ordinary-agent' },
+      { workspaceRoot: '/home/sandbox/workspace' }
+    );
+    expect(createProvider).toHaveBeenLastCalledWith(
+      'opensandbox',
+      expect.anything(),
+      expect.objectContaining({
+        env: expect.objectContaining({ FASTGPT_WORKDIR: '/home/sandbox/workspace' }),
+        entrypoint: ['/bin/sh', '-c', 'mkdir -p -- "$FASTGPT_WORKDIR" && exec sleep infinity']
+      })
+    );
+  });
+
+  it('retains managed Agent entrypoints and environment while sharing the workspace root', async () => {
+    await getSandboxClient(
+      { appId: 'app', userId: 'owner', chatId: 'managed-agent' },
+      {
+        createConfig: {
+          image: { repository: 'managed-image' },
+          entrypoint: ['/home/sandbox/entrypoint.sh'],
+          env: { FASTGPT_WORKDIR: '/workspace', FASTGPT_SESSION_ID: 'managed-agent' }
+        }
+      }
+    );
+    expect(createProvider).toHaveBeenLastCalledWith(
+      'opensandbox',
+      expect.anything(),
+      expect.objectContaining({
+        image: { repository: 'managed-image' },
+        entrypoint: ['/home/sandbox/entrypoint.sh'],
+        env: { FASTGPT_WORKDIR: '/workspace', FASTGPT_SESSION_ID: 'managed-agent' }
+      })
+    );
+  });
+
+  it.each([
+    { storage: undefined, workspaceRoot: '/home/sandbox' },
+    { storage: volumeConfig.storage, workspaceRoot: '/workspace' }
+  ])(
+    'preserves and records a legacy ordinary Agent root $workspaceRoot',
+    async ({ storage, workspaceRoot }) => {
+      const scope = { appId: 'app', userId: 'owner', chatId: 'legacy-agent' };
+      await MongoSandboxInstance.create({
+        ...scope,
+        provider: 'opensandbox',
+        sandboxId: 'legacy-ordinary',
+        storage,
+        metadata: { volumeEnabled: !!storage }
+      });
+      expect(
+        (await getChatSandboxClient({ ...scope, sandboxId: 'legacy-ordinary' })).workspaceRoot
+      ).toBe(workspaceRoot);
+      const client = await getSandboxClient(scope);
+      expect(client.id).not.toBe('legacy-ordinary');
+      expect(client.workspaceRoot).toBe('/workspace/sessions/legacy-agent');
+      expect((await getChatSandboxClient(scope)).id).toBe(client.id);
+      expect(
+        (await getChatSandboxClient({ ...scope, sandboxId: 'legacy-ordinary' })).workspaceRoot
+      ).toBe(workspaceRoot);
+      expect(await MongoSandboxInstance.countDocuments()).toBe(2);
+    }
+  );
+
   it('uses the saved Skills workspace when the legacy Shell path is selected on a later turn', async () => {
     const scope = { appId: 'app', userId: 'owner', chatId: 'chat' };
     await getSandboxClient(scope, { workspaceRoot: '/workspace/custom' });
@@ -165,7 +403,7 @@ describe('workspace root persistence', () => {
     await client.exec('pwd', 5);
     expect(providerExecute).toHaveBeenLastCalledWith('pwd', {
       timeoutMs: 5000,
-      workingDirectory: '/workspace/custom'
+      workingDirectory: '/workspace/custom/sessions/chat'
     });
   });
   it('records the workspace root before provider creation fails', async () => {
@@ -208,18 +446,19 @@ const volumeConfig = {
 beforeEach(() => {
   vi.clearAllMocks();
   volumeSettings.enabled = true;
+  orphanSettings.enabled = true;
+  volumeSettings.mountPath = '/workspace';
   redisStorage.clear();
   providerEnsure.mockReset().mockResolvedValue(undefined);
   providerStop.mockReset().mockResolvedValue(undefined);
   providerDelete.mockReset().mockResolvedValue(undefined);
-  providerExecute
-    .mockReset()
-    .mockResolvedValue({ stdout: '', stderr: 'command failed', exitCode: 1 });
+  providerExecute.mockReset().mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 });
   providerInspect
     .mockReset()
     .mockResolvedValue({ id: 'provider-instance', status: { state: 'Stopped' } });
   providerConnect.mockReset().mockResolvedValue(true);
   volumeEnsure.mockReset().mockResolvedValue(volumeConfig);
+  volumeConfirm.mockReset().mockResolvedValue('session-volume');
   volumeDelete.mockReset().mockResolvedValue(undefined);
   redisSet
     .mockReset()
@@ -229,20 +468,7 @@ beforeEach(() => {
       redisStorage.set(key, { token, expiresAt: Date.now() + ttl });
       return 'OK';
     });
-  redisEval
-    .mockReset()
-    .mockImplementation(
-      async (script: string, _keys: number, key: string, token: string, ttl?: number) => {
-        const current = redisStorage.get(key);
-        if (!current || current.token !== token || current.expiresAt <= Date.now()) return 0;
-        if (script.includes('pexpire') && ttl) {
-          current.expiresAt = Date.now() + ttl;
-        } else {
-          redisStorage.delete(key);
-        }
-        return 1;
-      }
-    );
+  redisEval.mockReset().mockImplementation(createLeaseRedisEval(redisStorage));
 });
 
 afterEach(() => {
@@ -250,10 +476,38 @@ afterEach(() => {
 });
 
 describe('Sandbox lifecycle provisioning', () => {
+  it('runs orphan maintenance hourly with a backend-scoped lock and isolates failures', async () => {
+    await MongoTimerLock.collection.createIndex({ timerId: 1 }, { unique: true });
+    orphanSweep.mockRejectedValueOnce(new Error('scan unavailable'));
+    await cronJob();
+    const task = setCron.mock.calls.find(([schedule]) => schedule === '0 * * * *');
+    expect(task).toBeDefined();
+    await task![1]();
+    expect(archiveAudit).toHaveBeenCalledOnce();
+    expect(deletedAppRetry).toHaveBeenCalledOnce();
+    await task![1]();
+    expect(orphanSweep).toHaveBeenCalledOnce();
+    const lock = await MongoTimerLock.findOne({ timerId: /^sandboxOrphanSweep:/ }).lean();
+    expect(lock?.timerId).toMatch(/^sandboxOrphanSweep:[a-f0-9]{16}$/);
+  });
+
+  it('can disable orphan maintenance without accessing resources', async () => {
+    orphanSettings.enabled = false;
+    await cronJob();
+    const task = setCron.mock.calls.find(([schedule]) => schedule === '0 * * * *');
+    expect(task).toBeDefined();
+    await task![1]();
+    expect(orphanSweep).not.toHaveBeenCalled();
+    expect(archiveAudit).not.toHaveBeenCalled();
+    expect(deletedAppRetry).not.toHaveBeenCalled();
+  });
+
   it('propagates provider transport errors and preserves actual nonzero command results', async () => {
     const client = await getSandboxClient({ sandboxId });
     const error = Object.assign(new Error('connection failed'), { code: 'ECONNRESET' });
-    providerExecute.mockRejectedValueOnce(error);
+    providerExecute
+      .mockRejectedValueOnce(error)
+      .mockResolvedValueOnce({ stdout: '', stderr: 'command failed', exitCode: 1 });
     await expect(client.exec('work')).rejects.toBe(error);
     await expect(client.exec('work')).resolves.toEqual({
       stdout: '',
@@ -296,12 +550,25 @@ describe('Sandbox lifecycle provisioning', () => {
     await getSandboxClient({ sandboxId }, { identity });
   });
 
+  it('preserves the shared sandbox and session files when one chat is deleted', async () => {
+    const scope = { appId: 'app', userId: 'user', chatId: 'chat' };
+    const client = await getSandboxClient(scope);
+    await deleteSandboxesByChatIds({
+      appId: scope.appId,
+      chatIds: [scope.chatId],
+      runtimeUserId: scope.userId
+    });
+    expect(await MongoSandboxInstance.exists({ sandboxId: client.id })).not.toBeNull();
+    expect(providerDelete).not.toHaveBeenCalled();
+    expect(volumeDelete).not.toHaveBeenCalled();
+  });
+
   it('uses canonical app identity and records ownership on first provisioning', async () => {
     const identity = {
       sourceType: 'appRuntime' as const,
       sourceId: 'app',
       runtimeUserId: 'user',
-      sessionId: 'chat'
+      reuseScope: 'user' as const
     };
     const expectedId = generateSandboxIdentityId(identity);
     providerEnsure.mockImplementationOnce(async () => {
@@ -309,7 +576,6 @@ describe('Sandbox lifecycle provisioning', () => {
         ...identity,
         appId: 'app',
         userId: 'user',
-        chatId: 'chat',
         status: 'provisioning'
       });
     });
@@ -317,7 +583,7 @@ describe('Sandbox lifecycle provisioning', () => {
     expect(await MongoSandboxInstance.countDocuments({ sandboxId: expectedId })).toBe(1);
   });
 
-  it('reuses a unique legacy generic instance without rewriting its identity', async () => {
+  it('preserves a legacy generic instance while creating a shared workspace', async () => {
     await MongoSandboxInstance.create({
       provider: 'opensandbox',
       sandboxId: 'legacy-id',
@@ -327,9 +593,9 @@ describe('Sandbox lifecycle provisioning', () => {
       status: 'stopped'
     });
     await getSandboxClient({ appId: 'app', userId: 'user', chatId: 'chat' });
-    expect(await MongoSandboxInstance.countDocuments()).toBe(1);
+    expect(await MongoSandboxInstance.countDocuments()).toBe(2);
     expect(await MongoSandboxInstance.findOne({ sandboxId: 'legacy-id' }).lean()).toMatchObject({
-      status: 'running'
+      status: 'stopped'
     });
   });
 
@@ -410,7 +676,7 @@ describe('Sandbox lifecycle provisioning', () => {
     });
   });
 
-  it('rejects a concurrent lifecycle operation before it touches the provider or volume', async () => {
+  it('waits for a concurrent lifecycle operation before touching the provider or volume', async () => {
     const entered = deferred();
     const finish = deferred();
     providerEnsure.mockImplementationOnce(async () => {
@@ -419,14 +685,18 @@ describe('Sandbox lifecycle provisioning', () => {
     });
     const first = getSandboxClient({ sandboxId });
     await entered.promise;
+    const second = getSandboxClient({ sandboxId });
     try {
-      await expect(getSandboxClient({ sandboxId })).rejects.toThrow('operation_conflict');
+      await new Promise((resolve) => setTimeout(resolve, 150));
       expect(volumeEnsure).toHaveBeenCalledTimes(1);
       expect(providerEnsure).toHaveBeenCalledTimes(1);
     } finally {
       finish.resolve();
       await first;
     }
+    await expect(second).resolves.toBeDefined();
+    expect(volumeEnsure).toHaveBeenCalledTimes(2);
+    expect(providerEnsure).toHaveBeenCalledTimes(2);
   });
 
   it('does not overwrite a newer Mongo operation after provider completion', async () => {
@@ -716,6 +986,22 @@ describe('explicit lifecycle recovery', () => {
       }
     });
   const target = { provider: 'opensandbox' as const, sandboxId, operationId: 'unknown-operation' };
+
+  it('recovers a confirmed container release while preserving its volume', async () => {
+    const before = await seedUnknown('release', 'provider_delete', 'provider-instance');
+    providerInspect.mockResolvedValueOnce(null);
+    await expect(recoverSandboxOperation(target)).resolves.toMatchObject({
+      code: 'provider_release_confirmed'
+    });
+    expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
+      status: 'stopped',
+      capacityReserved: false,
+      storage: before.storage,
+      operation: { type: 'release', checkpoint: 'provider_released' }
+    });
+    expect(providerDelete).not.toHaveBeenCalled();
+    expect(volumeDelete).not.toHaveBeenCalled();
+  });
 
   it('does not use an already paused provider as proof that an unknown stop has returned', async () => {
     await seedUnknown('stop', 'provider_stop', 'provider-instance', false);
@@ -1133,6 +1419,95 @@ describe('Sandbox lifecycle cleanup', () => {
     });
   });
 
+  it('releases a Docker container while retaining its persistent workspace', async () => {
+    const instance = await seedInstance({
+      metadata: { providerSandboxId: 'provider-instance' },
+      capacityReserved: true
+    });
+    providerInspect.mockResolvedValueOnce({
+      id: 'provider-instance',
+      status: { state: 'Running' }
+    });
+    providerInspect.mockResolvedValueOnce(null);
+
+    await getExistingSandboxClient(instance).release();
+
+    const released = await MongoSandboxInstance.findOne({ sandboxId }).lean();
+    expect(released).toMatchObject({
+      status: 'stopped',
+      capacityReserved: false,
+      storage: volumeConfig.storage,
+      operation: { type: 'release', checkpoint: 'provider_released' }
+    });
+    expect(released?.releasedAt).toBeInstanceOf(Date);
+    expect(released?.metadata?.providerSandboxId).toBe('provider-instance');
+    expect(providerDelete).toHaveBeenCalledOnce();
+    expect(volumeConfirm).toHaveBeenCalledOnce();
+    expect(volumeDelete).not.toHaveBeenCalled();
+    expect(providerStop).not.toHaveBeenCalled();
+  });
+
+  it('rejects releasing a workspace without a persistent volume', async () => {
+    const instance = await seedInstance({
+      storage: null,
+      metadata: { providerSandboxId: 'provider-instance', volumeEnabled: false }
+    });
+    await expect(getExistingSandboxClient(instance).release()).rejects.toThrow(
+      'sandbox_storage_not_persistent'
+    );
+    expect(providerDelete).not.toHaveBeenCalled();
+    expect(volumeDelete).not.toHaveBeenCalled();
+    expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
+      status: 'running'
+    });
+  });
+
+  it('keeps the container when its persisted volume cannot be confirmed', async () => {
+    const instance = await seedInstance({
+      metadata: { providerSandboxId: 'provider-instance' },
+      capacityReserved: true
+    });
+    volumeConfirm.mockRejectedValueOnce(
+      new Error('Previously confirmed Sandbox volume was recreated')
+    );
+
+    await expect(getExistingSandboxClient(instance).release()).rejects.toThrow(
+      'Previously confirmed Sandbox volume was recreated'
+    );
+
+    expect(providerDelete).not.toHaveBeenCalled();
+    expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
+      capacityReserved: true,
+      storage: volumeConfig.storage
+    });
+  });
+
+  it('restarts a released workspace with its existing volume binding', async () => {
+    const instance = await seedInstance({
+      metadata: { providerSandboxId: 'provider-instance' },
+      capacityReserved: true
+    });
+    providerInspect.mockResolvedValueOnce({
+      id: 'provider-instance',
+      status: { state: 'Running' }
+    });
+    providerInspect.mockResolvedValueOnce(null);
+    await getExistingSandboxClient(instance).release();
+    providerConnect.mockResolvedValueOnce(false);
+    providerInspect.mockResolvedValueOnce(null);
+
+    await getSandboxClient({ sandboxId });
+
+    expect(providerEnsure).toHaveBeenCalledOnce();
+    expect(volumeEnsure).toHaveBeenCalledOnce();
+    expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
+      status: 'running',
+      releasedAt: null,
+      storage: volumeConfig.storage
+    });
+    expect(volumeDelete).not.toHaveBeenCalled();
+  });
+
   it('retains stop failure and its checkpoint', async () => {
     providerStop.mockRejectedValueOnce(new Error('provider failure'));
     await expect(getExistingSandboxClient(await seedInstance()).stop()).rejects.toThrow(
@@ -1309,8 +1684,15 @@ describe('Sandbox lifecycle cleanup', () => {
   });
 
   it('cron suspends only idle instances without ensure or volume mutation', async () => {
-    await seedInstance({ lastActiveAt: new Date(Date.now() - 600_000) });
-    await seedInstance({ sandboxId: 'active', lastActiveAt: new Date() });
+    await seedInstance({
+      metadata: { providerSandboxId: 'provider-instance' },
+      lastActiveAt: new Date(Date.now() - 7_200_000)
+    });
+    await seedInstance({
+      sandboxId: 'active',
+      metadata: { providerSandboxId: 'provider-instance' },
+      lastActiveAt: new Date()
+    });
     await cronJob();
     await setCron.mock.calls[0][1]();
     expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
@@ -1325,8 +1707,25 @@ describe('Sandbox lifecycle cleanup', () => {
     expect(volumeDelete).not.toHaveBeenCalled();
   });
 
+  it('does not mark a sandbox stopped when this backend cannot find its provider instance', async () => {
+    await seedInstance({
+      metadata: { providerSandboxId: 'provider-instance' },
+      capacityReserved: true,
+      lastActiveAt: new Date(Date.now() - 7_200_000)
+    });
+    providerInspect.mockResolvedValueOnce(null);
+    await cronJob();
+    await setCron.mock.calls[0][1]();
+    expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
+      status: 'running',
+      capacityReserved: true
+    });
+    expect(providerStop).not.toHaveBeenCalled();
+    expect(providerConnect).not.toHaveBeenCalled();
+  });
+
   it('rechecks idle activity under the operation lease before stop', async () => {
-    const doc = await seedInstance({ lastActiveAt: new Date(Date.now() - 600_000) });
+    const doc = await seedInstance({ lastActiveAt: new Date(Date.now() - 7_200_000) });
     await MongoSandboxInstance.updateOne({ sandboxId }, { $set: { lastActiveAt: new Date() } });
     await getExistingSandboxClient(doc).stop({ inactiveBefore: new Date(Date.now() - 300_000) });
     expect(providerConnect).not.toHaveBeenCalled();
@@ -1337,7 +1736,8 @@ describe('Sandbox lifecycle cleanup', () => {
     await seedInstance({
       sourceType: 'skillEdit',
       sourceId: 'editing-skill',
-      lastActiveAt: new Date(Date.now() - 600_000)
+      metadata: { providerSandboxId: 'provider-instance' },
+      lastActiveAt: new Date(Date.now() - 7_200_000)
     });
     await cronJob();
     await withSandboxLease('skill-edit-activity:editing-skill', async () => {
@@ -1355,7 +1755,8 @@ describe('Sandbox lifecycle cleanup', () => {
       await seedInstance({
         sourceType: 'skillEdit',
         sourceId: 'editing-skill',
-        lastActiveAt: new Date(Date.now() - 600_000)
+        metadata: { providerSandboxId: 'provider-instance' },
+        lastActiveAt: new Date(Date.now() - 7_200_000)
       });
       providerExecute.mockResolvedValue({
         stdout:
@@ -1379,7 +1780,10 @@ describe('Sandbox lifecycle cleanup', () => {
   it.each(['idle', 'manual'] as const)(
     'honors a heartbeat arriving before the %s stop claim without overriding manual intent',
     async (mode) => {
-      const doc = await seedInstance({ lastActiveAt: new Date(Date.now() - 600_000) });
+      const doc = await seedInstance({
+        metadata: { providerSandboxId: 'provider-instance' },
+        lastActiveAt: new Date(Date.now() - 7_200_000)
+      });
       const heartbeatAt = new Date();
       const findOneAndUpdate = MongoSandboxInstance.collection.findOneAndUpdate.bind(
         MongoSandboxInstance.collection
@@ -1419,18 +1823,64 @@ describe('Sandbox lifecycle cleanup', () => {
     }
   );
 
-  it('uses the global timer lock to suppress a duplicate node scan without changing the schedule', async () => {
+  it('cold archives shared workspaces while preserving historical chat volumes', async () => {
+    const storage = {
+      ...volumeConfig.storage,
+      volumeManager: {
+        protocol: 'sessionId',
+        baseUrl: 'http://volume.test',
+        target: 'saved',
+        ensured: true
+      }
+    };
+    await seedInstance({
+      status: 'stopped',
+      storage,
+      sourceType: 'appRuntime',
+      sourceId: 'app',
+      runtimeUserId: 'user',
+      reuseScope: 'user',
+      lastActiveAt: new Date(Date.now() - 8 * 86400000)
+    });
+    await MongoSandboxInstance.create({
+      provider: 'opensandbox',
+      sandboxId: 'historical',
+      appId: 'app',
+      userId: 'user',
+      chatId: 'chat',
+      status: 'stopped',
+      storage,
+      lastActiveAt: new Date(Date.now() - 8 * 86400000)
+    });
+    const archive = vi.spyOn(SandboxClient.prototype, 'archive').mockResolvedValue(undefined);
+    try {
+      await cronJob();
+      expect(setCron.mock.calls[1][0]).toBe('0 */12 * * *');
+      await setCron.mock.calls[1][1]();
+      expect(archive).toHaveBeenCalledOnce();
+      expect(await MongoSandboxInstance.findOne({ sandboxId: 'historical' }).lean()).toMatchObject({
+        storage
+      });
+    } finally {
+      archive.mockRestore();
+    }
+  });
+
+  it('uses a backend-scoped timer lock to suppress duplicate scans without changing the schedule', async () => {
     await MongoTimerLock.collection.createIndex({ timerId: 1 }, { unique: true });
-    await seedInstance({ lastActiveAt: new Date(Date.now() - 600_000) });
+    await seedInstance({
+      metadata: { providerSandboxId: 'provider-instance' },
+      lastActiveAt: new Date(Date.now() - 7_200_000)
+    });
     await cronJob();
-    expect(setCron.mock.calls[0][0]).toBe('*/5 * * * *');
+    expect(setCron.mock.calls[0][0]).toBe('*/10 * * * *');
     await setCron.mock.calls[0][1]();
     await MongoSandboxInstance.updateOne(
       { sandboxId },
       {
         $set: {
           status: 'running',
-          lastActiveAt: new Date(Date.now() - 600_000),
+          lastActiveAt: new Date(Date.now() - 7_200_000),
           'operation.type': 'start',
           'operation.checkpoint': 'ready'
         }
@@ -1441,9 +1891,11 @@ describe('Sandbox lifecycle cleanup', () => {
     expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
       status: 'running'
     });
-    const timerLock = await MongoTimerLock.findOne({ timerId: 'sandboxIdleStop' }).lean();
+    const timerLock = await MongoTimerLock.findOne({
+      timerId: /^sandboxIdleStop:[a-f0-9]{16}$/
+    }).lean();
     expect(timerLock?.expiredTime.getTime()).toBeGreaterThan(Date.now() + 230_000);
-    expect(timerLock?.expiredTime.getTime()).toBeLessThanOrEqual(Date.now() + 240_000);
+    expect(timerLock?.expiredTime.getTime()).toBeLessThanOrEqual(Date.now() + 540_000);
   });
 });
 
@@ -1471,6 +1923,108 @@ describe('Sandbox token lease', () => {
 describe('Sandbox activity lifecycle protection', () => {
   const scope = { provider: 'opensandbox' as const, sandboxId };
 
+  it('waits for another file or tool activity instead of failing before execution', async () => {
+    await seedInstance();
+    const entered = deferred();
+    const finish = deferred();
+    const first = runSandboxActivity(scope, async () => {
+      entered.resolve();
+      await finish.promise;
+      return 'first';
+    });
+    await entered.promise;
+    const next = vi.fn(async () => 'second');
+    const second = runSandboxActivity(scope, next);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(next).not.toHaveBeenCalled();
+    } finally {
+      finish.resolve();
+    }
+    await expect(first).resolves.toBe('first');
+    await expect(second).resolves.toBe('second');
+    expect(next).toHaveBeenCalledOnce();
+  });
+
+  it('allows independent file reads to overlap', async () => {
+    await seedInstance();
+    const entered = deferred();
+    const finish = deferred();
+    const first = runSandboxActivity({ ...scope, mode: 'read' }, async () => {
+      entered.resolve();
+      await finish.promise;
+      return 'first';
+    });
+    await entered.promise;
+    try {
+      await expect(
+        runSandboxActivity({ ...scope, mode: 'read' }, async () => 'second')
+      ).resolves.toBe('second');
+    } finally {
+      finish.resolve();
+    }
+    await expect(first).resolves.toBe('first');
+  });
+
+  it('allows a file preview while an Agent tool is running', async () => {
+    await seedInstance();
+    const entered = deferred();
+    const finish = deferred();
+    const tool = runSandboxActivity({ ...scope, priority: 'agent' }, async () => {
+      entered.resolve();
+      await finish.promise;
+    });
+    await entered.promise;
+    try {
+      await expect(
+        runSandboxActivity(
+          { ...scope, mode: 'read', priority: 'interactive' },
+          async () => 'preview'
+        )
+      ).resolves.toBe('preview');
+    } finally {
+      finish.resolve();
+    }
+    await tool;
+  });
+
+  it('runs a waiting Agent write before a waiting file save', async () => {
+    await seedInstance();
+    const entered = deferred();
+    const finish = deferred();
+    const firstAgent = runSandboxActivity({ ...scope, priority: 'agent' }, async () => {
+      entered.resolve();
+      await finish.promise;
+    });
+    await entered.promise;
+    const order: string[] = [];
+    const fileSave = runSandboxActivity({ ...scope, priority: 'interactive' }, async () => {
+      order.push('file');
+    });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const agent = runSandboxActivity({ ...scope, priority: 'agent' }, async () => {
+      order.push('agent');
+    });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    finish.resolve();
+    await firstAgent;
+    await Promise.all([fileSave, agent]);
+    expect(order).toEqual(['agent', 'file']);
+  });
+
+  it('does not replay an activity after losing its lease during the callback', async () => {
+    await seedInstance();
+    const callback = vi.fn(async () => {
+      redisStorage.set(`sandbox:lease:opensandbox:${sandboxId}:activity`, {
+        token: 'replacement',
+        expiresAt: Date.now() + 30_000
+      });
+      return 'command may have run';
+    });
+    await expect(runSandboxActivity(scope, callback)).rejects.toThrow('operation_conflict');
+    expect(callback).toHaveBeenCalledOnce();
+  });
+
   it('refreshes lastActiveAt before invoking a running workspace callback', async () => {
     const oldActivity = new Date('2026-01-01T00:00:00Z');
     await seedInstance({ lastActiveAt: oldActivity });
@@ -1485,7 +2039,7 @@ describe('Sandbox activity lifecycle protection', () => {
     expect(providerEnsure).not.toHaveBeenCalled();
   });
 
-  it('prevents stop and delete from reaching the provider while a callback is pending', async () => {
+  it('keeps stop waiting until the activity has completed', async () => {
     const client = getExistingSandboxClient(await seedInstance());
     const entered = deferred();
     const finish = deferred();
@@ -1495,9 +2049,9 @@ describe('Sandbox activity lifecycle protection', () => {
       return 'finished';
     });
     await entered.promise;
+    const stopping = client.stop();
     try {
-      await expect(client.stop()).rejects.toThrow('operation_conflict');
-      await expect(client.delete()).rejects.toThrow('operation_conflict');
+      await new Promise((resolve) => setTimeout(resolve, 150));
       expect(providerStop).not.toHaveBeenCalled();
       expect(providerDelete).not.toHaveBeenCalled();
       expect(providerConnect).not.toHaveBeenCalled();
@@ -1507,6 +2061,8 @@ describe('Sandbox activity lifecycle protection', () => {
       finish.resolve();
       await activity;
     }
+    await stopping;
+    expect(providerStop).toHaveBeenCalledOnce();
   });
 
   it('releases the activity lease after completion so a workspace can stop', async () => {

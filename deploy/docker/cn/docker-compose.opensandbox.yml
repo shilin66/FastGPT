@@ -42,7 +42,7 @@ services:
       PORT: 3000
       VM_RUNTIME: docker
       VM_AUTH_TOKEN: ${VM_AUTH_TOKEN:-vmtoken}
-      VM_VOLUME_NAME_PREFIX: fastgpt-session
+      VM_VOLUME_NAME_PREFIX: omni
       VM_LOG_LEVEL: info
       VM_DOCKER_API_VERSION: v1.44
     healthcheck:

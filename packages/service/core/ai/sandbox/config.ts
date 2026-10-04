@@ -3,18 +3,41 @@ import type {
   OpenSandboxConfigType,
   OpenSandboxConnectionConfig
 } from '@fastgpt-sdk/sandbox-adapter';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import z from 'zod';
 import {
   SandboxStorageSchema,
   type SandboxStorageType,
-  type SandboxInstanceSchemaType
+  type SandboxInstanceSchemaType,
+  type SandboxProviderType
 } from './type';
 import { resolveSandboxWorkspacePath } from './workspace';
 import {
   SandboxVolumeConfigurationError,
   VolumeManagerAuthRejectedBeforeEffectError
 } from './errors';
+
+export const getSandboxProviderScope = (provider: SandboxProviderType): string => {
+  const baseUrl =
+    provider === 'opensandbox'
+      ? env.AGENT_SANDBOX_OPENSANDBOX_BASEURL
+      : provider === 'sealosdevbox'
+        ? env.AGENT_SANDBOX_SEALOS_BASEURL
+        : undefined;
+  if (!baseUrl) throw new Error('Sandbox provider scope requires a base URL');
+  const endpoint = new URL(baseUrl);
+  if (endpoint.username || endpoint.password || endpoint.search || endpoint.hash)
+    throw new Error('Invalid Sandbox provider scope URL');
+  return createHash('sha256')
+    .update(
+      JSON.stringify([
+        provider,
+        provider === 'opensandbox' ? env.AGENT_SANDBOX_OPENSANDBOX_RUNTIME : null,
+        endpoint.href.replace(/\/+$/, '')
+      ])
+    )
+    .digest('hex');
+};
 
 // ---- sealosdevbox ----
 export type SealosConnectionConfig = {
@@ -173,10 +196,12 @@ export const getVolumeManagerServiceConfig = () => {
 export const prepareVolumeManagerConfig = ({
   sandboxId,
   previous,
+  newGeneration,
   action = 'ensure'
 }: {
   sandboxId: string;
   previous?: Pick<SandboxInstanceSchemaType, 'storage' | 'metadata'> | null;
+  newGeneration?: string;
   action?: 'ensure' | 'delete';
 }): PreparedVolumeManagerConfig | undefined => {
   const storage = SandboxStorageSchema.parse(previous?.storage ?? {});
@@ -193,12 +218,19 @@ export const prepareVolumeManagerConfig = ({
   if (previous?.metadata?.volumeEnabled === false && !hasVolume) return undefined;
   if (!sandboxId || /[\u0000-\u001f\u007f]/.test(sandboxId))
     throw new Error('Invalid volume sessionId');
-  const { baseUrl, protocol, token } = service;
+  const { baseUrl, token } = service;
   const savedBinding = storage.volumeManager;
+  const generationId = savedBinding?.generationId ?? newGeneration;
+  const protocol = generationId ? 'claimName' : service.protocol;
   if (savedBinding && (savedBinding.baseUrl !== baseUrl || savedBinding.protocol !== protocol)) {
     throw new SandboxVolumeConfigurationError('volume_manager_binding_mismatch');
   }
-  if (!savedBinding && protocol === 'claimName' && (previous || action === 'delete')) {
+  if (
+    !savedBinding &&
+    protocol === 'claimName' &&
+    !newGeneration &&
+    (previous || action === 'delete')
+  ) {
     throw new Error('An existing Sandbox volume requires its volume manager binding');
   }
   const volume = storage.volumes?.[0];
@@ -226,7 +258,12 @@ export const prepareVolumeManagerConfig = ({
     throw new Error('Invalid Sandbox volume subPath binding');
   }
   const target =
-    savedBinding?.target ?? (protocol === 'claimName' ? `fastgpt-${randomUUID()}` : sandboxId);
+    savedBinding?.target ??
+    (generationId
+      ? `omni-${createHash('sha256').update(sandboxId).digest('hex').slice(0, 32)}-${generationId}`
+      : protocol === 'claimName'
+        ? `omni-${randomUUID()}`
+        : sandboxId);
   if (protocol === 'claimName') {
     claimNameSchema.parse(target);
     if (savedBinding && volume?.claimName !== target)
@@ -238,7 +275,8 @@ export const prepareVolumeManagerConfig = ({
     protocol,
     baseUrl,
     target,
-    ensured: savedBinding?.ensured ?? !!volume?.claimName
+    ensured: savedBinding?.ensured ?? !!volume?.claimName,
+    ...(generationId ? { generationId } : {})
   };
   return {
     binding,
@@ -253,7 +291,13 @@ export const prepareVolumeManagerConfig = ({
 };
 export const buildVolumeConfig = (claimName: string, mountPath: string): VolumeManagerResult => {
   return {
-    volumes: [{ name: 'workspace', pvc: { claimName }, mountPath }],
+    volumes: [
+      {
+        name: 'workspace',
+        pvc: { claimName, createIfNotExists: false, deleteOnSandboxTermination: false },
+        mountPath
+      }
+    ],
     storage: {
       volumes: [{ name: 'workspace', claimName, mountPath }],
       mountPath
@@ -266,13 +310,16 @@ export const ensureSessionVolume = async (
 ): Promise<string> => {
   if (!prepared) throw new Error('Volume manager is disabled');
   const { binding, token, storage } = prepared;
+  const existingClaim = storage.volumes?.[0]?.claimName;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(`${binding.baseUrl}/v1/volumes/ensure`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ [binding.protocol]: binding.target })
+    body: JSON.stringify(
+      existingClaim ? { claimName: existingClaim } : { [binding.protocol]: binding.target }
+    )
   });
   if (!res.ok) {
     if (res.status === 401) throw new VolumeManagerAuthRejectedBeforeEffectError({ status: 401 });
@@ -298,13 +345,20 @@ export const deleteSessionVolume = async (
 ): Promise<void> => {
   if (!prepared) return;
   const { binding, token } = prepared;
+  const existingClaim = prepared.storage.volumes?.[0]?.claimName;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${binding.baseUrl}/v1/volumes/${encodeURIComponent(binding.target)}`, {
-    method: 'DELETE',
-    headers
-  });
+  const claimName =
+    existingClaim ?? (binding.protocol === 'claimName' ? binding.target : undefined);
+  const target = claimName ?? binding.target;
+  const res = await fetch(
+    `${binding.baseUrl}/v1/volumes/${encodeURIComponent(target)}${claimName ? '?mode=claimName' : ''}`,
+    {
+      method: 'DELETE',
+      headers
+    }
+  );
   if (!res.ok && res.status !== 404) {
     throw new Error(`volume-manager error: ${res.status} ${await res.text()}`);
   }
@@ -323,7 +377,9 @@ export const getVolumeManagerConfig = async (
   };
   const { claimName: _claim, ...mount } = volume;
   return {
-    volumes: [{ ...mount, pvc: { claimName } }],
+    volumes: [
+      { ...mount, pvc: { claimName, createIfNotExists: false, deleteOnSandboxTermination: false } }
+    ],
     storage: {
       ...prepared.storage,
       volumes: [{ ...volume, claimName }],
