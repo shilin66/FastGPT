@@ -38,7 +38,7 @@ if ARGV[3] ~= '' and oldRaw then
   local valid, current = pcall(cjson.decode, oldRaw)
   local same = valid and type(current) == 'table' and type(current.expiresAt) == 'number' and current.expiresAt > now
   if same then
-    for _, field in ipairs({'userId','teamId','tmbId','provider','sourceType','sourceId','sandboxId','targetPort','audience','generation','workspaceGeneration'}) do
+    for _, field in ipairs({'userId','teamId','tmbId','provider','sourceType','sourceId','sandboxId','targetPort','audience','generation','workspaceGeneration','runtimeUserId','providerSandboxId','providerScope','editorGeneration'}) do
       if current[field] ~= grant[field] then same = false; break end
     end
   end

@@ -109,7 +109,14 @@ describe('Sandbox resource tickets', () => {
             oldSession &&
             current?.expiresAt > Number(now) &&
             Object.keys(grant)
-              .concat('generation', 'workspaceGeneration')
+              .concat(
+                'generation',
+                'workspaceGeneration',
+                'runtimeUserId',
+                'providerSandboxId',
+                'providerScope',
+                'editorGeneration'
+              )
               .every((field) => current[field] === next[field])
           ) {
             next.expiresAt = Math.max(current.expiresAt, next.expiresAt);
@@ -370,6 +377,36 @@ describe('Sandbox resource tickets', () => {
       nextGrant
     );
   });
+  it.each(['runtimeUserId', 'providerSandboxId', 'providerScope', 'editorGeneration'] as const)(
+    'never extends an App cookie when its %s binding changes',
+    async (field) => {
+      const appGrant: SandboxProxyGrant = {
+        ...grant,
+        sourceType: 'appRuntime',
+        runtimeUserId: grant.tmbId,
+        providerSandboxId: 'physical-a',
+        providerScope: 'scope-a',
+        editorGeneration: '22222222-2222-4222-8222-222222222222'
+      };
+      const session = await redeemSandboxProxyTicket({
+        ticket: await issueSandboxProxyTicket(appGrant),
+        ...scope
+      });
+      const old = records.get(`sandbox-proxy:session:${session}`);
+      const next = {
+        ...appGrant,
+        [field]: field === 'editorGeneration' ? '33333333-3333-4333-8333-333333333333' : 'changed'
+      };
+      const renewed = await redeemAuthorizedTicket({
+        ticket: await issueSandboxProxyTicket(next),
+        ...scope,
+        existingSession: session,
+        authorize
+      });
+      expect(renewed.session).not.toBe(session);
+      expect(records.get(`sandbox-proxy:session:${session}`)).toBe(old);
+    }
+  );
 
   it('rejects a ticket that expires while current resource authorization is pending', async () => {
     const session = await redeemSandboxProxyTicket({

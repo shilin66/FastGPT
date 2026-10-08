@@ -101,6 +101,7 @@ const ImportAppConfigEditor = ({ value, onChange, rows = 16 }: Props) => {
           onDragLeave={handleDragLeave}
         >
           <Textarea
+            aria-label={t('common:json_config')}
             bg={'myGray.50'}
             border={'1px solid'}
             borderRadius={'md'}

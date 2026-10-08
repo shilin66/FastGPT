@@ -49,6 +49,7 @@ import { getSandboxCapacityType } from './capacity';
 import { getSandboxOwnershipMetadata } from './display';
 import { getLegacySourceChatId } from './ownership';
 import { createHash } from 'node:crypto';
+import { SandboxEditorError } from './editor';
 import type { SandboxIdentity } from '@fastgpt/global/core/ai/sandbox/type';
 import {
   SandboxProviderSchema,
@@ -234,7 +235,10 @@ export class SandboxClient {
     }
   }
 
-  async ensureAvailable(priority: 'agent' | 'lifecycle' | 'interactive' = 'lifecycle') {
+  async ensureAvailable(
+    priority: 'agent' | 'lifecycle' | 'interactive' = 'lifecycle',
+    options: { preserveBoundRuntime?: boolean; upgradeImage?: boolean } = {}
+  ) {
     if (this.opts.existingOnly) {
       throw new Error('An existing-only Sandbox client cannot ensure or create a workspace');
     }
@@ -251,7 +255,39 @@ export class SandboxClient {
       lifecycle.providerScope !== getSandboxProviderScope(lifecycle.provider)
     )
       throw new SandboxOperationConflict('Sandbox provider deployment changed');
+    if (options.preserveBoundRuntime) {
+      if (
+        !lifecycle ||
+        !this.opts.expectedInstance ||
+        lifecycle.operation?.failureDisposition === 'unknown' ||
+        ['provisioning', 'archiving', 'restoring', 'stopping', 'deleting', 'failed'].includes(
+          lifecycle.status
+        )
+      )
+        throw new SandboxEditorError('sandbox_editor_recovery_required', 409);
+      this.opts.resourceLimits = lifecycle.limit ?? undefined;
+      if (lifecycle.releasedAt || lifecycle.status === 'archived') {
+        const saved = lifecycle.metadata?.runtimeConfig;
+        if (saved?.recoverable) {
+          this.opts.createConfig = {
+            image: saved.image,
+            entrypoint: saved.entrypoint,
+            env: saved.env,
+            metadata: saved.metadata,
+            resourceLimits: saved.resourceLimits ?? lifecycle.limit ?? undefined,
+            timeoutSeconds: saved.timeoutSeconds
+          };
+        } else throw new SandboxEditorError('sandbox_editor_recovery_required', 409);
+        if (
+          !lifecycle.storage?.volumeManager?.ensured ||
+          !lifecycle.storage.volumes?.[0]?.claimName
+        )
+          throw new SandboxEditorError('sandbox_editor_recovery_required', 409);
+      }
+    }
     if (
+      !options.preserveBoundRuntime &&
+      options.upgradeImage !== false &&
       lifecycle?.reuseScope === 'user' &&
       lifecycle.provider === 'opensandbox' &&
       lifecycle.metadata?.image &&
@@ -493,14 +529,89 @@ export class SandboxClient {
               getVolumeManagerConfig(this.sandboxId, preparedVolume)
             )
           : undefined;
+        const runtimeConfig =
+          this.opts.identity?.sourceType === 'appRuntime' &&
+          this.providerName === 'opensandbox' &&
+          (!operation.previous?.metadata?.providerSandboxId || operation.previous.releasedAt)
+            ? buildOpenSandboxCreateConfig({
+                createConfig: this.opts.createConfig,
+                resourceLimits: this.opts.resourceLimits
+              })
+            : undefined;
+        if (runtimeConfig && this.opts.workspaceRoot) {
+          runtimeConfig.env = { ...runtimeConfig.env, FASTGPT_WORKDIR: this.opts.workspaceRoot };
+          runtimeConfig.entrypoint ??= [
+            '/bin/sh',
+            '-c',
+            'mkdir -p -- "$FASTGPT_WORKDIR" && exec sleep infinity'
+          ];
+        }
         await operation.checkpoint('provider_ensure', {
           ...(this.opts.vmConfig ? { storage: this.opts.vmConfig.storage } : {}),
           'metadata.volumeEnabled': !!this.opts.vmConfig,
-          ...(this.opts.workspaceRoot ? { 'metadata.workspaceRoot': this.opts.workspaceRoot } : {})
+          ...(this.opts.workspaceRoot ? { 'metadata.workspaceRoot': this.opts.workspaceRoot } : {}),
+          ...(runtimeConfig
+            ? {
+                'metadata.runtimeConfig': {
+                  image: runtimeConfig.image,
+                  entrypoint: runtimeConfig.entrypoint,
+                  resourceLimits: runtimeConfig.resourceLimits,
+                  timeoutSeconds: runtimeConfig.timeoutSeconds,
+                  env: Object.fromEntries(
+                    Object.entries(runtimeConfig.env ?? {}).filter(([key]) =>
+                      [
+                        'FASTGPT_WORKDIR',
+                        'FASTGPT_SESSION_ID',
+                        'FASTGPT_ENABLE_CODE_SERVER'
+                      ].includes(key)
+                    )
+                  ),
+                  metadata: Object.fromEntries(
+                    Object.entries(runtimeConfig.metadata ?? {}).filter(
+                      ([key, value]) =>
+                        ['teamId', 'tmbId', 'sandboxType', 'sessionId'].includes(key) &&
+                        typeof value === 'string'
+                    )
+                  ),
+                  recoverable:
+                    Object.keys(runtimeConfig.env ?? {}).every((key) =>
+                      [
+                        'FASTGPT_WORKDIR',
+                        'FASTGPT_SESSION_ID',
+                        'FASTGPT_ENABLE_CODE_SERVER'
+                      ].includes(key)
+                    ) &&
+                    !runtimeConfig.networkPolicy &&
+                    !runtimeConfig.extensions &&
+                    Object.entries(runtimeConfig.metadata ?? {}).every(
+                      ([key, value]) =>
+                        ['teamId', 'tmbId', 'sandboxType', 'sessionId'].includes(key) &&
+                        typeof value === 'string'
+                    )
+                }
+              }
+            : {})
         });
         this.providerInstance = undefined;
         const provider = this.provider;
-        await operation.remoteEffect(() => provider.ensureRunning());
+        if (
+          options.preserveBoundRuntime &&
+          operation.previous?.metadata?.providerSandboxId &&
+          !operation.previous.releasedAt
+        ) {
+          if (!(provider instanceof OpenSandboxAdapter))
+            throw new SandboxEditorError('sandbox_editor_unsupported', 422);
+          const existingId = operation.previous.metadata.providerSandboxId;
+          const remote = await provider.inspectExisting(existingId);
+          if (!remote || remote.id !== existingId)
+            throw new SandboxEditorError('sandbox_editor_recovery_required', 409);
+          if (remote.status.state === 'Stopped') {
+            if (!(await provider.connectExisting()) || provider.id !== existingId)
+              throw new SandboxEditorError('sandbox_editor_recovery_required', 409);
+            await operation.remoteEffect(() => provider.start());
+          } else if (remote.status.state === 'Running') await provider.connect(existingId);
+          else throw new SandboxEditorError('sandbox_editor_busy', 409);
+        } else await operation.remoteEffect(() => provider.ensureRunning());
         const info = this.providerName === 'opensandbox' ? await provider.getInfo() : undefined;
         await operation.checkpoint('ready', {
           status: SandboxStatusEnum.running,
@@ -508,6 +619,13 @@ export class SandboxClient {
           lastActiveAt: new Date(),
           ...(this.provider.id ? { 'metadata.providerSandboxId': this.provider.id } : {}),
           ...(info?.image ? { 'metadata.image': info.image } : {}),
+          ...(runtimeConfig && info?.image ? { 'metadata.runtimeConfig.image': info.image } : {}),
+          ...(runtimeConfig && info?.entrypoint
+            ? { 'metadata.runtimeConfig.entrypoint': info.entrypoint }
+            : {}),
+          ...(runtimeConfig && info?.resourceLimits
+            ? { 'metadata.runtimeConfig.resourceLimits': info.resourceLimits }
+            : {}),
           ...(this.providerName === 'opensandbox' &&
           (!operation.previous ||
             operation.previous.releasedAt ||

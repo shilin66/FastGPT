@@ -32,6 +32,8 @@ const {
   leaseAssertMock,
   setHeartbeatMock,
   endpointReadyMock,
+  editorMock,
+  editorDefaultsMock,
   deleteClientMock,
   readMock,
   initializeWorkspaceMock,
@@ -47,6 +49,8 @@ const {
   leaseAssertMock: vi.fn(),
   setHeartbeatMock: vi.fn<(heartbeat?: () => Promise<boolean>) => void>(),
   endpointReadyMock: vi.fn(),
+  editorMock: vi.fn(),
+  editorDefaultsMock: vi.fn(),
   deleteClientMock: vi.fn(),
   readMock: vi.fn(),
   initializeWorkspaceMock: vi.fn(),
@@ -70,6 +74,12 @@ vi.mock('@fastgpt/service/env', async (importOriginal) => {
 });
 vi.mock('@fastgpt/service/core/agentSkills/storage', () => ({
   downloadSkillPackage: downloadMock
+}));
+vi.mock('@fastgpt/service/core/ai/sandbox/editorDefaults', () => ({
+  ensureSandboxEditorDefaults: editorDefaultsMock
+}));
+vi.mock('@fastgpt/service/core/ai/sandbox/editor', () => ({
+  ensureSandboxEditor: editorMock
 }));
 vi.mock('@fastgpt/service/core/agentSkills/sandboxWorkspace', () => ({
   initializeEditSandboxWorkspace: initializeWorkspaceMock,
@@ -122,6 +132,10 @@ describe('Skill Edit workspace capacity', () => {
     executeMock.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' });
     writeMock.mockResolvedValue(undefined);
     endpointReadyMock.mockResolvedValue(undefined);
+    editorMock.mockImplementation(async (provider) => {
+      await endpointReadyMock(provider);
+      await editorDefaultsMock(provider);
+    });
     readMock.mockResolvedValue([{ content: 'package-content' }]);
     connectExistingMock.mockResolvedValue(true);
     exportWorkspaceMock.mockResolvedValue(Buffer.from('package-content'));
@@ -306,6 +320,21 @@ describe('Skill Edit workspace capacity', () => {
     expect(onProgress).toHaveBeenLastCalledWith(expect.objectContaining({ phase: 'ready' }));
   });
 
+  it('uses the shared authenticated editor launcher for new and reused Skill workspaces', async () => {
+    const created = await createEditDebugSandbox({ skillId, teamId, tmbId });
+    await createEditDebugSandbox({ skillId, teamId, tmbId });
+    expect(editorMock).toHaveBeenCalledTimes(2);
+    for (const [index, call] of getClientMock.mock.calls.entries()) {
+      expect(call[1].createConfig.env.FASTGPT_ENABLE_CODE_SERVER).toBe('false');
+      expect(editorMock).toHaveBeenNthCalledWith(
+        index + 1,
+        (await getClientMock.mock.results[index].value).provider,
+        `${getSandboxDefaults().workDirectory}/edit`
+      );
+    }
+    expect(await MongoSandboxInstance.countDocuments({ _id: created.sandboxId })).toBe(1);
+  });
+
   it('reuses an existing workspace before checking a zero quota', async () => {
     const created = await createEditDebugSandbox({ skillId, teamId, tmbId });
     const configuredLimit = { ...global.feConfigs.limit, agentSandboxMaxEditDebug: 0 };
@@ -314,6 +343,15 @@ describe('Skill Edit workspace capacity', () => {
 
     const reused = await createEditDebugSandbox({ skillId, teamId, tmbId });
 
+    expect(editorDefaultsMock).toHaveBeenCalledTimes(2);
+    expect(editorDefaultsMock).toHaveBeenNthCalledWith(
+      1,
+      (await getClientMock.mock.results[0].value).provider
+    );
+    expect(editorDefaultsMock).toHaveBeenNthCalledWith(
+      2,
+      (await getClientMock.mock.results[1].value).provider
+    );
     expect(reused.sandboxId).toBe(created.sandboxId);
     expect(reused.status.state).toBe('Running');
     expect(await MongoSandboxInstance.countDocuments({ appId: skillId })).toBe(1);

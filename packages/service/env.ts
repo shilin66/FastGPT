@@ -32,6 +32,11 @@ export const env = createEnv({
 
     // ===== Agent sandbox =====
     AGENT_SANDBOX_PROVIDER: z.enum(['sealosdevbox', 'opensandbox', 'e2b']).optional(),
+    AGENT_SANDBOX_CHAT_EDITOR_ENABLED: BoolSchema.default(false),
+    AGENT_SANDBOX_EDITOR_DIRECT_HOST: z
+      .string()
+      .regex(/^(?:[a-zA-Z0-9][a-zA-Z0-9.-]*|\[[a-fA-F0-9:]+\])$/)
+      .optional(),
     AGENT_SANDBOX_E2B_API_KEY: z.string().optional(),
     AGENT_SANDBOX_SEALOS_BASEURL: z.string().url().optional(),
     AGENT_SANDBOX_SEALOS_TOKEN: z.string().optional(),

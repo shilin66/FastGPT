@@ -3,6 +3,7 @@ import { getNanoid } from '@fastgpt/global/common/string/tools';
 import { type OutLinkChatAuthProps } from '@fastgpt/global/support/permission/chat';
 import type { ChatSourceEnum } from '@fastgpt/global/core/chat/constants';
 import { ChatSidebarPaneEnum } from '@/pageComponents/chat/constants';
+import { requestSandboxEditorDisconnect } from '@/components/SandboxIDE/navigation';
 
 type State = {
   source?: `${ChatSourceEnum}`;
@@ -95,6 +96,7 @@ export const useChatStore = create<State>()(
         appId: '',
         setAppId(e) {
           if (!e) return;
+          if (e !== get().appId && !requestSandboxEditorDisconnect()) return false;
 
           set((state) => {
             state.appId = e;
@@ -105,6 +107,7 @@ export const useChatStore = create<State>()(
         chatId: '',
         setChatId(e) {
           const id = e || getNanoid(24);
+          if (id !== get().chatId && !requestSandboxEditorDisconnect()) return false;
           set((state) => {
             state.chatId = id;
             state.lastChatId = `${state.source}-${id}`;

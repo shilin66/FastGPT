@@ -8,6 +8,7 @@ import type { IconNameType } from '@fastgpt/web/components/common/Icon/type';
 import { useToast } from '@fastgpt/web/hooks/useToast';
 import { AppContext, TabEnum } from '../../context';
 import SaveAndPublishModal from '../../WorkflowComponents/Flow/components/SaveAndPublish';
+import WorkflowConfigActions from './WorkflowConfigActions';
 
 type SaveOptions = {
   isPublish?: boolean;
@@ -169,6 +170,7 @@ const WorkflowHeaderActions = ({
 
       {isWorkflowEdit && (
         <HStack spacing={2} flexShrink={0}>
+          {!showHistoryModal && <WorkflowConfigActions />}
           {!showHistoryModal && (
             <MyTooltip label={t('workflow:version_history')}>
               <ToolbarButton

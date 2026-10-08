@@ -10,6 +10,7 @@ import {
   WorkflowInitContext
 } from '../../WorkflowComponents/context/workflowInitContext';
 import WorkflowHeaderActions from './WorkflowHeaderActions';
+import WorkflowAppMenu from './WorkflowAppMenu';
 
 type SaveOptions = {
   isPublish?: boolean;
@@ -90,7 +91,7 @@ const WorkflowHeaderBar = ({
           onClick={onBack}
         />
 
-        <HStack minW={[0, '260px']} maxW={['100%', '340px']} spacing={3} overflow={'hidden'}>
+        <HStack minW={0} maxW={['100%', '340px']} spacing={3} overflow={'hidden'} flexShrink={1}>
           <Avatar src={appDetail.avatar} w={'36px'} borderRadius={'12px'} />
           <Box minW={0}>
             <HStack spacing={2} minW={0}>
@@ -131,12 +132,13 @@ const WorkflowHeaderBar = ({
               {t('common:core.workflow.Debug')} / {t('app:publish_channel')} / {t('app:chat_logs')}
             </Box>
           </Box>
+          <WorkflowAppMenu />
         </HStack>
 
         <HStack
           spacing={2}
           flexShrink={0}
-          display={['none', 'flex']}
+          display={{ base: 'none', lg: 'flex' }}
           px={2}
           py={'6px'}
           border={'1px solid rgba(148, 163, 184, 0.18)'}
@@ -156,7 +158,7 @@ const WorkflowHeaderBar = ({
         </HStack>
 
         <HStack
-          display={['none', 'flex']}
+          display={{ base: 'none', xl: 'flex' }}
           h={'34px'}
           minW={'160px'}
           maxW={'260px'}

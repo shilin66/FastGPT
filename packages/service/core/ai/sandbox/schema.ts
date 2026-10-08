@@ -169,6 +169,14 @@ export const sandboxInstanceIndexDefinitions: {
   },
   { key: { 'metadata.skillId': 1 }, options: { name: 'metadata.skillId_1' } },
   {
+    key: { provider: 1, sourceType: 1, 'metadata.editor.generation': 1 },
+    options: {
+      name: 'sandbox_editor_generation_unique',
+      unique: true,
+      partialFilterExpression: { 'metadata.editor.generation': { $type: 'string' } }
+    }
+  },
+  {
     key: { provider: 1, sourceType: 1, workspaceGeneration: 1 },
     options: { name: 'provider_1_sourceType_1_workspaceGeneration_1' }
   },

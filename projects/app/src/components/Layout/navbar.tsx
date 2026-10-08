@@ -67,7 +67,7 @@ export const getIsActive = (
   return true;
 };
 
-const Navbar = ({ unread, isCollapsed = false, onToggleCollapse }: NavbarProps) => {
+const Navbar = ({ isCollapsed = false, onToggleCollapse }: NavbarProps) => {
   const router = useRouter();
   const { userInfo, setUserInfo } = useUserStore();
   const { feConfigs } = useSystemStore();
@@ -183,13 +183,6 @@ const Navbar = ({ unread, isCollapsed = false, onToggleCollapse }: NavbarProps) 
         activeLink: ['/account/info', '/account/setting']
       },
       {
-        label: '通知中心',
-        icon: 'support/user/informLight',
-        link: '/account/inform',
-        activeLink: ['/account/inform'],
-        unread
-      },
-      {
         label: '退出登录',
         icon: 'support/account/loginoutLight',
         link: '#logout',
@@ -252,7 +245,6 @@ const Navbar = ({ unread, isCollapsed = false, onToggleCollapse }: NavbarProps) 
     feConfigs?.show_skill,
     lastChatAppId,
     lastPane,
-    unread,
     userInfo?.team?.permission.hasApikeyCreatePer,
     userInfo?.team?.permission.isOwner,
     userInfo?.username

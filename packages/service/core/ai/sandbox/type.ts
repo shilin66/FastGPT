@@ -61,7 +61,8 @@ export type SandboxStorageType = z.infer<typeof SandboxStorageSchema>;
 
 export const SandboxImageSchema = z.object({
   repository: z.string(),
-  tag: z.string().optional()
+  tag: z.string().optional(),
+  digest: z.string().optional()
 });
 
 export const SandboxEndpointSchema = z.object({
@@ -84,7 +85,29 @@ export const SandboxMetadataSchema = z.object({
   providerSandboxId: z.string().optional(), // real provider sandbox ID (different from sessionId)
   skillIds: z.array(z.string()).optional(),
   image: SandboxImageSchema.optional(),
-  endpoint: SandboxEndpointSchema.optional()
+  runtimeConfig: z
+    .object({
+      image: SandboxImageSchema,
+      entrypoint: z.array(z.string()).optional(),
+      resourceLimits: SandboxLimitSchema.partial().optional(),
+      timeoutSeconds: z.number().nullable().optional(),
+      env: z.record(z.string(), z.string()),
+      metadata: z.record(z.string(), z.string()).optional(),
+      recoverable: z.boolean()
+    })
+    .optional(),
+  endpoint: SandboxEndpointSchema.optional(),
+  editor: z
+    .object({
+      generation: z.string().uuid(),
+      providerSandboxId: z.string().min(1),
+      providerScope: z.string().min(1),
+      workspaceGeneration: z.string().uuid().optional(),
+      status: z.literal('ready'),
+      endpoint: SandboxEndpointSchema,
+      startedAt: z.coerce.date()
+    })
+    .optional()
 });
 export type SandboxMetadataType = z.infer<typeof SandboxMetadataSchema>;
 

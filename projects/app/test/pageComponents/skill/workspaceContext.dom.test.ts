@@ -88,6 +88,7 @@ vi.mock('@chakra-ui/react', () => {
     VStack: Box,
     Text: Box,
     Badge: Box,
+    Spinner: () => null,
     Portal: Box,
     Popover: ({ children }: { children: (props: { onClose: () => void }) => React.ReactNode }) =>
       children({ onClose: () => {} }),

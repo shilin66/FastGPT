@@ -1,78 +1,74 @@
 import React from 'react';
-import { Box, Button, Flex, Text } from '@chakra-ui/react';
 import { useContextSelector } from 'use-context-selector';
 import { SkillDetailContext } from '../context';
+import SandboxIDE from '@/components/SandboxIDE';
+import { Box, Button, Flex, Text } from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
-import { useSandboxProxySession } from './useSandboxProxySession';
+import MyIcon from '@fastgpt/web/components/common/Icon';
+import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const SandboxIframe = () => {
-  const sandboxEndpointUrl = useContextSelector(SkillDetailContext, (v) => v.sandboxEndpointUrl);
   const { t } = useTranslation();
-  const { frameRef, requestUrl, state, renew } = useSandboxProxySession(sandboxEndpointUrl);
-  if (!sandboxEndpointUrl) return null;
-
-  return (
-    <Flex w={'100%'} h={'100%'} flexDirection={'column'}>
-      <Flex px={3} py={1} gap={2} alignItems={'center'} flexWrap={'wrap'} borderBottom={'base'}>
-        <Text
-          flex={1}
-          fontSize={'xs'}
-          color={state === 'failed' ? 'red.600' : 'myGray.600'}
-          role={'status'}
-          aria-live={'polite'}
-        >
-          {state === 'failed'
-            ? t('skill:sandbox_session_failed')
-            : state === 'renewing'
-              ? t('skill:sandbox_session_renewing')
-              : state === 'active'
-                ? t('skill:sandbox_session_active')
-                : t('skill:sandbox_session_connecting')}
-        </Text>
-        {state === 'failed' && (
-          <Button
-            as={'a'}
-            href={'/login'}
-            target={'_blank'}
-            rel={'noopener noreferrer'}
-            size={'xs'}
-            variant={'whiteBase'}
+  const entryUrl = useContextSelector(SkillDetailContext, (value) => value.sandboxEndpointUrl);
+  return entryUrl ? (
+    <SandboxIDE
+      entryUrl={entryUrl}
+      title="Skill workspace editor"
+      toolbar={
+        <Flex align="center" gap={3} flex={1} minW={0}>
+          <Flex align="center" gap={2} flexShrink={0}>
+            <Flex
+              align="center"
+              justify="center"
+              w={8}
+              h={8}
+              borderRadius={omniTheme.radii.md}
+              bg="primary.50"
+              color="primary.600"
+            >
+              <MyIcon name="code" w={4} aria-hidden />
+            </Flex>
+            <Text fontSize="sm" fontWeight={600} color="myGray.900">
+              {t('skill:editor_workspace_title')}
+            </Text>
+          </Flex>
+          <Box h={4} borderLeft="base" flexShrink={0} aria-hidden />
+          <Text
+            fontSize="xs"
+            color="myGray.500"
+            minW={0}
+            isTruncated
+            title={t('skill:editor_advanced_hint')}
           >
-            {t('skill:sandbox_session_login')}
+            {t('skill:editor_save_hint')}
+          </Text>
+        </Flex>
+      }
+      actions={
+        <MyTooltip
+          label={t('skill:editor_advanced_hint')}
+          shouldWrapChildren={false}
+          closeOnClick={false}
+        >
+          <Button
+            aria-label={t('skill:editor_help')}
+            size="sm"
+            variant="ghost"
+            minW={8}
+            w={8}
+            h={8}
+            p={0}
+            borderRadius={omniTheme.radii.md}
+            color="myGray.500"
+            _hover={{ bg: 'myGray.100', color: 'myGray.700' }}
+          >
+            <MyIcon name="common/info" w={4} aria-hidden />
           </Button>
-        )}
-        <Button size={'xs'} variant={'whiteBase'} onClick={renew} isDisabled={state === 'renewing'}>
-          {t('skill:sandbox_session_renew')}
-        </Button>
-      </Flex>
-      <Box flex={1} minH={0}>
-        <iframe
-          src={sandboxEndpointUrl}
-          onLoad={renew}
-          title="Skill workspace editor"
-          sandbox="allow-scripts allow-forms allow-popups allow-downloads allow-presentation allow-same-origin"
-          referrerPolicy="no-referrer"
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none'
-          }}
-        />
-      </Box>
-      {requestUrl && (
-        <iframe
-          ref={frameRef}
-          src={requestUrl}
-          title="Skill workspace authentication"
-          hidden
-          aria-hidden="true"
-          tabIndex={-1}
-          sandbox="allow-scripts allow-same-origin"
-          referrerPolicy="same-origin"
-        />
-      )}
-    </Flex>
-  );
+        </MyTooltip>
+      }
+    />
+  ) : null;
 };
 
 export default React.memo(SandboxIframe);

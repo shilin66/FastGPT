@@ -26,7 +26,8 @@ async function handler(
   });
 
   const sandbox = await getChatSandboxClient({ appId, userId: uid, chatId, sandboxId });
-  if (allowStart && path === '.') await sandbox.ensureAvailable('interactive');
+  if (allowStart && path === '.')
+    await sandbox.ensureAvailable('interactive', { upgradeImage: false });
 
   return sandbox.withActivity(async () => {
     await sandbox.connectRunning();

@@ -1,20 +1,20 @@
 import React from 'react';
 import { Box, Flex, type BoxProps, type FlexProps } from '@chakra-ui/react';
 import MyIcon from '@fastgpt/web/components/common/Icon';
+import { omniTheme } from '@/web/common/brand/theme';
 
 export const detailPageBg = '#F5F8FC';
 
 export const detailPanelStyles: BoxProps = {
-  bg: 'white',
-  border: '1px solid',
-  borderColor: 'rgba(37, 99, 235, 0.16)',
-  borderRadius: '14px',
-  boxShadow: '0 18px 45px rgba(15, 23, 42, 0.06)',
+  bg: omniTheme.colors.surface,
+  border: 0,
+  borderRadius: 0,
+  boxShadow: 'none',
   overflow: 'hidden'
 };
 
 export const detailGridSurfaceStyles: BoxProps = {
-  bg: 'linear-gradient(180deg, rgba(37, 99, 235, 0.05) 0%, rgba(255, 255, 255, 0) 220px), #FFFFFF'
+  bg: omniTheme.colors.surface
 };
 
 export const detailSectionStyles: BoxProps = {
@@ -25,11 +25,11 @@ export const detailSectionStyles: BoxProps = {
 };
 
 export const detailToolbarStyles: FlexProps = {
-  bg: 'white',
-  border: '1px solid',
-  borderColor: 'rgba(37, 99, 235, 0.16)',
-  borderRadius: '12px',
-  boxShadow: '0 12px 30px rgba(15, 23, 42, 0.05)'
+  bg: omniTheme.colors.surface,
+  borderBottom: '1px solid',
+  borderColor: omniTheme.colors.border,
+  borderRadius: 0,
+  boxShadow: 'none'
 };
 
 export const DetailSectionTitle = ({

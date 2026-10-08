@@ -285,7 +285,8 @@ describe('Sandbox identity index migration', () => {
     });
     await expect(collection.listIndexes().toArray()).rejects.toThrow();
     const result = await migrateSandboxIdentityIndexes({ confirmWrite: true });
-    expect(result.createdIndexNames).toHaveLength(10);
+    expect(result.createdIndexNames).toHaveLength(11);
+    expect(result.createdIndexNames).toContain('sandbox_editor_generation_unique');
     expect(result.createdIndexNames).toContain('sandbox_provider_scan');
     expect(result.createdIndexNames).toContain('provider_1_sourceType_1_workspaceGeneration_1');
     const indexes = await collection.listIndexes().toArray();

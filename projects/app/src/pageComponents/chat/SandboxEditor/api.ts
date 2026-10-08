@@ -8,10 +8,18 @@ import type {
   SandboxCheckExistBody,
   SandboxCheckExistResponse,
   SandboxGetHtmlPreviewLinkBody,
-  SandboxGetHtmlPreviewLinkResponse
+  SandboxGetHtmlPreviewLinkResponse,
+  SandboxEditorBody,
+  SandboxEditorResponse
 } from '@fastgpt/global/openapi/core/ai/sandbox/api';
 import { parseContentDispositionFilename } from '@fastgpt/global/common/file/tools';
 import { POST } from '@/web/common/api/request';
+
+export const openSandboxEditor = (data: SandboxEditorBody, controller: AbortController) =>
+  POST<SandboxEditorResponse>('/core/ai/sandbox/editor', data, {
+    timeout: 120_000,
+    cancelToken: controller
+  });
 
 /**
  * 列出目录文件

@@ -12,13 +12,24 @@ vi.mock('use-context-selector', () => ({
 vi.mock('@/pageComponents/dashboard/skill/detail/context', () => ({
   SkillDetailContext: {}
 }));
+vi.mock('@fastgpt/web/components/common/MyTooltip', () => ({
+  default: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children)
+}));
+vi.mock('@fastgpt/web/components/common/Icon', () => ({
+  default: () => React.createElement('svg', { 'aria-hidden': true })
+}));
+vi.mock('@/components/common/PaneActionButton', () => ({
+  default: ({ label }: { label: string }) => React.createElement('button', { 'aria-label': label })
+}));
 vi.mock('@chakra-ui/react', () => ({
   Box: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
   Flex: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
   Text: ({ children }: { children: React.ReactNode }) =>
     React.createElement('span', null, children),
   Button: ({ children }: { children: React.ReactNode }) =>
-    React.createElement('button', null, children)
+    React.createElement('button', null, children),
+  Spinner: () => React.createElement('span', null, 'loading')
 }));
 vi.mock('next-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 

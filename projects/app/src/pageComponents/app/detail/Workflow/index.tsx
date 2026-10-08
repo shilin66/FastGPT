@@ -62,7 +62,7 @@ const WorkflowEdit = () => {
       {currentTab === TabEnum.appEdit ? (
         <Flow />
       ) : (
-        <Flex flexDirection={'column'} h={'100%'} mt={'64px'} px={4} pb={4} bg={'white'}>
+        <Flex flexDirection={'column'} flex={1} minH={0} mt={'64px'} bg={'white'}>
           {currentTab === TabEnum.publish && <PublishChannel />}
           {currentTab === TabEnum.logs && <Logs />}
         </Flex>

@@ -69,7 +69,7 @@ const LogTable = ({
   dateRange,
   setDateRange,
   showSourceSelector = true,
-  px = [4, 8]
+  px = [4, 5]
 }: HeaderControlProps) => {
   const { t } = useTranslation();
   const { feConfigs } = useSystemStore();
@@ -434,8 +434,8 @@ const LogTable = ({
   );
 
   return (
-    <MyBox isLoading={isLoading} display={'flex'} flexDir={'column'} h={'full'} minH={0} px={px}>
-      <Flex alignItems={'center'} gap={2} flexWrap={'wrap'} p={2.5} {...detailToolbarStyles}>
+    <MyBox isLoading={isLoading} display={'flex'} flexDir={'column'} h={'full'} minH={0}>
+      <Flex alignItems={'center'} gap={2} flexWrap={'wrap'} px={px} py={4} {...detailToolbarStyles}>
         {showSourceSelector && (
           <Flex>
             <MultipleSelect<ChatSourceEnum>
@@ -553,14 +553,7 @@ const LogTable = ({
         />
       </Flex>
 
-      <TableContainer
-        mt={3}
-        flex={'1 0 0'}
-        overflowY={'auto'}
-        overflowX={'auto'}
-        {...detailPanelStyles}
-        borderRadius={'12px'}
-      >
+      <TableContainer flex={'1 0 0'} overflowY={'auto'} overflowX={'auto'} {...detailPanelStyles}>
         <Table
           variant={'simple'}
           fontSize={'xs'}

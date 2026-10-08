@@ -25,12 +25,13 @@ describe('code-server upstream login optimization', () => {
     vi.useRealTimers();
   });
 
-  it('probes without credentials and caches a strictly scoped cookie-less redirect', async () => {
+  it('rejects a password-free upstream without caching it as an authenticated session', async () => {
     fetchMock.mockImplementation(async () => cookieLessResponse());
     await expect(ensureCodeServerSession(sandboxId, target, getPassword)).resolves.toBeNull();
     await expect(ensureCodeServerSession(sandboxId, target, getPassword)).resolves.toBeNull();
     expect(getPassword).not.toHaveBeenCalled();
-    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`${target}/login`, {
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenLastCalledWith(`${target}/login`, {
       method: 'GET',
       redirect: 'manual',
       signal: expect.any(AbortSignal)
@@ -92,12 +93,13 @@ describe('code-server upstream login optimization', () => {
   it('does not cache failed probes', async () => {
     fetchMock
       .mockResolvedValueOnce(new Response(null, { status: 502 }))
-      .mockResolvedValueOnce(cookieLessResponse());
+      .mockResolvedValueOnce(new Response('login form'))
+      .mockResolvedValueOnce(passwordResponse());
     await ensureCodeServerSession(sandboxId, target, getPassword);
     await ensureCodeServerSession(sandboxId, target, getPassword);
     await ensureCodeServerSession(sandboxId, target, getPassword);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(getPassword).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(getPassword).toHaveBeenCalledOnce();
   });
 
   it('does not cache a password POST without the expected session cookie', async () => {
@@ -114,16 +116,18 @@ describe('code-server upstream login optimization', () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
-  it('rechecks cookie-less mode after a fixed short TTL even with intervening cache hits', async () => {
-    vi.useFakeTimers();
-    fetchMock.mockImplementation(async () => cookieLessResponse());
+  it('retries a rejected password-free service and accepts a subsequent password login', async () => {
+    fetchMock
+      .mockResolvedValueOnce(cookieLessResponse())
+      .mockResolvedValueOnce(new Response('login form'))
+      .mockResolvedValueOnce(passwordResponse());
     await ensureCodeServerSession(sandboxId, target, getPassword);
-    await vi.advanceTimersByTimeAsync(59_000);
+    await expect(ensureCodeServerSession(sandboxId, target, getPassword)).resolves.toBe(
+      'editor-key'
+    );
     await ensureCodeServerSession(sandboxId, target, getPassword);
-    await vi.advanceTimersByTimeAsync(1_000);
-    await ensureCodeServerSession(sandboxId, target, getPassword);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(getPassword).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(getPassword).toHaveBeenCalledOnce();
   });
 
   it('does not reuse a login result for a changed provider endpoint', async () => {

@@ -13,7 +13,8 @@ const mocks = vi.hoisted(() => ({
   download: vi.fn(),
   mount: vi.fn(),
   exchange: vi.fn(),
-  maintain: vi.fn()
+  maintain: vi.fn(),
+  editor: vi.fn()
 }));
 vi.mock('@fastgpt/service/core/ai/sandbox/lease', async (original) => ({
   ...(await original<typeof import('@fastgpt/service/core/ai/sandbox/lease')>()),
@@ -38,9 +39,19 @@ vi.mock('@fastgpt/service/core/agentSkills/sandboxWorkspace', async (original) =
 vi.mock('@fastgpt/service/core/agentSkills/sandboxConfig', async (original) => ({
   ...(await original<typeof import('@fastgpt/service/core/agentSkills/sandboxConfig')>()),
   waitForSkillEditorReady: async () => {},
-  buildBaseContainerEnv: () => ({}),
   disconnectFromProviderSandbox: async () => {},
   getProviderSandboxEndpoint: async () => ({
+    host: 'editor.test',
+    port: 44772,
+    protocol: 'http',
+    url: 'http://editor.test'
+  })
+}));
+vi.mock('@fastgpt/service/core/ai/sandbox/editor', () => ({
+  ensureSandboxEditor: mocks.editor
+}));
+vi.mock('@fastgpt/service/core/ai/sandbox/editorEndpoint', () => ({
+  getSandboxEditorEndpoint: async () => ({
     host: 'editor.test',
     port: 44772,
     protocol: 'http',
@@ -170,6 +181,13 @@ describe('reset operation preserves draft recovery across transaction failures',
     expect(instance?.metadata).toMatchObject({
       resetBackupRoot: `/workspace/.skill-edit-reset-${result.workspace.generation}`
     });
+  });
+  it('uses the shared password-authenticated editor after workspace reset', async () => {
+    await reset();
+    expect(mocks.maintain.mock.calls[0][0].createConfig.env.FASTGPT_ENABLE_CODE_SERVER).toBe(
+      'false'
+    );
+    expect(mocks.editor).toHaveBeenCalledWith({}, '/workspace/edit');
   });
   it('leaves the original generation and draft untouched if preflight cannot prove the volume', async () => {
     mocks.mount.mockRejectedValueOnce(new Error('unproven-volume'));

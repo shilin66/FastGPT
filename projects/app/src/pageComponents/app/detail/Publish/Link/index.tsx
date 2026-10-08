@@ -98,48 +98,7 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
         </PublishCreateButton>
       </Flex>
       <TableContainer mt={4} overflowX={'auto'}>
-        <Table
-          variant={'simple'}
-          minW={'720px'}
-          fontSize={'sm'}
-          sx={{
-            borderCollapse: 'separate',
-            borderSpacing: '0 10px',
-            th: {
-              borderBottom: '0',
-              color: '#64748B',
-              fontSize: '12px',
-              fontWeight: 800,
-              letterSpacing: 0,
-              h: '46px',
-              py: '11px',
-              whiteSpace: 'nowrap'
-            },
-            td: {
-              bg: 'white',
-              borderTop: '1px solid rgba(148, 163, 184, 0.2)',
-              borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
-              color: '#334155',
-              py: 3,
-              whiteSpace: 'nowrap'
-            },
-            'tbody td:first-of-type': {
-              borderLeft: '1px solid rgba(37, 99, 235, 0.18)',
-              borderLeftWidth: '4px',
-              borderTopLeftRadius: '14px',
-              borderBottomLeftRadius: '14px'
-            },
-            'tbody td:last-of-type': {
-              borderRight: '1px solid rgba(148, 163, 184, 0.2)',
-              borderTopRightRadius: '14px',
-              borderBottomRightRadius: '14px'
-            },
-            'tbody tr:hover td': {
-              bg: 'rgba(37, 99, 235, 0.04)',
-              borderColor: 'rgba(37, 99, 235, 0.3)'
-            }
-          }}
-        >
+        <Table variant={'simple'} minW={'720px'} fontSize={'sm'}>
           <Thead>
             <Tr>
               <Th>{t('common:Name')}</Th>
@@ -172,9 +131,8 @@ const Share = ({ appId }: { appId: string; type: PublishChannelEnum }) => {
                       h={'34px'}
                       flexShrink={0}
                       borderRadius={'11px'}
-                      bg={'linear-gradient(135deg, #2563EB, #8FB4FF)'}
-                      color={'white'}
-                      boxShadow={'0 10px 22px rgba(37, 99, 235, 0.16)'}
+                      bg={'primary.50'}
+                      color={'primary.600'}
                     >
                       <MyIcon name={'common/link'} w={'17px'} />
                     </Flex>

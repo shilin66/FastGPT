@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Box, Checkbox, Divider, Flex } from '@chakra-ui/react';
+import { Box, Button, Checkbox, Divider, Flex } from '@chakra-ui/react';
 import { useTranslation } from 'next-i18next';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { filterSensitiveNodesData } from '@/web/core/workflow/utils';
@@ -14,12 +14,14 @@ import { type RequireOnlyOne } from '@fastgpt/global/common/type/utils';
 import { type StoreNodeItemType } from '@fastgpt/global/core/workflow/type/node';
 import { type StoreEdgeItemType } from '@fastgpt/global/core/workflow/type/edge';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
+import ExportConfigToolbar from './ExportConfigToolbar';
 
 type ExportConfigPopoverProps = {
   appName: string;
   chatConfig?: AppChatConfigType;
   filterSensitiveInfo?: boolean;
   onFilterSensitiveInfoChange?: (value: boolean) => void;
+  variant?: 'menu' | 'toolbar';
 } & RequireOnlyOne<{
   getWorkflowData: () =>
     | {
@@ -36,7 +38,8 @@ const ExportConfigPopover = ({
   chatConfig,
   appName,
   filterSensitiveInfo: filterSensitiveInfoProp,
-  onFilterSensitiveInfoChange
+  onFilterSensitiveInfoChange,
+  variant = 'menu'
 }: ExportConfigPopoverProps) => {
   const { t } = useTranslation();
   const { copyData } = useCopyData();
@@ -86,7 +89,7 @@ const ExportConfigPopover = ({
       }
 
       if (mode === 'copy') {
-        copyData(
+        await copyData(
           config,
           filterSensitiveInfo
             ? t('app:export_filtered_sensitive_config_successful')
@@ -99,9 +102,20 @@ const ExportConfigPopover = ({
           filename: `${appName}.json`
         });
       }
+      return true;
     },
     [appForm, appName, chatConfig, copyData, getWorkflowData, t, filterSensitiveInfo]
   );
+
+  if (variant === 'toolbar') {
+    return (
+      <ExportConfigToolbar
+        onExport={onExportWorkflow}
+        filterSensitiveInfo={filterSensitiveInfo}
+        onFilterSensitiveInfoChange={setFilterSensitiveInfo}
+      />
+    );
+  }
 
   return (
     <MyPopover
@@ -109,7 +123,7 @@ const ExportConfigPopover = ({
       offset={[0, 20]}
       hasArrow
       trigger={'hover'}
-      w={'8.8rem'}
+      w={'240px'}
       Trigger={
         <MyBox display={'flex'} cursor={'pointer'} onClick={(e) => e.stopPropagation()}>
           <MyIcon name={'export'} w={'16px'} mr={2} />
@@ -118,10 +132,14 @@ const ExportConfigPopover = ({
       }
     >
       {({ onClose }) => (
-        <Box p={1} onClick={(e) => e.stopPropagation()}>
-          <Flex
-            py={'0.38rem'}
-            px={1}
+        <Box p={2} onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant={'ghost'}
+            w={'full'}
+            justifyContent={'flex-start'}
+            h={9}
+            px={2}
+            fontWeight={500}
             color={'myGray.600'}
             _hover={{
               bg: 'myGray.05',
@@ -129,14 +147,20 @@ const ExportConfigPopover = ({
               cursor: 'pointer'
             }}
             borderRadius={'xs'}
-            onClick={() => onExportWorkflow('copy')}
+            onClick={async () => {
+              if (await onExportWorkflow('copy')) onClose();
+            }}
           >
             <MyIcon name={'copy'} w={'1rem'} mr={2} />
             <Box fontSize={'mini'}>{t('common:copy_to_clipboard')}</Box>
-          </Flex>
-          <Flex
-            py={'0.38rem'}
-            px={1}
+          </Button>
+          <Button
+            variant={'ghost'}
+            w={'full'}
+            justifyContent={'flex-start'}
+            h={9}
+            px={2}
+            fontWeight={500}
             color={'myGray.600'}
             _hover={{
               bg: 'myGray.05',
@@ -144,13 +168,15 @@ const ExportConfigPopover = ({
               cursor: 'pointer'
             }}
             borderRadius={'xs'}
-            onClick={() => onExportWorkflow('json')}
+            onClick={async () => {
+              if (await onExportWorkflow('json')) onClose();
+            }}
           >
             <MyIcon name={'configmap'} w={'1rem'} mr={2} />
             <Box fontSize={'mini'}>{t('common:export_to_json')}</Box>
-          </Flex>
+          </Button>
 
-          <Divider />
+          <Divider my={2} />
 
           <Flex
             py={'0.38rem'}
@@ -163,14 +189,13 @@ const ExportConfigPopover = ({
               cursor: 'pointer'
             }}
             borderRadius={'xs'}
-            onClick={() => setFilterSensitiveInfo(!filterSensitiveInfo)}
           >
             <Checkbox
               flex={1}
               size="sm"
               colorScheme="primary"
               isChecked={filterSensitiveInfo}
-              pointerEvents={'none'}
+              onChange={(e) => setFilterSensitiveInfo(e.target.checked)}
             >
               <Box fontSize={'mini'}>{t('common:filter_sensitive_info')}</Box>
             </Checkbox>

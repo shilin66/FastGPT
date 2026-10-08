@@ -133,8 +133,8 @@ export const useChatTest = ({
   );
 
   const restartChat = useCallback(() => {
+    if (setChatId() === false) return;
     clearChatRecords();
-    setChatId();
   }, [clearChatRecords, setChatId]);
 
   // 新增变量时候，自动加入默认值

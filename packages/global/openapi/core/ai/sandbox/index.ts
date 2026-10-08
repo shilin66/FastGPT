@@ -12,11 +12,34 @@ import {
   SandboxCheckExistBodySchema,
   SandboxCheckExistResponseSchema,
   SandboxGetHtmlPreviewLinkBodySchema,
-  SandboxGetHtmlPreviewLinkResponseSchema
+  SandboxGetHtmlPreviewLinkResponseSchema,
+  SandboxEditorBodySchema,
+  SandboxEditorResponseSchema
 } from './api';
 import { SandboxProxyAuthQuerySchema } from './api';
 
 export const SandboxPath: OpenAPIPath = {
+  '/core/ai/sandbox/editor': {
+    post: {
+      summary: '打开本人 Agent 工作区 IDE / Terminal',
+      description: '仅浏览器登录用户可用，按需启动已有工作区的 code-server，不创建空工作区。',
+      tags: [TagsMap.sandbox],
+      requestBody: { content: { 'application/json': { schema: SandboxEditorBodySchema } } },
+      responses: {
+        200: {
+          description: '绑定当前实例的认证入口',
+          content: { 'application/json': { schema: SandboxEditorResponseSchema } }
+        },
+        401: { description: '需要浏览器登录会话' },
+        403: { description: '没有本人工作区权限' },
+        404: { description: '当前聊天没有工作区' },
+        409: { description: '工作区忙、绑定变化或需要人工恢复' },
+        422: { description: '镜像或 Provider 不支持编辑器' },
+        503: { description: '功能关闭或编辑器不可用' },
+        504: { description: '编辑器启动超时' }
+      }
+    }
+  },
   '/core/sandbox/proxyAuth': {
     get: {
       summary: '打开 Sandbox 独立源编辑器',

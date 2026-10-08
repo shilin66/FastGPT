@@ -4,9 +4,10 @@ import { Box, Card, Flex, useTheme, useOutsideClick, Button } from '@chakra-ui/r
 import { addDays, format } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { zhCN } from 'date-fns/locale/zh-CN';
+import { zhCN } from 'react-day-picker/locale';
 import { useTranslation } from 'next-i18next';
 import MyIcon from '../Icon';
+import { CalendarMonthsDropdown, CalendarYearsDropdown } from './CalendarDropdown';
 
 export type DateRangeType = {
   from: Date;
@@ -33,6 +34,7 @@ const DateRangePicker = ({
   formLabel?: string;
 } & BoxProps) => {
   const { t } = useTranslation();
+  const theme = useTheme();
   const OutRangeRef = useRef(null);
   const [range, setRange] = useState<DateRangeType>(defaultDate);
   const [showSelected, setShowSelected] = useState(false);
@@ -60,6 +62,8 @@ const DateRangePicker = ({
   return (
     <Box position={'relative'} ref={OutRangeRef}>
       <Flex
+        as={'button'}
+        type={'button'}
         border={'base'}
         px={3}
         pr={3}
@@ -88,8 +92,11 @@ const DateRangePicker = ({
       {showSelected && (
         <Card
           position={'absolute'}
-          zIndex={1}
-          p={3}
+          zIndex={'popover'}
+          p={4}
+          border={'base'}
+          borderRadius={'lg'}
+          boxShadow={'3'}
           {...(popPosition === 'top'
             ? {
                 bottom: '40px'
@@ -98,20 +105,47 @@ const DateRangePicker = ({
         >
           <Box
             sx={{
+              '.rdp-root': {
+                fontSize: 'sm',
+                color: 'myGray.900'
+              },
+              '.rdp-dropdowns': {
+                gap: 2
+              },
+              '.rdp-weekday': {
+                fontSize: 'xs',
+                fontWeight: 'medium',
+                color: 'myGray.500'
+              },
+              '.rdp-day_button': {
+                fontSize: 'sm',
+                fontWeight: 'normal'
+              },
+              '.rdp-selected': {
+                fontSize: 'inherit',
+                fontWeight: 'medium'
+              },
               '.rdp-day_button:hover:not(:disabled)': {
-                backgroundColor: '#E1EAFF'
+                backgroundColor: 'primary.50'
               },
               '.rdp-range_start .rdp-day_button, .rdp-range_end .rdp-day_button': {
-                backgroundColor: '#3370FF',
+                backgroundColor: 'primary.600',
                 color: 'white',
-                border: 'none'
+                border: 'none',
+                fontWeight: 'medium'
               },
               '.rdp-range_start .rdp-day_button:hover, .rdp-range_end .rdp-day_button:hover': {
-                backgroundColor: '#2860E0'
+                backgroundColor: 'primary.700'
+              },
+              '.rdp-button_previous, .rdp-button_next': {
+                borderRadius: 'md'
               },
               '.rdp-button_previous:hover, .rdp-button_next:hover': {
-                backgroundColor: '#F0F4FF',
-                borderRadius: '6px'
+                backgroundColor: 'myGray.50'
+              },
+              '.rdp-chevron': {
+                width: 4,
+                height: 4
               }
             }}
           >
@@ -119,10 +153,24 @@ const DateRangePicker = ({
               locale={zhCN}
               id="test"
               mode="range"
+              captionLayout="dropdown"
+              startMonth={new Date(2025, 0, 1)}
+              components={{
+                MonthsDropdown: CalendarMonthsDropdown,
+                YearsDropdown: CalendarYearsDropdown
+              }}
+              formatters={{ formatMonthDropdown: (date) => format(date, 'M 月') }}
               style={
                 {
-                  '--rdp-accent-color': '#3370FF',
-                  '--rdp-accent-background-color': '#E1EAFF'
+                  '--rdp-accent-color': theme.colors.primary[600],
+                  '--rdp-accent-background-color': theme.colors.primary[50],
+                  '--rdp-day-height': '38px',
+                  '--rdp-day-width': '38px',
+                  '--rdp-day_button-height': '34px',
+                  '--rdp-day_button-width': '34px',
+                  '--rdp-nav_button-height': '32px',
+                  '--rdp-nav_button-width': '32px',
+                  '--rdp-nav-height': '40px'
                 } as React.CSSProperties
               }
               defaultMonth={defaultDate.to}
@@ -154,7 +202,7 @@ const DateRangePicker = ({
                 onChange?.(typeDate);
               }}
               footer={
-                <Flex justifyContent={'flex-end'}>
+                <Flex justifyContent={'flex-end'} borderTop={'base'} pt={3} mt={3}>
                   <Button
                     variant={'outline'}
                     size={'sm'}

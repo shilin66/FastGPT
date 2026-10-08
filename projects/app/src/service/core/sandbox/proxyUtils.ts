@@ -157,8 +157,12 @@ export function getSandboxProxyRedirect(input: ProxyOriginInput): URL {
   return target;
 }
 
-export function assertSandboxProxyPath(input: { target: string; path: string }) {
-  if (new URL(input.target).pathname === '/') return;
+export function assertSandboxProxyPath(input: {
+  target: string;
+  path: string;
+  editorOnly?: boolean;
+}) {
+  if (!input.editorOnly && new URL(input.target).pathname === '/') return;
   assertSandboxEditorPath(input.path);
 }
 
@@ -218,11 +222,10 @@ export function assertSandboxProxyInternalRequest(input: {
 // ---- code-server session store ----
 // This is only an upstream login cache; every browser request still needs a resource ticket.
 const CS_SESSION_TTL = 2 * 60 * 60 * 1000; // 2 h
-const CS_COOKIE_LESS_TTL = 60_000;
 const CS_REQUEST_TIMEOUT = 5_000;
 const MAX_CS_SESSION_STORE_SIZE = 1000;
 
-type CsSession = { target: string; keyCookie: string | null; exp: number };
+type CsSession = { target: string; keyCookie: string; exp: number };
 type CsPending = { target: string; token: symbol; promise: Promise<string | null> };
 
 const _csStore = (): Map<string, CsSession> => {
@@ -242,7 +245,7 @@ function getCsSession(sandboxId: string, target: string): CsSession | undefined 
     _csStore().delete(sandboxId);
     return;
   }
-  if (entry.keyCookie) entry.exp = Date.now() + CS_SESSION_TTL;
+  entry.exp = Date.now() + CS_SESSION_TTL;
   return entry;
 }
 
@@ -267,23 +270,6 @@ async function withCsRequestTimeout<T>(run: (signal: AbortSignal) => Promise<T>)
   }
 }
 
-function isCookieLessLoginRedirect(response: Response, target: string): boolean {
-  const location = response.headers.get('location');
-  if (
-    ![301, 302].includes(response.status) ||
-    response.headers.has('set-cookie') ||
-    !location ||
-    /[%\\\x00-\x20]/.test(location)
-  )
-    return false;
-  try {
-    const root = new URL(`${target}/`);
-    return new URL(location, `${target}/login`).href === root.href;
-  } catch {
-    return false;
-  }
-}
-
 async function loadCsSession(
   target: string,
   getPassword: (signal: AbortSignal) => Promise<string | null>
@@ -292,9 +278,6 @@ async function loadCsSession(
     fetch(`${target}/login`, { method: 'GET', redirect: 'manual', signal })
   );
   void probe.body?.cancel().catch(() => {});
-  if (isCookieLessLoginRedirect(probe, target)) {
-    return { target, keyCookie: null, exp: Date.now() + CS_COOKIE_LESS_TTL };
-  }
   if (probe.status !== 200) return;
   const password = await withCsRequestTimeout(getPassword);
   if (!password) return;

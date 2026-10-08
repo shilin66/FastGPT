@@ -18,6 +18,7 @@ import Teams from '@/pageComponents/app/detail/Publish/Teams';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import { detailGridSurfaceStyles, detailPanelStyles } from '../DetailVisual';
+import { omniTheme } from '@/web/common/brand/theme';
 const Link = dynamic(() => import('./Link'));
 const API = dynamic(() => import('./API'));
 const FeiShu = dynamic(() => import('./FeiShu'));
@@ -29,56 +30,39 @@ const Playground = dynamic(() => import('./Playground'));
 
 const publishChannelContentStyles = {
   '.chakra-table__container': {
-    border: '1px solid rgba(37, 99, 235, 0.14)',
-    borderRadius: '14px',
-    bg: 'rgba(255, 255, 255, 0.82)',
-    boxShadow: '0 14px 34px rgba(15, 23, 42, 0.05)',
+    border: 0,
+    borderRadius: 0,
+    bg: omniTheme.colors.surface,
+    boxShadow: 'none',
     overflow: 'auto'
   },
   '.chakra-table': {
-    borderCollapse: 'separate',
-    borderSpacing: '0 8px',
+    borderCollapse: 'collapse',
+    borderSpacing: 0,
     minW: '720px'
   },
   '.chakra-table thead th': {
-    h: '46px',
-    py: '11px',
-    bg: '#F8FAFC',
-    borderBottom: '1px solid rgba(148, 163, 184, 0.22)',
-    color: '#64748B',
+    py: 3,
+    bg: omniTheme.colors.pageBg,
+    borderBottom: '1px solid',
+    borderColor: omniTheme.colors.border,
+    color: omniTheme.colors.muted,
     fontSize: '12px',
-    fontWeight: 800,
+    fontWeight: 700,
     letterSpacing: 0,
     lineHeight: 1.2,
     whiteSpace: 'nowrap'
   },
   '.chakra-table tbody td': {
-    bg: 'white',
-    borderTop: '1px solid rgba(148, 163, 184, 0.2)',
-    borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
-    color: '#334155',
+    bg: omniTheme.colors.surface,
+    borderBottom: '1px solid',
+    borderColor: omniTheme.colors.border,
+    color: omniTheme.colors.text,
     py: 3,
     whiteSpace: 'nowrap'
   },
-  '.chakra-table tbody tr td:first-of-type': {
-    borderLeft: '1px solid rgba(37, 99, 235, 0.18)',
-    borderLeftWidth: '4px',
-    borderTopLeftRadius: '14px',
-    borderBottomLeftRadius: '14px'
-  },
-  '.chakra-table tbody tr td:last-of-type': {
-    borderRight: '1px solid rgba(148, 163, 184, 0.2)',
-    borderTopRightRadius: '14px',
-    borderBottomRightRadius: '14px'
-  },
   '.chakra-table tbody tr:hover td': {
-    bg: 'rgba(37, 99, 235, 0.04)',
-    borderColor: 'rgba(37, 99, 235, 0.3)'
-  },
-  '.chakra-menu__menu-list': {
-    border: '1px solid rgba(37, 99, 235, 0.16)',
-    borderRadius: '12px',
-    boxShadow: '0 18px 45px rgba(15, 23, 42, 0.14)'
+    bg: omniTheme.colors.pageBg
   }
 };
 
@@ -192,9 +176,8 @@ const OutLink = () => {
       h={'100%'}
       minH={0}
       flexDirection={'column'}
-      py={[4, 5]}
     >
-      <Box display={'flex'} px={[4, 8]} flex={1} minH={0}>
+      <Box display={'flex'} flex={1} minH={0}>
         <Flex
           {...detailPanelStyles}
           {...detailGridSurfaceStyles}
@@ -210,9 +193,9 @@ const OutLink = () => {
             p={3}
             overflowY={'auto'}
             borderRight={'1px solid'}
-            borderRightColor={'rgba(148, 163, 184, 0.22)'}
+            borderRightColor={omniTheme.colors.border}
           >
-            <Box px={2} pb={2} color={'#64748B'} fontSize={'xs'} fontWeight={800}>
+            <Box px={2} pb={2} color={omniTheme.colors.muted} fontSize={'xs'} fontWeight={800}>
               发布渠道
             </Box>
             <Flex flexDirection={'column'} gap={2}>
@@ -221,20 +204,22 @@ const OutLink = () => {
                 return (
                   <Flex
                     key={item.value}
+                    as={'button'}
+                    type={'button'}
+                    aria-current={isActive ? 'page' : undefined}
+                    textAlign={'left'}
+                    w={'full'}
                     cursor={'pointer'}
                     p={3}
                     gap={2.5}
                     position={'relative'}
                     alignItems={'center'}
-                    border={'1px solid'}
-                    borderColor={isActive ? 'rgba(37, 99, 235, 0.42)' : 'transparent'}
-                    borderRadius={'12px'}
-                    bg={isActive ? 'rgba(37, 99, 235, 0.08)' : 'transparent'}
-                    boxShadow={isActive ? 'inset 4px 0 0 #2563EB' : 'none'}
-                    transition={'all .2s ease'}
+                    border={0}
+                    borderRadius={omniTheme.radii.md}
+                    bg={isActive ? omniTheme.colors.activeBg : 'transparent'}
+                    transition={omniTheme.motion.control}
                     _hover={{
-                      bg: isActive ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.05)',
-                      borderColor: 'rgba(37, 99, 235, 0.28)'
+                      bg: omniTheme.colors.activeBg
                     }}
                     onClick={() => {
                       const config = publishList.current.find((v) => v.value === item.value)!;
@@ -255,14 +240,14 @@ const OutLink = () => {
                       h={'30px'}
                       flexShrink={0}
                       borderRadius={'9px'}
-                      bg={isActive ? '#2563EB' : 'rgba(37, 99, 235, 0.1)'}
-                      color={isActive ? 'white' : '#2563EB'}
+                      bg={isActive ? omniTheme.colors.saturatedBlueSoft : omniTheme.colors.pageBg}
+                      color={omniTheme.colors.saturatedBlue}
                     >
                       <Avatar src={item.icon} w={'17px'} fill={'currentColor'} />
                     </Flex>
                     <Box flex={'1 0 0'} minW={0}>
                       <Box
-                        color={'#1E293B'}
+                        color={omniTheme.colors.text}
                         fontSize={'sm'}
                         fontWeight={800}
                         lineHeight={1.25}
@@ -272,7 +257,7 @@ const OutLink = () => {
                       </Box>
                       <Box
                         mt={1}
-                        color={'#64748B'}
+                        color={omniTheme.colors.muted}
                         fontSize={'xs'}
                         lineHeight={1.35}
                         className={'textEllipsis'}
@@ -281,7 +266,12 @@ const OutLink = () => {
                       </Box>
                     </Box>
                     {isActive && (
-                      <MyIcon name={'common/check'} w={'13px'} color={'#2563EB'} flexShrink={0} />
+                      <MyIcon
+                        name={'common/check'}
+                        w={'13px'}
+                        color={omniTheme.colors.saturatedBlue}
+                        flexShrink={0}
+                      />
                     )}
                   </Flex>
                 );
@@ -310,7 +300,7 @@ const OutLink = () => {
                   justifyContent={'space-between'}
                   gap={4}
                   borderBottom={'1px solid'}
-                  borderBottomColor={'rgba(148, 163, 184, 0.22)'}
+                  borderBottomColor={omniTheme.colors.border}
                 >
                   <Flex alignItems={'center'} gap={3} minW={0}>
                     <Flex
@@ -320,19 +310,18 @@ const OutLink = () => {
                       h={'40px'}
                       flexShrink={0}
                       borderRadius={'12px'}
-                      bg={'linear-gradient(135deg, #2563EB, #8FB4FF)'}
-                      color={'white'}
-                      boxShadow={'0 14px 28px rgba(37, 99, 235, 0.2)'}
+                      bg={omniTheme.colors.saturatedBlueSoft}
+                      color={omniTheme.colors.saturatedBlue}
                     >
                       <Avatar src={activeItem.icon} w={'21px'} fill={'currentColor'} />
                     </Flex>
                     <Box minW={0}>
-                      <Box color={'#1E293B'} fontSize={'lg'} fontWeight={800}>
+                      <Box color={omniTheme.colors.text} fontSize={'lg'} fontWeight={800}>
                         {activeItem.title}
                       </Box>
                       <Box
                         mt={1}
-                        color={'#64748B'}
+                        color={omniTheme.colors.muted}
                         fontSize={'sm'}
                         lineHeight={1.4}
                         className={'textEllipsis'}
@@ -340,18 +329,6 @@ const OutLink = () => {
                         {activeItem.desc}
                       </Box>
                     </Box>
-                  </Flex>
-                  <Flex
-                    px={3}
-                    py={1.5}
-                    borderRadius={'full'}
-                    bg={'rgba(37, 99, 235, 0.1)'}
-                    color={'#2563EB'}
-                    fontSize={'xs'}
-                    fontWeight={800}
-                    flexShrink={0}
-                  >
-                    当前渠道
                   </Flex>
                 </Flex>
               );

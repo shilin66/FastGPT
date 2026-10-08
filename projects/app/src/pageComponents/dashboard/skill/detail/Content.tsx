@@ -86,14 +86,7 @@ const Content = () => {
       </Flex>
       <Box flex={1} minW={0} h={'100%'} display={currentTab === TabEnum.preview ? 'block' : 'none'}>
         {canEdit && sandboxState === 'ready' && editorOpened ? (
-          <Flex h="100%" direction="column">
-            <Box p={2} fontSize="xs" bg="orange.50">
-              {t('skill:editor_advanced_hint')}
-            </Box>
-            <Box flex={1} minH={0}>
-              <SandboxIframe />
-            </Box>
-          </Flex>
+          <SandboxIframe />
         ) : (
           <Flex h="100%" align="center" justify="center" color="myGray.500">
             {t('skill:workspace_read_only')}

@@ -35,6 +35,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       next,
       mode,
       expectedWorkspaceGeneration,
+      expectedProviderSandboxId,
+      expectedEditorGeneration,
       requestId
     } = SandboxProxyAuthQuerySchema.parse(req.query);
     const input = { sandboxId, targetPort, host: req.headers.host, next };
@@ -58,6 +60,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       targetPort,
       audience,
       ...(expectedWorkspaceGeneration !== undefined ? { expectedWorkspaceGeneration } : {}),
+      ...(expectedProviderSandboxId !== undefined ? { expectedProviderSandboxId } : {}),
+      ...(expectedEditorGeneration !== undefined ? { expectedEditorGeneration } : {}),
       ...(mode === 'renew' ? { renewal: true } : {})
     });
     target.searchParams.set('__pt', await issueSandboxProxyTicket(authorization));
@@ -68,9 +72,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     headers: req.headers,
     remoteAddress: req.socket.remoteAddress
   });
-  const { sandboxId, targetPort, proxyHost, ticket, mode } = SandboxProxyInternalBodySchema.parse(
-    req.body
-  );
+  const { sandboxId, targetPort, proxyHost, ticket, mode, connection } =
+    SandboxProxyInternalBodySchema.parse(req.body);
   const { audience, appOrigin } = getSandboxProxyOrigins({
     sandboxId,
     targetPort,
@@ -96,7 +99,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
     return res.json({ ...result, appOrigin });
   }
-  const target = await getSandboxProxyTarget({ req, sandboxId, targetPort, audience });
+  const target = await getSandboxProxyTarget({ req, sandboxId, targetPort, audience, connection });
   return res.json({ target, appOrigin });
 }
 

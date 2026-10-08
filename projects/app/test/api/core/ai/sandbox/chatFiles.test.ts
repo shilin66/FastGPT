@@ -181,7 +181,9 @@ describe('Chat sandbox file API context routing', () => {
     root.body.path = '.';
     root.body.allowStart = true;
     await (list as Handler)(root, makeResponse() as unknown as NextApiResponse);
-    expect(mocks.ensureAvailable).toHaveBeenCalledExactlyOnceWith('interactive');
+    expect(mocks.ensureAvailable).toHaveBeenCalledExactlyOnceWith('interactive', {
+      upgradeImage: false
+    });
     expect(mocks.ensureAvailable.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.connectRunning.mock.invocationCallOrder[0]
     );

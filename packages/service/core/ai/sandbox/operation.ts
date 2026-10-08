@@ -315,6 +315,10 @@ export const runSandboxOperation = async (
           'An unfinished Sandbox operation requires explicit recovery; lease expiry does not permit takeover'
         );
       }
+      if (previous?.metadata?.editor && ['stop', 'release', 'archive'].includes(action)) {
+        const { assertSandboxEditorIdle } = await import('./editorActivity');
+        await assertSandboxEditorIdle(previous);
+      }
 
       const capacityType =
         getSandboxCapacityType(previous ?? {}) ??

@@ -11,6 +11,8 @@ unset FASTGPT_SESSION_ID FASTGPT_WORKDIR FASTGPT_ENABLE_CODE_SERVER
 # Start code-server or sleep forever
 if [ "${_ENABLE_CODE_SERVER}" = "true" ]; then
   exec code-server \
+       --bind-addr 127.0.0.1:8080 \
+       --auth password \
        --disable-telemetry \
        --disable-update-check \
        --disable-workspace-trust \

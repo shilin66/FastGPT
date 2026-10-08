@@ -39,6 +39,8 @@ import dynamic from 'next/dynamic';
 import type { EditResourceInfoFormType } from '@/components/common/Modal/EditResourceModal';
 import { omniTheme } from '@/web/common/brand/theme';
 import SkillListCard from './SkillListCard';
+import SkillCreateCard from './SkillCreateCard';
+import { useUserStore } from '@/web/support/user/useUserStore';
 import type {
   GetResourceFolderListProps,
   ParentIdType
@@ -146,10 +148,12 @@ const List = () => {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const { skills, loadSkills, isFetchingSkills, searchKey } = useContextSelector(
+  const { skills, loadSkills, isFetchingSkills, searchKey, parentId } = useContextSelector(
     SkillListContext,
     (v) => v
   );
+  const { userInfo } = useUserStore();
+  const hasCreatePer = userInfo?.team.permission.hasSkillCreatePer;
 
   const [editedSkill, setEditedSkill] = useState<EditResourceInfoFormType>();
   const [moveSkillId, setMoveSkillId] = useState<string>();
@@ -243,7 +247,11 @@ const List = () => {
 
   if (skills.length === 0 && isFetchingSkills) return null;
 
-  if (skills.length === 0) {
+  if (skills.length === 0 && !parentId && !searchKey && hasCreatePer) {
+    return <SkillCreateCard parentId={parentId} isEmpty />;
+  }
+
+  if (skills.length === 0 && (searchKey || !hasCreatePer)) {
     return (
       <Box
         mt={4}
@@ -272,6 +280,7 @@ const List = () => {
         gridGap={4}
         alignItems={'stretch'}
       >
+        {hasCreatePer && <SkillCreateCard parentId={parentId} />}
         {skills.map((skill) => {
           const isFolder = skill.type === AgentSkillTypeEnum.folder;
           const isPersonal = skill.source === AgentSkillSourceEnum.personal;

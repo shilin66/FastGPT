@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { OutLinkChatAuthProps } from '@fastgpt/global/support/permission/chat';
 import { createContext, useContextSelector } from 'use-context-selector';
+import { requestSandboxEditorDisconnect } from '@/components/SandboxIDE/navigation';
 
 export type SandboxPanelScope = {
   appId: string;
@@ -57,6 +58,14 @@ export const SandboxFilePanelProvider = ({
 
   const open = useCallback(
     (nextScope: SandboxPanelScope, options?: { automatic?: boolean }) => {
+      if (
+        scope &&
+        (scope.appId !== nextScope.appId ||
+          scope.chatId !== nextScope.chatId ||
+          scope.sandboxId !== nextScope.sandboxId) &&
+        !requestSandboxEditorDisconnect()
+      )
+        return;
       setScope(nextScope);
       setOpenedScopeKey(scopeKey);
       setIsOpen(true);
@@ -65,9 +74,10 @@ export const SandboxFilePanelProvider = ({
       setRefreshVersion((value) => value + 1);
       setAllowStartVersion((value) => value + 1);
     },
-    [scopeKey]
+    [scopeKey, scope]
   );
   const close = useCallback(() => {
+    if (!requestSandboxEditorDisconnect()) return;
     setIsOpen(false);
     setIsExpanded(false);
   }, []);

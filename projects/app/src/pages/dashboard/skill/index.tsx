@@ -112,32 +112,15 @@ const SkillPageContent = () => {
               maxLength={30}
             />
             {hasCreatePer && (
-              <>
-                <Button
-                  variant="whiteBase"
-                  borderColor={omniTheme.colors.border}
-                  leftIcon={<MyIcon name="common/folderFill" w="16px" />}
-                  px={5}
-                  onClick={() => setEditFolder({})}
-                >
-                  {t('skill:create_folder')}
-                </Button>
-                <Button
-                  bg={omniTheme.colors.graphite}
-                  color="white"
-                  _hover={{ bg: omniTheme.colors.graphiteHover }}
-                  px={5}
-                  leftIcon={<MyIcon name={'common/addLight'} w={'18px'} />}
-                  onClick={() =>
-                    router.push({
-                      pathname: '/skill/create',
-                      query: parentId ? { parentId } : {}
-                    })
-                  }
-                >
-                  {t('skill:create_skill')}
-                </Button>
-              </>
+              <Button
+                variant="whiteBase"
+                borderColor={omniTheme.colors.border}
+                leftIcon={<MyIcon name="common/folderFill" w="16px" />}
+                px={5}
+                onClick={() => setEditFolder({})}
+              >
+                {t('skill:create_folder')}
+              </Button>
             )}
           </Flex>
         </Flex>

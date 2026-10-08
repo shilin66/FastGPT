@@ -14,10 +14,7 @@ export const assertSandboxSourceActive = async (
   const source =
     scope.sourceType === 'appRuntime'
       ? await MongoApp.findOne(filter, 'teamId tmbId').lean()
-      : await MongoAgentSkills.findOne(
-          { ...filter, isDeleted: { $ne: true } },
-          'teamId tmbId'
-        ).lean();
+      : await MongoAgentSkills.findOne(filter, 'teamId tmbId').lean();
   if (!source) throw new Error('sandbox_source_deleted');
   return { teamId: String(source.teamId), ownerTmbId: String(source.tmbId) };
 };

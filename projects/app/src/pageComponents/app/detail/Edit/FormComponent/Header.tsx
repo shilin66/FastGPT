@@ -192,6 +192,7 @@ const Header = ({
   return (
     <Box
       h={14}
+      px={currentTab === TabEnum.appEdit ? 0 : [3, 4]}
       bg={'white'}
       borderBottom={'1px solid'}
       borderColor={'#DFE5EE'}

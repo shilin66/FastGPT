@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   updateOne: vi.fn(),
   auth: vi.fn(),
   skill: vi.fn(),
+  app: vi.fn(),
   member: vi.fn(),
   team: vi.fn(),
   session: vi.fn()
@@ -18,18 +19,22 @@ vi.mock('@fastgpt/service/support/permission/auth/common', () => ({ parseHeaderC
 vi.mock('@fastgpt/service/support/permission/agentSkill/auth', () => ({
   authSkillByTmbId: mocks.skill
 }));
+vi.mock('@fastgpt/service/support/permission/app/auth', () => ({ authAppByTmbId: mocks.app }));
 vi.mock('@fastgpt/service/support/user/team/controller', () => ({
   getTmbInfoByTmbId: mocks.member
 }));
 vi.mock('@fastgpt/service/support/user/team/status', () => ({ assertTeamActive: mocks.team }));
 vi.mock('@/service/core/sandbox/proxyTicket', () => ({ readSandboxProxySession: mocks.session }));
 vi.mock('@fastgpt/service/core/ai/sandbox/config', () => ({
-  getSandboxProviderConfig: () => ({ provider: 'opensandbox' })
+  getSandboxProviderConfig: () => ({ provider: 'opensandbox' }),
+  getSandboxProviderScope: () => 'deployment-a'
 }));
 vi.mock('@fastgpt/service/core/agentSkills/sandboxConfig', () => ({
   connectToProviderSandbox: vi.fn(),
   disconnectFromProviderSandbox: vi.fn()
 }));
+
+vi.mock('@fastgpt/service/env', () => ({ env: { AGENT_SANDBOX_CHAT_EDITOR_ENABLED: true } }));
 
 import { authorizeSandboxProxyGrant, getSandboxProxyTarget } from '@/service/core/sandbox/proxy';
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
@@ -73,6 +78,7 @@ describe('Sandbox proxy current resource authorization', () => {
     mocks.member.mockResolvedValue(principal);
     mocks.team.mockResolvedValue(undefined);
     mocks.skill.mockResolvedValue({ skill: { teamId: 'team-1' } });
+    mocks.app.mockResolvedValue({ app: { teamId: 'team-1' } });
     mocks.session.mockResolvedValue(grant);
   });
 
@@ -253,5 +259,97 @@ describe('Sandbox proxy current resource authorization', () => {
     mocks.member.mockResolvedValue({ ...principal, userId: 'user-2' });
     await expect(getSandboxProxyTarget({ req, ...scope })).rejects.toThrow('Access denied');
     expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+
+  describe('Chat runtime editors', () => {
+    const generation = '11111111-1111-4111-8111-111111111111';
+    const editorScope = { ...scope, sandboxId: `ed-${generation}` };
+    const pin = { expectedProviderSandboxId: 'provider-a', expectedEditorGeneration: generation };
+    beforeEach(() => {
+      sandbox = {
+        ...sandbox,
+        sourceType: 'appRuntime',
+        sourceId: 'app-1',
+        userId: principal.tmbId,
+        runtimeUserId: principal.tmbId,
+        providerScope: 'deployment-a',
+        metadata: {
+          providerSandboxId: 'provider-a',
+          editor: {
+            generation,
+            providerSandboxId: 'provider-a',
+            providerScope: 'deployment-a',
+            status: 'ready',
+            endpoint: { port: 8090, url: 'http://gateway:8090' }
+          }
+        }
+      };
+    });
+
+    it('authorizes the team member runtime identity rather than the account ID', async () => {
+      const result = await authorizeSandboxProxyGrant({ req, ...editorScope, ...pin });
+      expect(result.grant).toMatchObject({
+        tmbId: 'member-1',
+        providerSandboxId: 'provider-a',
+        sourceType: 'appRuntime'
+      });
+      expect(mocks.app).toHaveBeenCalledWith(
+        expect.objectContaining({ appId: 'app-1', tmbId: 'member-1' })
+      );
+    });
+
+    it('rejects another chat user even when App access is allowed', async () => {
+      sandbox.userId = 'member-2';
+      sandbox.runtimeUserId = 'member-2';
+      await expect(authorizeSandboxProxyGrant({ req, ...editorScope, ...pin })).rejects.toThrow(
+        'Access denied'
+      );
+    });
+
+    it('requires current application permission', async () => {
+      mocks.app.mockRejectedValue(new Error('permission revoked'));
+      await expect(authorizeSandboxProxyGrant({ req, ...editorScope, ...pin })).rejects.toThrow(
+        'Access denied'
+      );
+    });
+
+    it('rejects deleted applications', async () => {
+      mocks.app.mockResolvedValue({ app: { teamId: 'team-1', deleteTime: new Date() } });
+      await expect(authorizeSandboxProxyGrant({ req, ...editorScope, ...pin })).rejects.toThrow(
+        'Access denied'
+      );
+    });
+
+    it('requires the exact provider identity on initial bootstrap and renewal', async () => {
+      await expect(authorizeSandboxProxyGrant({ req, ...editorScope })).rejects.toThrow(
+        'Access denied'
+      );
+      await expect(
+        authorizeSandboxProxyGrant({ req, ...editorScope, ...pin, renewal: true })
+      ).resolves.toHaveProperty('grant');
+      await expect(
+        authorizeSandboxProxyGrant({
+          req,
+          ...editorScope,
+          expectedProviderSandboxId: 'provider-old',
+          renewal: true
+        })
+      ).rejects.toThrow('Access denied');
+    });
+
+    it('revokes old HTTP and WebSocket grants when the container is replaced', async () => {
+      const { grant: appGrant } = await authorizeSandboxProxyGrant({ req, ...editorScope, ...pin });
+      mocks.session.mockResolvedValue(appGrant);
+      await expect(getSandboxProxyTarget({ req, ...editorScope })).resolves.toBe(
+        'http://gateway:8090'
+      );
+      expect(mocks.updateOne).toHaveBeenCalledWith(
+        expect.objectContaining({ 'metadata.providerSandboxId': 'provider-a' }),
+        expect.anything()
+      );
+      (sandbox.metadata as Record<string, unknown>).providerSandboxId = 'provider-b';
+      await expect(getSandboxProxyTarget({ req, ...editorScope })).rejects.toThrow('Access denied');
+      expect(mocks.updateOne).toHaveBeenCalledTimes(1);
+    });
   });
 });

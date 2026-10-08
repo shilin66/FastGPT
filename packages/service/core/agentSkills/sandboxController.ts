@@ -7,6 +7,8 @@
 
 import type { ISandbox } from '@fastgpt-sdk/sandbox-adapter';
 import { assertSkillTerminalIdle } from '../ai/sandbox/terminal';
+import { ensureSandboxEditor } from '../ai/sandbox/editor';
+import { getSandboxEditorEndpoint } from '../ai/sandbox/editorEndpoint';
 import { MongoSandboxInstance } from '../ai/sandbox/schema';
 import { MongoAgentSkills } from './schema';
 import { downloadSkillPackage } from './storage';
@@ -17,9 +19,7 @@ import {
   getSandboxDefaults,
   getSkillEditWorkspaceRoot,
   disconnectFromProviderSandbox,
-  getProviderSandboxEndpoint,
-  buildBaseContainerEnv,
-  waitForSkillEditorReady
+  buildBaseContainerEnv
 } from './sandboxConfig';
 import { getSandboxProviderConfig, validateSandboxConfig } from '../ai/sandbox/config';
 import type {
@@ -338,7 +338,7 @@ async function initializeEditDebugSandbox(
           createConfig: {
             image: sandboxImage,
             entrypoint: [entrypoint ?? defaults.entrypoint],
-            env: buildBaseContainerEnv(existingInstance.sandboxId, workspaceRoot, true),
+            env: buildBaseContainerEnv(existingInstance.sandboxId, workspaceRoot, false),
             metadata: {
               skillId,
               teamId,
@@ -411,9 +411,8 @@ async function initializeEditDebugSandbox(
       }
 
       await checkpointInitialization('endpoint_ready');
-      const endpointInfo = await getProviderSandboxEndpoint(client.provider, defaults.targetPort);
-
-      await waitForSkillEditorReady(client.provider);
+      await ensureSandboxEditor(client.provider, workspaceRoot);
+      const endpointInfo = await getSandboxEditorEndpoint(client.provider);
 
       // Update endpoint and sandbox metadata in DB
       await checkpointInitialization('ready', {
@@ -494,7 +493,7 @@ async function initializeEditDebugSandbox(
         createConfig: {
           image: sandboxImage,
           entrypoint: [entrypoint ?? defaults.entrypoint],
-          env: buildBaseContainerEnv(sessionId, workspaceRoot, true),
+          env: buildBaseContainerEnv(sessionId, workspaceRoot, false),
           // volumes: handled internally by getSandboxClient via getVolumeManagerConfig
           metadata: {
             skillId,
@@ -534,9 +533,8 @@ async function initializeEditDebugSandbox(
     // Get endpoint
     addLog.info('[Sandbox] Getting endpoint', { port: defaults.targetPort });
     await checkpointInitialization('endpoint_ready');
-    const endpointInfo = await getProviderSandboxEndpoint(client.provider, defaults.targetPort);
-
-    await waitForSkillEditorReady(client.provider);
+    await ensureSandboxEditor(client.provider, workspaceRoot);
+    const endpointInfo = await getSandboxEditorEndpoint(client.provider);
 
     addLog.info('[Sandbox] Endpoint obtained', endpointInfo);
 

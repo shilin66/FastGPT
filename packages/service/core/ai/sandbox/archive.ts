@@ -246,6 +246,7 @@ export const restoreSandboxWorkspace = async (
             provider: instance.provider,
             vmConfig: vm,
             workspaceRoot: root,
+            resourceLimits: previous.limit ?? undefined,
             createConfig
           }
         );

@@ -20,13 +20,9 @@ import { getCurrentVersion } from '../version/current';
 import { downloadSkillPackage } from '../storage';
 import { SkillPackageValidationError, validateAndNormalizeSkillPackage } from '../packageValidator';
 import { assertEditWorkspacePersistentMount, resetEditSandboxWorkspace } from '../sandboxWorkspace';
-import {
-  buildBaseContainerEnv,
-  getProviderSandboxEndpoint,
-  getSandboxDefaults,
-  waitForSkillEditorReady,
-  disconnectFromProviderSandbox
-} from '../sandboxConfig';
+import { buildBaseContainerEnv, disconnectFromProviderSandbox } from '../sandboxConfig';
+import { ensureSandboxEditor } from '../../ai/sandbox/editor';
+import { getSandboxEditorEndpoint } from '../../ai/sandbox/editorEndpoint';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { MongoSandboxInstance } from '../../ai/sandbox/schema';
 import { env } from '../../../env';
@@ -94,7 +90,6 @@ export const resetEditWorkspace = async (params: ResetSkillWorkspaceBody & { tea
         }
       });
       try {
-        const defaults = getSandboxDefaults();
         const editor = await client.maintainWorkspace({
           instance,
           assertActive: operation.assertActive,
@@ -104,7 +99,7 @@ export const resetEditWorkspace = async (params: ResetSkillWorkspaceBody & { tea
             image: info.image,
             entrypoint: info.entrypoint,
             resourceLimits: info.resourceLimits,
-            env: buildBaseContainerEnv(instance.sandboxId, binding.root, true),
+            env: buildBaseContainerEnv(instance.sandboxId, binding.root, false),
             metadata: {
               skillId: params.skillId,
               teamId: params.teamId,
@@ -183,8 +178,8 @@ export const resetEditWorkspace = async (params: ResetSkillWorkspaceBody & { tea
             });
           }
         });
-        const endpoint = await getProviderSandboxEndpoint(editor, defaults.targetPort);
-        await waitForSkillEditorReady(editor);
+        await ensureSandboxEditor(editor, binding.root);
+        const endpoint = await getSandboxEditorEndpoint(editor);
         await operation.checkpoint('ready', {
           status: 'running',
           lastActiveAt: new Date(),

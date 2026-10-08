@@ -19,6 +19,15 @@ import {
 import { SANDBOX_PROXY_RENEW_PATH } from '@fastgpt/global/core/ai/sandbox/proxy';
 import { SandboxProxyInternalResponseSchema } from '@fastgpt/global/openapi/core/ai/sandbox/api';
 import {
+  requestSandboxProxy,
+  readSandboxProxyHtml
+} from './src/service/core/sandbox/proxyTransport';
+import {
+  coalesceSandboxProxyAuthorization,
+  type SandboxProxyAuthorizationInput
+} from './src/service/core/sandbox/proxyAuthInFlight';
+import { getSandboxProxyCacheControl } from './src/service/core/sandbox/proxyCache';
+import {
   getSandboxProxyRenewalResponse,
   parseSandboxProxyRenewalRequest
 } from './src/service/core/sandbox/proxyRenewal';
@@ -39,6 +48,7 @@ const PATH_PROXY_RE = new RegExp(
 const TCPTUNNEL_RE = new RegExp(`^\\/tcptunnel\\/(${SANDBOX_ID_RE.source})\\/(\\d+)`);
 
 export async function startServer() {
+  const authProxyTarget = coalesceSandboxProxyAuthorization(requestProxyAuthorization);
   const app = next({ dev, port });
   const handle = app.getRequestHandler();
   await app.prepare();
@@ -122,10 +132,32 @@ export async function startServer() {
     const key = await ensureCodeServerSession(sandboxId, target, (signal) =>
       fetchCodeServerPassword({ sandboxId, targetPort, reqHeaders: authHeaders, signal })
     );
-    if (key) injectCsKey(reqHeaders, key);
+    if (!key)
+      throw Object.assign(new Error('Sandbox editor authentication unavailable'), {
+        statusCode: 502
+      });
+    injectCsKey(reqHeaders, key);
   }
 
   const proxy = httpProxy.createProxyServer({ xfwd: true, changeOrigin: true });
+  if (dev) {
+    proxy.on('proxyReqWs', (upstream, req) => {
+      const sandboxId = req.headers['x-fastgpt-sandbox-id'];
+      upstream.once('response', (response) =>
+        console.log(
+          `[proxy:ws] upstream response sandboxId=${sandboxId} status=${response.statusCode}`
+        )
+      );
+      upstream.once('upgrade', (response, socket, head) => {
+        console.log(
+          `[proxy:ws] upstream upgraded sandboxId=${sandboxId} status=${response.statusCode} bufferedBytes=${head.length}`
+        );
+        socket.once('data', (data) =>
+          console.log(`[proxy:ws] upstream data sandboxId=${sandboxId} bytes=${data.length}`)
+        );
+      });
+    });
+  }
   proxy.on(
     'error',
     (err: Error, _req: IncomingMessage, res: ServerResponse | import('stream').Duplex) => {
@@ -150,7 +182,12 @@ export async function startServer() {
       proxyRes.headers['content-security-policy'] = getSandboxProxyContentSecurityPolicy(appOrigin);
       proxyRes.headers['referrer-policy'] = 'no-referrer';
       proxyRes.headers['x-content-type-options'] = 'nosniff';
-      proxyRes.headers['cache-control'] = 'no-store';
+      proxyRes.headers['cache-control'] = getSandboxProxyCacheControl({
+        method: req.method,
+        path: req.url,
+        status: proxyRes.statusCode,
+        upstream: proxyRes.headers['cache-control']
+      });
       proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie']
         ?.filter((cookie) => !/^(fastgpt_token|fastgpt_sandbox_proxy)=/i.test(cookie))
         .map((cookie) => cookie.replace(/;\s*domain=[^;]*/gi, ''));
@@ -182,22 +219,9 @@ export async function startServer() {
     headers.origin = new URL(target).origin;
     const controller = new AbortController();
     res.once('close', () => controller.abort());
-    const options: RequestInit & { duplex: 'half' } = {
-      method: req.method,
-      headers,
-      redirect: 'manual',
-      signal: controller.signal,
-      duplex: 'half',
-      body:
-        req.method !== 'GET' && req.method !== 'HEAD'
-          ? (Readable.toWeb(req) as ReadableStream<Uint8Array>)
-          : undefined
-    };
-    const response = await fetch(upstreamUrl, options);
+    const response = await requestSandboxProxy(upstreamUrl, req, headers, controller.signal);
 
     const skipHeaders = new Set([
-      'content-encoding',
-      'content-length',
       'transfer-encoding',
       'set-cookie',
       'location',
@@ -215,7 +239,15 @@ export async function startServer() {
     res.setHeader('Content-Security-Policy', getSandboxProxyContentSecurityPolicy(appOrigin));
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader(
+      'Cache-Control',
+      getSandboxProxyCacheControl({
+        method: req.method,
+        path: req.url,
+        status: response.status,
+        upstream: response.headers.get('cache-control') ?? undefined
+      })
+    );
     const cookies = response.headers
       .getSetCookie()
       .filter((cookie) => !/^(fastgpt_token|fastgpt_sandbox_proxy)=/i.test(cookie))
@@ -229,7 +261,11 @@ export async function startServer() {
       if (redirect.origin !== endpoint.origin || !redirect.pathname.startsWith(`${endpointPath}/`))
         throw Object.assign(new Error('Unsupported upstream redirect'), { statusCode: 502 });
       const redirectPath = redirect.pathname.slice(endpointPath.length);
-      assertSandboxProxyPath({ target, path: redirectPath });
+      assertSandboxProxyPath({
+        target,
+        path: redirectPath,
+        editorOnly: sandboxId.startsWith('ed-')
+      });
       res.setHeader('Location', basePath + redirectPath + redirect.search + redirect.hash);
       if (redirectPath.includes('/login')) deleteCsSession(sandboxId);
     }
@@ -240,7 +276,9 @@ export async function startServer() {
 
     // Only rewrite HTML; stream large or binary responses directly
     if (contentType.includes('text/html') && response.body && contentLength < 10 * 1024 * 1024) {
-      const html = await response.text();
+      res.removeHeader('content-encoding');
+      res.removeHeader('content-length');
+      const html = await readSandboxProxyHtml(response);
       const rewritten = rewriteHtml(
         html,
         basePath,
@@ -272,7 +310,11 @@ export async function startServer() {
         sandboxId,
         targetPort: portNum
       });
-      assertSandboxProxyPath({ target, path: req.url ?? '/' });
+      assertSandboxProxyPath({
+        target,
+        path: req.url ?? '/',
+        editorOnly: sandboxId.startsWith('ed-')
+      });
       const csTarget = deriveCsLoginTarget(target, req.url || '');
       if (proxyType === 'absproxy') {
         await injectCodeServerAuth({
@@ -330,7 +372,12 @@ export async function startServer() {
         ticket,
         mode: renewal ? 'renew' : undefined
       });
-      if (!renewal) assertSandboxProxyPath({ target, path: req.url ?? '/' });
+      if (!renewal)
+        assertSandboxProxyPath({
+          target,
+          path: req.url ?? '/',
+          editorOnly: sandboxId.startsWith('ed-')
+        });
       if (ticket) {
         if (!session) throw Object.assign(new Error('Unauthorized'), { statusCode: 401 });
         urlObj.searchParams.delete('__pt');
@@ -452,6 +499,11 @@ export async function startServer() {
     const tunnelMatch = req.url?.match(TCPTUNNEL_RE);
     if (tunnelMatch) {
       const tunnelSandboxId = tunnelMatch[1];
+      if (tunnelSandboxId.startsWith('ed-')) {
+        socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+        socket.destroy();
+        return;
+      }
       const tunnelPort = Number(tunnelMatch[2]);
       dev &&
         console.log(
@@ -599,24 +651,52 @@ export async function startServer() {
 
     dev &&
       console.log(
-        `[proxy:ws] upgrade sandboxId=${sandboxId} port=${portNum} url=${req.url} hasCookie=${!!req.headers.cookie}`
+        `[proxy:ws] upgrade sandboxId=${sandboxId} port=${portNum} path=${req.url?.split('?')[0]} hasCookie=${!!req.headers.cookie}`
       );
 
+    const connectionId = sandboxId.startsWith('ed-') ? crypto.randomUUID() : undefined;
+    const authHeaders = { ...req.headers };
+    const closeEditorConnection = () => {
+      if (connectionId) {
+        void authProxyTarget({
+          reqHeaders: authHeaders,
+          sandboxId,
+          targetPort: portNum,
+          connection: { id: connectionId, mode: 'close' }
+        }).catch(() => undefined);
+      }
+    };
+    socket.once('close', closeEditorConnection);
+    socket.once('error', () => socket.destroy());
     try {
       const { target } = await authProxyTarget({
         reqHeaders: req.headers,
         sandboxId,
-        targetPort: portNum
+        targetPort: portNum,
+        ...(connectionId ? { connection: { id: connectionId, mode: 'open' as const } } : {})
       });
-      assertSandboxProxyPath({ target, path: req.url ?? '/' });
+      if (socket.destroyed) {
+        closeEditorConnection();
+        return;
+      }
+      assertSandboxProxyPath({
+        target,
+        path: req.url ?? '/',
+        editorOnly: sandboxId.startsWith('ed-')
+      });
       const proxyUrl = new URL(req.url ?? '/', 'http://placeholder');
       if (proxyUrl.searchParams.has('__pt') || proxyUrl.pathname === SANDBOX_PROXY_RENEW_PATH) {
         throw Object.assign(new Error('Unsupported proxy query'), { statusCode: 403 });
       }
       dev && console.log(`[proxy:ws] auth ok, forwarding to target=${target}`);
-      const authHeaders = { ...req.headers };
       const stopChecking = watchSandboxProxySession({
-        verify: () => authProxyTarget({ reqHeaders: authHeaders, sandboxId, targetPort: portNum }),
+        verify: () =>
+          authProxyTarget({
+            reqHeaders: authHeaders,
+            sandboxId,
+            targetPort: portNum,
+            ...(connectionId ? { connection: { id: connectionId, mode: 'renew' as const } } : {})
+          }),
         close: () => socket.destroy()
       });
       socket.once('close', stopChecking);
@@ -627,6 +707,10 @@ export async function startServer() {
         target: csTarget,
         targetPort: portNum
       });
+      if (socket.destroyed) {
+        stopChecking();
+        return;
+      }
       req.headers['x-fastgpt-sandbox-id'] = sandboxId;
       // The gateway origin is not the editor origin; this hop is already server-authenticated.
       delete req.headers.origin;
@@ -659,19 +743,14 @@ function getProxyErrorStatus(error: unknown): number {
   return 502;
 }
 
-async function authProxyTarget({
+async function requestProxyAuthorization({
   reqHeaders,
   sandboxId,
   targetPort,
   ticket,
-  mode
-}: {
-  reqHeaders: IncomingMessage['headers'];
-  sandboxId: string;
-  targetPort: number;
-  ticket?: string;
-  mode?: 'renew';
-}) {
+  mode,
+  connection
+}: SandboxProxyAuthorizationInput) {
   const { audience } = getSandboxProxyOrigins({ sandboxId, targetPort, host: reqHeaders.host });
   if (reqHeaders.origin && reqHeaders.origin !== audience) {
     throw Object.assign(new Error('Invalid origin'), { statusCode: 403 });
@@ -684,7 +763,14 @@ async function authProxyTarget({
       'x-fastgpt-proxy-internal': getSandboxProxyInternalSecret(),
       ...(reqHeaders.cookie ? { cookie: reqHeaders.cookie } : {})
     },
-    body: JSON.stringify({ sandboxId, targetPort, proxyHost: reqHeaders.host, ticket, mode })
+    body: JSON.stringify({
+      sandboxId,
+      targetPort,
+      proxyHost: reqHeaders.host,
+      ticket,
+      mode,
+      connection
+    })
   });
   if (!authResp.ok) {
     const body: unknown = await authResp.json().catch(() => undefined);

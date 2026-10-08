@@ -1,8 +1,16 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { Types } from '@fastgpt/service/common/mongo';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { connectionMongo, Types } from '@fastgpt/service/common/mongo';
 import { MongoApp } from '@fastgpt/service/core/app/schema';
 import { MongoAgentSkills } from '@fastgpt/service/core/agentSkills/schema';
 import { assertSandboxSourceActive } from '@fastgpt/service/core/ai/sandbox/sourceGuard';
+
+const originalStrictQuery = connectionMongo.get('strictQuery');
+beforeAll(() => {
+  connectionMongo.set('strictQuery', 'throw');
+});
+afterAll(() => {
+  connectionMongo.set('strictQuery', originalStrictQuery);
+});
 
 beforeEach(async () => {
   await MongoApp.deleteMany({});

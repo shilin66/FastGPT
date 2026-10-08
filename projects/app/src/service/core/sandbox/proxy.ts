@@ -7,7 +7,9 @@ import { readSandboxProxySession } from './proxyTicket';
 import { authSkillByTmbId } from '@fastgpt/service/support/permission/agentSkill/auth';
 import { getTmbInfoByTmbId } from '@fastgpt/service/support/user/team/controller';
 import { assertTeamActive } from '@fastgpt/service/support/user/team/status';
-import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
+import { WritePermissionVal, ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
+import { authAppByTmbId } from '@fastgpt/service/support/permission/app/auth';
+import { env } from '@fastgpt/service/env';
 import {
   SANDBOX_PROXY_COOKIE,
   getSandboxProxyResourceId,
@@ -19,19 +21,27 @@ import {
   connectToProviderSandbox,
   disconnectFromProviderSandbox
 } from '@fastgpt/service/core/agentSkills/sandboxConfig';
-import { getSandboxProviderConfig } from '@fastgpt/service/core/ai/sandbox/config';
+import {
+  getSandboxProviderConfig,
+  getSandboxProviderScope
+} from '@fastgpt/service/core/ai/sandbox/config';
+import { withSandboxEditorConnection } from '@fastgpt/service/core/ai/sandbox/editorActivity';
 
 const denied = () => Object.assign(new Error('Access denied'), { statusCode: 403 });
 const unauthorized = () => Object.assign(new Error('Unauthorized'), { statusCode: 401 });
 
 const getSandbox = async (sandboxId: string) => {
   const provider = getSandboxProviderConfig().provider;
-  const generation = /^ws-([a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12})$/.exec(
+  const resource = /^(ws|ed)-([a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12})$/.exec(
     sandboxId
-  )?.[1];
+  );
   const matches = await MongoSandboxInstance.find({
     provider,
-    ...(generation ? { workspaceGeneration: generation, sourceType: 'skillEdit' } : { sandboxId })
+    ...(resource?.[1] === 'ed'
+      ? { 'metadata.editor.generation': resource[2], sourceType: 'appRuntime' }
+      : resource
+        ? { workspaceGeneration: resource[2], sourceType: 'skillEdit' }
+        : { sandboxId })
   })
     .limit(2)
     .lean();
@@ -42,7 +52,10 @@ const getSandbox = async (sandboxId: string) => {
   if (
     getSandboxProxyResourceId({
       sandboxId: sandbox.sandboxId,
-      generation: sandbox.workspaceGeneration
+      generation: sandbox.workspaceGeneration,
+      ...(sandbox.sourceType === 'appRuntime'
+        ? { editorGeneration: sandbox.metadata?.editor?.generation }
+        : {})
     }) !== sandboxId
   )
     throw denied();
@@ -90,23 +103,54 @@ const checkResource = async ({
     }).catch(() => {
       throw denied();
     });
-  } else if (
-    !sandbox.userId ||
-    sandbox.userId !== grant.userId ||
-    (sandbox.runtimeUserId && sandbox.runtimeUserId !== grant.userId)
-  )
-    throw denied();
+  } else {
+    const editor = sandbox.metadata?.editor;
+    if (
+      !env.AGENT_SANDBOX_CHAT_EDITOR_ENABLED ||
+      !editor ||
+      editor.status !== 'ready' ||
+      !grant.runtimeUserId ||
+      grant.runtimeUserId !== grant.tmbId ||
+      (sandbox.runtimeUserId ?? sandbox.userId) !== grant.runtimeUserId ||
+      (sandbox.userId && sandbox.userId !== grant.runtimeUserId) ||
+      !grant.providerSandboxId ||
+      grant.providerSandboxId !== sandbox.metadata?.providerSandboxId ||
+      editor.providerSandboxId !== grant.providerSandboxId ||
+      !grant.editorGeneration ||
+      editor.generation !== grant.editorGeneration ||
+      editor.workspaceGeneration !== sandbox.workspaceGeneration ||
+      !grant.providerScope ||
+      grant.providerScope !== sandbox.providerScope ||
+      editor.providerScope !== grant.providerScope ||
+      grant.providerScope !== getSandboxProviderScope(sandbox.provider)
+    )
+      throw denied();
+    const { app } = await authAppByTmbId({
+      appId: source.sourceId,
+      tmbId: grant.tmbId,
+      per: ReadPermissionVal
+    }).catch(() => {
+      throw denied();
+    });
+    if (String(app.teamId) !== grant.teamId || ('deleteTime' in app && app.deleteTime))
+      throw denied();
+    return resolveSandboxProxyTarget(editor.endpoint, grant.targetPort);
+  }
   return resolveSandboxProxyTarget(sandbox.metadata?.endpoint, grant.targetPort);
 };
 
 export const authorizeSandboxProxyGrant = async ({
   req,
   expectedWorkspaceGeneration,
+  expectedProviderSandboxId,
+  expectedEditorGeneration,
   renewal = false,
   ...scope
 }: SandboxProxyScope & {
   req: NextApiRequest;
   expectedWorkspaceGeneration?: string;
+  expectedProviderSandboxId?: string;
+  expectedEditorGeneration?: string;
   renewal?: boolean;
 }): Promise<{
   grant: SandboxProxyGrant;
@@ -123,6 +167,14 @@ export const authorizeSandboxProxyGrant = async ({
     (renewal && sandbox.workspaceGeneration && expectedWorkspaceGeneration === undefined)
   )
     throw denied();
+  if (
+    getSource(sandbox).sourceType === 'appRuntime' &&
+    (!expectedProviderSandboxId ||
+      expectedProviderSandboxId !== sandbox.metadata?.providerSandboxId ||
+      !expectedEditorGeneration ||
+      expectedEditorGeneration !== sandbox.metadata?.editor?.generation)
+  )
+    throw denied();
   const grant = {
     ...scope,
     ...getSource(sandbox),
@@ -130,7 +182,15 @@ export const authorizeSandboxProxyGrant = async ({
     userId: principal.userId,
     teamId: principal.teamId,
     tmbId: principal.tmbId,
-    ...(sandbox.workspaceGeneration ? { workspaceGeneration: sandbox.workspaceGeneration } : {})
+    ...(sandbox.workspaceGeneration ? { workspaceGeneration: sandbox.workspaceGeneration } : {}),
+    ...(getSource(sandbox).sourceType === 'appRuntime'
+      ? {
+          runtimeUserId: principal.tmbId,
+          providerSandboxId: sandbox.metadata?.providerSandboxId,
+          providerScope: sandbox.providerScope,
+          editorGeneration: sandbox.metadata?.editor?.generation
+        }
+      : {})
   };
   await checkResource({ grant, sandbox });
   return { grant, sessionId: principal.sessionId };
@@ -138,8 +198,12 @@ export const authorizeSandboxProxyGrant = async ({
 
 export const getSandboxProxyTarget = async ({
   req,
+  connection,
   ...scope
-}: SandboxProxyScope & { req: NextApiRequest }): Promise<string> => {
+}: SandboxProxyScope & {
+  req: NextApiRequest;
+  connection?: { id: string; mode: 'open' | 'renew' | 'close' };
+}): Promise<string> => {
   const values = (req.headers.cookie ?? '')
     .split(';')
     .map((cookie) => cookie.trim())
@@ -148,6 +212,12 @@ export const getSandboxProxyTarget = async ({
     values.length === 1 ? values[0].slice(SANDBOX_PROXY_COOKIE.length + 1) : undefined;
   if (!session) throw unauthorized();
   const grant = await readSandboxProxySession({ session, ...scope });
+  if (connection && grant.sourceType === 'appRuntime') {
+    const instance = await getSandbox(grant.sandboxId);
+    return withSandboxEditorConnection(instance, connection, () =>
+      getSandboxProxyTargetForGrant(grant)
+    );
+  }
   return getSandboxProxyTargetForGrant(grant);
 };
 
@@ -161,7 +231,14 @@ export const getSandboxProxyTargetForGrant = async (grant: SandboxProxyGrant): P
       sandboxId: sandbox.sandboxId,
       status: SandboxStatusEnum.running,
       deleteTime: null,
-      workspaceGeneration: grant.workspaceGeneration ?? { $exists: false }
+      workspaceGeneration: grant.workspaceGeneration ?? { $exists: false },
+      ...(grant.sourceType === 'appRuntime'
+        ? {
+            providerScope: grant.providerScope,
+            'metadata.providerSandboxId': grant.providerSandboxId,
+            'metadata.editor.generation': grant.editorGeneration
+          }
+        : {})
     },
     { $max: { lastActiveAt: new Date() } }
   );

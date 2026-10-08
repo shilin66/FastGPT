@@ -452,7 +452,7 @@ export async function getServerSideProps(context: any) {
       shareId: shareId ?? '',
       authToken: authToken ?? '',
       customUid,
-      ...(await serviceSideProps(context, ['file', 'app', 'chat', 'workflow']))
+      ...(await serviceSideProps(context, ['file', 'app', 'chat', 'workflow', 'skill']))
     }
   };
 }

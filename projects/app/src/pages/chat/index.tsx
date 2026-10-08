@@ -317,7 +317,7 @@ export async function getServerSideProps(context: any) {
       showFullText: chatQuoteReaderConfig?.showFullText ?? true,
       canDownloadSource: chatQuoteReaderConfig?.canDownloadSource ?? true,
       showWholeResponse: chatQuoteReaderConfig?.showWholeResponse ?? true,
-      ...(await serviceSideProps(context, ['file', 'app', 'chat', 'workflow']))
+      ...(await serviceSideProps(context, ['file', 'app', 'chat', 'workflow', 'skill']))
     }
   };
 }

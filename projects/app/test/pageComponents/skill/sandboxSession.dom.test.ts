@@ -11,6 +11,24 @@ vi.mock('use-context-selector', () => ({
 }));
 vi.mock('@/pageComponents/dashboard/skill/detail/context', () => ({ SkillDetailContext: {} }));
 vi.mock('next-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('@fastgpt/web/components/common/MyTooltip', () => ({
+  default: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children)
+}));
+vi.mock('@fastgpt/web/components/common/Icon', () => ({
+  default: () => React.createElement('svg', { 'aria-hidden': true })
+}));
+vi.mock('@/components/common/PaneActionButton', () => ({
+  default: ({
+    label,
+    onClick,
+    isDisabled
+  }: {
+    label: string;
+    onClick: () => void;
+    isDisabled: boolean;
+  }) => React.createElement('button', { 'aria-label': label, onClick, disabled: isDisabled })
+}));
 vi.mock('@chakra-ui/react', () => ({
   Box: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
   Flex: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
@@ -28,7 +46,8 @@ vi.mock('@chakra-ui/react', () => ({
     isDisabled?: boolean;
     as?: string;
     href?: string;
-  }) => React.createElement(as ?? 'button', { onClick, disabled: isDisabled, href }, children)
+  }) => React.createElement(as ?? 'button', { onClick, disabled: isDisabled, href }, children),
+  Spinner: () => React.createElement('span', null, 'loading')
 }));
 import SandboxIframe from '@/pageComponents/dashboard/skill/detail/config/SandboxIframe';
 
@@ -58,6 +77,16 @@ describe('Skill editor lossless session renewal', () => {
   const loadEditor = async () => {
     await act(async () => editor().dispatchEvent(new Event('load')));
   };
+  const ready = (changes: Partial<MessageEventInit> = {}) => {
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: editor().contentWindow,
+        origin: 'http://8090--logical-sandbox.localhost:3000',
+        data: { event: 'loaded' },
+        ...changes
+      })
+    );
+  };
   beforeEach(async () => {
     vi.useFakeTimers();
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -79,12 +108,59 @@ describe('Skill editor lossless session renewal', () => {
     await loadEditor();
     expect(new URL(renewal().src).searchParams.get('mode')).toBe('renew');
     await act(async () => acknowledge());
-    expect(container.textContent).toContain('skill:sandbox_session_active');
+    await act(async () => ready());
+    expect(container.textContent).toContain('skill:sandbox_status_active');
     expect(renewal()).toBeNull();
     await act(async () => vi.advanceTimersByTime(780_000));
     expect(renewal()).not.toBeNull();
     expect(editor()).toBe(original);
     expect(editor().src).toBe(originalSrc);
+    expect(container.textContent).not.toContain('skill:sandbox_editor_starting');
+  });
+
+  it('accepts workbench readiness before the document load event without showing loading again', async () => {
+    await act(async () => ready());
+    await loadEditor();
+    expect(container.textContent).not.toContain('skill:sandbox_editor_starting');
+    expect(container.textContent).not.toContain('skill:sandbox_editor_loading');
+  });
+
+  it('keeps the loading feedback after authentication until the workbench is ready', async () => {
+    const original = editor();
+    expect(container.textContent).toContain('skill:sandbox_editor_loading');
+    await loadEditor();
+    await act(async () => acknowledge());
+    expect(container.textContent).toContain('skill:sandbox_editor_starting');
+    expect(container.textContent).toContain('skill:sandbox_status_loading');
+    await act(async () => ready());
+    expect(container.textContent).not.toContain('skill:sandbox_editor_starting');
+    expect(container.textContent).toContain('skill:sandbox_status_active');
+    expect(editor()).toBe(original);
+  });
+
+  it.each(['source', 'origin', 'message'])('ignores a forged workbench %s signal', async (kind) => {
+    await act(async () =>
+      ready(
+        kind === 'source'
+          ? { source: window }
+          : kind === 'origin'
+            ? { origin: 'http://8090--other.localhost:3000' }
+            : { data: { event: 'not-loaded' } }
+      )
+    );
+    expect(container.textContent).toContain('skill:sandbox_editor_loading');
+  });
+
+  it('shows a slow-load hint without declaring authentication failed or replacing the editor', async () => {
+    const original = editor();
+    await loadEditor();
+    await act(async () => acknowledge());
+    await act(async () => vi.advanceTimersByTime(30_000));
+    expect(container.textContent).toContain('skill:sandbox_editor_slow');
+    expect(container.textContent).not.toContain('skill:sandbox_session_failed');
+    await act(async () => ready());
+    expect(container.textContent).not.toContain('skill:sandbox_editor_slow');
+    expect(editor()).toBe(original);
   });
 
   it('renews on HTTP without randomUUID and accepts only the matching same-origin frame', async () => {
@@ -96,7 +172,8 @@ describe('Skill editor lossless session renewal', () => {
     await act(async () => acknowledge({ origin: window.location.origin, source: window }));
     expect(renewal()).not.toBeNull();
     await act(async () => acknowledge({ origin: window.location.origin }));
-    expect(container.textContent).toContain('skill:sandbox_session_active');
+    await act(async () => ready({ origin: window.location.origin }));
+    expect(container.textContent).toContain('skill:sandbox_status_active');
     expect(renewal()).toBeNull();
   });
 
@@ -137,7 +214,7 @@ describe('Skill editor lossless session renewal', () => {
     await act(async () => vi.advanceTimersByTime(20_000));
     expect(container.textContent).toContain('skill:sandbox_session_failed');
     const retry = [...container.querySelectorAll('button')].find(
-      (button) => button.textContent === 'skill:sandbox_session_renew'
+      (button) => button.getAttribute('aria-label') === 'skill:sandbox_session_renew'
     )!;
     await act(async () => retry.click());
     await act(async () =>
@@ -147,7 +224,8 @@ describe('Skill editor lossless session renewal', () => {
     );
     expect(renewal()).not.toBeNull();
     await act(async () => acknowledge());
-    expect(container.textContent).toContain('skill:sandbox_session_active');
+    await act(async () => ready());
+    expect(container.textContent).toContain('skill:sandbox_status_active');
     expect(editor()).toBe(original);
   });
 
@@ -174,7 +252,7 @@ describe('Skill editor lossless session renewal', () => {
     await loadEditor();
     await act(async () => acknowledge());
     const button = [...container.querySelectorAll('button')].find(
-      (item) => item.textContent === 'skill:sandbox_session_renew'
+      (item) => item.getAttribute('aria-label') === 'skill:sandbox_session_renew'
     )!;
     await act(async () => button.click());
     await act(async () => vi.advanceTimersByTime(20_000));

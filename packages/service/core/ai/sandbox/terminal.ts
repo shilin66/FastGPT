@@ -27,7 +27,7 @@ export const assertSkillWorkspaceTerminalIdle = async (instance: SandboxInstance
   }
 };
 
-export const assertSkillTerminalIdle = async (provider: Pick<ISandbox, 'execute'>) => {
+export const assertSandboxTerminalIdle = async (provider: Pick<ISandbox, 'execute'>) => {
   const result = await provider.execute('ps -eo pid=,ppid=,pgid=,tpgid=,tty=,stat=,comm=', {
     timeoutMs: 5000,
     maxOutputBytes: 262144
@@ -66,3 +66,5 @@ export const assertSkillTerminalIdle = async (provider: Pick<ISandbox, 'execute'
   });
   if (busy) throw new SkillTerminalActivityError('busy');
 };
+
+export const assertSkillTerminalIdle = assertSandboxTerminalIdle;

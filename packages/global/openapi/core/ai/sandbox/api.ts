@@ -19,6 +19,8 @@ export const SandboxProxyAuthQuerySchema = z
       .union([z.literal('legacy'), z.string().uuid()])
       .optional()
       .describe('编辑器打开时的工作区代次；重置后旧页面不能自动续入新工作区'),
+    expectedProviderSandboxId: z.string().min(1).max(128).optional(),
+    expectedEditorGeneration: z.string().uuid().optional(),
     requestId:
       SandboxProxyRenewRequestIdSchema.optional().describe('主站续期 iframe 的随机请求标识')
   })
@@ -40,7 +42,13 @@ export const SandboxProxyInternalBodySchema = SandboxProxyScopeSchema.omit({
       .regex(/^[a-f0-9]{64}$/)
       .optional()
       .describe('单次 bootstrap 票据'),
-    mode: z.literal('renew').optional().describe('仅用于固定资源续期回调，必须携带新票据')
+    mode: z.literal('renew').optional().describe('仅用于固定资源续期回调，必须携带新票据'),
+    connection: z
+      .object({
+        id: z.string().uuid(),
+        mode: z.enum(['open', 'renew', 'close'])
+      })
+      .optional()
   })
   .refine((input) => input.mode !== 'renew' || input.ticket !== undefined, {
     message: 'Renewal requires a fresh ticket'
@@ -68,6 +76,20 @@ const SandboxBaseSchema = z.object({
     .describe('本次回答使用的沙箱；仍校验应用、用户和会话归属'),
   outLinkAuthData: OutLinkChatAuthSchema.optional().describe('外链鉴权数据')
 });
+
+export const SandboxEditorBodySchema = SandboxBaseSchema.omit({ outLinkAuthData: true })
+  .extend({ appId: z.string().regex(/^[a-f\d]{24}$/i), chatId: z.string().min(1).max(512) })
+  .strict();
+export type SandboxEditorBody = z.infer<typeof SandboxEditorBodySchema>;
+export const SandboxEditorResponseSchema = z.object({
+  sandboxId: z.string(),
+  editorGeneration: z.string().uuid(),
+  workspaceGeneration: z.string().uuid().optional(),
+  directory: z.string(),
+  entryUrl: z.string(),
+  persistence: z.enum(['persistent', 'container'])
+});
+export type SandboxEditorResponse = z.infer<typeof SandboxEditorResponseSchema>;
 
 /**
  * 列出目录 - 请求/响应

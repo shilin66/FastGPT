@@ -10,11 +10,13 @@ export type SandboxProxyScope = z.infer<typeof SandboxProxyScopeSchema>;
 // A reset gets a new origin so cookies from another editor tab cannot reconnect an old buffer.
 export const getSandboxProxyResourceId = ({
   sandboxId,
-  generation
+  generation,
+  editorGeneration
 }: {
   sandboxId: string;
   generation?: string;
-}) => (generation ? `ws-${generation}` : sandboxId);
+  editorGeneration?: string;
+}) => (editorGeneration ? `ed-${editorGeneration}` : generation ? `ws-${generation}` : sandboxId);
 
 export const SandboxProxyGrantSchema = SandboxProxyScopeSchema.extend({
   userId: z.string().min(1),
@@ -23,7 +25,11 @@ export const SandboxProxyGrantSchema = SandboxProxyScopeSchema.extend({
   provider: z.enum(['sealosdevbox', 'opensandbox', 'e2b']),
   sourceType: z.enum(['appRuntime', 'skillEdit']),
   sourceId: z.string().min(1),
-  workspaceGeneration: z.string().uuid().optional()
+  workspaceGeneration: z.string().uuid().optional(),
+  runtimeUserId: z.string().min(1).optional(),
+  providerSandboxId: z.string().min(1).optional(),
+  providerScope: z.string().min(1).optional(),
+  editorGeneration: z.string().uuid().optional()
 });
 export type SandboxProxyGrant = z.infer<typeof SandboxProxyGrantSchema>;
 

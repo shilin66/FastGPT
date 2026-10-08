@@ -24,7 +24,7 @@ const Logs = () => {
   } = useMultipleSelect<ChatSourceEnum>(Object.values(ChatSourceEnum), true);
 
   return (
-    <Flex flexDirection={'column'} h={'full'} rounded={'lg'} py={[4, 5]} minH={0}>
+    <Flex flexDirection={'column'} h={'full'} bg={'white'} minH={0}>
       <LogTable
         appId={appId}
         chatSources={chatSources}

@@ -5,13 +5,16 @@ import { connectionMongo } from '@fastgpt/service/common/mongo';
 import { MongoTimerLock } from '@fastgpt/service/common/system/timerLock/schema';
 import { MongoApp } from '@fastgpt/service/core/app/schema';
 import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
-import { getSandboxClient } from '@fastgpt/service/core/ai/sandbox/controller';
-import { createLeaseRedisEval } from './leaseRedisMock';
+import {
+  getChatSandboxClient,
+  getSandboxClient
+} from '@fastgpt/service/core/ai/sandbox/controller';
+import { runSandboxOperation } from '@fastgpt/service/core/ai/sandbox/operation';
 
 type ProviderImage = { repository: string; tag?: string };
 type RemoteSandbox = {
   id: string;
-  status: { state: 'Running' };
+  status: { state: 'Running' | 'Stopped' };
   image: ProviderImage;
 };
 
@@ -20,6 +23,8 @@ const fake = vi.hoisted(() => ({
   remotes: new Map<string, RemoteSandbox>(),
   image: { repository: 'runtime-image', tag: 'v1' } as ProviderImage,
   ensure: vi.fn(),
+  start: vi.fn(),
+  editorConnections: 0,
   execute: vi.fn()
 }));
 
@@ -35,18 +40,25 @@ vi.mock('@fastgpt/service/env', async (original) => ({
     AGENT_SANDBOX_ENABLE_VOLUME: false
   }
 }));
-vi.mock('@fastgpt/service/common/redis', async (original) => ({
-  ...(await original<typeof import('@fastgpt/service/common/redis')>()),
-  getGlobalRedisConnection: () => ({
-    set: async (key: string, token: string, _mode: string, ttl: number) => {
-      const existing = fake.redis.get(key);
-      if (existing && existing.expiresAt > Date.now()) return null;
-      fake.redis.set(key, { token, expiresAt: Date.now() + ttl });
-      return 'OK';
-    },
-    eval: createLeaseRedisEval(fake.redis)
-  })
-}));
+vi.mock('@fastgpt/service/common/redis', async (original) => {
+  const { createLeaseRedisEval } = await import('./leaseRedisMock');
+  const evalLease = createLeaseRedisEval(fake.redis);
+  return {
+    ...(await original<typeof import('@fastgpt/service/common/redis')>()),
+    getGlobalRedisConnection: () => ({
+      set: async (key: string, token: string, _mode: string, ttl: number) => {
+        const existing = fake.redis.get(key);
+        if (existing && existing.expiresAt > Date.now()) return null;
+        fake.redis.set(key, { token, expiresAt: Date.now() + ttl });
+        return 'OK';
+      },
+      eval: async (script: string, keys: number, ...args: (string | number)[]) =>
+        script.includes('local mode = ARGV[1]')
+          ? fake.editorConnections
+          : evalLease(script, keys, ...args)
+    })
+  };
+});
 vi.mock('@fastgpt-sdk/sandbox-adapter', async (original) => {
   const actual = await original<typeof import('@fastgpt-sdk/sandbox-adapter')>();
   class OpenSandboxAdapter {
@@ -70,6 +82,15 @@ vi.mock('@fastgpt-sdk/sandbox-adapter', async (original) => {
         image: { ...fake.image }
       });
     }
+    async connect(id: string) {
+      if (this.id !== id) throw new Error('Wrong provider id');
+    }
+    async start() {
+      fake.start(this.id);
+      const remote = fake.remotes.get(this.sessionId);
+      if (!remote) throw new Error('Missing provider');
+      remote.status.state = 'Running';
+    }
     async getInfo() {
       return fake.remotes.get(this.sessionId) ?? null;
     }
@@ -91,6 +112,7 @@ beforeEach(async () => {
   vi.clearAllMocks();
   fake.redis.clear();
   fake.remotes.clear();
+  fake.editorConnections = 0;
   fake.image = { repository: 'runtime-image', tag: 'v1' };
   fake.execute.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' });
   previousConfig = global.feConfigs;
@@ -212,4 +234,123 @@ describe('ordinary runtime Sandbox metadata and admission', () => {
     expect(fake.ensure).toHaveBeenCalledOnce();
     expect(await MongoSandboxInstance.countDocuments()).toBe(1);
   });
+
+  it.each([{ preserveBoundRuntime: true }, { upgradeImage: false }])(
+    'keeps the actual image and instance for browsing options %j despite a different default image',
+    async (options) => {
+      fake.image = { repository: 'custom-original', tag: 'v0' };
+      const client = await acquire();
+      const before = await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean();
+      const editor = await getChatSandboxClient({
+        appId,
+        userId: 'user-1',
+        chatId: 'chat-1',
+        sandboxId: client.id
+      });
+      await editor.ensureAvailable('interactive', options);
+      const after = await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean();
+      expect(after?.metadata?.image).toEqual(fake.image);
+      expect(after?.metadata?.providerSandboxId).toBe(before?.metadata?.providerSandboxId);
+      expect(after?.operation?.id).toBe(before?.operation?.id);
+      expect(fake.ensure).toHaveBeenCalledOnce();
+    }
+  );
+
+  it('resumes the exact paused instance without a volume or replacement creation', async () => {
+    const client = await acquire();
+    const original = fake.remotes.get(client.id)!;
+    original.status.state = 'Stopped';
+    await MongoSandboxInstance.updateOne({ sandboxId: client.id }, { $set: { status: 'stopped' } });
+    const editor = await getChatSandboxClient({
+      appId,
+      userId: 'user-1',
+      chatId: 'chat-1',
+      sandboxId: client.id
+    });
+    await editor.ensureAvailable('interactive', { preserveBoundRuntime: true });
+    expect(fake.start).toHaveBeenCalledWith(original.id);
+    expect(fake.ensure).toHaveBeenCalledOnce();
+    expect(await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean()).toMatchObject({
+      status: 'running',
+      metadata: { providerSandboxId: original.id, volumeEnabled: false }
+    });
+  });
+
+  it('does not recreate an unexpectedly missing instance', async () => {
+    const client = await acquire();
+    fake.remotes.delete(client.id);
+    const editor = await getChatSandboxClient({
+      appId,
+      userId: 'user-1',
+      chatId: 'chat-1',
+      sandboxId: client.id
+    });
+    await expect(
+      editor.ensureAvailable('interactive', { preserveBoundRuntime: true })
+    ).rejects.toThrow();
+    expect(fake.ensure).toHaveBeenCalledOnce();
+    expect(fake.remotes.size).toBe(0);
+  });
+
+  it('retains a released legacy workspace whose original configuration cannot be verified', async () => {
+    const client = await acquire();
+    await MongoSandboxInstance.updateOne(
+      { sandboxId: client.id },
+      {
+        $set: { status: 'stopped', releasedAt: new Date() },
+        $unset: { 'metadata.runtimeConfig': 1 }
+      }
+    );
+    const editor = await getChatSandboxClient({
+      appId,
+      userId: 'user-1',
+      chatId: 'chat-1',
+      sandboxId: client.id
+    });
+    await expect(
+      editor.ensureAvailable('interactive', { preserveBoundRuntime: true })
+    ).rejects.toThrow('sandbox_editor_recovery_required');
+    expect(fake.ensure).toHaveBeenCalledOnce();
+  });
+
+  it.each(['stop', 'release', 'archive'] as const)(
+    'rejects %s before changing the operation or status while an editor connection is live',
+    async (action) => {
+      const client = await acquire();
+      const before = await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean();
+      await MongoSandboxInstance.updateOne(
+        { sandboxId: client.id },
+        {
+          $set: {
+            'metadata.editor': {
+              generation: randomUUID(),
+              providerSandboxId: before!.metadata!.providerSandboxId,
+              providerScope: before!.providerScope,
+              status: 'ready',
+              endpoint: {
+                host: 'gateway',
+                port: 8090,
+                protocol: 'http',
+                url: 'http://gateway:8090'
+              },
+              startedAt: new Date()
+            }
+          }
+        }
+      );
+      const instance = await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean();
+      fake.editorConnections = 1;
+      const effect = vi.fn();
+      await expect(
+        runSandboxOperation(
+          { provider: 'opensandbox', sandboxId: client.id, action, expectedInstance: instance! },
+          effect
+        )
+      ).rejects.toThrow('sandbox_editor_terminal_busy');
+      const after = await MongoSandboxInstance.findOne({ sandboxId: client.id }).lean();
+      expect(after?.status).toBe('running');
+      expect(after?.operation).toEqual(before?.operation);
+      expect(effect).not.toHaveBeenCalled();
+    }
+  );
 });

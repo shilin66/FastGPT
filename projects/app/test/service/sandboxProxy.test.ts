@@ -191,6 +191,22 @@ describe('Sandbox gateway path and RPC boundary', () => {
       assertSandboxProxyInternalRequest({ headers: {}, remoteAddress: '127.0.0.1' })
     ).toThrow('Unauthorized');
   });
+  it('restricts App IDEs to the code-server path even for direct endpoints', () => {
+    expect(() =>
+      assertSandboxProxyPath({
+        target: 'http://sandbox:44772/',
+        path: '/execute',
+        editorOnly: true
+      })
+    ).toThrow('Unsupported proxy path');
+    expect(() =>
+      assertSandboxProxyPath({
+        target: 'http://sandbox:44772/',
+        path: '/proxy/8080/main.js',
+        editorOnly: true
+      })
+    ).not.toThrow();
+  });
   it('requires both the process secret and loopback source', () => {
     const headers = { 'x-fastgpt-proxy-internal': getSandboxProxyInternalSecret() };
     expect(() =>
