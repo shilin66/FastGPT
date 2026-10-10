@@ -1,8 +1,7 @@
 import React, { useCallback, useState, useMemo } from 'react';
-import MyModal from '@fastgpt/web/components/common/MyModal';
 import { useTranslation } from 'next-i18next';
 import { parseI18nString } from '@fastgpt/global/common/i18n/utils';
-import { Box, Button, Flex, Grid } from '@chakra-ui/react';
+import { Box, Button, Flex, Grid, ModalFooter } from '@chakra-ui/react';
 import FillRowTabs from '@fastgpt/web/components/common/Tabs/FillRowTabs';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
@@ -17,7 +16,6 @@ import { getTeamAppTemplates } from '@/web/core/app/api/tool';
 import { type ParentIdType } from '@fastgpt/global/common/parentFolder/type';
 import { getAppFolderPath } from '@/web/core/app/api/app';
 import FolderPath from '@/components/common/folder/Path';
-import MyTooltip from '@fastgpt/web/components/common/MyTooltip';
 import { NodeInputKeyEnum } from '@fastgpt/global/core/workflow/constants';
 import { useContextSelector } from 'use-context-selector';
 import { AppContext } from '../../../context';
@@ -33,12 +31,17 @@ import { useSafeTranslation } from '@fastgpt/web/hooks/useSafeTranslation';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 import ToolTagFilterBox from '@fastgpt/web/components/core/plugin/tool/TagFilterBox';
 import { getPluginToolTags } from '@/web/core/plugin/toolTag/api';
-import { useRouter } from 'next/router';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
 import {
   getToolConfigStatus,
   validateToolConfiguration
 } from '@fastgpt/global/core/app/formEdit/utils';
+import {
+  ResourceSelectModal,
+  ResourceSelectCard,
+  resourceListMaxHeight
+} from '@/components/core/app/ResourceSelectModal';
+import { omniTheme } from '@/web/common/brand/theme';
 
 type Props = {
   topAgentSelectedTools?: SelectedToolItemType[];
@@ -157,24 +160,23 @@ const ToolSelectModal = ({ onClose, ...props }: Props & { onClose: () => void })
   });
 
   return (
-    <MyModal
+    <ResourceSelectModal
       isOpen
       title={t('app:tool_select')}
+      description={t('app:resource_tool_hint')}
       iconSrc="core/app/toolCall"
       onClose={onClose}
-      maxW={['92vw', '860px']}
-      w={'860px'}
-      h={['90vh', '80vh']}
     >
       <Flex
-        px={[4, 6]}
-        py={4}
+        px={5}
+        py={3}
         gap={3}
         alignItems={['stretch', 'center']}
         justifyContent={'space-between'}
         flexDirection={['column', 'row']}
-        bg={'#F8FAFC'}
-        borderBottom={'1px solid rgba(148, 163, 184, 0.18)'}
+        bg={omniTheme.colors.surface}
+        borderBottom={'1px solid'}
+        borderColor={omniTheme.colors.border}
         w={'full'}
       >
         <FillRowTabs
@@ -205,8 +207,13 @@ const ToolSelectModal = ({ onClose, ...props }: Props & { onClose: () => void })
             })
           }
         />
-        <Box w={['100%', '220px']}>
+        <Box w={['full', '280px']}>
           <SearchInput
+            aria-label={String(
+              templateType === TemplateTypeEnum.systemTools
+                ? t('common:search_tool')
+                : t('app:search_app')
+            )}
             value={searchKey}
             onChange={(e) => setSearchKey(e.target.value)}
             placeholder={
@@ -218,7 +225,13 @@ const ToolSelectModal = ({ onClose, ...props }: Props & { onClose: () => void })
         </Box>
       </Flex>
       {templateType === TemplateTypeEnum.systemTools && allTags.length > 0 && (
-        <Box px={[4, 6]} py={3} bg={'#F8FAFC'} borderBottom={'1px solid rgba(148, 163, 184, 0.14)'}>
+        <Box
+          px={5}
+          py={2}
+          bg={omniTheme.colors.surface}
+          borderBottom={'1px solid'}
+          borderColor={omniTheme.colors.border}
+        >
           <ToolTagFilterBox
             tags={allTags}
             selectedTagIds={selectedTagIds}
@@ -229,21 +242,55 @@ const ToolSelectModal = ({ onClose, ...props }: Props & { onClose: () => void })
       )}
       {/* route components */}
       {!searchKey && parentId && (
-        <Flex px={[4, 6]} py={2} bg={'#F8FAFC'}>
-          <FolderPath paths={paths} FirstPathDom={null} onClick={onUpdateParentId} />
+        <Flex px={[4, 6]} py={3} bg={omniTheme.colors.surface}>
+          <FolderPath
+            paths={paths}
+            FirstPathDom={t('common:root_folder')}
+            onClick={onUpdateParentId}
+          />
         </Flex>
       )}
-      <MyBox isLoading={isLoading} pb={4} flex={'1 0 0'} h={0} bg={'#F8FAFC'}>
-        <Box overflow={'overlay'} height={'100%'}>
-          <RenderList
-            templates={templates}
-            type={templateType}
-            setParentId={onUpdateParentId}
-            {...props}
-          />
-        </Box>
+      <MyBox
+        isLoading={isLoading}
+        overflowY={'auto'}
+        minH={'180px'}
+        maxH={resourceListMaxHeight}
+        bg={omniTheme.colors.pageBg}
+      >
+        <RenderList
+          templates={templates}
+          emptyText={
+            searchKey || selectedTagIds.length
+              ? t('app:resource_no_results')
+              : t('app:module.No Modules')
+          }
+          type={templateType}
+          setParentId={onUpdateParentId}
+          {...props}
+        />
       </MyBox>
-    </MyModal>
+      <ModalFooter justifyContent={'space-between'}>
+        <Box role={'status'} fontSize={'sm'} color={omniTheme.colors.muted}>
+          {t('common:selected_count', { count: props.selectedTools.length })}
+        </Box>
+        <Flex gap={3} align={'center'}>
+          {templateType === TemplateTypeEnum.systemTools && (
+            <Button
+              as={'a'}
+              href={'/dashboard/systemTool'}
+              target={'_blank'}
+              rel={'noopener noreferrer'}
+              variant={'whiteBase'}
+              size={'sm'}
+            >
+              {t('app:find_more_tools')}
+              <MyIcon name={'common/rightArrowLight'} w={4} ml={1} />
+            </Button>
+          )}
+          <Button onClick={onClose}>{t('common:Done')}</Button>
+        </Flex>
+      </ModalFooter>
+    </ResourceSelectModal>
   );
 };
 
@@ -252,6 +299,7 @@ export default React.memo(ToolSelectModal);
 const RenderList = React.memo(function RenderList({
   topAgentSelectedTools = [],
   templates,
+  emptyText,
   type,
   onAddTool,
   onRemoveTool,
@@ -260,13 +308,13 @@ const RenderList = React.memo(function RenderList({
   fileSelectConfig
 }: Props & {
   templates: NodeTemplateListItemType[];
+  emptyText: string;
   type: TemplateTypeEnum;
   setParentId: (parentId: ParentIdType) => any;
 }) {
   const { i18n } = useTranslation();
   const { t } = useSafeTranslation();
   const { feConfigs } = useSystemStore();
-  const router = useRouter();
   const { toast } = useToast();
 
   const { runAsync: onClickAdd, loading: isLoading } = useRequest(
@@ -312,13 +360,20 @@ const RenderList = React.memo(function RenderList({
     return (
       <>
         {templates.length > 0 ? (
-          <Grid gridTemplateColumns={['1fr', '1fr 1fr']} gap={3} px={[4, 6]} pt={4}>
+          <Grid
+            as={'ul'}
+            listStyleType={'none'}
+            m={0}
+            gridTemplateColumns={['1fr', '1fr 1fr']}
+            gap={2}
+            p={4}
+          >
             {templates.map((template) => {
               const selected = selectedTools.some((tool) => tool.pluginId === template.id);
               return (
-                <MyTooltip
+                <ResourceSelectCard
                   key={template.id}
-                  label={
+                  preview={
                     <Box py={2} minW={['auto', '250px']}>
                       <Flex alignItems={'center'} w={'100%'}>
                         <MyAvatar
@@ -354,43 +409,29 @@ const RenderList = React.memo(function RenderList({
                       )}
                     </Box>
                   }
-                >
-                  <Flex
-                    alignItems={'center'}
-                    py={3}
-                    px={3}
-                    bg={'white'}
-                    border={'1px solid rgba(148, 163, 184, 0.2)'}
-                    borderRadius={'12px'}
-                    boxShadow={'0 10px 24px rgba(15, 23, 42, 0.03)'}
-                    transition={'all 0.18s ease'}
-                    _hover={{
-                      borderColor: 'rgba(37, 99, 235, 0.45)',
-                      boxShadow: '0 16px 34px rgba(37, 99, 235, 0.1)',
-                      transform: 'translateY(-1px)'
-                    }}
-                    h={'100%'}
-                  >
+                  selected={selected}
+                  avatar={
                     <MyAvatar
                       src={template.avatar}
-                      w={'1.75rem'}
+                      w={7}
                       objectFit={'contain'}
                       borderRadius={'sm'}
-                      flexShrink={0}
                     />
-                    <Box flex={'1 0 0'} ml={3}>
-                      <Box
-                        color={'myGray.900'}
-                        fontWeight={'500'}
-                        fontSize={'sm'}
-                        className="textEllipsis"
-                      >
-                        {t(parseI18nString(template.name, i18n.language))}
-                      </Box>
-                    </Box>
-                    <Box flex={1} />
-
-                    {selected ? (
+                  }
+                  name={t(parseI18nString(template.name, i18n.language))}
+                  description={
+                    t(parseI18nString(template.intro || '', i18n.language)) ||
+                    t('common:core.workflow.Not intro')
+                  }
+                  meta={
+                    template.isFolder && template.flowNodeType !== 'toolSet'
+                      ? t('common:Folder')
+                      : isSystemTool
+                        ? `By ${template.author || feConfigs?.systemTitle || 'FastGPT'}`
+                        : t('common:navbar.Tools')
+                  }
+                  actions={
+                    selected ? (
                       <Button
                         size={'sm'}
                         variant={'grayDanger'}
@@ -449,42 +490,18 @@ const RenderList = React.memo(function RenderList({
                       >
                         {t('common:Add')}
                       </Button>
-                    )}
-                  </Flex>
-                </MyTooltip>
+                    )
+                  }
+                />
               );
             })}
           </Grid>
         ) : (
-          <EmptyTip text={t('app:module.No Modules')} />
+          <EmptyTip text={emptyText} py={12} />
         )}
       </>
     );
   });
 
-  return (
-    <Flex position="relative" direction="column" h="100%">
-      <Box overflowY="auto" mb={8} w={'full'}>
-        <PluginListRender />
-      </Box>
-      {type === TemplateTypeEnum.systemTools && (
-        <Flex
-          alignItems="center"
-          cursor="pointer"
-          _hover={{
-            color: 'primary.600'
-          }}
-          onClick={() => router.push('/dashboard/systemTool')}
-          gap={1}
-          bottom={0}
-          right={[3, 6]}
-          position="absolute"
-          zIndex={2}
-        >
-          <Box fontSize="sm">{t('app:find_more_tools')}</Box>
-          <MyIcon name="common/rightArrowLight" w="0.9rem" />
-        </Flex>
-      )}
-    </Flex>
-  );
+  return <PluginListRender />;
 });

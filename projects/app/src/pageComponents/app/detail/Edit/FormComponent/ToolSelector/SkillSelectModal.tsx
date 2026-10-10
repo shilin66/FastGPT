@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import MyModal from '@fastgpt/web/components/common/MyModal';
 import { useTranslation } from 'next-i18next';
-import { Box, Button, Flex, Grid } from '@chakra-ui/react';
+import { Box, Button, Flex, Grid, ModalFooter } from '@chakra-ui/react';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import EmptyTip from '@fastgpt/web/components/common/EmptyTip';
 import MyIcon from '@fastgpt/web/components/common/Icon';
@@ -15,6 +14,12 @@ import { AgentSkillTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
 import type { ListSkillsResponse } from '@fastgpt/global/core/agentSkills/api';
 import FolderPath from '@/components/common/folder/Path';
 import type { ParentIdType } from '@fastgpt/global/common/parentFolder/type';
+import {
+  ResourceSelectModal,
+  ResourceSelectCard,
+  resourceListMaxHeight
+} from '@/components/core/app/ResourceSelectModal';
+import { omniTheme } from '@/web/common/brand/theme';
 
 const MAX_SKILL_COUNT = 100;
 
@@ -82,69 +87,95 @@ const SkillSelectModal = ({
   const isAtLimit = selectedSkills.length >= MAX_SKILL_COUNT;
 
   return (
-    <MyModal
+    <ResourceSelectModal
       isOpen
       title={t('skill:select_skill')}
+      description={t('app:resource_skill_hint')}
       iconSrc="common/skill"
-      iconColor="#487FFF"
+      iconColor={omniTheme.colors.saturatedBlue}
       onClose={onClose}
-      maxW={['92vw', '760px']}
-      w={'760px'}
-      h={['90vh', '80vh']}
     >
       <Flex
-        px={[4, 6]}
-        py={4}
-        justifyContent={'flex-end'}
-        bg={'#F8FAFC'}
-        borderBottom={'1px solid rgba(148, 163, 184, 0.18)'}
+        px={5}
+        py={3}
+        bg={omniTheme.colors.surface}
+        borderBottom={'1px solid'}
+        borderColor={omniTheme.colors.border}
         w={'full'}
       >
-        <Box w={['100%', '240px']}>
+        <Box w={'full'}>
           <SearchInput
             value={searchKey}
             onChange={(e) => setSearchKey(e.target.value)}
             placeholder={t('skill:search_skill')}
+            aria-label={String(t('skill:search_skill'))}
           />
         </Box>
       </Flex>
 
       {/* 面包屑导航 */}
       {!searchKey && navStack.length > 0 && (
-        <Flex px={[4, 6]} py={2} bg={'#F8FAFC'}>
-          <FolderPath paths={paths} FirstPathDom={null} onClick={onUpdateParentId} />
+        <Flex px={[4, 6]} py={3} bg={omniTheme.colors.surface}>
+          <FolderPath
+            paths={paths}
+            FirstPathDom={t('common:root_folder')}
+            onClick={onUpdateParentId}
+          />
         </Flex>
       )}
 
-      <MyBox isLoading={isLoading} pb={4} flex={'1 0 0'} h={0} bg={'#F8FAFC'}>
-        <Box overflow={'overlay'} height={'100%'}>
-          {skillList.length > 0 ? (
-            <Grid gridTemplateColumns={['1fr', '1fr 1fr']} gap={3} px={[4, 6]} pt={4}>
-              {skillList.map((item) => (
-                <SkillCard
-                  key={item._id}
-                  item={item}
-                  isSelected={selectedSkills.some((s) => s.skillId === item._id)}
-                  isAtLimit={isAtLimit}
-                  onAdd={() =>
-                    onAddSkill({
-                      skillId: item._id,
-                      name: item.name,
-                      description: item.description,
-                      avatar: item.avatar
-                    })
-                  }
-                  onRemove={() => onRemoveSkill(item._id)}
-                  onOpenFolder={() => onEnterFolder(item)}
-                />
-              ))}
-            </Grid>
-          ) : (
-            <EmptyTip text={t('skill:no_skills')} />
-          )}
-        </Box>
+      <MyBox
+        isLoading={isLoading}
+        overflowY={'auto'}
+        minH={'180px'}
+        maxH={resourceListMaxHeight}
+        bg={omniTheme.colors.pageBg}
+      >
+        {skillList.length > 0 ? (
+          <Grid
+            as={'ul'}
+            listStyleType={'none'}
+            m={0}
+            gridTemplateColumns={['1fr', '1fr 1fr']}
+            gap={2}
+            p={4}
+          >
+            {skillList.map((item) => (
+              <SkillCard
+                key={item._id}
+                item={item}
+                isSelected={selectedSkills.some((s) => s.skillId === item._id)}
+                isAtLimit={isAtLimit}
+                onAdd={() =>
+                  onAddSkill({
+                    skillId: item._id,
+                    name: item.name,
+                    description: item.description,
+                    avatar: item.avatar
+                  })
+                }
+                onRemove={() => onRemoveSkill(item._id)}
+                onOpenFolder={() => onEnterFolder(item)}
+              />
+            ))}
+          </Grid>
+        ) : (
+          <EmptyTip
+            text={searchKey ? t('app:resource_no_results') : t('skill:no_skills')}
+            py={12}
+          />
+        )}
       </MyBox>
-    </MyModal>
+      <ModalFooter justifyContent={'space-between'}>
+        <Box role={'status'} fontSize={'sm'} color={omniTheme.colors.muted}>
+          {t('common:selected_count', { count: selectedSkills.length })}
+          <Box as={'span'} ml={2}>
+            / {MAX_SKILL_COUNT}
+          </Box>
+        </Box>
+        <Button onClick={onClose}>{t('common:Done')}</Button>
+      </ModalFooter>
+    </ResourceSelectModal>
   );
 };
 
@@ -169,88 +200,40 @@ const SkillCard = React.memo(function SkillCard({
   const isFolder = item.type === AgentSkillTypeEnum.folder;
 
   return (
-    <MyTooltip
-      label={
-        <Box py={2} minW={['auto', '250px']}>
-          <Flex alignItems={'center'} w={'100%'}>
-            {isFolder ? (
-              <MyIcon
-                name={'common/folderFill'}
-                w={'1.75rem'}
-                color={'myGray.500'}
-                flexShrink={0}
-              />
-            ) : (
-              <MyAvatar
-                src={item.avatar || 'core/skill/default'}
-                w={'1.75rem'}
-                objectFit={'contain'}
-                borderRadius={'sm'}
-              />
-            )}
-            <Box fontWeight={'bold'} ml={3} color={'myGray.900'} flex={'1 0 0'} overflow={'hidden'}>
+    <ResourceSelectCard
+      selected={isSelected}
+      name={item.name}
+      description={item.description || t('common:no_intro')}
+      preview={
+        item.description ? (
+          <Box maxW={'360px'}>
+            <Box fontWeight={600} mb={1}>
               {item.name}
             </Box>
-          </Flex>
-          <Box mt={2} color={'myGray.500'} maxH={'100px'} overflow={'hidden'}>
-            {item.description || t('common:no_intro')}
+            {item.description}
           </Box>
-        </Box>
+        ) : undefined
       }
-    >
-      <Flex
-        alignItems={'center'}
-        py={3}
-        px={3}
-        bg={'white'}
-        border={'1px solid rgba(148, 163, 184, 0.2)'}
-        borderRadius={'12px'}
-        boxShadow={'0 10px 24px rgba(15, 23, 42, 0.03)'}
-        transition={'all 0.18s ease'}
-        _hover={{
-          borderColor: 'rgba(37, 99, 235, 0.45)',
-          boxShadow: '0 16px 34px rgba(37, 99, 235, 0.1)',
-          transform: 'translateY(-1px)'
-        }}
-        h={'100%'}
-      >
-        {isFolder ? (
-          <MyIcon name={'common/folderFill'} w={'1.75rem'} color={'myGray.500'} flexShrink={0} />
+      avatar={
+        isFolder ? (
+          <MyIcon name={'common/folderFill'} w={7} color={'myGray.500'} />
         ) : (
-          <MyAvatar
-            src={item.avatar || 'core/skill/default'}
-            w={'1.75rem'}
-            borderRadius={'sm'}
-            flexShrink={0}
-          />
-        )}
-        <Box flex={'1 0 0'} ml={3}>
-          <Box color={'myGray.900'} fontWeight={'500'} fontSize={'sm'} className={'textEllipsis'}>
-            {item.name}
-          </Box>
-        </Box>
-        <Box flex={1} />
-
-        {isFolder ? (
+          <MyAvatar src={item.avatar || 'core/skill/default'} w={7} borderRadius={'sm'} />
+        )
+      }
+      meta={isFolder ? t('common:Folder') : 'Skill'}
+      actions={
+        isFolder ? (
           <Button
             size={'sm'}
             variant={'whiteBase'}
-            leftIcon={<MyIcon name={'common/arrowRight'} w={'16px'} mr={-1.5} />}
+            leftIcon={<MyIcon name={'common/arrowRight'} w={4} />}
             onClick={onOpenFolder}
-            px={2}
-            fontSize={'mini'}
           >
             {t('common:Open')}
           </Button>
         ) : isSelected ? (
-          <Button
-            size={'sm'}
-            variant={'grayDanger'}
-            leftIcon={<MyIcon name={'delete'} w={'16px'} mr={-1} />}
-            onClick={onRemove}
-            px={2}
-            fontSize={'mini'}
-          >
+          <Button size={'sm'} variant={'grayDanger'} onClick={onRemove}>
             {t('common:Remove')}
           </Button>
         ) : (
@@ -258,17 +241,15 @@ const SkillCard = React.memo(function SkillCard({
             <Button
               size={'sm'}
               variant={'primaryOutline'}
-              leftIcon={<MyIcon name={'common/addLight'} w={'16px'} mr={-1.5} />}
+              leftIcon={<MyIcon name={'common/addLight'} w={4} />}
               isDisabled={isAtLimit}
               onClick={onAdd}
-              px={2}
-              fontSize={'mini'}
             >
               {t('common:Add')}
             </Button>
           </MyTooltip>
-        )}
-      </Flex>
-    </MyTooltip>
+        )
+      }
+    />
   );
 });

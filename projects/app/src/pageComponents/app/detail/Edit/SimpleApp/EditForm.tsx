@@ -1,16 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useTransition } from 'react';
-import { Box, Flex, Grid, type BoxProps, useDisclosure, Button, Switch } from '@chakra-ui/react';
+import { Box, Flex, type BoxProps, useDisclosure, Button, Switch } from '@chakra-ui/react';
 import type { AppFormEditFormType } from '@fastgpt/global/core/app/formEdit/type';
-import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 
 import dynamic from 'next/dynamic';
-import Avatar from '@fastgpt/web/components/common/Avatar';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import VariableEdit from '@/components/core/app/VariableEdit';
 import PromptEditor from '@fastgpt/web/components/common/Textarea/PromptEditor';
 import { formatEditorVariablePickerIcon } from '@fastgpt/global/core/workflow/utils';
-import SearchParamsTip from '@/components/core/dataset/SearchParamsTip';
+import AgentDatasetConfig from '../FormComponent/AgentDatasetConfig';
 import SettingLLMModel from '@/components/core/ai/SettingLLMModel';
 import { TTSTypeEnum } from '@/web/core/app/constants';
 import { workflowSystemVariables } from '@/web/core/app/utils';
@@ -22,7 +20,6 @@ import { getWebLLMModel } from '@/web/common/system/utils';
 import ToolSelect from '../FormComponent/ToolSelector/ToolSelect';
 import OptimizerPopover from '@/components/common/PromptEditor/OptimizerPopover';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
-import MyIconButton, { MyDeleteIconButton } from '@fastgpt/web/components/common/Icon/button';
 import SandboxTipTag from '../../components/SandboxTipTag';
 import SandboxNotSupportTip from '../../components/SandboxNotSupportTip';
 import { useUserStore } from '@/web/support/user/useUserStore';
@@ -96,7 +93,6 @@ const EditForm = ({
   setAppForm: React.Dispatch<React.SetStateAction<AppFormEditFormType>>;
   onActiveSectionChange?: (key: SimpleConfigSectionKey) => void;
 }) => {
-  const router = useRouter();
   const { t } = useTranslation();
   const { defaultModels, feConfigs } = useSystemStore();
   const showSandbox = feConfigs.show_agent_sandbox;
@@ -286,122 +282,20 @@ const EditForm = ({
         desc={t('app:agent_config_dataset_desc')}
         onActiveSectionChange={onActiveSectionChange}
       >
-        <AgentParameterRow
-          align={'start'}
-          label={t('app:dataset')}
-          description={t('app:agent_config_dataset_field_desc')}
-          action={
-            <Flex gap={1}>
-              <Button
-                variant={'transparentBase'}
-                leftIcon={<MyIcon name={'edit'} w={'14px'} />}
-                iconSpacing={1}
-                size={'sm'}
-                fontSize={'sm'}
-                onClick={onOpenDatasetParams}
-              >
-                {t('common:Params')}
-              </Button>
-              <Button
-                variant={'transparentBase'}
-                leftIcon={<MyIcon name={'common/addLight'} w={'14px'} />}
-                iconSpacing={1}
-                size={'sm'}
-                fontSize={'sm'}
-                onClick={onOpenDatasetSelect}
-              >
-                {t('common:Choose')}
-              </Button>
-            </Flex>
-          }
-        >
-          <Box minW={0}>
-            {appForm.dataset.datasets?.length > 0 && (
-              <Box mb={3}>
-                <SearchParamsTip
-                  searchMode={appForm.dataset.searchMode}
-                  similarity={appForm.dataset.similarity}
-                  limit={appForm.dataset.limit}
-                  usingReRank={appForm.dataset.usingReRank}
-                  usingExtensionQuery={appForm.dataset.datasetSearchUsingExtensionQuery}
-                  queryExtensionModel={appForm.dataset.datasetSearchExtensionModel}
-                />
-              </Box>
-            )}
-            {appForm.dataset.datasets?.length === 0 && (
-              <Box color={omniTheme.colors.muted} fontSize={'12px'}>
-                {t('app:No_selected_dataset')}
-              </Box>
-            )}
-            <Grid
-              gridTemplateColumns={'minmax(0, 1fr)'}
-              borderTop={appForm.dataset.datasets?.length > 0 ? '1px solid' : 0}
-              borderColor={omniTheme.colors.border}
-            >
-              {selectDatasets.map((item) => (
-                <Flex
-                  key={item.datasetId}
-                  overflow={'hidden'}
-                  alignItems={'center'}
-                  minH={'42px'}
-                  px={1}
-                  py={2}
-                  bg={omniTheme.colors.surface}
-                  borderBottom={'1px solid'}
-                  borderColor={omniTheme.colors.border}
-                  transition={'background-color .18s ease'}
-                  _hover={{
-                    bg: omniTheme.colors.pageBg,
-                    '& .controler': {
-                      display: 'flex'
-                    }
-                  }}
-                >
-                  <Avatar src={item.avatar} w={'1.5rem'} borderRadius={omniTheme.radii.sm} />
-                  <Box
-                    ml={2}
-                    flex={'1 0 0'}
-                    w={0}
-                    className={'textEllipsis'}
-                    fontSize={'sm'}
-                    color={'myGray.900'}
-                  >
-                    {item.name}
-                  </Box>
-
-                  {/* Icon */}
-                  <Box className="controler" display={['flex', 'none']} alignItems={'center'}>
-                    <MyIconButton
-                      icon={'common/viewLight'}
-                      onClick={() =>
-                        router.push({
-                          pathname: '/dataset/detail',
-                          query: {
-                            datasetId: item.datasetId
-                          }
-                        })
-                      }
-                    />
-                    <MyDeleteIconButton
-                      onClick={() => {
-                        setAppForm((state) => ({
-                          ...state,
-                          dataset: {
-                            ...state.dataset,
-                            datasets:
-                              state.dataset.datasets?.filter(
-                                (pre) => pre.datasetId !== item.datasetId
-                              ) || []
-                          }
-                        }));
-                      }}
-                    />
-                  </Box>
-                </Flex>
-              ))}
-            </Grid>
-          </Box>
-        </AgentParameterRow>
+        <AgentDatasetConfig
+          dataset={appForm.dataset}
+          onOpenParams={onOpenDatasetParams}
+          onOpenSelect={onOpenDatasetSelect}
+          onRemove={(datasetId) => {
+            setAppForm((state) => ({
+              ...state,
+              dataset: {
+                ...state.dataset,
+                datasets: state.dataset.datasets.filter((item) => item.datasetId !== datasetId)
+              }
+            }));
+          }}
+        />
       </ConfigSection>
 
       <ConfigSection

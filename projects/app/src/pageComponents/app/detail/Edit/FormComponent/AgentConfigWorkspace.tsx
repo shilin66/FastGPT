@@ -117,7 +117,7 @@ const AgentConfigWorkspace = <Key extends string>({
           tasks={tasks}
           activeKey={activeKey}
           onSelect={onSelect}
-          forceCollapsed={(workspaceSize?.width ?? 560) < 430}
+          forceCollapsed={(workspaceSize?.width ?? 640) < 640}
         />
         <Box
           flex={'1 1 0'}

@@ -27,17 +27,21 @@ const AgentWorkspace = ({
   const size = useSize(containerRef);
   const panel = useSandboxFilePanel();
   const fileOpen = !!panel?.isOpen;
-  const [configWidth, setConfigWidth] = useState(560);
+  const [configWidth, setConfigWidth] = useState<number>();
   const [fileWidth, setFileWidth] = useState(280);
   useEffect(() => {
-    setConfigWidth(readWidth(CONFIG_KEY, 560));
+    setConfigWidth(readWidth(CONFIG_KEY, 0) || undefined);
     setFileWidth(readWidth(FILE_KEY, 280));
   }, []);
   const total = size?.width ?? 1440;
   const gap = 8;
   const minChat = 380;
-  const minConfig = 300;
   const minFile = 248;
+  const minConfig = Math.min(
+    fileOpen ? 300 : 520,
+    Math.max(0, total - minChat - (fileOpen ? minFile + 2 * gap : gap))
+  );
+  const preferredConfigWidth = configWidth ?? Math.min(960, Math.max(760, total * 0.48));
   const autoFileWidth = 248;
   const expandedFileTarget = 760;
   const expanded = !!panel?.isExpanded && fileOpen;
@@ -45,7 +49,7 @@ const AgentWorkspace = ({
     ? Math.max(
         minConfig,
         Math.min(
-          configWidth,
+          preferredConfigWidth,
           total -
             minChat -
             (fileOpen
@@ -81,7 +85,7 @@ const AgentWorkspace = ({
         return next;
       });
     },
-    [actualConfig, actualFile, fileOpen, total, expanded, panel]
+    [actualConfig, actualFile, fileOpen, total, expanded, panel, minConfig]
   );
   const moveFile = useCallback(
     (delta: number) => {
@@ -96,7 +100,7 @@ const AgentWorkspace = ({
         return next;
       });
     },
-    [actualConfig, actualFile, showConfig, total, expanded, panel]
+    [actualFile, showConfig, total, expanded, panel, minConfig]
   );
 
   return (
