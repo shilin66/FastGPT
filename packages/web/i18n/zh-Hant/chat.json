@@ -295,6 +295,17 @@
   "sandbox_status_ready_warm": "沙箱已連接",
   "sandbox_status_ready_cold": "沙箱就緒",
   "sandbox_status_failed": "沙箱啟動失敗",
+  "sandbox_capacity_exceeded": "沙箱配額已滿",
   "sandbox_status_lazyInit": "初始化沙箱...",
-  "skill_calling": "正在呼叫技能：{{name}}"
+  "skill_calling": "正在呼叫技能：{{name}}",
+  "sandbox_manage_force_delete": "強制刪除",
+  "sandbox_manage_force_continue": "繼續刪除",
+  "sandbox_manage_force_pending": "刪除待完成",
+  "sandbox_manage_force_pending_hint": "刪除待完成，部分資源尚未清理，請重新整理後繼續刪除",
+  "sandbox_manage_force_confirm": "確認強制刪除 Agent「{{name}}」的工作區 {{sandboxId}}？此操作將永久刪除該工作區的所有沙箱實例、所有檔案及封存，不可恢復。共享工作區可能影響多條對話。保留原 Agent 設定，下次執行將建立空白沙箱。",
+  "sandbox_manage_force_reason_busy": "仍有操作正在進行，請稍後重試",
+  "sandbox_manage_force_reason_stale": "工作區狀態已變更，請重新整理後確認",
+  "sandbox_manage_force_reason_ownership_conflict": "資源歸屬未通過核驗，請檢查設定",
+  "sandbox_manage_force_reason_unknown_operation": "上次建立請求的結果仍待核實，尚不能確認清理完成",
+  "sandbox_manage_force_reason_cleanup_failed": "部分資源清理失敗，可繼續重試"
 }

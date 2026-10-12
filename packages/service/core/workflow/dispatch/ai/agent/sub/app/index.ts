@@ -26,7 +26,10 @@ import { RuntimeSkillResolutionError } from '../../../../../../agentSkills/runti
 const collectChildSandboxResponses = (responses: AIChatItemValueItemType[] = []) => {
   const audit = responses.filter((value) => value.sandboxEvent || value.skills?.length);
   const failure = audit.find((value) => value.sandboxEvent?.status === 'failed');
-  if (failure?.sandboxEvent?.code === 'sandbox_unavailable')
+  if (
+    failure?.sandboxEvent?.code === 'sandbox_unavailable' ||
+    failure?.sandboxEvent?.code === 'sandbox_capacity_exceeded'
+  )
     throw new SandboxUnavailableError(audit);
   if (failure?.sandboxEvent?.code === 'skill_unavailable')
     throw new RuntimeSkillResolutionError('inaccessible', audit);

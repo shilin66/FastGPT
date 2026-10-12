@@ -1,3 +1,7 @@
+import {
+  canForceDeleteSandbox,
+  getSandboxForceDeleteRevision
+} from '@fastgpt/service/core/ai/sandbox/forceDeletePolicy';
 import { NextAPI } from '@/service/middleware/entry';
 import type { ApiRequestProps } from '@fastgpt/service/type/next';
 import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
@@ -36,7 +40,18 @@ export default NextAPI(
       sourceType,
       sourceId,
       teamId,
-      deleteTime: null,
+      ...(sourceType === 'appRuntime'
+        ? {
+            $and: [
+              {
+                $or: [
+                  { deleteTime: null },
+                  { status: 'deleting', forceDeletion: { $exists: true } }
+                ]
+              }
+            ]
+          }
+        : { deleteTime: null }),
       ...(search
         ? {
             $or: [
@@ -103,6 +118,18 @@ export default NextAPI(
           doc.operation.failureDisposition === 'retryable';
         const providerSandboxId = doc.metadata?.providerSandboxId;
         const providerStatus = providerStatuses[index];
+        const statusMismatch =
+          (providerStatus === 'running' &&
+            (doc.status === 'stopped' || doc.status === 'failed' || !!doc.releasedAt)) ||
+          (providerStatus === 'stopped' && doc.status === 'running') ||
+          (providerStatus === 'absent' && doc.status === 'running');
+        const canForceDelete =
+          canForceDeleteSandbox(doc) &&
+          (!settled ||
+            statusMismatch ||
+            providerStatus === 'unknown' ||
+            providerStatus === 'error' ||
+            !!doc.forceDeletion);
         return {
           sandboxId: doc.sandboxId,
           sourceType,
@@ -125,11 +152,7 @@ export default NextAPI(
           storageClaimName: doc.storage?.volumes?.[0]?.claimName,
           status: doc.status,
           providerStatus,
-          statusMismatch:
-            (providerStatus === 'running' &&
-              (doc.status === 'stopped' || doc.status === 'failed' || !!doc.releasedAt)) ||
-            (providerStatus === 'stopped' && doc.status === 'running') ||
-            (providerStatus === 'absent' && doc.status === 'running'),
+          statusMismatch,
           operation: doc.operation
             ? {
                 type: doc.operation.type,
@@ -141,8 +164,18 @@ export default NextAPI(
           lastActiveAt: doc.lastActiveAt.toISOString(),
           releasedAt: doc.releasedAt?.toISOString(),
           hasPersistentStorage,
-          canRelease: !!(settled && hasPersistentStorage && providerSandboxId && !doc.releasedAt),
-          canDelete: !!(settled || resumableDelete || doc.status === 'archived')
+          canRelease: !!(
+            !doc.forceDeletion &&
+            settled &&
+            hasPersistentStorage &&
+            providerSandboxId &&
+            !doc.releasedAt
+          ),
+          canDelete:
+            !doc.forceDeletion && !!(settled || resumableDelete || doc.status === 'archived'),
+          canForceDelete,
+          forceDeletionPending: !!doc.forceDeletion,
+          deletionRevision: canForceDelete ? getSandboxForceDeleteRevision(doc) : undefined
         };
       })
     };

@@ -70,6 +70,21 @@ describe.each([
     });
     expect((await dispatch(params)).assistantResponses).toEqual([audit]);
   });
+  it('preserves the child quota message in the parent', async () => {
+    const audit = {
+      sandboxEvent: { id: 'quota', status: 'failed', code: 'sandbox_capacity_exceeded' }
+    };
+    runWorkflow.mockResolvedValue({
+      assistantResponses: [audit],
+      flowResponses: [],
+      flowUsages: [],
+      runTimes: 1
+    });
+    await expect(dispatch(params)).rejects.toMatchObject({
+      message: 'chat:sandbox_capacity_exceeded',
+      assistantResponses: [audit]
+    });
+  });
   it('fails the parent when the child rejects Skill permission or readiness', async () => {
     runWorkflow.mockResolvedValue({
       assistantResponses: [

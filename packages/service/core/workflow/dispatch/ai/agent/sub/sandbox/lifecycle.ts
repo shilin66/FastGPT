@@ -17,8 +17,12 @@ import { isEditWorkspaceOperationComplete } from '../../../../../../agentSkills/
 import { SandboxUnavailableError } from './errors';
 import { isSandboxInfrastructureError } from '../../../../../../ai/sandbox/errors';
 import { MongoSandboxInstance } from '../../../../../../ai/sandbox/schema';
-import { resolveRuntimeSkills } from '../../../../../../agentSkills/runtimeResolver';
+import {
+  resolveRuntimeSkills,
+  type ResolvedRuntimeSkill
+} from '../../../../../../agentSkills/runtimeResolver';
 import { downloadSkillPackage } from '../../../../../../agentSkills/storage';
+import { discoverRuntimeSandboxSkills } from '../../../../../../agentSkills/runtimeDiscovery';
 import { parseSkillMarkdown } from '../../../../../../agentSkills/utils';
 import {
   getSandboxDefaults,
@@ -38,10 +42,12 @@ import {
   getExistingSandboxClient,
   type SandboxClient
 } from '../../../../../../ai/sandbox/controller';
-import { resolveAppSandboxIdentity } from '../../../../../../ai/sandbox/identity';
+import {
+  resolveAppSandboxIdentity,
+  type ResolvedAppSandboxIdentity
+} from '../../../../../../ai/sandbox/identity';
 import {
   withSandboxLease,
-  type SandboxLease,
   isTransientSandboxConflict,
   SandboxOperationConflict
 } from '../../../../../../ai/sandbox/lease';
@@ -65,6 +71,8 @@ import { syncSkillCreator } from '../../../../../../agentSkills/builtin';
 type CreateAgentSandboxParams = {
   skillIds: string[];
   expectedVersionIds?: Record<string, string>;
+  resolvedSkills?: ResolvedRuntimeSkill[];
+  initialIdentity?: ResolvedAppSandboxIdentity;
   appId: string;
   runtimeUserId: string;
   teamId: string;
@@ -159,11 +167,12 @@ export async function createAgentSandbox(
   const defaults = getSandboxDefaults();
   validateSandboxConfig(providerConfig);
   const identityProps = { appId, userId: runtimeUserId, chatId: sessionId };
-  const initial = await resolveAppSandboxIdentity(identityProps);
+  const initial = params.initialIdentity ?? (await resolveAppSandboxIdentity(identityProps));
 
   return withSandboxLease('skill-runtime-init:' + initial.sandboxId, async (lease) => {
     onProgress?.({ sandboxId: sessionId, phase: 'checkExisting' });
-    const { identity, sandboxId, instance } = await resolveAppSandboxIdentity(identityProps);
+    const resolvedIdentity = await resolveAppSandboxIdentity(identityProps);
+    const { identity, sandboxId, instance } = resolvedIdentity;
     const workDirectory = getRuntimeSandboxWorkspaceRoot(instance);
     if (sandboxId !== initial.sandboxId) throw new Error('sandbox_identity_migration_required');
     if (!instance) {
@@ -171,35 +180,29 @@ export async function createAgentSandbox(
         onProgress?.({ sandboxId: sessionId, phase: 'failed', message })
       );
     }
-    const resolvedSkills = await resolveRuntimeSkills({
-      skillIds,
-      teamId,
-      tmbId,
-      expectedVersionIds
-    });
+    const resolvedSkills =
+      params.resolvedSkills ??
+      (await resolveRuntimeSkills({
+        skillIds,
+        teamId,
+        tmbId,
+        expectedVersionIds
+      }));
     const skills = resolvedSkills.map(({ skill }) => skill);
     const filter = { provider: providerConfig.provider, sandboxId, 'operation.id': lease.token };
     let client: SandboxClient | undefined;
     let claimed = false;
-    let lifecycleLease: SandboxLease | undefined;
-    const assertActive = async () => {
-      await lease.assertOwned();
-      await lifecycleLease?.assertOwned();
-      if (!(await MongoSandboxInstance.exists(filter))) {
-        throw new Error('operation_conflict: runtime deployment no longer owns the workspace');
-      }
-      await lease.assertOwned();
-    };
     try {
       onProgress?.({
         sandboxId: sessionId,
         phase: instance ? 'connecting' : 'creatingContainer',
         isWarmStart: !!instance
       });
-      client = await getSandboxClient(
+      const connectedClient = await getSandboxClient(
         { appId, userId: runtimeUserId, chatId: sourceChatId },
         {
           priority: 'agent',
+          resolvedIdentity,
           identity: { ...identity, teamId, ownerTmbId: tmbId },
           workspaceRoot: workDirectory,
           createConfig: {
@@ -215,10 +218,10 @@ export async function createAgentSandbox(
           }
         }
       );
+      client = connectedClient;
       return await withSandboxLease(
         `sandbox:lease:${providerConfig.provider}:${sandboxId}`,
         async (held) => {
-          lifecycleLease = held;
           await lease.assertOwned();
           const current = await MongoSandboxInstance.findOne({
             provider: providerConfig.provider,
@@ -236,108 +239,142 @@ export async function createAgentSandbox(
             )
           )
             throw new Error('operation_conflict');
-          const now = new Date();
-          const result = await MongoSandboxInstance.updateOne(
-            {
-              _id: current._id,
-              status: SandboxStatusEnum.running,
-              deleteTime: null,
-              'operation.id': current.operation.id,
-              'operation.checkpoint': current.operation.checkpoint,
-              'operation.type': current.operation.type
-            },
-            {
-              $set: {
-                ...identity,
-                teamId,
-                ownerTmbId: tmbId,
-                appId,
-                userId: runtimeUserId,
-                status: SandboxStatusEnum.provisioning,
-                operation: {
-                  id: lease.token,
-                  type: 'deploy',
-                  checkpoint: 'deploying',
-                  startedAt: now,
-                  updatedAt: now,
-                  heartbeatAt: now,
-                  failureDisposition: 'unknown'
-                }
-              }
-            }
-          );
-          if (result.matchedCount !== 1) throw new Error('operation_conflict');
-          claimed = true;
-          registerSandboxOperationHeartbeat(held, {
+          const sandboxInfo =
+            connectedClient.connectionInfo ?? (await connectedClient.provider.getInfo());
+          if (!sandboxInfo) throw new Error('Failed to get sandbox info after connection');
+          if (
+            current.metadata?.providerSandboxId &&
+            current.metadata.providerSandboxId !== sandboxInfo.id
+          )
+            throw new SandboxOperationConflict('Runtime Sandbox provider binding changed');
+          const currentOperation = current.operation;
+          let operationId = currentOperation.id;
+          const activeFilter = () => ({
             provider: providerConfig.provider,
             sandboxId,
-            operationId: lease.token,
-            operationType: 'deploy'
+            'operation.id': operationId,
+            status: claimed ? SandboxStatusEnum.provisioning : SandboxStatusEnum.running,
+            deleteTime: null
           });
-          const sandboxInfo = await client!.provider.getInfo();
-          if (!sandboxInfo) throw new Error('Failed to get sandbox info after connection');
+          const assertActive = async () => {
+            await lease.assertOwned();
+            await held.assertOwned();
+            if (!(await MongoSandboxInstance.exists(activeFilter())))
+              throw new SandboxOperationConflict('Runtime deployment no longer owns the workspace');
+            await held.assertOwned();
+          };
+          const beginDeployment = async () => {
+            await assertActive();
+            const now = new Date();
+            const result = await MongoSandboxInstance.updateOne(
+              {
+                ...activeFilter(),
+                _id: current._id,
+                'operation.checkpoint': currentOperation.checkpoint,
+                'operation.type': currentOperation.type
+              },
+              {
+                $set: {
+                  ...identity,
+                  teamId,
+                  ownerTmbId: tmbId,
+                  appId,
+                  userId: runtimeUserId,
+                  status: SandboxStatusEnum.provisioning,
+                  operation: {
+                    id: lease.token,
+                    type: 'deploy',
+                    checkpoint: 'deploying',
+                    startedAt: now,
+                    updatedAt: now,
+                    heartbeatAt: now,
+                    failureDisposition: 'unknown'
+                  }
+                }
+              }
+            );
+            if (result.matchedCount !== 1) throw new Error('operation_conflict');
+            claimed = true;
+            operationId = lease.token;
+            registerSandboxOperationHeartbeat(held, {
+              provider: providerConfig.provider,
+              sandboxId,
+              operationId: lease.token,
+              operationType: 'deploy'
+            });
+          };
           const packages: SandboxSkillPackage[] = [];
           for (const { skill, version } of resolvedSkills) {
-            await assertActive();
-            onProgress?.({
-              sandboxId: sessionId,
-              phase: 'downloadingPackage',
-              skillName: skill.name
-            });
             packages.push({
               skillId: String(skill._id),
               versionId: String(version._id),
-              packageBuffer: await downloadSkillPackage({ storageInfo: version.storage }),
+              packageBuffer: async () => {
+                await assertActive();
+                onProgress?.({
+                  sandboxId: sessionId,
+                  phase: 'downloadingPackage',
+                  skillName: skill.name
+                });
+                return downloadSkillPackage({ storageInfo: version.storage });
+              },
               contentHash: version.contentHash,
               avatar: skill.avatar
             });
           }
           const deployment = await deploySandboxSkillPackages({
-            provider: client!.provider,
+            provider: connectedClient.provider,
             workspaceRoot: workDirectory,
             packages,
+            expectedManifestHash: current.currentDeploymentHash,
+            beforeDeploy: beginDeployment,
             assertActive
           });
           await assertActive();
-          const persisted = await MongoSandboxInstance.updateOne(filter, {
-            $set: {
-              status: SandboxStatusEnum.running,
-              lastActiveAt: new Date(),
-              currentDeploymentHash: createHash('sha256')
-                .update(JSON.stringify(deployment.manifest))
-                .digest('hex'),
-              'operation.checkpoint': 'completed',
-              'operation.failureDisposition': 'retryable',
-              'operation.updatedAt': new Date(),
-              'metadata.sandboxType': SandboxTypeEnum.sessionRuntime,
-              'metadata.teamId': teamId,
-              'metadata.tmbId': tmbId,
-              'metadata.sessionId': sessionId,
-              'metadata.skillIds': skills.map((skill) => skill._id),
-              'metadata.provider': providerConfig.provider,
-              'metadata.providerSandboxId': sandboxInfo.id,
-              'metadata.image': sandboxInfo.image,
-              'metadata.providerCreatedAt': sandboxInfo.createdAt,
-              'metadata.workspaceRoot': workDirectory
-            }
-          });
+          const persisted = await MongoSandboxInstance.updateOne(
+            activeFilter(),
+            claimed
+              ? {
+                  $set: {
+                    status: SandboxStatusEnum.running,
+                    lastActiveAt: new Date(),
+                    currentDeploymentHash: createHash('sha256')
+                      .update(JSON.stringify(deployment.manifest))
+                      .digest('hex'),
+                    'operation.checkpoint': 'completed',
+                    'operation.failureDisposition': 'retryable',
+                    'operation.updatedAt': new Date(),
+                    'metadata.sandboxType': SandboxTypeEnum.sessionRuntime,
+                    'metadata.teamId': teamId,
+                    'metadata.tmbId': tmbId,
+                    'metadata.sessionId': sessionId,
+                    'metadata.skillIds': skills.map((skill) => skill._id),
+                    'metadata.provider': providerConfig.provider,
+                    'metadata.providerSandboxId': sandboxInfo.id,
+                    'metadata.image': sandboxInfo.image,
+                    'metadata.providerCreatedAt': sandboxInfo.createdAt,
+                    'metadata.workspaceRoot': workDirectory
+                  }
+                }
+              : { $set: { lastActiveAt: new Date() } }
+          );
           if (persisted.matchedCount !== 1)
             throw new SandboxOperationConflict('runtime deployment lost ownership after effects');
+          claimed = false;
+          const deployedSkills = await discoverRuntimeSandboxSkills({
+            provider: connectedClient.provider,
+            workspaceRoot: workDirectory,
+            publishedSkills: deployment.deployedSkills
+          });
+          await assertActive();
           onProgress?.({ sandboxId: sessionId, phase: 'ready', isWarmStart: !!instance });
           return {
-            sandbox: client!.provider,
+            sandbox: connectedClient.provider,
             sandboxId,
             providerSandboxId: sandboxInfo.id,
             sessionId,
-            operationId: lease.token,
+            operationId,
             skills,
-            deployedSkills: deployment.deployedSkills.map((skill) => ({
-              ...skill,
-              versionId: String(
-                resolvedSkills.find((resolved) => String(resolved.skill._id) === skill.id)!.version
-                  ._id
-              )
-            })),
+            deployedSkills,
             workspaceRoot: workDirectory,
             workDirectory: getSandboxSessionDirectory(workDirectory, sourceChatId),
             isReady: true

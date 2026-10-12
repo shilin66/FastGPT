@@ -154,6 +154,12 @@ export const SandboxInstanceZodSchema = z.object({
     })
     .optional(),
   archiveKeys: z.array(z.string()).optional(),
+  forceDeletion: z
+    .object({
+      requestedAt: z.coerce.date(),
+      previousOperation: SandboxOperationSchema.optional()
+    })
+    .optional(),
   limit: SandboxLimitSchema.nullish(),
   provider: SandboxProviderSchema,
   storage: SandboxStorageSchema.nullish(),

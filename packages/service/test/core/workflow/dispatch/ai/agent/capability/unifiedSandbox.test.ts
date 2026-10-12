@@ -6,6 +6,9 @@ import {
   SANDBOX_TOOL_NAME
 } from '@fastgpt/global/core/ai/sandbox/constants';
 import { SandboxToolIds } from '@fastgpt/global/core/workflow/node/agent/skillTools';
+import { SandboxCapacityError } from '@fastgpt/service/core/ai/sandbox/errors';
+import { SandboxTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
+import { SseResponseEventEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 
 vi.mock('@fastgpt/service/core/ai/sandbox/operation', async (original) => ({
   ...(await original<typeof import('@fastgpt/service/core/ai/sandbox/operation')>()),
@@ -18,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   getClient: vi.fn(),
   executeCommand: vi.fn(),
   upload: vi.fn(),
+  identity: vi.fn(),
   runEdit: vi.fn(async ({ execute }: { execute: () => Promise<unknown> }) => execute())
 }));
 vi.mock('@fastgpt/service/core/agentSkills/runtimeResolver', () => ({
@@ -47,7 +51,13 @@ vi.mock('@fastgpt/service/core/ai/sandbox/command', async (original) => ({
   executeWorkspaceCommand: mocks.executeCommand
 }));
 vi.mock('@fastgpt/service/core/ai/sandbox/identity', () => ({
-  resolveAppSandboxIdentity: async () => ({})
+  resolveAppSandboxIdentity: mocks.identity
+}));
+vi.mock('@fastgpt/service/env', async (original) => ({
+  env: {
+    ...(await original<typeof import('@fastgpt/service/env')>()).env,
+    AGENT_SANDBOX_PROVIDER: 'opensandbox'
+  }
 }));
 vi.mock('@fastgpt/service/common/s3/sources/chat', () => ({
   getS3ChatSource: () => ({ uploadChatFile: mocks.upload })
@@ -111,6 +121,7 @@ describe('Agent sandbox tools share one workspace', () => {
       isReady: true
     };
     mocks.create.mockResolvedValue(context);
+    mocks.identity.mockResolvedValue({});
     mocks.edit.mockResolvedValue(context);
     mocks.getClient.mockRejectedValue(new Error('Unexpected second sandbox'));
     mocks.executeCommand.mockImplementation(
@@ -135,6 +146,59 @@ describe('Agent sandbox tools share one workspace', () => {
     mocks.upload.mockImplementation(async ({ body }: { body: AsyncIterable<Uint8Array> }) => {
       for await (const chunk of body) downloaded += new TextDecoder().decode(chunk);
       return { key: 'report' };
+    });
+  });
+
+  it('prepares pinned published paths and local Skill metadata before the model prompt is consumed', async () => {
+    context.deployedSkills = [
+      {
+        id: 'published',
+        versionId: 'v1',
+        source: 'published',
+        name: 'demo',
+        description: 'Edited published Skill',
+        directory: '/workspace/.runtime/skills/published/v1/generation/skills/demo',
+        skillMdPath: '/workspace/.runtime/skills/published/v1/generation/skills/demo/SKILL.md'
+      },
+      {
+        id: 'workspace:skills/demo',
+        source: 'workspace',
+        name: 'demo',
+        description: 'Local Skill',
+        directory: '/workspace/skills/demo',
+        skillMdPath: '/workspace/skills/demo/SKILL.md'
+      }
+    ];
+    const capability = await createSandboxSkillsCapability({ ...params, skillIds: ['published'] });
+    await capability.prepare?.();
+    expect(mocks.create).toHaveBeenCalledTimes(1);
+    expect(capability.systemPrompt).toContain(context.deployedSkills[0].skillMdPath);
+    expect(capability.systemPrompt).toContain('Edited published Skill');
+    expect(capability.systemPrompt).toContain('/workspace/skills/demo/SKILL.md');
+    expect(capability.systemPrompt).toContain('<source>workspace</source>');
+    expect(capability.systemPrompt).not.toContain('/.runtime/current/');
+  });
+
+  it('discovers local Skills in an existing workspace even without published bindings', async () => {
+    mocks.identity.mockResolvedValue({ instance: { metadata: { workspaceRoot: '/workspace' } } });
+    const capability = await createSandboxSkillsCapability(params);
+    await capability.prepare?.();
+    expect(mocks.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps an empty unbound workspace lazy during model preparation', async () => {
+    const capability = await createSandboxSkillsCapability(params);
+    await capability.prepare?.();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it('reports a bound Skill preparation failure before model execution', async () => {
+    mocks.create.mockRejectedValue(
+      new SandboxCapacityError(SandboxTypeEnum.sessionRuntime, 21, 20)
+    );
+    const capability = await createSandboxSkillsCapability({ ...params, skillIds: ['published'] });
+    await expect(capability.prepare?.()).rejects.toMatchObject({
+      message: 'chat:sandbox_capacity_exceeded'
     });
   });
 
@@ -264,6 +328,58 @@ describe('Agent sandbox tools share one workspace', () => {
     expect(mocks.create).toHaveBeenCalledTimes(1);
     expect(mocks.getClient).not.toHaveBeenCalled();
   });
+
+  it.each([{ skillIds: [] }, { skillIds: ['skill-id'] }])(
+    'preserves the quota reason when initialization fails with skills $skillIds',
+    async ({ skillIds }) => {
+      const error = new SandboxCapacityError(SandboxTypeEnum.sessionRuntime, 21, 20);
+      mocks.create.mockRejectedValue(error);
+      const workflowStreamResponse = vi.fn();
+      const capability = await createSandboxSkillsCapability({
+        ...params,
+        skillIds,
+        workflowStreamResponse
+      });
+
+      const execution = capability.handleToolCall?.(
+        SANDBOX_TOOL_NAME,
+        '{"command":"true"}',
+        'quota-call'
+      );
+      if (skillIds.length) {
+        await expect(execution).rejects.toMatchObject({
+          message: 'chat:sandbox_capacity_exceeded',
+          assistantResponses: [
+            {
+              sandboxEvent: expect.objectContaining({
+                status: 'failed',
+                code: 'sandbox_capacity_exceeded'
+              })
+            }
+          ]
+        });
+      } else {
+        const result = await execution;
+        expect(result?.assistantResponses?.[0].sandboxEvent).toMatchObject({
+          status: 'degraded',
+          code: 'sandbox_capacity_exceeded'
+        });
+        expect(JSON.parse(result?.response ?? '{}')).toEqual({
+          code: 'sandbox_capacity_exceeded',
+          status: 'degraded',
+          retryable: false
+        });
+      }
+      expect(workflowStreamResponse).toHaveBeenCalledWith({
+        event: SseResponseEventEnum.sandboxStatus,
+        data: expect.objectContaining({
+          phase: 'failed',
+          message: 'chat:sandbox_capacity_exceeded'
+        })
+      });
+      expect(files.size).toBe(0);
+    }
+  );
 
   it('rejects invalid legacy arguments before starting a sandbox', async () => {
     const capability = await createSandboxSkillsCapability(params);

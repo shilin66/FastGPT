@@ -17,6 +17,7 @@ import { withSandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
 import { createLeaseRedisEval } from './leaseRedisMock';
 import { runSandboxOperation } from '@fastgpt/service/core/ai/sandbox/operation';
 import { generateSandboxIdentityId } from '@fastgpt/service/core/ai/sandbox/identity';
+import * as sandboxIdentity from '@fastgpt/service/core/ai/sandbox/identity';
 import { SandboxStatusEnum } from '@fastgpt/global/core/ai/sandbox/constants';
 
 const {
@@ -26,6 +27,7 @@ const {
   providerExecute,
   providerInspect,
   providerConnect,
+  providerInfo,
   volumeEnsure,
   volumeConfirm,
   volumeDelete,
@@ -46,6 +48,7 @@ const {
   providerExecute: vi.fn(),
   providerInspect: vi.fn(),
   providerConnect: vi.fn(),
+  providerInfo: vi.fn(async () => ({ id: 'provider-instance', status: { state: 'Running' } })),
   volumeEnsure: vi.fn(),
   volumeConfirm: vi.fn(),
   volumeDelete: vi.fn(),
@@ -95,7 +98,7 @@ vi.mock('@fastgpt-sdk/sandbox-adapter', async (importOriginal) => {
     execute = providerExecute;
     inspectExisting = providerInspect;
     connectExisting = providerConnect;
-    getInfo = async () => ({ id: 'provider-instance', status: { state: 'Running' } });
+    getInfo = providerInfo;
     close = async () => {};
   }
   return {
@@ -164,6 +167,47 @@ describe('file browser instance binding', () => {
         return 'existing file';
       }, 'read')
     ).resolves.toBe('existing file');
+  });
+
+  it('reuses the resolved identity and exposes the connection check without another provider request', async () => {
+    await seedBrowser();
+    const resolvedIdentity = await sandboxIdentity.resolveAppSandboxIdentity(scope);
+    const resolve = vi.spyOn(sandboxIdentity, 'resolveAppSandboxIdentity');
+    providerInfo.mockClear();
+    try {
+      const client = await getSandboxClient(scope, {
+        resolvedIdentity,
+        workspaceRoot: '/workspace'
+      });
+      expect(client.connectionInfo).toMatchObject({
+        id: 'provider-instance',
+        status: { state: 'Running' }
+      });
+      expect(providerInfo).toHaveBeenCalledTimes(1);
+      expect(resolve).not.toHaveBeenCalled();
+      await MongoSandboxInstance.updateOne(
+        { sandboxId: client.id },
+        {
+          $set: {
+            status: 'provisioning',
+            'operation.type': 'deploy',
+            'operation.checkpoint': 'deploying'
+          }
+        }
+      );
+      await expect(client.ensureAvailable()).rejects.toThrow('operation_conflict');
+      expect(client.connectionInfo).toBeUndefined();
+    } finally {
+      resolve.mockRestore();
+    }
+  });
+
+  it('rejects a resolved workspace belonging to another user', async () => {
+    const resolvedIdentity = await sandboxIdentity.resolveAppSandboxIdentity(scope);
+    await expect(
+      getSandboxClient({ ...scope, userId: 'other-user' }, { resolvedIdentity })
+    ).rejects.toThrow('operation_conflict');
+    expect(providerConnect).not.toHaveBeenCalled();
   });
 
   it('resumes a selected workspace that was stopped before file browsing', async () => {

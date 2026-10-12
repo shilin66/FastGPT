@@ -1,3 +1,14 @@
+import type { SandboxTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
+
+export class SandboxCapacityError extends Error {
+  readonly name = 'SandboxCapacityError';
+  readonly code = 'sandbox_capacity_exceeded';
+
+  constructor(type: SandboxTypeEnum, used: number, limit: number) {
+    super(`Active ${type} sandbox limit reached (${used}/${limit}). Please try again later.`);
+  }
+}
+
 const infrastructureCodes = new Set([
   'CONNECTION_ERROR',
   'INVALID_STATE',

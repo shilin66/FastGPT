@@ -5,6 +5,7 @@ import { connectionMongo } from '@fastgpt/service/common/mongo';
 import { MongoTimerLock } from '@fastgpt/service/common/system/timerLock/schema';
 import { MongoSandboxInstance } from '@fastgpt/service/core/ai/sandbox/schema';
 import { runSandboxOperation } from '@fastgpt/service/core/ai/sandbox/operation';
+import { assertSandboxCapacity } from '@fastgpt/service/core/ai/sandbox/capacity';
 import type { SandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
 import type { SandboxInstanceSchemaType } from '@fastgpt/service/core/ai/sandbox/type';
 
@@ -67,6 +68,17 @@ describe.each([SandboxTypeEnum.editDebug, SandboxTypeEnum.sessionRuntime])(
         },
         run
       );
+
+    it('identifies quota exhaustion when admission is rejected', async () => {
+      await seed({ status: 'running' });
+      const onLimit = vi.fn();
+
+      await expect(assertSandboxCapacity(sandboxType, onLimit)).rejects.toMatchObject({
+        name: 'SandboxCapacityError',
+        code: 'sandbox_capacity_exceeded'
+      });
+      expect(onLimit).toHaveBeenCalledWith(expect.stringContaining('(1/1)'));
+    });
 
     it('admits at most one of eight creators at the final slot, including first guard creation', async () => {
       const provider = vi.fn(async () => undefined);

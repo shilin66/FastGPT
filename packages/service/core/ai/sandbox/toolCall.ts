@@ -7,7 +7,7 @@ import {
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import { parseJsonArgs } from '../utils';
 import { getSandboxClient, type SandboxClient } from './controller';
-import { isSandboxInfrastructureError } from './errors';
+import { isSandboxInfrastructureError, SandboxCapacityError } from './errors';
 import { getS3ChatSource } from '../../../common/s3/sources/chat';
 import path from 'path';
 import { jwtSignS3ObjectKey } from '../../../common/s3/utils';
@@ -30,7 +30,7 @@ export type SandboxToolCallResult = {
   input: Record<string, any>;
   response: string;
   durationSeconds: number;
-  errorCode?: 'sandbox_unavailable';
+  errorCode?: 'sandbox_unavailable' | 'sandbox_capacity_exceeded';
 };
 
 /**
@@ -70,6 +70,10 @@ export const callSandboxTool = async ({
       };
     } catch (error) {
       if (!instance || isSandboxInfrastructureError(error)) {
+        const errorCode =
+          error instanceof SandboxCapacityError
+            ? 'sandbox_capacity_exceeded'
+            : 'sandbox_unavailable';
         getLogger(LogCategories.MODULE.AI.AGENT).error('Sandbox unavailable', {
           appId,
           chatId,
@@ -77,8 +81,8 @@ export const callSandboxTool = async ({
         });
         return {
           input: { command, timeout },
-          response: JSON.stringify({ code: 'sandbox_unavailable', retryable: false }),
-          errorCode: 'sandbox_unavailable',
+          response: JSON.stringify({ code: errorCode, retryable: false }),
+          errorCode,
           durationSeconds: getDuration()
         };
       }
@@ -148,6 +152,10 @@ export const callSandboxTool = async ({
       };
     } catch (error) {
       if (!instance || isSandboxInfrastructureError(error)) {
+        const errorCode =
+          error instanceof SandboxCapacityError
+            ? 'sandbox_capacity_exceeded'
+            : 'sandbox_unavailable';
         getLogger(LogCategories.MODULE.AI.AGENT).error('Sandbox unavailable', {
           appId,
           chatId,
@@ -155,8 +163,8 @@ export const callSandboxTool = async ({
         });
         return {
           input: { paths },
-          response: JSON.stringify({ code: 'sandbox_unavailable', retryable: false }),
-          errorCode: 'sandbox_unavailable',
+          response: JSON.stringify({ code: errorCode, retryable: false }),
+          errorCode,
           durationSeconds: getDuration()
         };
       }

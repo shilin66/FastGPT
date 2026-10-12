@@ -22,7 +22,7 @@ import type { SandboxWorkspaceItem } from '@fastgpt/global/openapi/core/ai/sandb
 import { actOnSandboxWorkspace, listSandboxWorkspaces } from '@/web/core/ai/sandbox/management';
 
 type Scope = { sourceType: 'appRuntime' | 'skillEdit'; sourceId: string };
-type Action = 'release' | 'delete';
+type Action = 'release' | 'delete' | 'forceDelete';
 
 const SandboxManagementModal = ({
   isOpen,
@@ -46,6 +46,7 @@ const SandboxManagementModal = ({
   const [pending, setPending] = useState(false);
   const [progress, setProgress] = useState('');
   const [failed, setFailed] = useState<string[]>([]);
+  const [incomplete, setIncomplete] = useState<string[]>([]);
   const [detailId, setDetailId] = useState<string>();
   const { openConfirm, ConfirmModal } = useConfirm();
   const requestSeq = useRef(0);
@@ -56,8 +57,17 @@ const SandboxManagementModal = ({
     setLoading(true);
     setLoadError(false);
     try {
-      const result = await listSandboxWorkspaces({ ...scope, page, pageSize, search });
+      const result = await listSandboxWorkspaces({
+        sourceId: scope.sourceId,
+        sourceType: scope.sourceType,
+        page,
+        pageSize,
+        search
+      });
       if (requestId !== requestSeq.current) return;
+      if (!result.list.length && page > 1) {
+        setPage(Math.max(1, Math.ceil(result.total / pageSize)));
+      }
       setItems(result.list);
       setTotal(result.total);
       setSupported(result.supported);
@@ -77,6 +87,7 @@ const SandboxManagementModal = ({
   useEffect(() => {
     setSelected([]);
     setFailed([]);
+    setIncomplete([]);
     setProgress('');
     setDetailId(undefined);
   }, [scope.sourceId, scope.sourceType, page, search]);
@@ -92,9 +103,11 @@ const SandboxManagementModal = ({
     eligible.length > 0 && eligible.every((item) => selected.includes(item.sandboxId));
   const detail = items.find((item) => item.sandboxId === detailId);
   const recordStatusLabel = (item: SandboxWorkspaceItem) =>
-    item.releasedAt
-      ? t('chat:sandbox_manage_released')
-      : t(`chat:sandbox_manage_state_${item.status}`, { defaultValue: item.status });
+    item.forceDeletionPending
+      ? t('chat:sandbox_manage_force_pending')
+      : item.releasedAt
+        ? t('chat:sandbox_manage_released')
+        : t(`chat:sandbox_manage_state_${item.status}`, { defaultValue: item.status });
   const providerStatusLabel = (item: SandboxWorkspaceItem) =>
     t(`chat:sandbox_manage_provider_${item.providerStatus}`);
   const sourceTypeLabel = (item: SandboxWorkspaceItem) =>
@@ -108,15 +121,35 @@ const SandboxManagementModal = ({
     setPending(true);
     setFailed([]);
     const errors: string[] = [];
+    const unfinished: string[] = [];
+    setIncomplete([]);
     for (const [index, item] of targets.entries()) {
       setProgress(`${index + 1}/${targets.length}`);
       try {
-        await actOnSandboxWorkspace({ ...scope, sandboxId: item.sandboxId, action });
+        const result = await actOnSandboxWorkspace({
+          ...scope,
+          sandboxId: item.sandboxId,
+          action,
+          ...(action === 'forceDelete' ? { deletionRevision: item.deletionRevision } : {})
+        });
+        if (result.status === 'pending') {
+          const reason = [
+            'busy',
+            'stale',
+            'ownership_conflict',
+            'unknown_operation',
+            'cleanup_failed'
+          ].includes(result.reason ?? '')
+            ? result.reason
+            : 'cleanup_failed';
+          unfinished.push(`${item.sandboxId} (${t(`chat:sandbox_manage_force_reason_${reason}`)})`);
+        } else if (!result.success) errors.push(item.sandboxId);
       } catch {
         errors.push(item.sandboxId);
       }
     }
     setFailed(errors);
+    setIncomplete(unfinished);
     setProgress('');
     setPending(false);
     setSelected([]);
@@ -126,9 +159,14 @@ const SandboxManagementModal = ({
   const confirm = (action: Action, targets: SandboxWorkspaceItem[]) => {
     if (!targets.length) return;
     const message =
-      action === 'release'
-        ? t('chat:sandbox_manage_release_confirm', { count: targets.length })
-        : t('chat:sandbox_manage_delete_confirm', { count: targets.length });
+      action === 'forceDelete'
+        ? t('chat:sandbox_manage_force_confirm', {
+            name: targets[0].sourceName,
+            sandboxId: targets[0].sandboxId
+          })
+        : action === 'release'
+          ? t('chat:sandbox_manage_release_confirm', { count: targets.length })
+          : t('chat:sandbox_manage_delete_confirm', { count: targets.length });
     openConfirm({
       customContent: String(message),
       onConfirm: () => execute(action, targets)
@@ -350,6 +388,11 @@ const SandboxManagementModal = ({
                           >
                             {providerStatusLabel(item)}
                           </Badge>
+                          {item.forceDeletionPending && (
+                            <Text fontSize={'11px'} color={'orange.600'} mt={1}>
+                              {t('chat:sandbox_manage_force_pending')}
+                            </Text>
+                          )}
                           {(item.statusMismatch || item.providerStatus === 'unknown') && (
                             <Text
                               fontSize={'11px'}
@@ -395,15 +438,28 @@ const SandboxManagementModal = ({
                             size={'xs'}
                             colorScheme={'red'}
                             variant={'outline'}
-                            isDisabled={!item.canDelete || pending}
-                            onClick={() => confirm('delete', [item])}
+                            isDisabled={(!item.canDelete && !item.canForceDelete) || pending}
+                            onClick={() =>
+                              confirm(item.canForceDelete ? 'forceDelete' : 'delete', [item])
+                            }
                           >
-                            {t('chat:sandbox_manage_delete')}
+                            {item.canForceDelete
+                              ? t(
+                                  item.forceDeletionPending
+                                    ? 'chat:sandbox_manage_force_continue'
+                                    : 'chat:sandbox_manage_force_delete'
+                                )
+                              : t('chat:sandbox_manage_delete')}
                           </Button>
                         </Flex>
                       </Flex>
                     ))}
                   </Box>
+                )}
+                {incomplete.length > 0 && (
+                  <Text color={'orange.600'} mt={3} role={'alert'}>
+                    {t('chat:sandbox_manage_force_pending_hint')}: {incomplete.join(', ')}
+                  </Text>
                 )}
                 {failed.length > 0 && (
                   <Text color={'red.500'} mt={3} role={'alert'}>

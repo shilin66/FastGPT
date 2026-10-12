@@ -5,6 +5,7 @@ import type { AgentSkillSchemaType } from '@fastgpt/global/core/agentSkills/type
 export type DeployedSkillInfo = {
   id: string; // skill id from Mongo
   versionId?: string;
+  source?: 'published' | 'workspace';
   name: string; // from SKILL.md frontmatter
   description: string; // from SKILL.md frontmatter
   avatar?: string; // skill avatar

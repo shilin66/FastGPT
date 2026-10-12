@@ -244,6 +244,7 @@ export const dispatchRunAgent = async (props: DispatchAgentModuleProps): Promise
     }
 
     // Aggregate capability contributions
+    for (const capability of capabilities) await capability.prepare?.();
     const capabilitySystemPrompt = capabilities
       .map((c) => c.systemPrompt)
       .filter(Boolean)

@@ -36,7 +36,13 @@ export const SandboxWorkspaceItemSchema = z.object({
   releasedAt: z.string().optional(),
   hasPersistentStorage: z.boolean(),
   canRelease: z.boolean(),
-  canDelete: z.boolean()
+  canDelete: z.boolean(),
+  canForceDelete: z.boolean().optional(),
+  forceDeletionPending: z.boolean().optional(),
+  deletionRevision: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional()
 });
 export type SandboxWorkspaceItem = z.infer<typeof SandboxWorkspaceItemSchema>;
 
@@ -49,6 +55,19 @@ export type SandboxWorkspacesListResponse = z.infer<typeof SandboxWorkspacesList
 
 export const SandboxWorkspaceActionBodySchema = SandboxManagementScopeSchema.extend({
   sandboxId: z.string().min(1),
-  action: z.enum(['release', 'delete'])
+  action: z.enum(['release', 'delete', 'forceDelete']),
+  deletionRevision: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional()
+}).refine((body) => body.action !== 'forceDelete' || !!body.deletionRevision, {
+  message: 'deletionRevision is required for forceDelete',
+  path: ['deletionRevision']
 });
 export type SandboxWorkspaceActionBody = z.infer<typeof SandboxWorkspaceActionBodySchema>;
+
+export type SandboxWorkspaceActionResponse = {
+  success: boolean;
+  status?: 'deleted' | 'pending';
+  reason?: string;
+};

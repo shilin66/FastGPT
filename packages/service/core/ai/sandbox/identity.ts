@@ -4,6 +4,8 @@ import { MongoSandboxInstance } from './schema';
 import { SandboxProviderSchema } from './type';
 import { env } from '../../../env';
 
+export type ResolvedAppSandboxIdentity = Awaited<ReturnType<typeof resolveAppSandboxIdentity>>;
+
 export const generateSandboxIdentityId = (input: SandboxIdentity): string => {
   const identity = SandboxIdentitySchema.parse(input);
   if (identity.sourceType === 'appRuntime' && identity.reuseScope === 'user') {

@@ -99,7 +99,9 @@ export type SkillModuleResponseItemType = z.infer<typeof SkillModuleResponseItem
 export const SandboxRuntimeEventSchema = z.object({
   id: z.string(),
   status: z.enum(['ready', 'referenced', 'failed', 'degraded']),
-  code: z.enum(['sandbox_unavailable', 'skill_unavailable']).optional(),
+  code: z
+    .enum(['sandbox_unavailable', 'sandbox_capacity_exceeded', 'skill_unavailable'])
+    .optional(),
   skillId: z.string().optional(),
   versionId: z.string().optional(),
   baseVersionId: z.string().optional(),

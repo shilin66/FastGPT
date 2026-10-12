@@ -46,6 +46,7 @@ import {
 import { SandboxUnavailableError, isFatalAgentError } from '../sub/sandbox/errors';
 import {
   isSandboxInfrastructureError,
+  SandboxCapacityError,
   SandboxVolumeConfigurationError
 } from '../../../../../ai/sandbox/errors';
 import {
@@ -67,6 +68,7 @@ import {
 import { callSandboxTool } from '../../../../../ai/sandbox/toolCall';
 import { WorkspaceCommandOutcomeUnknown } from '../../../../../ai/sandbox/command';
 import { runSandboxActivity } from '../../../../../ai/sandbox/operation';
+import { i18nT } from '../../../../../../../web/i18n/utils';
 import {
   SandboxOperationConflict,
   isTransientSandboxConflict
@@ -282,12 +284,13 @@ export async function createSandboxSkillsCapability(
   }): SandboxToolResult => {
     const status = skillIds.length || isEditDebug ? 'failed' : 'degraded';
     const configurationError = error instanceof SandboxVolumeConfigurationError ? error : undefined;
+    const capacityError = error instanceof SandboxCapacityError ? error : undefined;
     const bindings = context?.deployedSkills.length ? context.deployedSkills : [undefined];
     const assistantResponses: AIChatItemValueItemType[] = bindings.map((skill) => ({
       sandboxEvent: {
         id: toolCallId,
         status,
-        code: 'sandbox_unavailable',
+        code: capacityError ? 'sandbox_capacity_exceeded' : 'sandbox_unavailable',
         skillId: skill?.id,
         versionId: skill?.versionId,
         baseVersionId: context?.baseVersionId,
@@ -314,11 +317,21 @@ export async function createSandboxSkillsCapability(
       sandboxId: context?.sandboxId,
       operationId: context?.operationId
     });
+    if (capacityError) {
+      workflowStreamResponse?.({
+        event: SseResponseEventEnum.sandboxStatus,
+        data: {
+          sandboxId: sessionId,
+          phase: 'failed',
+          message: i18nT('chat:sandbox_capacity_exceeded')
+        }
+      });
+    }
     if (status === 'failed')
-      throw new SandboxUnavailableError(assistantResponses, configurationError);
+      throw new SandboxUnavailableError(assistantResponses, configurationError ?? capacityError);
     return {
       response: JSON.stringify({
-        code: 'sandbox_unavailable',
+        code: capacityError ? 'sandbox_capacity_exceeded' : 'sandbox_unavailable',
         status,
         retryable: false,
         ...(configurationError ? { message: configurationError.message } : {})
@@ -442,18 +455,12 @@ export async function createSandboxSkillsCapability(
     resolvedSkills.map(({ skill, version }) => [String(skill._id), String(version._id)])
   );
   params.onResolvedVersionIds?.(expectedVersionIds);
-  const instance = env.AGENT_SANDBOX_PROVIDER
-    ? (await resolveAppSandboxIdentity({ appId, userId: runtimeUserId, chatId: sessionId }))
-        .instance
+  const initialIdentity = env.AGENT_SANDBOX_PROVIDER
+    ? await resolveAppSandboxIdentity({ appId, userId: runtimeUserId, chatId: sessionId })
     : undefined;
+  const instance = initialIdentity?.instance;
   const workDirectory = getRuntimeSandboxWorkspaceRoot(instance);
-  const skillsMeta = fetchSkillsMetaForPrompt({ resolvedSkills, workDirectory });
-
-  const systemPrompt = buildSkillsContextPrompt(
-    skillsMeta,
-    getSandboxSessionDirectory(workDirectory, params.sourceChatId ?? sessionId),
-    workDirectory
-  );
+  let skillsMeta = fetchSkillsMetaForPrompt({ resolvedSkills, workDirectory });
 
   // --- Lazy-init state ---
   let sandboxContext: AgentSandboxContext | null = null;
@@ -474,6 +481,8 @@ export async function createSandboxSkillsCapability(
         return await createAgentSandbox({
           skillIds,
           expectedVersionIds,
+          resolvedSkills: attempt === 0 ? resolvedSkills : undefined,
+          initialIdentity: attempt === 0 ? initialIdentity : undefined,
           appId,
           runtimeUserId,
           teamId,
@@ -505,6 +514,7 @@ export async function createSandboxSkillsCapability(
         .then((ctx) => {
           ctx.shouldStop = params.checkIsStopping;
           sandboxContext = ctx;
+          skillsMeta = ctx.deployedSkills;
           initPromise = null;
           return ctx;
         })
@@ -573,7 +583,24 @@ export async function createSandboxSkillsCapability(
 
   return {
     id: 'sandbox-skills',
-    systemPrompt,
+    prepare: async () => {
+      if ((!skillIds.length && !instance) || params.checkIsStopping?.()) return;
+      try {
+        await ensureSandbox();
+      } catch (error) {
+        if (params.checkIsStopping?.()) return;
+        if (isFatalAgentError(error) && !(error instanceof SandboxUnavailableError)) throw error;
+        unavailableResult = failure({ error });
+      }
+    },
+    get systemPrompt() {
+      return buildSkillsContextPrompt(
+        skillsMeta,
+        sandboxContext?.workDirectory ??
+          getSandboxSessionDirectory(workDirectory, params.sourceChatId ?? sessionId),
+        sandboxContext?.workspaceRoot ?? workDirectory
+      );
+    },
     completionTools: allSandboxTools,
     handleToolCall: async (toolId, args, toolCallId) => {
       if (!Object.hasOwn(sandboxToolSchemas, toolId)) return null;

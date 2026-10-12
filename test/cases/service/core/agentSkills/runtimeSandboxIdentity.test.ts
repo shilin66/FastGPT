@@ -26,10 +26,16 @@ vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
   getSandboxClient: getClientMock
 }));
 vi.mock('@fastgpt/service/core/agentSkills/sandboxDeployment', () => ({
-  deploySandboxSkillPackages: async () => ({
-    manifest: { schemaVersion: 1, entries: [] },
-    deployedSkills: []
-  })
+  deploySandboxSkillPackages: async ({ beforeDeploy }: { beforeDeploy: () => Promise<void> }) => {
+    await beforeDeploy();
+    return {
+      manifest: { schemaVersion: 1, entries: [] },
+      deployedSkills: []
+    };
+  }
+}));
+vi.mock('@fastgpt/service/core/agentSkills/runtimeDiscovery', () => ({
+  discoverRuntimeSandboxSkills: async () => []
 }));
 vi.mock('@fastgpt/service/core/ai/sandbox/lease', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@fastgpt/service/core/ai/sandbox/lease')>()),

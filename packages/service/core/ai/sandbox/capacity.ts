@@ -7,6 +7,7 @@ import type { ClientSession } from '../../../common/mongo';
 import { mongoSessionRun } from '../../../common/mongo/sessionRun';
 import { MongoTimerLock } from '../../../common/system/timerLock/schema';
 import type { SandboxInstanceSchemaType } from './type';
+import { SandboxCapacityError } from './errors';
 
 export const hasSandboxCapacityReservation = (
   instance: Pick<SandboxInstanceSchemaType, 'status' | 'capacityReserved'>
@@ -87,8 +88,8 @@ export const assertSandboxCapacity = async (
     { session }
   );
   if (activeCount >= limit) {
-    const message = `Active ${type} sandbox limit reached (${activeCount}/${limit}). Please try again later.`;
-    onLimit?.(message);
-    throw new Error(message);
+    const error = new SandboxCapacityError(type, activeCount, limit);
+    onLimit?.(error.message);
+    throw error;
   }
 };

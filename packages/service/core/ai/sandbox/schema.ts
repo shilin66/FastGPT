@@ -66,6 +66,16 @@ const SandboxInstanceSchema = new Schema(
     currentDeploymentHash: String,
     capacityReserved: Boolean,
     operation: SandboxOperationSchema,
+    forceDeletion: {
+      type: new Schema(
+        {
+          requestedAt: { type: Date, required: true },
+          previousOperation: SandboxOperationSchema
+        },
+        { _id: false }
+      ),
+      default: undefined
+    },
     orphan: {
       type: new Schema(
         {

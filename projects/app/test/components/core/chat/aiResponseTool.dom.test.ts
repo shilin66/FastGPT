@@ -2,8 +2,14 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { ChakraProvider } from '@chakra-ui/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import chatZhCN from '@fastgpt/web/i18n/zh-CN/chat.json';
 
-vi.mock('next-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('next-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) =>
+      key === 'chat:sandbox_capacity_exceeded' ? chatZhCN.sandbox_capacity_exceeded : key
+  })
+}));
 vi.mock('@fastgpt/web/hooks/useSafeTranslation', () => ({
   useSafeTranslation: () => ({ t: (key: string) => key })
 }));
@@ -89,5 +95,27 @@ describe('chat tool cards', () => {
     expect(container.textContent).toContain('large-content');
     await act(async () => buttons[0].click());
     expect(container.textContent).not.toContain('large-content');
+  });
+
+  it('does not show quota errors in the chat message for a failed or degraded sandbox', async () => {
+    for (const status of ['failed', 'degraded'] as const) {
+      await act(async () =>
+        root.render(
+          React.createElement(
+            ChakraProvider,
+            null,
+            React.createElement(AIResponseBox, {
+              chatItemDataId: 'answer-quota',
+              value: { sandboxEvent: { id: 'quota', status, code: 'sandbox_capacity_exceeded' } },
+              isLastResponseValue: true,
+              isLastChild: true,
+              isChatting: false
+            })
+          )
+        )
+      );
+      expect(container.querySelector('[role="alert"]')).toBeNull();
+      expect(container.textContent).not.toContain('沙箱配额已满');
+    }
   });
 });

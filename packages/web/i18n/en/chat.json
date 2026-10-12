@@ -299,6 +299,17 @@
   "sandbox_status_ready_warm": "Sandbox connected",
   "sandbox_status_ready_cold": "Sandbox ready",
   "sandbox_status_failed": "Sandbox failed to start",
+  "sandbox_capacity_exceeded": "Sandbox quota is full",
   "sandbox_status_lazyInit": "Initializing sandbox...",
-  "skill_calling": "Calling skill: {{name}}"
+  "skill_calling": "Calling skill: {{name}}",
+  "sandbox_manage_force_delete": "Force delete",
+  "sandbox_manage_force_continue": "Continue deletion",
+  "sandbox_manage_force_pending": "Deletion pending",
+  "sandbox_manage_force_pending_hint": "Deletion pending. Some resources remain; refresh and continue deletion.",
+  "sandbox_manage_force_confirm": "Force delete workspace {{sandboxId}} for Agent “{{name}}”? This permanently deletes every sandbox instance, all files and archives for this workspace and cannot be undone. A shared workspace may affect multiple conversations. The Agent configuration is retained; the next run creates a blank sandbox.",
+  "sandbox_manage_force_reason_busy": "An operation is still running. Retry later.",
+  "sandbox_manage_force_reason_stale": "The workspace changed. Refresh and confirm again.",
+  "sandbox_manage_force_reason_ownership_conflict": "Resource ownership could not be verified. Check the configuration.",
+  "sandbox_manage_force_reason_unknown_operation": "The previous creation request is still unverified; cleanup is not confirmed complete.",
+  "sandbox_manage_force_reason_cleanup_failed": "Some resources could not be cleaned up. Retry to continue."
 }

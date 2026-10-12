@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   count: vi.fn(),
   release: vi.fn(),
   delete: vi.fn(),
+  forceDelete: vi.fn(),
   inspect: vi.fn(),
   withLease: vi.fn(),
   assertIdle: vi.fn()
@@ -29,6 +30,7 @@ vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
   getExistingSandboxClient: () => ({
     release: mocks.release,
     delete: mocks.delete,
+    forceDelete: mocks.forceDelete,
     provider: { inspectExisting: mocks.inspect }
   })
 }));
@@ -40,6 +42,7 @@ vi.mock('@fastgpt/service/env', () => ({
   env: { AGENT_SANDBOX_PROVIDER: 'opensandbox', AGENT_SANDBOX_OPENSANDBOX_RUNTIME: 'docker' }
 }));
 
+import { env } from '@fastgpt/service/env';
 import list from '@/pages/api/core/ai/sandbox/workspaces/list';
 import action from '@/pages/api/core/ai/sandbox/workspaces/action';
 
@@ -63,6 +66,7 @@ const instance = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  env.AGENT_SANDBOX_OPENSANDBOX_RUNTIME = 'docker';
   mocks.authApp.mockResolvedValue({ teamId: 'team-1', app: { name: '同名 Agent' } });
   mocks.authSkill.mockResolvedValue({ teamId: 'team-1', skill: { name: '同名 Skill' } });
   const cursor = {
@@ -262,5 +266,97 @@ describe('sandbox workspace management API', () => {
       }
     } as never);
     expect(mocks.delete).toHaveBeenCalledOnce();
+  });
+});
+
+describe('Agent force deletion', () => {
+  const body = {
+    sourceType: 'appRuntime',
+    sourceId: 'app-1',
+    sandboxId: 'workspace-1',
+    action: 'forceDelete',
+    deletionRevision: 'a'.repeat(64)
+  };
+  it('delegates pending cleanup without connecting to the failed provider', async () => {
+    mocks.findOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue({
+        ...instance,
+        status: 'deleting',
+        deleteTime: new Date(),
+        forceDeletion: { requestedAt: new Date() }
+      })
+    });
+    mocks.inspect.mockRejectedValue(new Error('provider offline'));
+    mocks.forceDelete.mockImplementation(async ({ assertAuthorized }) => {
+      await assertAuthorized();
+      return { success: false, status: 'pending', reason: 'provider_unavailable' };
+    });
+    expect(await action({ body } as never)).toEqual({
+      success: false,
+      status: 'pending',
+      reason: 'provider_unavailable'
+    });
+    expect(mocks.inspect).not.toHaveBeenCalled();
+    expect(mocks.authApp).toHaveBeenCalledTimes(2);
+    expect(mocks.findOne.mock.calls[0][0]).not.toHaveProperty('deleteTime');
+  });
+  it('rejects force deletion outside the Docker runtime', async () => {
+    env.AGENT_SANDBOX_OPENSANDBOX_RUNTIME = 'kubernetes';
+    await expect(action({ body } as never)).rejects.toThrow();
+    expect(mocks.forceDelete).not.toHaveBeenCalled();
+  });
+  it('rejects permission revoked inside force cleanup', async () => {
+    mocks.authApp
+      .mockResolvedValueOnce({ teamId: 'team-1', app: { name: 'Agent' } })
+      .mockRejectedValueOnce(new Error('permission revoked'));
+    mocks.forceDelete.mockImplementation(async ({ assertAuthorized }) => {
+      await assertAuthorized();
+    });
+    await expect(action({ body } as never)).rejects.toThrow('permission revoked');
+    expect(mocks.inspect).not.toHaveBeenCalled();
+  });
+  it('keeps a healthy workspace on the ordinary delete path', async () => {
+    const result = await list({ body: { sourceType: 'appRuntime', sourceId: 'app-1' } } as never);
+    expect(result.list[0]).toMatchObject({ canDelete: true, canForceDelete: false });
+    expect(result.list[0].deletionRevision).toBeUndefined();
+  });
+  it('requires a revision before any destructive operation', async () => {
+    await expect(
+      action({ body: { ...body, deletionRevision: undefined } } as never)
+    ).rejects.toThrow();
+    expect(mocks.forceDelete).not.toHaveBeenCalled();
+  });
+  it('rejects force deletion of a Skill workspace', async () => {
+    mocks.findOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue({ ...instance, sourceType: 'skillEdit', sourceId: 'skill-1' })
+    });
+    await expect(
+      action({ body: { ...body, sourceType: 'skillEdit', sourceId: 'skill-1' } } as never)
+    ).rejects.toThrow();
+    expect(mocks.forceDelete).not.toHaveBeenCalled();
+  });
+  it('returns pending deletion as visible and resumable with a revision', async () => {
+    mocks.find().lean.mockResolvedValue([
+      {
+        ...instance,
+        status: 'deleting',
+        deleteTime: new Date(),
+        forceDeletion: { requestedAt: new Date() }
+      }
+    ]);
+    const result = await list({ body: { sourceType: 'appRuntime', sourceId: 'app-1' } } as never);
+    expect(result.list[0]).toMatchObject({
+      canForceDelete: true,
+      forceDeletionPending: true,
+      deletionRevision: expect.stringMatching(/^[a-f0-9]{64}$/)
+    });
+    expect(mocks.find.mock.calls.at(-1)?.[0]).toMatchObject({
+      sourceType: 'appRuntime',
+      sourceId: 'app-1',
+      teamId: 'team-1',
+      $and: [
+        { $or: [{ deleteTime: null }, { status: 'deleting', forceDeletion: { $exists: true } }] }
+      ]
+    });
   });
 });

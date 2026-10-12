@@ -22,18 +22,30 @@ const EntrySchema = z.object({
   files: z.array(FileSchema),
   avatar: z.string().optional()
 });
-const ManifestSchema = z.object({ schemaVersion: z.literal(1), entries: z.array(EntrySchema) });
+const InstalledEntrySchema = EntrySchema.omit({ files: true });
+const ManifestSchema = z.object({
+  schemaVersion: z.literal(1),
+  entries: z.array(EntrySchema),
+  installed: z.array(InstalledEntrySchema).optional()
+});
 export type SandboxSkillManifest = z.infer<typeof ManifestSchema>;
 export type SandboxSkillPackage = {
   skillId: string;
   versionId: string;
-  packageBuffer: Buffer;
+  packageBuffer: Buffer | (() => Promise<Buffer>);
   contentHash?: string;
   avatar?: string;
 };
 type DeploymentProvider = Pick<ISandbox, 'execute' | 'writeFiles'>;
 const hash = (value: Buffer) => createHash('sha256').update(value).digest('hex');
 const quote = (value: string) => `'${value.replace(/'/g, `'"'"'`)}'`;
+
+export class SandboxSkillManifestError extends Error {
+  constructor() {
+    super('Sandbox Skill manifest does not match the committed deployment; workspace retained');
+    this.name = 'SandboxSkillManifestError';
+  }
+}
 
 // Arguments contain only trusted operation paths/hashes; package data is uploaded separately.
 const deploymentScript = `import hashlib, json, os, re, stat, sys, zipfile
@@ -98,13 +110,20 @@ def active():
         expected = os.path.relpath(safe(entry['generation']), directory)
         if not link.is_symlink() or os.readlink(link) != expected:
             raise ValueError('Active Skill link does not match the manifest')
+    for entry in data.get('installed', data['entries']):
+        generation_path(entry)
     return data
-def verify(entry):
+def generation_path(entry):
+    if not re.fullmatch('[a-f0-9]{24}', entry['skillId']) or not re.fullmatch('[a-f0-9]{24}', entry['versionId']):
+        raise ValueError('Invalid installed Skill identity')
     prefix = '.runtime/skills/' + entry['skillId'] + '/' + entry['versionId'] + '/'
     generation = entry['generation']
     if not generation.startswith(prefix) or not re.fullmatch('[a-f0-9-]{36}', generation[len(prefix):]):
-        return False
-    base = safe(generation)
+        raise ValueError('Invalid installed Skill generation')
+    return safe(generation)
+def verify(entry):
+    generation = entry['generation']
+    base = generation_path(entry)
     if not base.is_dir():
         return False
     expected = set()
@@ -127,9 +146,6 @@ def verify(entry):
 action = arg['action']
 if action == 'read':
     print(json.dumps(active()))
-elif action == 'inspect':
-    match = next((entry for entry in active()['entries'] if entry['skillId'] == arg['skillId'] and entry['versionId'] == arg['versionId'] and entry['contentHash'] == arg['contentHash']), None)
-    print(json.dumps(match if match and verify(match) else None))
 elif action == 'prepare':
     safe('.runtime/uploads').mkdir(parents=True, exist_ok=True)
     safe(arg['stage']).mkdir(parents=True, exist_ok=False)
@@ -182,14 +198,15 @@ elif action == 'activate':
     if digest(descriptor) != arg['descriptorHash']:
         raise ValueError('Active manifest hash mismatch')
     manifest = read_json(descriptor)
-    if not all(verify(entry) for entry in manifest['entries']):
+    new_generations = set(json.loads(arg['verifyGenerations']))
+    if not all(verify(entry) for entry in manifest['entries'] if entry['generation'] in new_generations):
         raise ValueError('Deployment changed before activation')
     active_root()
     directory = safe(arg['setDirectory'])
     for entry in manifest['entries']:
         if not re.fullmatch('[a-f0-9]{24}', entry['skillId']):
             raise ValueError('Invalid Skill identity')
-        os.symlink(os.path.relpath(safe(entry['generation']), directory), directory / entry['skillId'])
+        os.symlink(os.path.relpath(generation_path(entry), directory), directory / entry['skillId'])
     os.rename(descriptor, directory / 'manifest.json')
     pointer = safe(arg['pointer'])
     os.symlink(os.path.relpath(directory, safe('.runtime')), pointer)
@@ -204,7 +221,7 @@ const executeDeployment = async (
 ): Promise<unknown> => {
   const result = await provider.execute(
     ['python3', '-c', deploymentScript, workspaceRoot, JSON.stringify(args)].map(quote).join(' '),
-    { timeoutMs: 120000 }
+    { timeoutMs: 120000, maxOutputBytes: 16 * 1024 * 1024 }
   );
   if (result.exitCode !== 0) throw new Error(`Sandbox package deployment failed: ${result.stderr}`);
   return JSON.parse(result.stdout);
@@ -214,26 +231,73 @@ export const deploySandboxSkillPackages = async ({
   provider,
   workspaceRoot,
   packages,
+  expectedManifestHash,
+  beforeDeploy,
   allowEmptyWorkspace = false,
   assertActive = async () => undefined
 }: {
   provider: DeploymentProvider;
   workspaceRoot: string;
   packages: SandboxSkillPackage[];
+  expectedManifestHash?: string;
+  beforeDeploy?: () => Promise<void>;
   allowEmptyWorkspace?: boolean;
   assertActive?: () => Promise<void>;
 }) => {
-  const prepared = [];
   const seen = new Set<string>();
   for (const item of packages) {
     objectId.parse(item.skillId);
     objectId.parse(item.versionId);
     if (seen.has(item.skillId)) throw new Error('Duplicate Skill deployment identity');
     seen.add(item.skillId);
-    const validated = await validateAndNormalizeSkillPackage(item.packageBuffer, {
+  }
+  await assertActive();
+  await assertSandboxWorkspacePath({
+    provider,
+    workspaceRoot,
+    path: '.runtime',
+    allowMissing: true
+  });
+  const previous = ManifestSchema.parse(
+    await executeDeployment(provider, { workspaceRoot, action: 'read' })
+  );
+  if (
+    expectedManifestHash
+      ? hash(Buffer.from(JSON.stringify(previous))) !== expectedManifestHash
+      : previous.entries.length > 0 || (previous.installed?.length ?? 0) > 0
+  ) {
+    throw new SandboxSkillManifestError();
+  }
+  const installed = new Map<string, z.infer<typeof InstalledEntrySchema>>(
+    (previous.installed ?? previous.entries).map((entry) => [
+      `${entry.skillId}:${entry.versionId}`,
+      entry
+    ])
+  );
+  const entries: SandboxSkillManifest['entries'] = [];
+  const newGenerations: string[] = [];
+  let started = false;
+  const beginDeployment = async () => {
+    if (started) return;
+    await beforeDeploy?.();
+    started = true;
+  };
+  for (const input of packages) {
+    const key = `${input.skillId}:${input.versionId}`;
+    const active = previous.entries.find((entry) => `${entry.skillId}:${entry.versionId}` === key);
+    const cached = active ?? installed.get(key);
+    if (cached) {
+      entries.push({ ...cached, files: active?.files ?? [], avatar: input.avatar });
+      continue;
+    }
+    await assertActive();
+    await beginDeployment();
+    const packageBuffer =
+      typeof input.packageBuffer === 'function' ? await input.packageBuffer() : input.packageBuffer;
+    const validated = await validateAndNormalizeSkillPackage(packageBuffer, {
       allowEmptyWorkspace
     });
-    if (item.contentHash && item.contentHash !== validated.contentHash) {
+    if (input.contentHash && input.contentHash !== validated.contentHash) {
       throw new Error('Skill package content hash mismatch');
     }
     const archive = await JSZip.loadAsync(validated.zipBuffer);
@@ -246,34 +310,8 @@ export const deploySandboxSkillPackages = async ({
         })
     );
     files.sort((a, b) => a.path.localeCompare(b.path));
-    prepared.push({ ...item, ...validated, files });
-  }
-  await assertActive();
-  await assertSandboxWorkspacePath({
-    provider,
-    workspaceRoot,
-    path: '.runtime',
-    allowMissing: true
-  });
-  const previous = ManifestSchema.parse(
-    await executeDeployment(provider, { workspaceRoot, action: 'read' })
-  );
-  const entries: SandboxSkillManifest['entries'] = [];
-  for (const item of prepared) {
-    await assertActive();
-    const cached = EntrySchema.nullable().parse(
-      await executeDeployment(provider, {
-        workspaceRoot,
-        action: 'inspect',
-        skillId: item.skillId,
-        versionId: item.versionId,
-        contentHash: item.contentHash
-      })
-    );
-    const generation =
-      cached && JSON.stringify(cached.files) === JSON.stringify(item.files)
-        ? cached.generation
-        : `.runtime/skills/${item.skillId}/${item.versionId}/${randomUUID()}`;
+    const item = { ...input, ...validated, files };
+    const generation = `.runtime/skills/${item.skillId}/${item.versionId}/${randomUUID()}`;
     const entry = {
       skillId: item.skillId,
       versionId: item.versionId,
@@ -283,7 +321,7 @@ export const deploySandboxSkillPackages = async ({
       runtimeSkills: item.runtimeSkills,
       ...(item.avatar ? { avatar: item.avatar } : {})
     };
-    if (generation !== cached?.generation) {
+    {
       const stage = `${generation}.tmp`;
       const uploadId = randomUUID();
       const archive = `.runtime/uploads/${uploadId}.zip`;
@@ -306,9 +344,16 @@ export const deploySandboxSkillPackages = async ({
       });
     }
     entries.push(entry);
+    installed.set(key, entry);
+    newGenerations.push(generation);
   }
-  const manifest = ManifestSchema.parse({ schemaVersion: 1, entries });
+  const manifest = ManifestSchema.parse({
+    schemaVersion: 1,
+    entries,
+    installed: [...installed.values()].map((entry) => InstalledEntrySchema.parse(entry))
+  });
   if (JSON.stringify(previous) !== JSON.stringify(manifest)) {
+    await beginDeployment();
     const descriptor = `.runtime/uploads/${randomUUID()}.json`;
     const setDirectory = `.runtime/sets/${randomUUID()}`;
     await assertActive();
@@ -328,6 +373,7 @@ export const deploySandboxSkillPackages = async ({
       action: 'activate',
       descriptor,
       descriptorHash: hash(content),
+      verifyGenerations: JSON.stringify(newGenerations),
       setDirectory,
       pointer: `.runtime/current.${randomUUID()}`
     });
@@ -341,14 +387,9 @@ export const deploySandboxSkillPackages = async ({
         name: skill.name,
         description: skill.description,
         avatar: entry.avatar,
-        directory: posix.join(workspaceRoot, '.runtime/current', entry.skillId, skill.path),
-        skillMdPath: posix.join(
-          workspaceRoot,
-          '.runtime/current',
-          entry.skillId,
-          skill.path,
-          'SKILL.md'
-        )
+        source: 'published' as const,
+        directory: posix.join(workspaceRoot, entry.generation, skill.path),
+        skillMdPath: posix.join(workspaceRoot, entry.generation, skill.path, 'SKILL.md')
       }))
     )
   };

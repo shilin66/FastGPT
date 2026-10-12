@@ -36,7 +36,7 @@ import {
 export { runSandboxActivity } from './operation';
 import { SandboxBusyBeforeEffectError, SandboxOperationConflict } from './lease';
 import { withSandboxLease } from './lease';
-import { resolveAppSandboxIdentity } from './identity';
+import { resolveAppSandboxIdentity, type ResolvedAppSandboxIdentity } from './identity';
 import { assertSandboxSourceActive } from './sourceGuard';
 import {
   getSandboxWorkspaceRoot,
@@ -48,6 +48,7 @@ import { getRuntimeSandboxWorkspaceRoot } from '../../agentSkills/sandboxConfig'
 import { getSandboxCapacityType } from './capacity';
 import { getSandboxOwnershipMetadata } from './display';
 import { getLegacySourceChatId } from './ownership';
+import { forceDeleteSandboxWorkspace } from './forceDelete';
 import { createHash } from 'node:crypto';
 import { SandboxEditorError } from './editor';
 import type { SandboxIdentity } from '@fastgpt/global/core/ai/sandbox/type';
@@ -105,6 +106,11 @@ export class SandboxClient {
   private sandboxId: string;
   private readonly providerName: SandboxProviderType;
   private providerInstance?: ISandbox;
+  private availableInfo?: Awaited<ReturnType<ISandbox['getInfo']>>;
+
+  get connectionInfo() {
+    return this.availableInfo;
+  }
 
   constructor(
     private readonly props: {
@@ -239,6 +245,7 @@ export class SandboxClient {
     priority: 'agent' | 'lifecycle' | 'interactive' = 'lifecycle',
     options: { preserveBoundRuntime?: boolean; upgradeImage?: boolean } = {}
   ) {
+    this.availableInfo = undefined;
     if (this.opts.existingOnly) {
       throw new Error('An existing-only Sandbox client cannot ensure or create a workspace');
     }
@@ -431,6 +438,7 @@ export class SandboxClient {
               if (!result) throw new SandboxBusyBeforeEffectError();
               this.opts.expectedInstance = result;
             }
+            this.availableInfo = info;
             return;
           }
         }
@@ -517,7 +525,9 @@ export class SandboxClient {
           ...(this.opts.identity?.sourceType === 'appRuntime' &&
           this.opts.identity.reuseScope === 'user' &&
           !operation.previous?.storage
-            ? { newGeneration: '0' }
+            ? {
+                newGeneration: createHash('sha256').update(operation.id).digest('hex').slice(0, 24)
+              }
             : {})
         });
         await operation.checkpoint(
@@ -642,6 +652,7 @@ export class SandboxClient {
             throw new SandboxOperationConflict('Selected Sandbox workspace disappeared');
           this.opts.expectedInstance = available;
         }
+        this.availableInfo = info;
       }
     );
   }
@@ -813,6 +824,20 @@ export class SandboxClient {
       },
       run
     );
+  }
+
+  async forceDelete({
+    deletionRevision,
+    assertAuthorized
+  }: {
+    deletionRevision: string;
+    assertAuthorized: () => Promise<void>;
+  }) {
+    const instance = this.opts.expectedInstance;
+    const provider = this.provider;
+    if (!instance || !(provider instanceof OpenSandboxAdapter))
+      throw new SandboxOperationConflict();
+    return forceDeleteSandboxWorkspace({ instance, provider, deletionRevision, assertAuthorized });
   }
 
   async delete({
@@ -1269,12 +1294,18 @@ export const getSandboxClient = async (
     identity?: SandboxClientIdentity;
     workspaceRoot?: string;
     priority?: 'agent' | 'lifecycle';
+    resolvedIdentity?: ResolvedAppSandboxIdentity;
   } = {}
 ) => {
   const { sandboxId, identity, instance } =
     'sandboxId' in props
       ? { sandboxId: props.sandboxId, identity: opts.identity, instance: undefined }
-      : await resolveAppSandboxIdentity(props);
+      : opts.resolvedIdentity ?? (await resolveAppSandboxIdentity(props));
+  if (
+    !('sandboxId' in props) &&
+    (identity?.sourceId !== props.appId || identity.runtimeUserId !== props.userId)
+  )
+    throw new SandboxOperationConflict('Resolved Sandbox identity does not match the request');
   const acquire = async () => {
     const workspaceRoot =
       opts.workspaceRoot ??

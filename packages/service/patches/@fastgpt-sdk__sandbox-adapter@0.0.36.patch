@@ -1,5 +1,5 @@
 diff --git a/dist/adapters/OpenSandboxAdapter/index.d.ts b/dist/adapters/OpenSandboxAdapter/index.d.ts
-index ab6400afa0eb955ffd478c23ca3336149c3ce41e..d0b6160aa67204b9165824300cf71a6b0406a3fd 100644
+index ab6400afa0eb955ffd478c23ca3336149c3ce41e..b88b9de907627401cf2945eee8ea1ee4454c722b 100644
 --- a/dist/adapters/OpenSandboxAdapter/index.d.ts
 +++ b/dist/adapters/OpenSandboxAdapter/index.d.ts
 @@ -1,4 +1,4 @@
@@ -8,16 +8,17 @@ index ab6400afa0eb955ffd478c23ca3336149c3ce41e..d0b6160aa67204b9165824300cf71a6b
  import { BaseSandboxAdapter } from '../BaseSandboxAdapter';
  import type { OpenSandboxConfigType } from './type';
  export type { OpenSandboxConfigType } from './type';
-@@ -71,6 +71,8 @@ export declare class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -71,6 +71,9 @@ export declare class OpenSandboxAdapter extends BaseSandboxAdapter {
      private parseResourceLimits;
      private extractExitCode;
      private getSandboxBySessionId;
++    deleteExisting(sandboxId: string): Promise<void>;
 +    connectExisting(): Promise<boolean>;
 +    inspectExisting(sandboxId?: string): Promise<Pick<SandboxInfo, "id" | "status"> | null>;
      ensureRunning(): Promise<void>;
      create(): Promise<void>;
      connect(sandboxId: string): Promise<void>;
-@@ -92,6 +94,8 @@ export declare class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -92,6 +95,8 @@ export declare class OpenSandboxAdapter extends BaseSandboxAdapter {
      getEndpoint(port: number): Promise<Endpoint>;
      getInfo(): Promise<SandboxInfo | null>;
      renewExpiration(additionalSeconds: number): Promise<void>;
@@ -27,7 +28,7 @@ index ab6400afa0eb955ffd478c23ca3336149c3ce41e..d0b6160aa67204b9165824300cf71a6b
      execute(command: string, options?: ExecuteOptions): Promise<ExecuteResult>;
      executeStream(command: string, handlers: StreamHandlers, options?: ExecuteOptions): Promise<void>;
 diff --git a/dist/index.cjs b/dist/index.cjs
-index 4dd1897796ff6fb9915d9451cc3fb29cee28e930..c98a586d14c6e11ef1e9e1e0a209dcb57d56692b 100644
+index 4dd1897796ff6fb9915d9451cc3fb29cee28e930..7f58bd1782e310a2bcf5d83215ddfacffe549bad 100644
 --- a/dist/index.cjs
 +++ b/dist/index.cjs
 @@ -45056,7 +45056,9 @@ class CommandPolyfillService {
@@ -59,7 +60,7 @@ index 4dd1897796ff6fb9915d9451cc3fb29cee28e930..c98a586d14c6e11ef1e9e1e0a209dcb5
      const val = result.items[0];
      if (val) {
        const status = this.mapStatus(val.status);
-@@ -48182,6 +48192,39 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48182,6 +48192,53 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
        };
      }
    }
@@ -81,6 +82,20 @@ index 4dd1897796ff6fb9915d9451cc3fb29cee28e930..c98a586d14c6e11ef1e9e1e0a209dcb5
 +      throw error;
 +    }
 +  }
++  async deleteExisting(sandboxId) {
++    if (!sandboxId) throw new ConnectionError("Sandbox provider id is required");
++    const existing = await this.inspectExisting(sandboxId);
++    if (existing) {
++      const manager = SandboxManager.create({ connectionConfig: this._connection });
++      try {
++        await manager.killSandbox(sandboxId);
++      } catch (error) {
++        if (!(error instanceof SandboxApiException && error.statusCode === 404)) throw error;
++      }
++    }
++    this.sandbox = undefined;
++    this._status = { state: "UnExist" };
++  }
 +  async connectExisting() {
 +    const existing = await this.getSandboxBySessionId();
 +    if (!existing) {
@@ -99,7 +114,7 @@ index 4dd1897796ff6fb9915d9451cc3fb29cee28e930..c98a586d14c6e11ef1e9e1e0a209dcb5
    async ensureRunning() {
      const sandbox = await this.getSandboxBySessionId();
      if (sandbox) {
-@@ -48234,6 +48277,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48234,6 +48291,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
            sessionId: this.connectionConfig.sessionId
          },
          volumes: cfg.volumes,
@@ -107,7 +122,7 @@ index 4dd1897796ff6fb9915d9451cc3fb29cee28e930..c98a586d14c6e11ef1e9e1e0a209dcb5
          skipHealthCheck: cfg.skipHealthCheck,
          readyTimeoutSeconds: cfg.readyTimeoutSeconds,
          healthCheckPollingInterval: cfg.healthCheckPollingInterval
-@@ -48298,7 +48342,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48298,7 +48356,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
    async stop() {
      try {
        this._status = { state: "Stopping" };
@@ -116,7 +131,7 @@ index 4dd1897796ff6fb9915d9451cc3fb29cee28e930..c98a586d14c6e11ef1e9e1e0a209dcb5
        this._status = { state: "Stopped" };
      } catch (error) {
        const message = error instanceof SandboxException2 ? error.error.message : undefined;
-@@ -48370,6 +48414,48 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48370,6 +48428,48 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
        throw new CommandExecutionError("Failed to renew sandbox expiration", "renew", error instanceof Error ? error : undefined);
      }
    }
@@ -166,7 +181,7 @@ index 4dd1897796ff6fb9915d9451cc3fb29cee28e930..c98a586d14c6e11ef1e9e1e0a209dcb5
      const results = [];
      for (const entry of entries) {
 diff --git a/dist/index.js b/dist/index.js
-index 315731e1b8b9fe29bf9033cae284d31474b84a05..c2ab20e9e5d0514b808a8643a9bed71c76c3df63 100644
+index 315731e1b8b9fe29bf9033cae284d31474b84a05..2e81c76f6551b4f8fa799458c2426608600bc6af 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -45040,7 +45040,9 @@ class CommandPolyfillService {
@@ -198,7 +213,7 @@ index 315731e1b8b9fe29bf9033cae284d31474b84a05..c2ab20e9e5d0514b808a8643a9bed71c
      const val = result.items[0];
      if (val) {
        const status = this.mapStatus(val.status);
-@@ -48166,6 +48176,39 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48166,6 +48176,53 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
        };
      }
    }
@@ -220,6 +235,20 @@ index 315731e1b8b9fe29bf9033cae284d31474b84a05..c2ab20e9e5d0514b808a8643a9bed71c
 +      throw error;
 +    }
 +  }
++  async deleteExisting(sandboxId) {
++    if (!sandboxId) throw new ConnectionError("Sandbox provider id is required");
++    const existing = await this.inspectExisting(sandboxId);
++    if (existing) {
++      const manager = SandboxManager.create({ connectionConfig: this._connection });
++      try {
++        await manager.killSandbox(sandboxId);
++      } catch (error) {
++        if (!(error instanceof SandboxApiException && error.statusCode === 404)) throw error;
++      }
++    }
++    this.sandbox = undefined;
++    this._status = { state: "UnExist" };
++  }
 +  async connectExisting() {
 +    const existing = await this.getSandboxBySessionId();
 +    if (!existing) {
@@ -238,7 +267,7 @@ index 315731e1b8b9fe29bf9033cae284d31474b84a05..c2ab20e9e5d0514b808a8643a9bed71c
    async ensureRunning() {
      const sandbox = await this.getSandboxBySessionId();
      if (sandbox) {
-@@ -48218,6 +48261,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48218,6 +48275,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
            sessionId: this.connectionConfig.sessionId
          },
          volumes: cfg.volumes,
@@ -246,7 +275,7 @@ index 315731e1b8b9fe29bf9033cae284d31474b84a05..c2ab20e9e5d0514b808a8643a9bed71c
          skipHealthCheck: cfg.skipHealthCheck,
          readyTimeoutSeconds: cfg.readyTimeoutSeconds,
          healthCheckPollingInterval: cfg.healthCheckPollingInterval
-@@ -48282,7 +48326,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48282,7 +48340,7 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
    async stop() {
      try {
        this._status = { state: "Stopping" };
@@ -255,7 +284,7 @@ index 315731e1b8b9fe29bf9033cae284d31474b84a05..c2ab20e9e5d0514b808a8643a9bed71c
        this._status = { state: "Stopped" };
      } catch (error) {
        const message = error instanceof SandboxException2 ? error.error.message : undefined;
-@@ -48354,6 +48398,48 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
+@@ -48354,6 +48412,48 @@ class OpenSandboxAdapter extends BaseSandboxAdapter {
        throw new CommandExecutionError("Failed to renew sandbox expiration", "renew", error instanceof Error ? error : undefined);
      }
    }

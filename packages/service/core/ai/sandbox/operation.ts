@@ -25,6 +25,7 @@ import {
 } from './capacity';
 import type { ClientSession } from '../../../common/mongo';
 import { getSandboxProviderScope } from './config';
+import { prepareForceDeleteClaim } from './forceDeletePolicy';
 
 const logger = getLogger(LogCategories.MODULE.AI.SANDBOX);
 type OperationAction = 'ensure' | 'stop' | 'release' | 'delete' | 'archive' | 'restore';
@@ -270,6 +271,7 @@ export const runSandboxOperation = async (
     shouldRun?: (doc: SandboxInstanceSchemaType) => boolean | Promise<boolean>;
     expectedInstance?: SandboxInstanceSchemaType;
     assertAuthorized?: () => Promise<void>;
+    forceDelete?: { deletionRevision: string };
   },
   run: (operation: SandboxOperation) => Promise<void>
 ) => {
@@ -310,7 +312,12 @@ export const runSandboxOperation = async (
       if (action !== 'delete' && (previous?.status === 'deleting' || previous?.deleteTime)) {
         throw new SandboxOperationConflict();
       }
-      if (previous && !canClaimOperation(previous, action)) {
+      if (options.forceDelete && action !== 'delete') throw new SandboxOperationConflict();
+      const forceDeletion =
+        previous && options.forceDelete
+          ? prepareForceDeleteClaim(previous, options.forceDelete.deletionRevision)
+          : undefined;
+      if (previous && !forceDeletion && !canClaimOperation(previous, action)) {
         throw new SandboxOperationConflict(
           'An unfinished Sandbox operation requires explicit recovery; lease expiry does not permit takeover'
         );
@@ -367,7 +374,8 @@ export const runSandboxOperation = async (
             ? { providerSandboxId: previous.operation.providerSandboxId }
             : {})
         },
-        ...(action === 'delete' ? { deleteTime: previous?.deleteTime ?? now } : {})
+        ...(action === 'delete' ? { deleteTime: previous?.deleteTime ?? now } : {}),
+        ...(forceDeletion ? { forceDeletion } : {})
       };
       await lease.assertOwned();
       await options.assertAuthorized?.();
@@ -404,6 +412,17 @@ export const runSandboxOperation = async (
                 'operation.type': previous.operation?.type ?? { $exists: false },
                 'operation.checkpoint': previous.operation?.checkpoint ?? { $exists: false },
                 'operation.updatedAt': previous.operation?.updatedAt ?? { $exists: false },
+                ...(forceDeletion
+                  ? {
+                      'operation.effectState': previous.operation?.effectState ?? {
+                        $exists: false
+                      },
+                      'operation.heartbeatAt': previous.operation?.heartbeatAt ?? {
+                        $exists: false
+                      },
+                      forceDeletion: previous.forceDeletion ?? { $exists: false }
+                    }
+                  : {}),
                 'operation.failureDisposition': previous.operation?.failureDisposition ?? {
                   $exists: false
                 }
@@ -486,7 +505,27 @@ export const runSandboxOperation = async (
               { ...filter, 'operation.checkpoint': checkpoint, 'operation.effectState': 'pending' },
               { $set: { 'operation.effectState': 'completed', 'operation.updatedAt': new Date() } }
             );
-            if (receipt.matchedCount !== 1) throw new SandboxOperationConflict();
+            if (receipt.matchedCount !== 1) {
+              await MongoSandboxInstance.updateOne(
+                {
+                  _id: claimed._id,
+                  provider,
+                  sandboxId,
+                  status: 'deleting',
+                  'forceDeletion.previousOperation.id': lease.token,
+                  'forceDeletion.previousOperation.type': state.operation.type,
+                  'forceDeletion.previousOperation.checkpoint': checkpoint,
+                  'forceDeletion.previousOperation.effectState': 'pending'
+                },
+                {
+                  $set: {
+                    'forceDeletion.previousOperation.effectState': 'completed',
+                    'forceDeletion.previousOperation.updatedAt': new Date()
+                  }
+                }
+              );
+              throw new SandboxOperationConflict();
+            }
             return value;
           } catch (error) {
             if (

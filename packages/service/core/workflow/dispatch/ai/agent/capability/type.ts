@@ -16,6 +16,8 @@ export type CapabilityToolCallHandlerType = (
 // Capability interface: each capability contributes system prompt, tools, tool handler, and cleanup
 export type AgentCapability = {
   id: string;
+  // Complete workspace discovery before the model's prompt is assembled.
+  prepare?: () => Promise<void>;
   // Appended to the user's systemPrompt
   systemPrompt?: string;
   // Additional tool definitions

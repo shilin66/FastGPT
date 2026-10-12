@@ -45,6 +45,7 @@ export function buildSkillsContextPrompt(
     for (const info of deployedSkills) {
       lines.push('  <skill>');
       lines.push(`    <name>${escapeXml(info.name)}</name>`);
+      if (info.source) lines.push(`    <source>${info.source}</source>`);
       lines.push(`    <description>${escapeXml(info.description)}</description>`);
       if (info.skillMdPath) {
         lines.push(`    <location>${escapeXml(info.skillMdPath)}</location>`);
@@ -63,6 +64,12 @@ export function buildSkillsContextPrompt(
   lines.push('<sandbox_environment>');
   lines.push(`Workspace root: ${workspaceRoot}`);
   lines.push(`Current working directory: ${workDirectory}`);
+  lines.push(
+    `Create reusable workspace skills at ${workspaceRoot}/skills/<name>/SKILL.md with name and description in YAML frontmatter. They will be discovered on the next conversation turn.`
+  );
+  lines.push(
+    'Use the exact skill paths listed above. Keep managed deployment manifests and links unchanged; skill files may be edited.'
+  );
   lines.push(
     'All relative file paths and the default command cwd use this current working directory.'
   );

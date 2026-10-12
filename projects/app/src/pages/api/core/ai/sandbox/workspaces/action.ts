@@ -27,7 +27,9 @@ export default NextAPI(async (req: ApiRequestProps<SandboxWorkspaceActionBody>) 
     teamId,
     ...scope,
     sandboxId: body.sandboxId,
-    deleteTime: null
+    ...(body.action === 'forceDelete'
+      ? { $or: [{ deleteTime: null }, { status: 'deleting', forceDeletion: { $exists: true } }] }
+      : { deleteTime: null })
   }).lean();
   if (
     !instance ||
@@ -45,6 +47,12 @@ export default NextAPI(async (req: ApiRequestProps<SandboxWorkspaceActionBody>) 
     if (String(renewed.teamId) !== String(teamId))
       throw new UserError('sandbox_workspace_not_found');
   };
+  if (body.action === 'forceDelete') {
+    if (instance.sourceType !== 'appRuntime' || !body.deletionRevision) {
+      throw new UserError('sandbox_workspace_not_found');
+    }
+    return client.forceDelete({ deletionRevision: body.deletionRevision, assertAuthorized });
+  }
   const execute = async () => {
     if (instance.sourceType === 'skillEdit' && instance.status === 'running') {
       await assertSkillWorkspaceTerminalIdle(instance);

@@ -43,15 +43,20 @@ vi.mock('@fastgpt/service/core/workflow/dispatch/ai/agent/sub/sandbox/skill', ()
   dispatchSandboxFetchUserFile: vi.fn()
 }));
 
-vi.mock('@fastgpt/service/core/ai/sandbox/lease', () => ({
-  withSandboxLease: async (_key: string, run: (lease: SandboxLease) => Promise<unknown>) =>
+vi.mock('@fastgpt/service/core/ai/sandbox/lease', async (original) => {
+  const runWithLease = async (_key: string, run: (lease: SandboxLease) => Promise<unknown>) =>
     run({
       token: randomUUID(),
       isActive: () => true,
       assertOwned: async () => {},
       setHeartbeat: vi.fn()
-    })
-}));
+    });
+  return {
+    ...(await original<typeof import('@fastgpt/service/core/ai/sandbox/lease')>()),
+    withSandboxLease: runWithLease,
+    withSandboxReadLease: runWithLease
+  };
+});
 
 describe('Sandbox capability identity propagation', () => {
   const sandboxId = 'logical-key';

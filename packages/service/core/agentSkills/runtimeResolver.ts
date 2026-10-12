@@ -162,6 +162,22 @@ export async function resolveRuntimeSkills({
           );
           if (version.contentHash && version.contentHash !== validated.contentHash)
             throw new RuntimeSkillResolutionError('invalid_package');
+          if (!validatePackages && !version.runtimeSkills?.length) {
+            await MongoAgentSkillsVersion.updateOne(
+              {
+                _id: version._id,
+                skillId: skill._id,
+                isDeleted: false,
+                deleteTime: null,
+                storageDeletedAt: null,
+                'storage.key': version.storage.key,
+                'runtimeSkills.0': { $exists: false }
+              },
+              {
+                $set: { runtimeSkills: validated.runtimeSkills, contentHash: validated.contentHash }
+              }
+            );
+          }
           return validated.runtimeSkills;
         })();
         const metadata = z.array(RuntimeSkillMetadataSchema).nonempty().parse(runtimeSkills);

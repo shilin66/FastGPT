@@ -205,6 +205,11 @@ describe('App owner runtime Skill resolution', () => {
     await MongoAgentSkillsVersion.updateOne({ _id: versionId }, { runtimeSkills: [] });
     expect((await resolve())[0].runtimeSkills).toEqual(runtimeSkills);
     expect(downloadMock).toHaveBeenCalledTimes(1);
+    expect((await resolve())[0].runtimeSkills).toEqual(runtimeSkills);
+    expect(downloadMock).toHaveBeenCalledTimes(1);
+    expect(await MongoAgentSkillsVersion.findById(versionId).lean()).toMatchObject({
+      runtimeSkills
+    });
   });
 
   it('validates object existence and checksum for publication even with cached metadata', async () => {

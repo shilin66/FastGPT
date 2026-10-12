@@ -4,22 +4,41 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { createHash } from 'node:crypto';
 import { JSZip } from '@fastgpt/service/core/agentSkills/zipBuilder';
-import { deploySandboxSkillPackages } from '@fastgpt/service/core/agentSkills/sandboxDeployment';
+import { deploySandboxSkillPackages as deployPackages } from '@fastgpt/service/core/agentSkills/sandboxDeployment';
 
 const execute = promisify(execFile);
 
 describe('Atomic sandbox Skill deployment', () => {
   let workspaceRoot: string;
-  let provider: Parameters<typeof deploySandboxSkillPackages>[0]['provider'];
+  let provider: Parameters<typeof deployPackages>[0]['provider'];
+  let currentDeploymentHash: string | undefined;
+  const deploySandboxSkillPackages = async (options: Parameters<typeof deployPackages>[0]) => {
+    const result = await deployPackages({
+      ...{ expectedManifestHash: currentDeploymentHash },
+      ...options
+    });
+    currentDeploymentHash = createHash('sha256')
+      .update(JSON.stringify(result.manifest))
+      .digest('hex');
+    return result;
+  };
 
   beforeEach(async () => {
     workspaceRoot = await mkdtemp(join(tmpdir(), 'fastgpt-deployment-'));
+    currentDeploymentHash = undefined;
     provider = {
-      execute: async (command) => {
+      execute: async (command, options) => {
         try {
-          const result = await execute('/bin/sh', ['-c', command], { maxBuffer: 4 * 1024 * 1024 });
-          return { ...result, exitCode: 0 };
+          const result = await execute('/bin/sh', ['-c', command], { maxBuffer: 16 * 1024 * 1024 });
+          return {
+            ...result,
+            stdout: Buffer.from(result.stdout)
+              .subarray(0, options?.maxOutputBytes ?? 1024 * 1024)
+              .toString(),
+            exitCode: 0
+          };
         } catch (error) {
           return {
             stdout: '',
@@ -71,7 +90,7 @@ describe('Atomic sandbox Skill deployment', () => {
     });
     const skill = result.deployedSkills[0];
     expect(skill.skillMdPath).toBe(
-      join(workspaceRoot, '.runtime/current/111111111111111111111111/skills/demo/SKILL.md')
+      join(workspaceRoot, result.manifest.entries[0].generation, 'skills/demo/SKILL.md')
     );
     expect(result.manifest.entries[0].generation).toContain(
       '.runtime/skills/111111111111111111111111/222222222222222222222222/'
@@ -84,22 +103,99 @@ describe('Atomic sandbox Skill deployment', () => {
     expect(JSON.parse(await readFile(manifestPath(), 'utf8'))).toEqual(result.manifest);
   });
 
-  it('skips upload only while all files still match the published hash', async () => {
+  it('migrates a trusted legacy manifest without reinstalling modified Skill files', async () => {
+    const item = await packageFor();
+    const first = await deploySandboxSkillPackages({ provider, workspaceRoot, packages: [item] });
+    const legacy = { schemaVersion: first.manifest.schemaVersion, entries: first.manifest.entries };
+    await writeFile(manifestPath(), JSON.stringify(legacy));
+    currentDeploymentHash = createHash('sha256').update(JSON.stringify(legacy)).digest('hex');
+    await writeFile(first.deployedSkills[0].skillMdPath, 'Agent edits before migration');
+    const download = vi.fn(async () => item.packageBuffer);
+
+    const migrated = await deploySandboxSkillPackages({
+      provider,
+      workspaceRoot,
+      packages: [{ ...item, packageBuffer: download }]
+    });
+
+    expect(download).not.toHaveBeenCalled();
+    expect(migrated.manifest.installed).toHaveLength(1);
+    expect(migrated.deployedSkills[0].skillMdPath).toBe(first.deployedSkills[0].skillMdPath);
+    expect(await readFile(first.deployedSkills[0].skillMdPath, 'utf8')).toBe(
+      'Agent edits before migration'
+    );
+  });
+
+  it('preserves modified and deleted files when reusing the same published version', async () => {
     const item = await packageFor();
     const first = await deploySandboxSkillPackages({ provider, workspaceRoot, packages: [item] });
     vi.mocked(provider.writeFiles).mockClear();
     const second = await deploySandboxSkillPackages({ provider, workspaceRoot, packages: [item] });
     expect(provider.writeFiles).not.toHaveBeenCalled();
     expect(second.manifest).toEqual(first.manifest);
+    await writeFile(join(first.deployedSkills[0].directory, 'custom.txt'), 'local addition');
     await unlink(first.deployedSkills[0].skillMdPath);
-    const repaired = await deploySandboxSkillPackages({
+    const reused = await deploySandboxSkillPackages({
       provider,
       workspaceRoot,
       packages: [item]
     });
-    expect(repaired.manifest.entries[0].generation).not.toBe(first.manifest.entries[0].generation);
-    expect(repaired.deployedSkills[0].skillMdPath).toBe(first.deployedSkills[0].skillMdPath);
-    expect(await readFile(repaired.deployedSkills[0].skillMdPath, 'utf8')).toContain('first');
+    expect(reused.manifest).toEqual(first.manifest);
+    expect(provider.writeFiles).not.toHaveBeenCalled();
+    await expect(readFile(first.deployedSkills[0].skillMdPath)).rejects.toMatchObject({
+      code: 'ENOENT'
+    });
+    expect(await readFile(join(first.deployedSkills[0].directory, 'custom.txt'), 'utf8')).toBe(
+      'local addition'
+    );
+  });
+
+  it('downloads only new versions and keeps pinned paths and edits across unbind, upgrade and rollback', async () => {
+    const firstPackage = await packageFor();
+    const loadFirst = vi.fn(async () => firstPackage.packageBuffer);
+    const firstItem = { ...firstPackage, packageBuffer: loadFirst };
+    const first = await deploySandboxSkillPackages({
+      provider,
+      workspaceRoot,
+      packages: [firstItem]
+    });
+    await writeFile(first.deployedSkills[0].skillMdPath, 'local edit');
+    const secondPackage = await packageFor({ skillId: '444444444444444444444444' });
+    const loadSecond = vi.fn(async () => secondPackage.packageBuffer);
+    await deploySandboxSkillPackages({
+      provider,
+      workspaceRoot,
+      packages: [firstItem, { ...secondPackage, packageBuffer: loadSecond }]
+    });
+    expect(loadFirst).toHaveBeenCalledTimes(1);
+    expect(loadSecond).toHaveBeenCalledTimes(1);
+    await deploySandboxSkillPackages({ provider, workspaceRoot, packages: [] });
+    await deploySandboxSkillPackages({
+      provider,
+      workspaceRoot,
+      packages: [await packageFor({ versionId: '333333333333333333333333', text: 'new version' })]
+    });
+    expect(await readFile(first.deployedSkills[0].skillMdPath, 'utf8')).toBe('local edit');
+    const rollback = await deploySandboxSkillPackages({
+      provider,
+      workspaceRoot,
+      packages: [firstItem]
+    });
+    expect(rollback.deployedSkills[0].skillMdPath).toBe(first.deployedSkills[0].skillMdPath);
+    expect(loadFirst).toHaveBeenCalledTimes(1);
+    expect(await readFile(rollback.deployedSkills[0].skillMdPath, 'utf8')).toBe('local edit');
+  });
+
+  it('rejects a manifest changed outside the committed deployment without overwriting files', async () => {
+    await deploySandboxSkillPackages({ provider, workspaceRoot, packages: [await packageFor()] });
+    const manifest = JSON.parse(await readFile(manifestPath(), 'utf8'));
+    manifest.entries[0].runtimeSkills[0].description = 'forged';
+    await writeFile(manifestPath(), JSON.stringify(manifest));
+    vi.mocked(provider.writeFiles).mockClear();
+    await expect(
+      deploySandboxSkillPackages({ provider, workspaceRoot, packages: [await packageFor()] })
+    ).rejects.toThrow('manifest');
+    expect(provider.writeFiles).not.toHaveBeenCalled();
   });
 
   it('preserves the active batch if a later upload fails', async () => {
@@ -220,21 +316,27 @@ describe('Atomic sandbox Skill deployment', () => {
     expect(await readFile(manifestPath(), 'utf8')).toBe(before);
   });
 
-  it('uploads large file manifests separately instead of exceeding shell argument limits', async () => {
+  it('uploads and reuses manifests larger than the default command output limit', async () => {
     const zip = new JSZip();
     zip.file('skills/demo/SKILL.md', '---\nname: demo\ndescription: Demo\n---\n');
-    for (let i = 0; i < 400; i += 1) {
+    for (let i = 0; i < 4000; i += 1) {
       zip.file('skills/demo/' + String(i).padStart(3, '0') + '-'.repeat(220) + '.txt', 'data');
     }
+    const item = {
+      ...(await packageFor()),
+      packageBuffer: await zip.generateAsync({ type: 'nodebuffer' })
+    };
     const result = await deploySandboxSkillPackages({
       provider,
       workspaceRoot,
-      packages: [
-        { ...(await packageFor()), packageBuffer: await zip.generateAsync({ type: 'nodebuffer' }) }
-      ]
+      packages: [item]
     });
-    expect(result.manifest.entries[0].files).toHaveLength(401);
-    expect((await readFile(manifestPath())).length).toBeGreaterThan(128 * 1024);
+    expect(result.manifest.entries[0].files).toHaveLength(4001);
+    expect((await readFile(manifestPath())).length).toBeGreaterThan(1024 * 1024);
+    vi.mocked(provider.writeFiles).mockClear();
+    const reused = await deploySandboxSkillPackages({ provider, workspaceRoot, packages: [item] });
+    expect(reused.manifest).toEqual(result.manifest);
+    expect(provider.writeFiles).not.toHaveBeenCalled();
   });
 
   it('rejects a tampered active resource link instead of trusting valid generation files', async () => {

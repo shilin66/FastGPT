@@ -226,6 +226,36 @@ it('passes native model parameters through the Pi provider payload hook', async 
 describe.each(['default', 'pi'] as const)('%s Sandbox session identity', (engine) => {
   const runAgent = engine === 'default' ? dispatchRunAgent : dispatchPiAgent;
 
+  it('awaits Skill discovery before reading capability prompts or calling the model', async () => {
+    mocks.env.SHOW_SKILL = true;
+    let prepared = false;
+    const readPrompt = vi.fn(() => {
+      expect(prepared).toBe(true);
+      expect(mocks.master).not.toHaveBeenCalled();
+      expect(mocks.stream).not.toHaveBeenCalled();
+      return 'Discovered workspace Skill';
+    });
+    const prepare = vi.fn(async () => {
+      await Promise.resolve();
+      prepared = true;
+    });
+    mocks.sandbox.mockResolvedValue({
+      id: 'sandbox-skills',
+      prepare,
+      get systemPrompt() {
+        return readPrompt();
+      }
+    });
+    const input = props();
+    input.params.skills = ['skill-1'];
+
+    await runAgent(input);
+
+    expect(prepare).toHaveBeenCalledOnce();
+    expect(readPrompt).toHaveBeenCalled();
+    expect(engine === 'default' ? mocks.master : mocks.stream).toHaveBeenCalled();
+  });
+
   it.each(['test', 'debug'] as const)(
     'reuses one %s conversation but isolates a new conversation and node',
     async (mode) => {

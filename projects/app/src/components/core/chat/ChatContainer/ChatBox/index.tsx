@@ -395,8 +395,14 @@ const ChatBox = ({
             };
           }
           if (event === SseResponseEventEnum.sandboxStatus && sandboxStatus) {
+            const quotaExceeded =
+              sandboxStatus.phase === 'failed' &&
+              sandboxStatus.message === 'chat:sandbox_capacity_exceeded';
             const getSandboxPhaseLabel = (): string => {
               const { phase, isWarmStart, skillName } = sandboxStatus;
+              if (quotaExceeded) {
+                return t('chat:sandbox_capacity_exceeded');
+              }
               if (phase === 'deployingSkills') {
                 return t('chat:sandbox_status_deployingSkills', { skillName: skillName ?? '' });
               }

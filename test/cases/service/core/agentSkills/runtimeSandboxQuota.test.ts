@@ -15,6 +15,7 @@ import { SandboxStatusEnum } from '@fastgpt/global/core/ai/sandbox/constants';
 import { generateSandboxIdentityId } from '@fastgpt/service/core/ai/sandbox/identity';
 import { randomUUID } from 'node:crypto';
 import type { SandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
+import type { DeployedSkillInfo } from '@fastgpt/service/core/workflow/dispatch/ai/agent/sub/sandbox/types';
 
 const { downloadMock, getClientMock, deploymentMock, quotaEnv, setHeartbeatMock } = vi.hoisted(
   () => ({
@@ -48,9 +49,22 @@ vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
 vi.mock('@fastgpt/service/core/agentSkills/sandboxDeployment', () => ({
   deploySandboxSkillPackages: deploymentMock
 }));
-vi.mock('@fastgpt/service/core/ai/sandbox/lease', () => ({
+vi.mock('@fastgpt/service/core/agentSkills/runtimeDiscovery', () => ({
+  discoverRuntimeSandboxSkills: async ({
+    publishedSkills
+  }: {
+    publishedSkills: DeployedSkillInfo[];
+  }) => publishedSkills
+}));
+vi.mock('@fastgpt/service/core/ai/sandbox/lease', async (original) => ({
+  ...(await original<typeof import('@fastgpt/service/core/ai/sandbox/lease')>()),
   withSandboxLease: async (_key: string, run: (lease: SandboxLease) => Promise<unknown>) =>
-    run({ token: randomUUID(), assertOwned: async () => undefined, setHeartbeat: setHeartbeatMock })
+    run({
+      token: randomUUID(),
+      isActive: () => true,
+      assertOwned: async () => undefined,
+      setHeartbeat: setHeartbeatMock
+    })
 }));
 
 describe.each([{ hasSkills: true }, { hasSkills: false }])(
@@ -79,7 +93,7 @@ describe.each([{ hasSkills: true }, { hasSkills: false }])(
         sourceType: 'appRuntime',
         sourceId: appId,
         runtimeUserId,
-        sessionId
+        reuseScope: 'user'
       });
 
       const packageBuffer = await createSkillPackage({ name: 'runtime-capacity-test', skillMd });
@@ -100,21 +114,30 @@ describe.each([{ hasSkills: true }, { hasSkills: false }])(
       });
       await MongoAgentSkills.updateOne({ _id: skillId }, { currentVersionId: version._id });
       deploymentMock.mockImplementation(
-        async ({ packages }: { packages: { skillId: string }[] }) => ({
-          manifest: { schemaVersion: 1, entries: [] },
-          deployedSkills:
-            packages.length > 0
-              ? [
-                  {
-                    id: packages[0].skillId,
-                    name: 'runtime-capacity-test',
-                    description: 'Runtime capacity regression',
-                    directory: '/home/sandbox/workspace/skills/runtime-capacity-test',
-                    skillMdPath: skillPath
-                  }
-                ]
-              : []
-        })
+        async ({
+          packages,
+          beforeDeploy
+        }: {
+          packages: { skillId: string }[];
+          beforeDeploy: () => Promise<void>;
+        }) => {
+          await beforeDeploy();
+          return {
+            manifest: { schemaVersion: 1, entries: [] },
+            deployedSkills:
+              packages.length > 0
+                ? [
+                    {
+                      id: packages[0].skillId,
+                      name: 'runtime-capacity-test',
+                      description: 'Runtime capacity regression',
+                      directory: '/home/sandbox/workspace/skills/runtime-capacity-test',
+                      skillMdPath: skillPath
+                    }
+                  ]
+                : []
+          };
+        }
       );
       await MongoSandboxInstance.create({
         provider: 'opensandbox',
@@ -123,11 +146,15 @@ describe.each([{ hasSkills: true }, { hasSkills: false }])(
         metadata: { sandboxType: SandboxTypeEnum.sessionRuntime }
       });
 
-      getClientMock.mockImplementation(async ({ sandboxId }: { sandboxId: string }) => {
+      getClientMock.mockImplementation(async () => {
         await MongoSandboxInstance.updateOne(
           { provider: 'opensandbox', sandboxId },
           {
             $set: {
+              sourceType: 'appRuntime',
+              sourceId: appId,
+              runtimeUserId,
+              reuseScope: 'user',
               status: SandboxStatusEnum.running,
               operation: {
                 id: randomUUID(),
@@ -173,6 +200,7 @@ describe.each([{ hasSkills: true }, { hasSkills: false }])(
       vi.useFakeTimers({ toFake: ['Date'] });
       const deploy = deploymentMock.getMockImplementation()!;
       deploymentMock.mockImplementationOnce(async (...args) => {
+        await args[0].beforeDeploy();
         const before = await MongoSandboxInstance.findOne({ sandboxId }).lean();
         expect(before?.operation?.heartbeatAt).toBeInstanceOf(Date);
         const heartbeat = setHeartbeatMock.mock.calls[0]?.[0];
@@ -186,7 +214,7 @@ describe.each([{ hasSkills: true }, { hasSkills: false }])(
         );
         expect(after?.operation?.updatedAt).toEqual(before?.operation?.updatedAt);
         expect(after?.operation?.checkpoint).toBe('deploying');
-        return deploy(...args);
+        return deploy({ ...args[0], beforeDeploy: async () => undefined });
       });
       await createAgentSandbox({
         skillIds: hasSkills ? [skillId] : [],
@@ -264,7 +292,7 @@ describe.each([{ hasSkills: true }, { hasSkills: false }])(
         hasSkills ? ['runtime-capacity-test'] : []
       );
       expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
-        chatId: sessionId,
+        reuseScope: 'user',
         appId,
         userId: runtimeUserId,
         metadata: { sandboxType: SandboxTypeEnum.sessionRuntime }
@@ -330,7 +358,7 @@ describe.each([{ hasSkills: true }, { hasSkills: false }])(
       });
 
       expect(getClientMock).toHaveBeenCalledWith(
-        { sandboxId, appId, userId: runtimeUserId, chatId: sessionId },
+        { appId, userId: runtimeUserId, chatId: sessionId },
         expect.objectContaining({
           createConfig: expect.objectContaining({
             metadata: {
@@ -404,7 +432,12 @@ describe.each([{ hasSkills: true }, { hasSkills: false }])(
         tmbId,
         sessionId
       };
-      deploymentMock.mockRejectedValueOnce(new Error('injected deployment failure'));
+      deploymentMock.mockImplementationOnce(
+        async ({ beforeDeploy }: { beforeDeploy: () => Promise<void> }) => {
+          await beforeDeploy();
+          throw new Error('injected deployment failure');
+        }
+      );
       await expect(createAgentSandbox(params)).rejects.toThrow('injected deployment failure');
       expect(await MongoSandboxInstance.findOne({ sandboxId }).lean()).toMatchObject({
         status: 'failed',

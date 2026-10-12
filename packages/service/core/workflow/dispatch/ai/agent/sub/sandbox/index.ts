@@ -14,7 +14,7 @@ import {
 } from '@fastgpt/global/core/ai/sandbox/constants';
 import { parseI18nString } from '@fastgpt/global/common/i18n/utils';
 import type { localeType } from '@fastgpt/global/common/i18n/type';
-import { callSandboxTool } from '../../../../../../ai/sandbox/toolCall';
+import { callSandboxTool, type SandboxToolCallResult } from '../../../../../../ai/sandbox/toolCall';
 
 type SandboxDispatchParams = {
   appId: string;
@@ -31,13 +31,16 @@ type SandboxDispatchResult = {
   assistantResponses?: AIChatItemValueItemType[];
 };
 
-const sandboxFailureResponses = (required: boolean): AIChatItemValueItemType[] => {
+const sandboxFailureResponses = (
+  required: boolean,
+  code: NonNullable<SandboxToolCallResult['errorCode']>
+): AIChatItemValueItemType[] => {
   const assistantResponses: AIChatItemValueItemType[] = [
     {
       sandboxEvent: {
         id: getNanoid(),
         status: required ? 'failed' : 'degraded',
-        code: 'sandbox_unavailable'
+        code
       }
     }
   ];
@@ -95,7 +98,7 @@ export const dispatchSandboxShell = async ({
 
   return {
     response,
-    ...(errorCode && { assistantResponses: sandboxFailureResponses(requireSandbox) }),
+    ...(errorCode && { assistantResponses: sandboxFailureResponses(requireSandbox, errorCode) }),
     usages: [],
     nodeResponse: buildNodeResponse({
       toolId: SANDBOX_TOOL_NAME,
@@ -127,7 +130,7 @@ export const dispatchSandboxGetFileUrl = async ({
 
   return {
     response,
-    ...(errorCode && { assistantResponses: sandboxFailureResponses(requireSandbox) }),
+    ...(errorCode && { assistantResponses: sandboxFailureResponses(requireSandbox, errorCode) }),
     usages: [],
     nodeResponse: buildNodeResponse({
       toolId: SANDBOX_GET_FILE_URL_TOOL_NAME,

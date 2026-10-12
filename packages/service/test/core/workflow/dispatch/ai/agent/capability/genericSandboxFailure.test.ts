@@ -4,6 +4,8 @@ import { dispatchSandboxShell } from '../../../../../../../core/workflow/dispatc
 import { SandboxUnavailableError } from '../../../../../../../core/workflow/dispatch/ai/agent/sub/sandbox/errors';
 import { buildAgentTools } from '../../../../../../../core/workflow/dispatch/ai/agent/piAgent/toolAdapter';
 import { createSandboxTestContext } from './sandboxTestContext';
+import { SandboxCapacityError } from '@fastgpt/service/core/ai/sandbox/errors';
+import { SandboxTypeEnum } from '@fastgpt/global/core/agentSkills/constants';
 
 const mocks = vi.hoisted(() => ({ getClient: vi.fn(), execute: vi.fn() }));
 vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
@@ -41,6 +43,21 @@ describe('Generic Sandbox tool infrastructure contract', () => {
       SandboxUnavailableError
     );
     expect(mocks.execute).toHaveBeenCalledTimes(1);
+  });
+  it('preserves quota exhaustion for generic VM tools', async () => {
+    mocks.getClient.mockRejectedValue(
+      new SandboxCapacityError(SandboxTypeEnum.sessionRuntime, 21, 20)
+    );
+    const result = await dispatchSandboxShell(params);
+    expect(JSON.parse(result.response)).toEqual({
+      code: 'sandbox_capacity_exceeded',
+      retryable: false
+    });
+    expect(result.assistantResponses?.[0].sandboxEvent?.code).toBe('sandbox_capacity_exceeded');
+    await expect(dispatchSandboxShell({ ...params, requireSandbox: true })).rejects.toMatchObject({
+      message: 'chat:sandbox_capacity_exceeded'
+    });
+    expect(mocks.execute).not.toHaveBeenCalled();
   });
   it('disables generic VM tools after an unbound App degrades', async () => {
     mocks.getClient.mockRejectedValue(new Error('offline'));
