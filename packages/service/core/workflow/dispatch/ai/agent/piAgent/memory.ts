@@ -1,11 +1,12 @@
 import z from 'zod';
 import type { AgentMessage } from '@mariozechner/pi-agent-core';
-import type { Model, Api } from '@mariozechner/pi-ai';
+import type { Model, Api, ImageContent } from '@mariozechner/pi-ai';
 import type { ChatItemMiniType } from '@fastgpt/global/core/chat/type';
 import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
-import { chatValue2RuntimePrompt } from '@fastgpt/global/core/chat/adapt';
+import { chats2GPTMessages, chatValue2RuntimePrompt } from '@fastgpt/global/core/chat/adapt';
 import { SubAppIds } from '@fastgpt/global/core/workflow/node/agent/constants';
 import { readAgentMemory } from '../memory';
+import { loadPiMessages } from './input';
 
 const TextSchema = z.looseObject({ type: z.literal('text'), text: z.string() });
 const ImageSchema = z.looseObject({
@@ -95,10 +96,12 @@ export const readPiAgentState = (props: { histories: ChatItemMiniType[]; nodeId:
 
 export const resumePiMessages = ({
   state,
-  answer
+  answer,
+  images = []
 }: {
   state: NonNullable<ReturnType<typeof readPiAgentState>>;
   answer: string;
+  images?: ImageContent[];
 }): AgentMessage[] => {
   const messages = state.pendingMainContext.filter(
     (message) => message.role !== 'assistant' || !['aborted', 'error'].includes(message.stopReason)
@@ -114,39 +117,55 @@ export const resumePiMessages = ({
   const index = messages.findIndex(
     (message) => message.role === 'toolResult' && message.toolCallId === state.pendingToolCallId
   );
-  if (index < 0) return [...messages, result];
-  return messages.map((message, current) => (current === index ? result : message));
+  const resumed =
+    index < 0
+      ? [...messages, result]
+      : messages.map((message, current) => (current === index ? result : message));
+  return images.length
+    ? [...resumed, { role: 'user', content: images, timestamp: Date.now() }]
+    : resumed;
 };
 
-export const chatHistoriesToPiMessages = ({
+export const chatHistoriesToPiMessages = async ({
   histories,
-  model
+  model,
+  requestOrigin
 }: {
   histories: ChatItemMiniType[];
   model: Model<Api>;
-}): AgentMessage[] =>
-  histories.flatMap((item): AgentMessage[] => {
-    if (item.obj === ChatRoleEnum.System) return [];
-    const { text } = chatValue2RuntimePrompt(item.value);
-    if (!text) return [];
-    if (item.obj === ChatRoleEnum.Human) return [{ role: 'user', content: text, timestamp: 0 }];
-    return [
-      {
-        role: 'assistant',
-        content: [{ type: 'text', text }],
-        api: model.api,
-        provider: model.provider,
-        model: model.id,
-        stopReason: 'stop',
-        timestamp: 0,
-        usage: {
-          input: 0,
-          output: 0,
-          cacheRead: 0,
-          cacheWrite: 0,
-          totalTokens: 0,
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+  requestOrigin?: string;
+}): Promise<AgentMessage[]> => {
+  const messages = await Promise.all(
+    histories.map(async (item): Promise<AgentMessage[]> => {
+      if (item.obj === ChatRoleEnum.System) return [];
+      if (item.obj === ChatRoleEnum.Human)
+        return loadPiMessages({
+          messages: chats2GPTMessages({ messages: [item], reserveId: false }),
+          model,
+          requestOrigin
+        });
+      const { text } = chatValue2RuntimePrompt(item.value);
+      if (!text) return [];
+      return [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text }],
+          api: model.api,
+          provider: model.provider,
+          model: model.id,
+          stopReason: 'stop',
+          timestamp: 0,
+          usage: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            totalTokens: 0,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+          }
         }
-      }
-    ];
-  });
+      ];
+    })
+  );
+  return messages.flat();
+};

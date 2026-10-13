@@ -4,7 +4,10 @@ import { NextAPI } from '@/service/middleware/entry';
 import { MongoSystemMsg } from '@fastgpt/service/support/user/inform/schema';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
-  return MongoSystemMsg.findOne().sort({ _id: -1 }).lean();
+  return MongoSystemMsg.findOne()
+    .sort({ _id: -1 })
+    .select('id content licenseExpiryReminder')
+    .lean();
 }
 
 export default NextAPI(handler);

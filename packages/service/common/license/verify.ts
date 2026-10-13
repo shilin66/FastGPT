@@ -3,10 +3,45 @@ import { localCacheManager } from '../../support/globalCache/cache';
 import { getErrText } from '@fastgpt/global/common/error/utils';
 import jwt from 'jsonwebtoken';
 import { getLogger, LogCategories } from '../logger';
+import { createHash } from 'node:crypto';
+import {
+  LicenseExpiryMetadataSchema,
+  type LicenseExpiryMetadata
+} from '@fastgpt/global/common/system/licenseExpiry';
 
 const logger = getLogger(LogCategories.MODULE.DATASET.FILE);
 
 const CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
+const EXPIRY_CACHE_TTL = 1000 * 60 * 60;
+type LicenseConfig = { licenseKey: string; licenseServer: string; clientId: string };
+const expiryRefreshes = new Map<string, Promise<LicenseExpiryMetadata | null>>();
+
+export const getLicenseConfigurationId = (config: LicenseConfig) =>
+  createHash('sha256')
+    .update(JSON.stringify([config.licenseServer, config.clientId, config.licenseKey]))
+    .digest('hex');
+
+export const getLicenseExpiryMetadata = async (
+  config: LicenseConfig,
+  { forceRefresh = false }: { forceRefresh?: boolean } = {}
+) => {
+  if (!config.licenseKey || !config.licenseServer || !config.clientId) return null;
+  const key = `license-expiry:${getLicenseConfigurationId(config)}`;
+  const pending = expiryRefreshes.get(key);
+  if (pending) return pending;
+  if (forceRefresh) localCacheManager.delete(key);
+  const cached = localCacheManager.get(key) as { metadata: LicenseExpiryMetadata | null } | null;
+  if (cached) return cached.metadata;
+  const refresh = fetchLicense(config.licenseKey, config.licenseServer, config.clientId)
+    .then(({ metadata }) => metadata)
+    .finally(() => expiryRefreshes.delete(key));
+  expiryRefreshes.set(key, refresh);
+  return refresh;
+};
+
+export const clearLicenseExpiryMetadata = (config: LicenseConfig) => {
+  localCacheManager.delete(`license-expiry:${getLicenseConfigurationId(config)}`);
+};
 
 export const initValidLicense = async (
   dbLicense: { licenseKey: string; licenseServer: string; clientId: string },
@@ -140,8 +175,21 @@ const fetchLicense = async (licenseKey: string, licenseServer: string, clientId:
       return Promise.reject(`License verification failed: client is not matched!`);
     }
 
+    const parsedMetadata = LicenseExpiryMetadataSchema.safeParse(data.license);
+    const metadata = parsedMetadata.success
+      ? { ...parsedMetadata.data, expiresAt: new Date(parsedMetadata.data.expiresAt).toISOString() }
+      : null;
+    const tokenTtl =
+      typeof decoded.exp === 'number' ? decoded.exp * 1000 - Date.now() : EXPIRY_CACHE_TTL;
+    localCacheManager.set(
+      `license-expiry:${getLicenseConfigurationId({ licenseKey, licenseServer, clientId })}`,
+      { metadata },
+      Math.max(0, Math.min(EXPIRY_CACHE_TTL, tokenTtl))
+    );
+
     return {
-      token: data.token
+      token: data.token,
+      metadata
     };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data) {

@@ -20,8 +20,28 @@ RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
-RUN apt install -y python3 nodejs
+RUN apt install -y python3 python3-venv nodejs
 RUN rm -rf /var/lib/apt/lists/*
+
+# Keep Python packages outside the mounted workspace and system Python.
+ENV VIRTUAL_ENV=/opt/agent-sandbox/venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}" \
+    MPLBACKEND=Agg
+COPY requirements.txt /opt/agent-sandbox/requirements.txt
+RUN python3 -m venv "${VIRTUAL_ENV}" \
+    && python -m pip install --no-cache-dir -r /opt/agent-sandbox/requirements.txt \
+    && python -m pip check
+
+COPY nodejs/package.json nodejs/pnpm-lock.yaml /opt/agent-sandbox/nodejs/
+RUN npm install --global pnpm@10.33.2 \
+    && pnpm --dir /opt/agent-sandbox/nodejs install --ignore-workspace --frozen-lockfile --prod \
+    && pnpm store prune \
+    && npm cache clean --force \
+    && ln -s /opt/agent-sandbox/nodejs/node_modules /node_modules
+ENV PATH="/opt/agent-sandbox/nodejs/node_modules/.bin:${PATH}"
+
+COPY test/smoke.sh /opt/agent-sandbox/test/smoke.sh
+RUN bash /opt/agent-sandbox/test/smoke.sh
 
 # Install code-server using the official script
 RUN curl -fsSL https://code-server.dev/install.sh | sh

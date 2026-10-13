@@ -9,7 +9,12 @@ import type {
 } from '@fastgpt/global/core/chat/type';
 import type { DispatchNodeResultType } from '@fastgpt/global/core/workflow/runtime/type';
 import { getNodeErrResponse } from '../../../utils';
-import { chatValue2RuntimePrompt, chats2GPTMessages } from '@fastgpt/global/core/chat/adapt';
+import {
+  chatValue2RuntimePrompt,
+  chats2GPTMessages,
+  runtimePrompt2ChatsValue
+} from '@fastgpt/global/core/chat/adapt';
+import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 import { gptMessagesToPi, piMessagesToGPT } from './context';
 import { fitAgentContext } from '../../../../../ai/llm/compress/contextBudget';
 import { getLLMModel } from '../../../../../ai/model';
@@ -35,6 +40,9 @@ import { chatHistoriesToPiMessages, readPiAgentState, resumePiMessages } from '.
 import { isFatalAgentError, SandboxUnavailableError } from '../sub/sandbox/errors';
 import { resolveAgentSandboxSessionId } from '../sub/sandbox/identity';
 import { applyAgentModelParams } from '@fastgpt/global/core/ai/agent/modelParams';
+import { createPiRequestTracker } from './requestTracking';
+import { loadPiMessages } from './input';
+import type { ImageContent, UserMessage } from '@mariozechner/pi-ai';
 
 type Response = DispatchNodeResultType<{
   [NodeOutputKeyEnum.answerText]: string;
@@ -58,7 +66,7 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     params: {
       model,
       systemPrompt,
-      userChatInput,
+      userChatInput = '',
       history = 6,
       fileUrlList: fileLinksInput,
       agent_selectedTools: selectedTools = [],
@@ -77,6 +85,7 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
 
   const assistantResponses: AIChatItemValueItemType[] = [];
   const nodeResponses: ChatHistoryItemResType[] = [];
+  const requestTracker = createPiRequestTracker(aiChatVision);
   const capabilities: AgentCapability[] = [];
   const restoredState = readPiAgentState({ histories, nodeId });
   let sandboxSkillVersions = restoredState?.sandboxSkillVersions;
@@ -198,6 +207,7 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
 
     /* ===== Build pi-agent-core model & tools ===== */
     const piModel = buildPiModel(model, aiChatVision, props.externalProvider.openaiAccount);
+    Object.assign(requestTracker.responseData, { model: piModel.name, query: formatUserChatInput });
     const apiKey = getModelApiKey(model, props.externalProvider.openaiAccount);
 
     const toolCtx: ToolDispatchContext = {
@@ -257,19 +267,49 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
         };
       }
     });
+    const { text: answer, files: queryFiles } = chatValue2RuntimePrompt(query);
+    const [currentUserMessage] = await loadPiMessages({
+      messages: chats2GPTMessages({
+        messages: [
+          {
+            obj: ChatRoleEnum.Human,
+            value: runtimePrompt2ChatsValue({
+              text: restoredState ? answer : formatUserChatInput,
+              files: queryFiles
+            })
+          }
+        ],
+        reserveId: false
+      }),
+      model: piModel,
+      requestOrigin
+    });
+    const userMessage: UserMessage =
+      currentUserMessage?.role === 'user'
+        ? currentUserMessage
+        : { role: 'user', content: '', timestamp: Date.now() };
+    const images: ImageContent[] =
+      typeof userMessage.content === 'string'
+        ? []
+        : userMessage.content.filter((part) => part.type === 'image');
     const restoredMessages = restoredState
-      ? resumePiMessages({ state: restoredState, answer: chatValue2RuntimePrompt(query).text })
+      ? resumePiMessages({ state: restoredState, answer, images })
       : useEditDebugSandbox
-        ? gptMessagesToPi(
-            chats2GPTMessages({
+        ? await loadPiMessages({
+            messages: chats2GPTMessages({
               messages: chatHistories,
               reserveId: false,
               reserveTool: true,
               checkpointNodeId: nodeId
             }),
-            piModel
-          )
-        : chatHistoriesToPiMessages({ histories: chatHistories, model: piModel });
+            model: piModel,
+            requestOrigin
+          })
+        : await chatHistoriesToPiMessages({
+            histories: chatHistories,
+            model: piModel,
+            requestOrigin
+          });
     let compacted: import('@mariozechner/pi-agent-core').AgentMessage[] | undefined;
     let coveredMessages = 0;
     let turns = 0;
@@ -288,7 +328,13 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
       getApiKey: () => apiKey,
       onPayload: (payload) => {
         if (typeof payload !== 'object' || payload === null) return payload;
-        return applyAgentModelParams(payload, props.params.aiChatDefaultConfig, piModel.maxTokens);
+        const requestBody = applyAgentModelParams(
+          payload,
+          props.params.aiChatDefaultConfig,
+          piModel.maxTokens
+        );
+        requestTracker.capturePayload(requestBody);
+        return requestBody;
       },
       toolExecution: 'sequential',
       beforeToolCall: async () =>
@@ -328,8 +374,10 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     // Collect text deltas to build answerText
     let answerText = '';
 
-    agent.subscribe((event: AgentEvent) => {
-      if (event.type === 'message_update') {
+    agent.subscribe(async (event: AgentEvent) => {
+      if (event.type === 'message_end' && event.message.role === 'assistant') {
+        await requestTracker.saveMessage(event.message);
+      } else if (event.type === 'message_update') {
         const e = event.assistantMessageEvent;
         if (e.type === 'text_delta') {
           answerText += e.delta;
@@ -342,19 +390,22 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
         if (event.message.role === 'assistant') {
           const usage = event.message.usage;
           const inputTokens = usage.input + usage.cacheRead + usage.cacheWrite;
+          const totalPoints = props.externalProvider.openaiAccount
+            ? 0
+            : formatModelChars2Points({
+                model: getLLMModel(model),
+                inputTokens,
+                outputTokens: usage.output
+              }).totalPoints;
+          requestTracker.responseData.totalPoints =
+            (requestTracker.responseData.totalPoints ?? 0) + totalPoints;
           usagePush([
             {
               moduleName: 'Agent',
               model: getLLMModel(model).name,
               inputTokens,
               outputTokens: usage.output,
-              totalPoints: props.externalProvider.openaiAccount
-                ? 0
-                : formatModelChars2Points({
-                    model: getLLMModel(model),
-                    inputTokens,
-                    outputTokens: usage.output
-                  }).totalPoints
+              totalPoints
             }
           ]);
         }
@@ -378,7 +429,7 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     getLogger(LogCategories.MODULE.AI.AGENT).debug(`[piAgent] Starting agent prompt`);
     try {
       if (restoredState) await agent.continue();
-      else await agent.prompt(formatUserChatInput);
+      else await agent.prompt(userMessage);
     } finally {
       clearInterval(stopPoller);
     }
@@ -406,6 +457,7 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
 
     if (pendingAsk && !checkIsStopping()) {
       return {
+        [DispatchNodeResponseKeyEnum.nodeResponse]: requestTracker.responseData,
         [DispatchNodeResponseKeyEnum.interactive]: pendingAsk.interactive,
         [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
           nodeId,
@@ -427,6 +479,7 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     assistantResponses.push(terminalPlanEvent);
 
     return {
+      [DispatchNodeResponseKeyEnum.nodeResponse]: requestTracker.responseData,
       data: {
         [NodeOutputKeyEnum.answerText]: answerText
       },
@@ -439,6 +492,7 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
       [DispatchNodeResponseKeyEnum.nodeResponses]: nodeResponses
     };
   } catch (error) {
+    await requestTracker.saveError(error);
     getLogger(LogCategories.MODULE.AI.AGENT).error(`[piAgent] dispatchPiAgent error`, { error });
     if (isFatalAgentError(error)) {
       if (error.assistantResponses.length) assistantResponses.push(...error.assistantResponses);
@@ -454,7 +508,10 @@ export const dispatchPiAgent = async (props: DispatchAgentModuleProps): Promise<
     }
     assistantResponses.push(terminalPlanEvent);
     return {
-      ...getNodeErrResponse({ error }),
+      ...getNodeErrResponse({
+        error,
+        [DispatchNodeResponseKeyEnum.nodeResponse]: requestTracker.responseData
+      }),
       [DispatchNodeResponseKeyEnum.memories]: buildAgentMemory({
         nodeId,
         engine: 'pi',

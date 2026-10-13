@@ -208,10 +208,10 @@ const Layout = ({ children }: { children: JSX.Element }) => {
           </>
         )}
       </Box>
+      <SystemMsgModal />
       {feConfigs?.isPlus && (
         <>
           <NotSufficientModal />
-          <SystemMsgModal />
           {/*{showUpdateNotification && (*/}
           {/*  <UpdateContact onClose={() => setIsUpdateNotification(false)} mode="contact" />*/}
           {/*)}*/}

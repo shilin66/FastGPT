@@ -1,29 +1,41 @@
-import type { IVolumeDriver, EnsureResult, VolumeAddressMode } from './IVolumeDriver';
-import { toClaimName, toVolumeName } from '../utils/naming';
+import { Agent } from 'undici';
+import {
+  SandboxVolumeNameSchema,
+  type SandboxVolumeEnsureRequest,
+  type SandboxVolumeEnsureResponse
+} from '@fastgpt/global/core/ai/sandbox/volume';
+import type { IVolumeDriver } from './IVolumeDriver';
 import { env } from '../env';
 import { logDebug } from '../utils/logger';
 
 export class DockerVolumeDriver implements IVolumeDriver {
   private readonly socketPath: string;
-  private readonly prefix: string;
+  private readonly dispatcher: Agent;
 
-  constructor(socketPath = env.VM_DOCKER_SOCKET, prefix = env.VM_VOLUME_NAME_PREFIX) {
+  constructor(socketPath = env.VM_DOCKER_SOCKET) {
     this.socketPath = socketPath;
-    this.prefix = prefix;
+    this.dispatcher = new Agent({ connect: { socketPath } });
   }
 
   private dockerFetch(path: string, init?: RequestInit): Promise<Response> {
-    // Bun supports unix socket via the `unix` fetch option
+    // Node fetch 通过 Undici dispatcher 访问 Docker Unix socket。
     return fetch(`http://localhost/${env.VM_DOCKER_API_VERSION}${path}`, {
       ...init,
-      // @ts-ignore - Bun-specific option
-      unix: this.socketPath
-    });
+      dispatcher: this.dispatcher
+    } as RequestInit & { dispatcher: Agent });
   }
 
-  async ensure(sessionId: string, mode: VolumeAddressMode = 'sessionId'): Promise<EnsureResult> {
-    const name =
-      mode === 'claimName' ? toClaimName(sessionId) : toVolumeName(this.prefix, sessionId);
+  async inspect(claimName: string) {
+    const name = SandboxVolumeNameSchema.parse(claimName);
+    const response = await this.dockerFetch(`/volumes/${name}`);
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`Docker volume inspect failed (${response.status})`);
+    }
+    return { claimName: name, exists: response.ok };
+  }
+
+  async ensure(params: SandboxVolumeEnsureRequest): Promise<SandboxVolumeEnsureResponse> {
+    const name = SandboxVolumeNameSchema.parse(params.claimName);
 
     // Check if volume already exists
     logDebug(`Docker inspect volume name=${name}`);
@@ -56,9 +68,8 @@ export class DockerVolumeDriver implements IVolumeDriver {
     return { claimName: name, created: true };
   }
 
-  async remove(sessionId: string, mode: VolumeAddressMode = 'sessionId'): Promise<void> {
-    const name =
-      mode === 'claimName' ? toClaimName(sessionId) : toVolumeName(this.prefix, sessionId);
+  async remove(claimName: string): Promise<void> {
+    const name = SandboxVolumeNameSchema.parse(claimName);
     logDebug(`Docker remove volume name=${name}`);
     const res = await this.dockerFetch(`/volumes/${name}`, { method: 'DELETE' });
     logDebug(`Docker remove volume status=${res.status}`);

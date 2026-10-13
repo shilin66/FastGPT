@@ -1204,5 +1204,20 @@
   "xx_search_result": "{{key}} Search Results",
   "yes": "Yes",
   "yesterday": "yesterday",
-  "yesterday_detail_time": "Yesterday {{time}}"
+  "yesterday_detail_time": "Yesterday {{time}}",
+  "license_expiry_notice_title": "System message · License expiry reminder",
+  "license_expiry_acknowledge": "Got it",
+  "license_expiry_days": "{{days}} days",
+  "license_expiry_less_than_day": "less than 1 day",
+  "license_expiry_template_30": "The system license expires on {{expiresAt}}, with {{remainingDays}} remaining. Please contact your system administrator to arrange renewal.",
+  "license_expiry_template_15": "The system license has {{remainingDays}} remaining and expires on {{expiresAt}}. Please contact your system administrator for renewal.",
+  "license_expiry_template_7": "The system license is expiring soon, with {{remainingDays}} remaining. Expiry: {{expiresAt}}. Please contact your system administrator as soon as possible.",
+  "license_expiry_settings_title": "License expiry reminders",
+  "license_expiry_settings_enable": "Enable expiry reminders",
+  "license_expiry_settings_description": "All signed-in users are reminded at the 30-, 15-, and 7-day stages. Each stage is dismissed once per user in this browser.",
+  "license_expiry_settings_variables": "Use {{expiresAt}} and {{remainingDays}}. Leave blank to use the default message.",
+  "license_expiry_settings_stage": "{{days}} days before expiry",
+  "license_expiry_settings_template": "Reminder message",
+  "license_expiry_settings_preview": "Preview (example)",
+  "license_expiry_settings_renewal": "After renewal, the system message returns to “Welcome To OmniCockpit🎉”."
 }

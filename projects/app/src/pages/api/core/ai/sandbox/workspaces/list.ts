@@ -18,6 +18,9 @@ import {
   type SandboxWorkspacesListResponse
 } from '@fastgpt/global/openapi/core/ai/sandbox/management';
 import { authSandboxManagement } from '@/service/core/sandbox/management';
+import { MongoTeamMember } from '@fastgpt/service/support/user/team/teamMemberSchema';
+import type { UserModelSchema } from '@fastgpt/global/support/user/type';
+import { canRecoverSandboxWorkspace } from '@fastgpt/service/core/ai/sandbox/manualRecovery';
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -72,6 +75,30 @@ export default NextAPI(
         .lean(),
       MongoSandboxInstance.countDocuments(filter)
     ]);
+    const runtimeUserIds =
+      sourceType === 'appRuntime'
+        ? [
+            ...new Set(
+              instances
+                .map((doc) => doc.runtimeUserId)
+                .filter((id): id is string => !!id && /^[a-f\d]{24}$/i.test(id))
+            )
+          ]
+        : [];
+    const members = runtimeUserIds.length
+      ? await MongoTeamMember.find({ teamId, _id: { $in: runtimeUserIds } }, '_id name userId')
+          .populate<{ user: Pick<UserModelSchema, 'username'> | null }>({
+            path: 'user',
+            select: 'username'
+          })
+          .lean()
+      : [];
+    const runtimeUsers = new Map(
+      members.map((member) => [
+        String(member._id),
+        { runtimeUserName: member.name?.trim(), runtimeUserAccount: member.user?.username }
+      ])
+    );
     const providerStatuses = await batchRun(
       instances,
       async (doc) => {
@@ -137,6 +164,7 @@ export default NextAPI(
           sourceName,
           ...getSandboxDisplayFields({ ...doc, sourceType }),
           runtimeUserId: doc.runtimeUserId,
+          ...runtimeUsers.get(doc.runtimeUserId?.toLowerCase() ?? ''),
           sourceChatId: doc.sourceChatId,
           sessionId: doc.sessionId,
           technicalName: getSandboxTechnicalName({
@@ -164,6 +192,9 @@ export default NextAPI(
           lastActiveAt: doc.lastActiveAt.toISOString(),
           releasedAt: doc.releasedAt?.toISOString(),
           hasPersistentStorage,
+          canRecover:
+            canRecoverSandboxWorkspace(doc) &&
+            (providerStatus !== 'running' || statusMismatch || !!doc.releasedAt),
           canRelease: !!(
             !doc.forceDeletion &&
             settled &&

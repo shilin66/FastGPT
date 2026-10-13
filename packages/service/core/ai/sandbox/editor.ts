@@ -84,6 +84,7 @@ with os.fdopen(lock, 'w') as handle:
     log_fd = os.open(str(runtime / 'output.log'), os.O_CREAT | os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW, 0o600)
     with os.fdopen(log_fd, 'ab') as log:
         process = subprocess.Popen([binary, '--bind-addr', '127.0.0.1:8080', '--auth', 'password',
+            '--idle-timeout-seconds', '120',
             '--disable-telemetry', '--disable-update-check', '--disable-workspace-trust',
             '--disable-getting-started-override', '--app-name', 'Agent Workspace',
             '--user-data-dir', '/home/sandbox/.local/share/code-server', root],

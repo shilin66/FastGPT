@@ -2,19 +2,26 @@ import type { NextApiRequest } from 'next';
 import type { ApiResponseType } from '@fastgpt/service/type/next';
 import { NextAPI } from '@/service/middleware/entry';
 import { MongoSystemMsg } from '@fastgpt/service/support/user/inform/schema';
-import type { SystemMsgModalValueType } from '@fastgpt/service/support/user/inform/type';
+import { UpdateSystemModalBodySchema } from '@fastgpt/global/openapi/admin/support/user/inform/api';
+import { authSystemAdmin } from '@fastgpt/service/support/permission/user/auth';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
-  const { content } = req.body as SystemMsgModalValueType;
+  await authSystemAdmin({ req });
+  const { content, licenseExpiryReminder } = UpdateSystemModalBodySchema.parse(req.body);
+  const current = await MongoSystemMsg.findOne().sort({ _id: -1 }).lean();
   return MongoSystemMsg.findOneAndUpdate(
-    {},
+    current ? { _id: current._id } : {},
     {
-      content,
-      id: getNanoid()
+      $set: {
+        content,
+        ...(current?.content === content ? {} : { id: getNanoid() }),
+        ...(licenseExpiryReminder === undefined ? {} : { licenseExpiryReminder })
+      }
     },
     {
-      upsert: true
+      upsert: true,
+      new: true
     }
   );
 }

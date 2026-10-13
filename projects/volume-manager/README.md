@@ -1,10 +1,10 @@
 # volume-manager
 
-FastGPT Agent 沙箱存储卷管理服务。负责为每个 Agent 会话创建和销毁持久化存储卷，支持 Kubernetes PVC 和 Docker Volume 两种运行时。
+FastGPT Agent 沙箱存储卷管理服务。负责按 FastGPT 分配的精确 `claimName` 创建和销毁持久化存储卷，支持 Kubernetes PVC 和 Docker Volume 两种运行时。
 
 ## 技术栈
 
-- **Runtime**: [Bun](https://bun.sh)
+- **Runtime**: Node.js（本地 >=22.23.2，Docker 使用 24.16.0）
 - **HTTP 框架**: [Hono](https://hono.dev)
 - **参数校验**: [Zod](https://zod.dev)
 - **测试**: [Vitest](https://vitest.dev)
@@ -13,17 +13,27 @@ FastGPT Agent 沙箱存储卷管理服务。负责为每个 Agent 会话创建�
 
 ```bash
 # 开发模式（热重载）
-bun dev
+pnpm dev
 
 # 构建
-bun run build
+pnpm build
 
 # 生产启动
-bun start
+pnpm start
 
 # 运行测试
-bun test
+pnpm test
 ```
+
+### Docker 构建
+
+在 FastGPT 仓库根目录执行，构建上下文必须使用根目录，以读取共享类型、workspace 配置和锁文件：
+
+```bash
+docker build -f projects/volume-manager/Dockerfile -t fastgpt-volume-manager:recovery .
+```
+
+在 ARM Mac 上构建给 x86_64 服务器部署时，加上 `--platform linux/amd64`。
 
 ## API
 
@@ -37,20 +47,26 @@ GET /health
 
 响应：`{ "status": "ok" }`
 
+### 只读检查存储卷
+
+```text
+GET /v1/volumes/:claimName?mode=claimName
+```
+
+卷存在与不存在都返回 `200`，响应分别为 `{ "claimName": "...", "exists": true }` 或 `exists: false`。
+该接口不会创建或删除卷；Docker/Kubernetes 查询失败、PVC 正在删除时返回错误。主应用不能把查询错误或旧服务缺少接口的 `404` 当作原文件卷丢失。
+
 ### 确保存储卷存在
 
 ```
 POST /v1/volumes/ensure
 Content-Type: application/json
 
-{ "sessionId": "<会话 ID>" }
+{ "claimName": "fastgpt-session-<sandboxId>-<generation>", "storageSize": "1Gi" }
 ```
 
-或直接指定卷名：
-
-```json
-{ "claimName": "omni-<UUID>" }
-```
+`claimName` 由 FastGPT 生成并先持久化；volume-manager 不再根据会话 ID 推导名称。
+`storageSize` 可选，仅 k8s 模式下创建新 PVC 时有效，未传入时使用 `1Gi`。
 
 - 卷已存在：返回 `200`，`{ "claimName": "...", "created": false }`
 - 卷新建：返回 `201`，`{ "claimName": "...", "created": true }`
@@ -58,16 +74,15 @@ Content-Type: application/json
 ### 删除存储卷
 
 ```
-DELETE /v1/volumes/:sessionId
-```
-
-按卷名删除时使用：
-
-```
-DELETE /v1/volumes/:claimName?mode=claimName
+DELETE /v1/volumes/:claimName
 ```
 
 响应：`204 No Content`（幂等，卷不存在时同样返回 204）
+
+Kubernetes 模式下，`204` 表示目标 PVC generation 已完成删除（PVC 对象已不存在或已被新的
+UID generation 替换），不是仅表示 API Server 接受了 DELETE 请求。Terminating PVC 会被轮询到
+删除完成；等待超时或 Kubernetes 返回其他错误时接口返回失败。Docker 模式保持 Docker API
+原有的同步删除语义。
 
 ## 环境变量
 
@@ -75,19 +90,17 @@ DELETE /v1/volumes/:claimName?mode=claimName
 |------|------|--------|------|
 | `VM_AUTH_TOKEN` | ✅ | - | API 鉴权 Token |
 | `VM_RUNTIME` | | `kubernetes` | 运行时：`kubernetes` 或 `docker` |
-| `VM_PORT` | | `3001` | 监听端口 |
+| `PORT` | | `3000` | 监听端口 |
 | `VM_LOG_LEVEL` | | `info` | 日志级别：`debug` / `info` / `none` |
-| `VM_VOLUME_NAME_PREFIX` | | `omni` | 通过 sessionId 创建卷时使用的前缀 |
 | `VM_DOCKER_SOCKET` | | `/var/run/docker.sock` | Docker socket 路径（docker 模式） |
 | `VM_K8S_NAMESPACE` | | `opensandbox` | PVC 所在命名空间（k8s 模式） |
-| `VM_K8S_PVC_STORAGE_CLASS` | | `standard` | PVC StorageClass（k8s 模式） |
-| `VM_K8S_PVC_STORAGE_SIZE` | | `1Gi` | PVC 容量（k8s 模式） |
+| `VM_K8S_PVC_STORAGE_CLASS` | | `''` | PVC StorageClass（k8s 模式） |
 
 ## Kubernetes 部署要求
 
 ### StorageClass
 
-volume-manager 默认使用 StorageClass `fastgpt-local`（可通过 `VM_K8S_PVC_STORAGE_CLASS` 覆盖）。参考配置：
+volume-manager 默认将 `storageClassName` 置为空字符串；如需指定 StorageClass，可通过 `VM_K8S_PVC_STORAGE_CLASS` 覆盖。参考配置：
 
 ```yaml
 apiVersion: storage.k8s.io/v1
@@ -124,7 +137,7 @@ volume-manager 使用集群内 ServiceAccount 认证，无需挂载外部 kubeco
 ### 部署检查清单
 
 - [ ] 命名空间 `opensandbox`（或自定义值）已存在
-- [ ] StorageClass `fastgpt-local`（或自定义值）已创建并可用
+- [ ] 如配置 `VM_K8S_PVC_STORAGE_CLASS`，对应 StorageClass 已创建并可用
 - [ ] ServiceAccount + Role + RoleBinding 已创建
 - [ ] Secret 中包含有效的 `VM_AUTH_TOKEN`
 
@@ -143,7 +156,6 @@ src/
 │   ├── DockerVolumeDriver.ts
 │   └── K8sVolumeDriver.ts
 └── utils/
-    ├── naming.ts         # 卷名生成（sessionId → volume name）
     └── logger.ts         # 日志工具
 ```
 

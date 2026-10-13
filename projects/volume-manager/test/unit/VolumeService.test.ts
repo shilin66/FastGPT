@@ -10,12 +10,13 @@ import type { IVolumeDriver } from '../../src/drivers/IVolumeDriver';
 
 function makeDriver(): IVolumeDriver {
   return {
+    inspect: vi.fn(),
     ensure: vi.fn(),
     remove: vi.fn()
   };
 }
 
-const VALID_ID = 'a1b2c3d4e5f6a1b2c3d4e5f6';
+const CLAIM_NAME = 'fastgpt-session-a1b2c3d4e5f6a1b2c3d4e5f6-generation';
 
 describe('VolumeService', () => {
   let driver: IVolumeDriver;
@@ -28,17 +29,17 @@ describe('VolumeService', () => {
 
   it('delegates ensure to driver', async () => {
     vi.mocked(driver.ensure).mockResolvedValue({
-      claimName: 'omni-' + VALID_ID,
+      claimName: CLAIM_NAME,
       created: true
     });
-    const result = await service.ensure(VALID_ID);
-    expect(driver.ensure).toHaveBeenCalledWith(VALID_ID, 'sessionId');
+    const result = await service.ensure({ claimName: CLAIM_NAME, storageSize: '5Gi' });
+    expect(driver.ensure).toHaveBeenCalledWith({ claimName: CLAIM_NAME, storageSize: '5Gi' });
     expect(result.created).toBe(true);
   });
 
   it('delegates remove to driver', async () => {
     vi.mocked(driver.remove).mockResolvedValue(undefined);
-    await service.remove(VALID_ID);
-    expect(driver.remove).toHaveBeenCalledWith(VALID_ID, 'sessionId');
+    await service.remove(CLAIM_NAME);
+    expect(driver.remove).toHaveBeenCalledWith(CLAIM_NAME);
   });
 });

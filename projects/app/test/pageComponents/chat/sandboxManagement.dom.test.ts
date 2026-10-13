@@ -46,6 +46,7 @@ const workspace = {
   canRelease: false,
   canDelete: false,
   canForceDelete: true,
+  canRecover: true,
   deletionRevision: 'a'.repeat(64)
 };
 
@@ -79,6 +80,120 @@ describe('sandbox force deletion UI', () => {
         )
       )
     );
+  it('only submits empty rebuilding after explicit confirmation', async () => {
+    const revision = 'b'.repeat(64);
+    mocks.action.mockResolvedValue({
+      success: false,
+      status: 'confirmation_required',
+      recoveryRevision: revision
+    });
+    await render();
+    await act(async () =>
+      [...document.querySelectorAll('button')]
+        .find((button) => button.textContent === '恢复沙箱')
+        ?.click()
+    );
+    expect(mocks.action).toHaveBeenCalledExactlyOnceWith({
+      sourceType: 'appRuntime',
+      sourceId: 'app-1',
+      sandboxId: workspace.sandboxId,
+      action: 'recover'
+    });
+    expect(document.body.textContent).toContain('原文件卷和备份均不存在');
+    expect(document.body.textContent).toContain('无法找回');
+    expect(document.body.textContent).toContain('重要 Agent');
+    expect(document.body.textContent).toContain(workspace.sandboxId);
+    mocks.action.mockResolvedValue({ success: true, status: 'recovered', strategy: 'empty' });
+    await act(async () =>
+      [...document.querySelectorAll('button')]
+        .find((button) => button.textContent === '重建空白沙箱')
+        ?.click()
+    );
+    expect(mocks.action).toHaveBeenLastCalledWith({
+      sourceType: 'appRuntime',
+      sourceId: 'app-1',
+      sandboxId: workspace.sandboxId,
+      action: 'recover',
+      rebuildEmpty: true,
+      recoveryRevision: revision
+    });
+  });
+
+  it('does not rebuild if empty confirmation is cancelled', async () => {
+    mocks.action.mockResolvedValue({
+      success: false,
+      status: 'confirmation_required',
+      recoveryRevision: 'b'.repeat(64)
+    });
+    await render();
+    await act(async () =>
+      [...document.querySelectorAll('button')]
+        .find((button) => button.textContent === '恢复沙箱')
+        ?.click()
+    );
+    await act(async () =>
+      [...document.querySelectorAll('button')]
+        .find((button) => button.textContent === '取消')
+        ?.click()
+    );
+    expect(mocks.action).toHaveBeenCalledOnce();
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+    expect(document.body.textContent).not.toContain('重建空白沙箱');
+  });
+  it('shows the member name in the list and the account and ID in details', async () => {
+    mocks.list.mockResolvedValue({
+      supported: true,
+      total: 1,
+      list: [
+        {
+          ...workspace,
+          runtimeUserId: 'member-1',
+          runtimeUserName: '张三',
+          runtimeUserAccount: 'zhangsan@example.com'
+        }
+      ]
+    });
+    await render();
+    expect(document.body.textContent).toContain('所属用户：张三');
+    await act(async () =>
+      [...document.querySelectorAll('button')]
+        .find((button) => button.textContent === '详情')
+        ?.click()
+    );
+    expect(document.body.textContent).toContain('所属用户账号');
+    expect(document.body.textContent).toContain('zhangsan@example.com');
+    expect(document.body.textContent).toContain('member-1');
+  });
+
+  it.each([
+    { runtimeUserAccount: 'account@example.com', expected: 'account@example.com' },
+    { runtimeUserAccount: undefined, expected: 'external-visitor' }
+  ])(
+    'falls back to the account or ID when a member name is unavailable: $expected',
+    async ({ runtimeUserAccount, expected }) => {
+      mocks.list.mockResolvedValue({
+        supported: true,
+        total: 1,
+        list: [
+          {
+            ...workspace,
+            runtimeUserId: 'external-visitor',
+            runtimeUserAccount
+          }
+        ]
+      });
+      await render();
+      expect(document.body.textContent).toContain(`所属用户：${expected}`);
+      await act(async () =>
+        [...document.querySelectorAll('button')]
+          .find((button) => button.textContent === '详情')
+          ?.click()
+      );
+      if (!runtimeUserAccount) expect(document.body.textContent).toContain('未关联账号');
+      expect(document.body.textContent).toContain('external-visitor');
+    }
+  );
+
   it('requires explicit destructive confirmation with Agent and workspace identity before submitting revision', async () => {
     await render();
     const button = [...document.querySelectorAll('button')].find(

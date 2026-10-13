@@ -11,6 +11,8 @@ import { setLangToStorage, getLangMapping } from '@fastgpt/web/i18n/utils';
 type State = {
   systemMsgReadId: string;
   setSysMsgReadId: (id: string) => void;
+  licenseNoticeReadIds: Record<string, string[]>;
+  setLicenseNoticeReadId: (userId: string, id: string) => void;
 
   isUpdateNotification: boolean;
   setIsUpdateNotification: (val: boolean) => void;
@@ -35,6 +37,14 @@ export const useUserStore = create<State>()(
         setSysMsgReadId(id: string) {
           set((state) => {
             state.systemMsgReadId = id;
+          });
+        },
+
+        licenseNoticeReadIds: {},
+        setLicenseNoticeReadId(userId: string, id: string) {
+          set((state) => {
+            const ids = state.licenseNoticeReadIds[userId] || [];
+            state.licenseNoticeReadIds[userId] = [...new Set([...ids, id])].slice(-12);
           });
         },
 
@@ -111,6 +121,7 @@ export const useUserStore = create<State>()(
         name: 'userStore',
         partialize: (state) => ({
           systemMsgReadId: state.systemMsgReadId,
+          licenseNoticeReadIds: state.licenseNoticeReadIds,
           isUpdateNotification: state.isUpdateNotification
         })
       }

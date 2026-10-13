@@ -1,17 +1,21 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import { ChatFileTypeEnum, ChatRoleEnum } from '@fastgpt/global/core/chat/constants';
 import { SubAppIds } from '@fastgpt/global/core/workflow/node/agent/constants';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
+import { DispatchNodeResponseKeyEnum } from '@fastgpt/global/core/workflow/runtime/constants';
 import {
   dispatchRunAgent,
   type DispatchAgentModuleProps
 } from '@fastgpt/service/core/workflow/dispatch/ai/agent';
 import { dispatchPiAgent } from '@fastgpt/service/core/workflow/dispatch/ai/agent/piAgent';
 import { RuntimeSkillResolutionError } from '@fastgpt/service/core/agentSkills/runtimeResolver';
-import type { ChatItemMiniType } from '@fastgpt/global/core/chat/type';
+import type { ChatItemMiniType, ChatHistoryItemResType } from '@fastgpt/global/core/chat/type';
 import type { AIChatItemValueItemType } from '@fastgpt/global/core/chat/type';
 import type { DispatchPlanAgentResponse } from '@fastgpt/service/core/workflow/dispatch/ai/agent/sub/plan';
 import type { AssistantMessage, Context, SimpleStreamOptions } from '@mariozechner/pi-ai';
+import { getLLMRequestRecord } from '@fastgpt/service/core/ai/record/controller';
+import { getLLMModel } from '@fastgpt/service/core/ai/model';
+import { piMessagesToGPT } from '@fastgpt/service/core/workflow/dispatch/ai/agent/piAgent/context';
 import {
   buildAgentMemory,
   restoreAgentPlan
@@ -44,7 +48,16 @@ vi.mock('@fastgpt/service/common/logger', async (importOriginal) => ({
 vi.mock('@fastgpt/service/core/workflow/dispatch/utils', () => ({
   getHistories: (history: number | ChatItemMiniType[], histories: ChatItemMiniType[]) =>
     Array.isArray(history) ? history : history ? histories.slice(-history * 2) : [],
-  getNodeErrResponse: ({ error }: { error: Error }) => ({ error: { errorText: error.message } })
+  getNodeErrResponse: ({
+    error,
+    responseData
+  }: {
+    error: Error;
+    responseData?: ChatHistoryItemResType;
+  }) => ({
+    error: { errorText: error.message },
+    responseData: { errorText: error.message, ...responseData }
+  })
 }));
 vi.mock('@fastgpt/service/core/workflow/dispatch/ai/utils', () => ({
   filterMemoryMessages: (messages: unknown) => messages
@@ -160,7 +173,10 @@ const masterResult = () => ({
   assistantMessages: [],
   nodeResponse: {}
 });
-const piResponse = async (content: AssistantMessage['content']) => {
+const piResponse = async (
+  content: AssistantMessage['content'],
+  overrides: Partial<AssistantMessage> = {}
+) => {
   const { createAssistantMessageEventStream } = await import('@mariozechner/pi-ai');
   const message: AssistantMessage = {
     role: 'assistant',
@@ -177,18 +193,19 @@ const piResponse = async (content: AssistantMessage['content']) => {
       cacheWrite: 0,
       totalTokens: 0,
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
-    }
+    },
+    ...overrides
   };
   const result = createAssistantMessageEventStream();
   result.push({ type: 'start', partial: message });
   for (const item of content)
     if (item.type === 'text')
       result.push({ type: 'text_delta', contentIndex: 0, delta: item.text, partial: message });
-  result.push({
-    type: 'done',
-    reason: message.stopReason === 'toolUse' ? 'toolUse' : 'stop',
-    message
-  });
+  if (message.stopReason === 'error' || message.stopReason === 'aborted') {
+    result.push({ type: 'error', reason: message.stopReason, error: message });
+  } else {
+    result.push({ type: 'done', reason: message.stopReason, message });
+  }
   result.end();
   return result;
 };
@@ -220,6 +237,183 @@ it('passes native model parameters through the Pi provider payload hook', async 
     ...payload,
     temperature: 0.7,
     chat_template_kwargs: { enable_thinking: false }
+  });
+});
+
+describe('Pi LLM request tracking', () => {
+  it.each(['error', 'aborted'] as const)(
+    'keeps a single record for a provider %s event',
+    async (stopReason) => {
+      mocks.stream.mockImplementationOnce(async (model, _context, options: SimpleStreamOptions) => {
+        await options.onPayload?.({ model: model.id, messages: [] }, model);
+        return piResponse([], { stopReason, errorMessage: 'provider interrupted' });
+      });
+
+      const result = await dispatchPiAgent(props());
+
+      const ids = result[DispatchNodeResponseKeyEnum.nodeResponse]?.llmRequestIds ?? [];
+      expect(ids).toHaveLength(1);
+      const record = await getLLMRequestRecord(ids[0]);
+      expect(record?.response).toMatchObject({
+        error: 'provider interrupted',
+        finish_reason: 'error'
+      });
+      expect(result.error).toBeDefined();
+    }
+  );
+
+  it('keeps the request ID when an ask tool pauses the Agent', async () => {
+    mocks.stream.mockImplementationOnce(async (model, _context, options: SimpleStreamOptions) => {
+      await options.onPayload?.({ model: model.id, messages: [] }, model);
+      return piResponse([
+        { type: 'toolCall', id: 'ask-1', name: SubAppIds.ask, arguments: { question: 'question' } }
+      ]);
+    });
+
+    const result = await dispatchPiAgent(props());
+
+    expect(result[DispatchNodeResponseKeyEnum.interactive]).toBeDefined();
+    const ids = result[DispatchNodeResponseKeyEnum.nodeResponse]?.llmRequestIds ?? [];
+    expect(ids).toHaveLength(1);
+    expect((await getLLMRequestRecord(ids[0]))?.response.finish_reason).toBe('tool_calls');
+  });
+
+  it('returns request IDs whose stored payload includes the applied model parameters', async () => {
+    const input = props();
+    input.params.aiChatDefaultConfig = { temperature: 0.7, max_tokens: 256 };
+    const payload = {
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: 'task' }],
+      stream: true,
+      max_tokens: 512
+    };
+    mocks.stream.mockImplementationOnce(async (model, _context, options: SimpleStreamOptions) => {
+      await options.onPayload?.(payload, model);
+      payload.messages[0].content = 'mutated after sending';
+      return piResponse(
+        [
+          { type: 'thinking', thinking: 'reasoning' },
+          { type: 'text', text: 'done' }
+        ],
+        {
+          usage: {
+            input: 20,
+            output: 10,
+            cacheRead: 5,
+            cacheWrite: 2,
+            totalTokens: 37,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+          }
+        }
+      );
+    });
+
+    const result = await dispatchPiAgent(input);
+
+    const ids = result[DispatchNodeResponseKeyEnum.nodeResponse]?.llmRequestIds ?? [];
+    expect(ids).toHaveLength(1);
+    const record = await getLLMRequestRecord(ids[0]);
+    expect(record?.body).toEqual({
+      ...payload,
+      temperature: 0.7,
+      max_tokens: 256,
+      messages: [{ role: 'user', content: 'task' }]
+    });
+    expect(record?.response).toMatchObject({
+      answerText: 'done',
+      reasoningText: 'reasoning',
+      finish_reason: 'stop',
+      usage: { inputTokens: 27, outputTokens: 10 }
+    });
+    expect(result[DispatchNodeResponseKeyEnum.nodeResponse]).toMatchObject({
+      model: 'GPT-4o mini',
+      query: 'task',
+      inputTokens: 27,
+      outputTokens: 10,
+      temperature: 0.7,
+      maxToken: 256,
+      finishReason: 'stop',
+      reasoningText: 'reasoning',
+      contextTotalLen: 2,
+      historyPreview: [
+        { obj: ChatRoleEnum.Human, value: 'task' },
+        { obj: ChatRoleEnum.AI, value: 'done' }
+      ]
+    });
+  });
+
+  it('records a separate request and response for each tool-call round', async () => {
+    const toolCall = {
+      type: 'toolCall',
+      id: 'call-1',
+      name: 'side_effect',
+      arguments: {}
+    } as const;
+    mocks.stream.mockImplementation(
+      async (model, context: Context, options: SimpleStreamOptions) => {
+        await options.onPayload?.(
+          { model: model.id, messages: piMessagesToGPT(context.messages) },
+          model
+        );
+        return piResponse(
+          context.messages.some((message) => message.role === 'toolResult')
+            ? [{ type: 'text', text: 'done' }]
+            : [toolCall],
+          {
+            usage: {
+              input: 10,
+              output: 5,
+              cacheRead: 0,
+              cacheWrite: 0,
+              totalTokens: 15,
+              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+            }
+          }
+        );
+      }
+    );
+
+    const result = await dispatchPiAgent(props());
+
+    const ids = result[DispatchNodeResponseKeyEnum.nodeResponse]?.llmRequestIds ?? [];
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+    const records = await Promise.all(ids.map(getLLMRequestRecord));
+    expect(records[0]?.response).toMatchObject({
+      finish_reason: 'tool_calls',
+      toolCalls: [
+        { id: 'call-1', type: 'function', function: { name: 'side_effect', arguments: '{}' } }
+      ]
+    });
+    expect(records[1]?.response).toMatchObject({ answerText: 'done', finish_reason: 'stop' });
+    expect(records[0]?.body.messages).toHaveLength(1);
+    expect(records[1]?.body.messages).toHaveLength(3);
+    expect(result[DispatchNodeResponseKeyEnum.nodeResponse]).toMatchObject({
+      inputTokens: 20,
+      outputTokens: 10,
+      finishReason: 'stop',
+      contextTotalLen: 4,
+      textOutput: 'done'
+    });
+  });
+
+  it('preserves request details when the provider fails after receiving the payload', async () => {
+    mocks.stream.mockImplementationOnce(async (model, _context, options: SimpleStreamOptions) => {
+      await options.onPayload?.({ model: model.id, messages: [] }, model);
+      throw new Error('provider unavailable');
+    });
+
+    const result = await dispatchPiAgent(props());
+
+    expect(result.error).toBeDefined();
+    const ids = result[DispatchNodeResponseKeyEnum.nodeResponse]?.llmRequestIds ?? [];
+    expect(ids).toHaveLength(1);
+    const record = await getLLMRequestRecord(ids[0]);
+    expect(record?.response).toMatchObject({
+      error: 'provider unavailable',
+      finish_reason: 'error'
+    });
+    expect(result[DispatchNodeResponseKeyEnum.nodeResponse]?.finishReason).toBe('error');
   });
 });
 
@@ -690,6 +884,107 @@ describe('default Agent execution memory', () => {
 });
 
 describe('Pi execution memory with the installed SDK', () => {
+  const png =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4N8AAAAASUVORK5CYII=';
+  const imageFile = {
+    type: ChatFileTypeEnum.image,
+    name: 'pixel.png',
+    url: `data:image/png;base64,${png}`
+  };
+  const imageContent = { type: 'image', mimeType: 'image/png', data: png };
+
+  it('sends an image-only turn when the workflow omits its text input', async () => {
+    const input = props();
+    Reflect.deleteProperty(input.params, 'userChatInput');
+    input.query = [{ file: imageFile }];
+    input.params.aiChatVision = true;
+
+    const result = await dispatchPiAgent(input);
+
+    expect(result.data?.answerText).toBe('done');
+    const context: Context = mocks.stream.mock.calls[0][1];
+    expect(context.messages).toContainEqual(
+      expect.objectContaining({ role: 'user', content: expect.arrayContaining([imageContent]) })
+    );
+  });
+
+  it('sends both the task and its image when the user supplies text', async () => {
+    const input = props();
+    input.params.userChatInput = 'Describe this image';
+    input.params.aiChatVision = true;
+    input.query = [{ file: imageFile }, { text: { content: 'Describe this image' } }];
+
+    await dispatchPiAgent(input);
+
+    const context: Context = mocks.stream.mock.calls[0][1];
+    expect(context.messages).toContainEqual(
+      expect.objectContaining({
+        role: 'user',
+        content: expect.arrayContaining([
+          { type: 'text', text: 'Describe this image' },
+          imageContent
+        ])
+      })
+    );
+  });
+
+  it.each([false, true])('retains a prior image-only turn when editDebug=%s', async (editDebug) => {
+    const input = props([
+      { obj: ChatRoleEnum.Human, value: [{ file: imageFile }] },
+      { obj: ChatRoleEnum.AI, value: [{ text: { content: 'A diagram' } }] }
+    ]);
+    input.params.history = 1;
+    input.params.aiChatVision = true;
+    input.params.userChatInput = 'What color is it?';
+    input.params.useEditDebugSandbox = editDebug;
+    if (editDebug) {
+      mocks.env.SHOW_SKILL = true;
+      mocks.sandbox.mockResolvedValue({});
+      const modelId = 'pi-image-history-debug';
+      global.llmModelMap.set(modelId, { ...getLLMModel(input.params.model), maxContext: 128000 });
+      input.params.model = modelId;
+      onTestFinished(() => {
+        global.llmModelMap.delete(modelId);
+      });
+    }
+
+    const result = await dispatchPiAgent(input);
+
+    expect(result).toMatchObject({ data: { answerText: 'done' } });
+    const context: Context = mocks.stream.mock.calls[0][1];
+    expect(context.messages).toContainEqual(
+      expect.objectContaining({ role: 'user', content: expect.arrayContaining([imageContent]) })
+    );
+  });
+
+  it('passes an uploaded image to the model when resuming an ask tool', async () => {
+    mocks.stream.mockImplementationOnce(() =>
+      piResponse([
+        {
+          type: 'toolCall',
+          id: 'ask-image',
+          name: SubAppIds.ask,
+          arguments: { question: 'Image?' }
+        }
+      ])
+    );
+    const paused = await dispatchPiAgent(props());
+    const input = props([pending(paused.system_memories ?? {})]);
+    input.query = [{ file: imageFile }];
+    input.params.aiChatVision = true;
+
+    const result = await dispatchPiAgent(input);
+
+    expect(result.data?.answerText).toBe('done');
+    const context: Context = mocks.stream.mock.calls[1][1];
+    expect(context.messages).toContainEqual(
+      expect.objectContaining({ role: 'toolResult', toolCallId: 'ask-image' })
+    );
+    expect(context.messages).toContainEqual(
+      expect.objectContaining({ role: 'user', content: expect.arrayContaining([imageContent]) })
+    );
+  });
+
   it('pauses on a real ask tool, avoids another model call, resumes with its answer and clears state', async () => {
     mocks.stream.mockImplementationOnce(() =>
       piResponse([

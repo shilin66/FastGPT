@@ -89,7 +89,9 @@ export const SandboxMetadataSchema = z.object({
     .object({
       image: SandboxImageSchema,
       entrypoint: z.array(z.string()).optional(),
-      resourceLimits: SandboxLimitSchema.partial().optional(),
+      resourceLimits: SandboxLimitSchema.partial()
+        .nullish()
+        .transform((limits) => limits ?? undefined),
       timeoutSeconds: z.number().nullable().optional(),
       env: z.record(z.string(), z.string()),
       metadata: z.record(z.string(), z.string()).optional(),

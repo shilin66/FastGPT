@@ -8,6 +8,9 @@ packages:
   - pro/sso
 
 catalog:
+  "@hono/node-server": 1.19.9
+  hono: 4.11.7
+  undici: 7.25.0
   "@fastgpt-sdk/logger": 0.1.2
   "@fastgpt-sdk/otel": 0.1.2
   "@fastgpt-sdk/storage": 0.6.15

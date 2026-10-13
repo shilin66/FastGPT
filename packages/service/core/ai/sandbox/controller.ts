@@ -51,6 +51,11 @@ import { getLegacySourceChatId } from './ownership';
 import { forceDeleteSandboxWorkspace } from './forceDelete';
 import { createHash } from 'node:crypto';
 import { SandboxEditorError } from './editor';
+import {
+  canRecoverMissingRuntime,
+  prepareMissingRuntimeRecovery,
+  findCompletedRuntimeRecovery
+} from './missingRuntimeRecovery';
 import type { SandboxIdentity } from '@fastgpt/global/core/ai/sandbox/type';
 import {
   SandboxProviderSchema,
@@ -267,9 +272,10 @@ export class SandboxClient {
         !lifecycle ||
         !this.opts.expectedInstance ||
         lifecycle.operation?.failureDisposition === 'unknown' ||
-        ['provisioning', 'archiving', 'restoring', 'stopping', 'deleting', 'failed'].includes(
+        ['provisioning', 'archiving', 'restoring', 'stopping', 'deleting'].includes(
           lifecycle.status
-        )
+        ) ||
+        (lifecycle.status === 'failed' && !canRecoverMissingRuntime(lifecycle))
       )
         throw new SandboxEditorError('sandbox_editor_recovery_required', 409);
       this.opts.resourceLimits = lifecycle.limit ?? undefined;
@@ -512,12 +518,16 @@ export class SandboxClient {
         ) {
           throw new Error('Sandbox workspace root does not match the existing instance');
         }
-        if (
+        const missingRuntime =
           this.opts.expectedInstance &&
           !(await this.connectExistingProvider()) &&
-          !operation.previous?.releasedAt
-        ) {
-          throw new SandboxOperationConflict('Selected Sandbox provider no longer exists');
+          !operation.previous?.releasedAt;
+        const recovery = missingRuntime
+          ? prepareMissingRuntimeRecovery(operation.previous)
+          : undefined;
+        if (recovery) {
+          this.opts.createConfig = recovery.createConfig;
+          this.opts.resourceLimits = recovery.createConfig.resourceLimits;
         }
         const preparedVolume = prepareVolumeManagerConfig({
           sandboxId: this.sandboxId,
@@ -532,17 +542,25 @@ export class SandboxClient {
         });
         await operation.checkpoint(
           'volume_ensure',
-          preparedVolume ? { storage: preparedVolume.storage } : {}
+          recovery
+            ? { storage: recovery.volumeConfig.storage }
+            : preparedVolume
+              ? { storage: preparedVolume.storage }
+              : {}
         );
-        this.opts.vmConfig = preparedVolume
-          ? await operation.remoteEffect(() =>
-              getVolumeManagerConfig(this.sandboxId, preparedVolume)
-            )
-          : undefined;
+        this.opts.vmConfig = recovery
+          ? recovery.volumeConfig
+          : preparedVolume
+            ? await operation.remoteEffect(() =>
+                getVolumeManagerConfig(this.sandboxId, preparedVolume)
+              )
+            : undefined;
         const runtimeConfig =
           this.opts.identity?.sourceType === 'appRuntime' &&
           this.providerName === 'opensandbox' &&
-          (!operation.previous?.metadata?.providerSandboxId || operation.previous.releasedAt)
+          (!operation.previous?.metadata?.providerSandboxId ||
+            operation.previous.releasedAt ||
+            recovery)
             ? buildOpenSandboxCreateConfig({
                 createConfig: this.opts.createConfig,
                 resourceLimits: this.opts.resourceLimits
@@ -606,6 +624,7 @@ export class SandboxClient {
         const provider = this.provider;
         if (
           options.preserveBoundRuntime &&
+          !recovery &&
           operation.previous?.metadata?.providerSandboxId &&
           !operation.previous.releasedAt
         ) {
@@ -627,6 +646,9 @@ export class SandboxClient {
           status: SandboxStatusEnum.running,
           releasedAt: null,
           lastActiveAt: new Date(),
+          ...(recovery && operation.previous?.operation
+            ? { 'operation.recoveredFromOperationId': operation.previous.operation.id }
+            : {}),
           ...(this.provider.id ? { 'metadata.providerSandboxId': this.provider.id } : {}),
           ...(info?.image ? { 'metadata.image': info.image } : {}),
           ...(runtimeConfig && info?.image ? { 'metadata.runtimeConfig.image': info.image } : {}),
@@ -654,7 +676,14 @@ export class SandboxClient {
         }
         this.availableInfo = info;
       }
-    );
+    ).catch(async (error: unknown) => {
+      if (!(error instanceof SandboxOperationConflict) || !this.opts.expectedInstance) throw error;
+      const recovered = await findCompletedRuntimeRecovery(this.opts.expectedInstance);
+      if (!recovered) throw error;
+      this.opts.expectedInstance = recovered;
+      this.providerInstance = undefined;
+      this.availableInfo = await this.connectRunning();
+    });
   }
 
   /** Attach to a selected running workspace without claiming a start operation. */
@@ -691,6 +720,7 @@ export class SandboxClient {
     if (!(await this.connectExistingProvider())) throw new SandboxBusyBeforeEffectError();
     const info = await this.provider.getInfo();
     if (info?.status.state !== 'Running') throw new SandboxBusyBeforeEffectError();
+    return info;
   }
 
   async maintainWorkspace({

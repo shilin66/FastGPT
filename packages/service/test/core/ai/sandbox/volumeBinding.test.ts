@@ -5,6 +5,10 @@ import {
   getSandboxClient,
   getExistingSandboxClient
 } from '@fastgpt/service/core/ai/sandbox/controller';
+import {
+  prepareVolumeManagerConfig,
+  getVolumeManagerConfig
+} from '@fastgpt/service/core/ai/sandbox/config';
 
 const { settings, providerEnsure, providerDelete, providerConnect, fetchMock } = vi.hoisted(() => ({
   settings: { url: 'http://volume.test', protocol: 'claimName', enabled: true },
@@ -87,6 +91,17 @@ describe('persistent volume binding lifecycle', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  it('uses exact claimName for new volumes with the legacy default protocol', async () => {
+    settings.protocol = 'sessionId';
+    const prepared = prepareVolumeManagerConfig({ sandboxId: 'new-workspace' });
+    expect(prepared?.binding.protocol).toBe('claimName');
+    const result = await getVolumeManagerConfig('new-workspace', prepared);
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({
+      claimName: prepared?.binding.target
+    });
+    expect(result?.storage.volumes?.[0]?.claimName).toBe(prepared?.binding.target);
+  });
 
   it('persists the claim and protocol before ensure HTTP and retains them after provider failure', async () => {
     fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {

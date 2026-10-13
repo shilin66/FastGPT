@@ -7,6 +7,7 @@ import { SystemConfigsTypeEnum } from '@fastgpt/global/common/system/config/cons
 import { MongoUser } from '@fastgpt/service/support/user/schema';
 import { jsonRes } from '@fastgpt/service/common/response';
 import { parseHeaderCert } from '@fastgpt/service/support/permission/auth/common';
+import { clearLicenseExpiryMetadata } from '@fastgpt/service/common/license/verify';
 
 async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
   const body = req.body as LicenseDataType;
@@ -23,6 +24,7 @@ async function handler(req: NextApiRequest, res: ApiResponseType<any>) {
     value: body
   });
   global.licenseData = body;
+  clearLicenseExpiryMetadata(body);
   return;
 }
 

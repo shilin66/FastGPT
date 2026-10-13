@@ -15,6 +15,13 @@ const assertArchiveKey = (sandboxId: string, key: string) => {
 };
 
 class SandboxArchiveStorage extends S3PrivateBucket {
+  async exists(sandboxId: string, key: string): Promise<boolean> {
+    assertArchiveKey(sandboxId, key);
+    const { exists } = await this.client.checkObjectExists({ key });
+    if (typeof exists !== 'boolean') throw new Error('Sandbox archive existence is unverified');
+    return exists;
+  }
+
   async list() {
     const { keys } = await this.client.listObjects({ prefix: 'sandbox/archive/' });
     return keys;

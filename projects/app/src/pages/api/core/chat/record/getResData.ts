@@ -8,6 +8,7 @@ import { type ChatHistoryItemResType } from '@fastgpt/global/core/chat/type';
 import { filterPublicNodeResponseData } from '@fastgpt/global/core/chat/utils';
 import { MongoChatItemResponse } from '@fastgpt/service/core/chat/chatItemResponseSchema';
 import { GetResDataQuerySchema } from '@fastgpt/global/openapi/core/chat/record/api';
+import { deduplicateNodeResponses } from '@fastgpt/global/core/chat/deduplicateNodeResponses';
 
 export async function handler(
   req: ApiRequestProps,
@@ -47,7 +48,9 @@ export async function handler(
     return [];
   }
 
-  const flowResponses = chatData.responseData?.length ? chatData.responseData : nodeResponses;
+  const flowResponses = deduplicateNodeResponses(
+    chatData.responseData?.length ? chatData.responseData : nodeResponses
+  );
   return shareId
     ? filterPublicNodeResponseData({
         responseDetail: showCite,

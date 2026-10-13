@@ -6,6 +6,7 @@
  * sandbox_read_file to load full SKILL.md on demand.
  */
 
+import { SANDBOX_RUNTIME_PROMPT } from '@fastgpt/global/core/ai/sandbox/constants';
 import type { DeployedSkillInfo } from './types';
 
 function escapeXml(str: string): string {
@@ -64,6 +65,7 @@ export function buildSkillsContextPrompt(
   lines.push('<sandbox_environment>');
   lines.push(`Workspace root: ${workspaceRoot}`);
   lines.push(`Current working directory: ${workDirectory}`);
+  lines.push(SANDBOX_RUNTIME_PROMPT);
   lines.push(
     `Create reusable workspace skills at ${workspaceRoot}/skills/<name>/SKILL.md with name and description in YAML frontmatter. They will be discovered on the next conversation turn.`
   );

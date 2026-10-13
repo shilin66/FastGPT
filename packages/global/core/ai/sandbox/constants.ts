@@ -91,8 +91,21 @@ export const SANDBOX_GET_FILE_URL_TOOL: ChatCompletionTool = {
 
 export const SANDBOX_TOOLS: ChatCompletionTool[] = [SANDBOX_SHELL_TOOL, SANDBOX_GET_FILE_URL_TOOL];
 
-export const SANDBOX_SYSTEM_PROMPT = `你拥有一个独立的 Linux 沙盒环境（Ubuntu 22.04），可通过 ${SANDBOX_TOOL_NAME} 工具执行命令：
-- 预装：bash / python3 / node / bun / git / curl
-- 可自行安装软件包（apt / pip / npm）
+export const SANDBOX_RUNTIME_PROMPT = `Runtime and dependencies:
+- Run Python scripts with python3 from PATH. In the current FastGPT agent-sandbox image, python/python3 and pip/pip3 use the shared environment at /opt/agent-sandbox/venv; no manual activation is needed.
+- Keep the default PATH and do not hardcode /usr/bin/python3. Create or activate a separate Python environment only when the task requires isolated dependencies, as it may not include the preinstalled libraries.
+- Prefer preinstalled libraries. If a required Python package is missing, install it with python3 -m pip install <package> so installation uses the same interpreter as the script.
+- Preinstalled Python packages: numpy, pandas, scipy, matplotlib, openpyxl, XlsxWriter, python-docx, python-pptx, pypdf, pdfplumber, reportlab, Pillow, requests, httpx, beautifulsoup4, lxml, PyYAML.
+- Python import names include PIL for Pillow, docx for python-docx, pptx for python-pptx, bs4 for beautifulsoup4, and yaml for PyYAML. Matplotlib defaults to the headless Agg backend.
+- Run JavaScript with node and TypeScript with tsx; tsc is available from PATH.
+- Preinstalled Node.js packages: axios, cheerio, csv-parse, csv-stringify, dayjs, docx, exceljs, lodash, pdf-lib, pptxgenjs, sharp, tsx, typescript, yaml, zod.
+- Shared Node.js libraries support CommonJS require and ESM import from the workspace; project-local node_modules take precedence. Install additional project dependencies with pnpm in the project directory.
+- Older or custom sandbox images may differ. If a command or import fails, inspect command -v python3, python3 -m pip --version, or the relevant Node.js import before installing missing dependencies.`;
+
+export const SANDBOX_SYSTEM_PROMPT = `你拥有一个独立的 Linux 沙盒环境，可通过 ${SANDBOX_TOOL_NAME} 工具执行命令：
+- 常用命令：bash / python3 / node / git / curl
+- 可根据任务需要安装软件包（apt / python3 -m pip / pnpm）
 - 生成的文件内容都保存在当前目录下即可
-- 若需要将生成的文件分享给用户，可使用 ${SANDBOX_GET_FILE_URL_TOOL_NAME} 工具获取文件的临时访问链接`;
+- 若需要将生成的文件分享给用户，可使用 ${SANDBOX_GET_FILE_URL_TOOL_NAME} 工具获取文件的临时访问链接
+
+${SANDBOX_RUNTIME_PROMPT}`;

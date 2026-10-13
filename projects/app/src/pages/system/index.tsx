@@ -12,6 +12,8 @@ import type { FastGPTConfigFileType } from '@fastgpt/global/common/system/types'
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { getSystemMsgModalData, updateSystemMsgModalData } from '@/web/support/user/inform/api';
 import type { SystemMsgModalValueType } from '@fastgpt/global/openapi/admin/support/user/inform/api';
+import type { LicenseExpiryReminderConfig } from '@fastgpt/global/common/system/licenseExpiry';
+import LicenseExpiryReminderEditor from './component/LicenseExpiryReminderEditor';
 
 const MonacoEditor = dynamic(() => import('./component/MonacoEditor'), { ssr: false });
 const MarkdownEditor = dynamic(() => import('./component/MarkdownEditor'), { ssr: false });
@@ -19,6 +21,10 @@ const MarkdownEditor = dynamic(() => import('./component/MarkdownEditor'), { ssr
 const System = () => {
   const [code, setCode] = useState<string>('{"desc":"it is a config.json"}');
   const [systemMsg, setSystemMsg] = useState<string>('');
+  const [licenseReminder, setLicenseReminder] = useState<LicenseExpiryReminderConfig>({
+    enabled: true,
+    templates: {}
+  });
   const [tabIndex, setTabIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const { Loading } = useLoading();
@@ -40,6 +46,7 @@ const System = () => {
   const { run: runGetSystemMsg } = useRequest(() => getSystemMsgModalData(), {
     onSuccess: (data: SystemMsgModalValueType) => {
       setSystemMsg(data?.content || '');
+      setLicenseReminder(data?.licenseExpiryReminder || { enabled: true, templates: {} });
       setIsLoading(false);
     },
     onError: (err) => {
@@ -64,11 +71,12 @@ const System = () => {
 
   // 保存系统消息
   const { run: handleSaveSystemMsg, loading: isSavingSystemMsg } = useRequest(
-    () => updateSystemMsgModalData({ content: systemMsg }),
+    () => updateSystemMsgModalData({ content: systemMsg, licenseExpiryReminder: licenseReminder }),
     {
       onSuccess() {
         getSystemMsgModalData().then((res) => {
           setSystemMsg(res?.content || '');
+          setLicenseReminder(res?.licenseExpiryReminder || { enabled: true, templates: {} });
         });
       },
       successToast: t('common:update_success'),
@@ -180,22 +188,25 @@ const System = () => {
                   />
                 </Flex>
 
-                {/* 编辑器区域 - 与按钮顶部对齐 */}
                 <Box
                   flex={1}
                   mt={0}
                   width={'90%'}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    border: 0,
-                    position: 'relative'
-                  }}
+                  pt={20}
+                  pb={6}
+                  overflowY={'auto'}
+                  position={'relative'}
                 >
-                  <MarkdownEditor
-                    value={systemMsg}
-                    setCode={setSystemMsg}
-                    editorLoading={<div>Loading editor...</div>}
+                  <Box h={'360px'}>
+                    <MarkdownEditor
+                      value={systemMsg}
+                      setCode={setSystemMsg}
+                      editorLoading={<div>Loading editor...</div>}
+                    />
+                  </Box>
+                  <LicenseExpiryReminderEditor
+                    value={licenseReminder}
+                    onChange={setLicenseReminder}
                   />
                 </Box>
               </Flex>

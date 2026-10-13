@@ -1,5 +1,6 @@
 import z from 'zod';
 import { InformLevelEnum } from '../../../../../support/user/inform/constants';
+import { LicenseExpiryReminderConfigSchema } from '../../../../../common/system/licenseExpiry';
 
 // Send system inform
 export const SendSystemInformBodySchema = z.object({
@@ -11,7 +12,8 @@ export type SendSystemInformBodyType = z.infer<typeof SendSystemInformBodySchema
 
 // Update system modal
 export const UpdateSystemModalBodySchema = z.object({
-  content: z.string().meta({ description: '系统弹窗内容' })
+  content: z.string().meta({ description: '系统弹窗内容' }),
+  licenseExpiryReminder: LicenseExpiryReminderConfigSchema.optional()
 });
 export type UpdateSystemModalBodyType = z.infer<typeof UpdateSystemModalBodySchema>;
 
@@ -33,7 +35,8 @@ export type UpdateActivityAdBodyType = z.infer<typeof UpdateActivityAdBodySchema
 export const SystemMsgModalResponseSchema = z
   .object({
     id: z.string().optional().meta({ description: '弹窗ID' }),
-    content: z.string().meta({ description: '弹窗内容' })
+    content: z.string().meta({ description: '弹窗内容' }),
+    licenseExpiryReminder: LicenseExpiryReminderConfigSchema.optional()
   })
   .optional();
 export type SystemMsgModalValueType = z.infer<typeof SystemMsgModalResponseSchema>;

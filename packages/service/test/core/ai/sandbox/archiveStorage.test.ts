@@ -34,6 +34,17 @@ beforeEach(() => {
 });
 
 describe('verified private sandbox archive storage', () => {
+  it.each([true, false])('reports verified backup existence: %s', async (exists) => {
+    remote.exists.mockResolvedValueOnce({ exists });
+    expect(await getSandboxArchiveStorage().exists(sandboxId, key)).toBe(exists);
+    expect(remote.download).not.toHaveBeenCalled();
+  });
+
+  it('rejects unknown existence instead of reporting a missing backup', async () => {
+    remote.exists.mockResolvedValueOnce({ exists: undefined });
+    await expect(getSandboxArchiveStorage().exists(sandboxId, key)).rejects.toThrow('unverified');
+  });
+
   it('lists only the sandbox archive namespace for reverse audit', async () => {
     remote.list.mockResolvedValue({ keys: [key] });
     expect(await getSandboxArchiveStorage().list()).toEqual([key]);

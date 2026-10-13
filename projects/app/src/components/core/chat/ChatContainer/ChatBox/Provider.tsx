@@ -19,6 +19,7 @@ import {
 } from '@fastgpt/global/core/app/constants';
 import { createContext, useContextSelector } from 'use-context-selector';
 import { getChatResData } from '@/web/core/chat/record/api';
+import { deduplicateNodeResponses } from '@fastgpt/global/core/chat/deduplicateNodeResponses';
 import { ChatItemContext } from '@/web/core/chat/context/chatItemContext';
 import { ChatRecordContext } from '@/web/core/chat/context/chatRecordContext';
 import { useCreation } from 'ahooks';
@@ -214,7 +215,7 @@ const Provider = ({
     async ({ dataId }: { dataId: string }) => {
       const aimItem = chatRecords.find((item) => item.dataId === dataId)!;
       if (!!aimItem?.responseData || !chatId) {
-        return aimItem.responseData || [];
+        return deduplicateNodeResponses(aimItem.responseData || []);
       } else {
         let resData = await getChatResData({
           appId: appId,

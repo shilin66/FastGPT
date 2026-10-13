@@ -11,6 +11,7 @@ import { authSandboxManagement } from '@/service/core/sandbox/management';
 import { UserError } from '@fastgpt/global/common/error/utils';
 import { withSandboxLease } from '@fastgpt/service/core/ai/sandbox/lease';
 import { assertSkillWorkspaceTerminalIdle } from '@fastgpt/service/core/ai/sandbox/terminal';
+import { recoverSandboxWorkspace } from '@fastgpt/service/core/ai/sandbox/manualRecovery';
 
 export default NextAPI(async (req: ApiRequestProps<SandboxWorkspaceActionBody>) => {
   const body = SandboxWorkspaceActionBodySchema.parse(req.body);
@@ -52,6 +53,14 @@ export default NextAPI(async (req: ApiRequestProps<SandboxWorkspaceActionBody>) 
       throw new UserError('sandbox_workspace_not_found');
     }
     return client.forceDelete({ deletionRevision: body.deletionRevision, assertAuthorized });
+  }
+  if (body.action === 'recover') {
+    if (instance.sourceType !== 'appRuntime') throw new UserError('sandbox_recovery_unsupported');
+    return recoverSandboxWorkspace(instance, {
+      rebuildEmpty: body.rebuildEmpty,
+      recoveryRevision: body.recoveryRevision,
+      assertAuthorized
+    });
   }
   const execute = async () => {
     if (instance.sourceType === 'skillEdit' && instance.status === 'running') {

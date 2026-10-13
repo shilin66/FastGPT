@@ -108,7 +108,10 @@ const canClaimOperation = (instance: SandboxInstanceSchemaType, action: Operatio
     return (
       (operation.type === 'stop' && operation.checkpoint === 'provider_stopped') ||
       (operation.type === 'release' && operation.checkpoint === 'provider_released') ||
-      ((action === 'ensure' || action === 'archive' || action === 'delete') &&
+      ((action === 'ensure' ||
+        action === 'archive' ||
+        action === 'delete' ||
+        action === 'restore') &&
         completedInitialization)
     );
   }

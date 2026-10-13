@@ -9,9 +9,13 @@ const mocks = vi.hoisted(() => ({
   release: vi.fn(),
   delete: vi.fn(),
   forceDelete: vi.fn(),
+  recover: vi.fn(),
   inspect: vi.fn(),
   withLease: vi.fn(),
-  assertIdle: vi.fn()
+  assertIdle: vi.fn(),
+  members: vi.fn(),
+  memberPopulate: vi.fn(),
+  memberLean: vi.fn()
 }));
 
 vi.mock('@/service/middleware/entry', () => ({ NextAPI: (handler: unknown) => handler }));
@@ -26,6 +30,9 @@ vi.mock('@fastgpt/service/core/ai/sandbox/schema', () => ({
     countDocuments: mocks.count
   }
 }));
+vi.mock('@fastgpt/service/support/user/team/teamMemberSchema', () => ({
+  MongoTeamMember: { find: mocks.members }
+}));
 vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
   getExistingSandboxClient: () => ({
     release: mocks.release,
@@ -33,6 +40,10 @@ vi.mock('@fastgpt/service/core/ai/sandbox/controller', () => ({
     forceDelete: mocks.forceDelete,
     provider: { inspectExisting: mocks.inspect }
   })
+}));
+vi.mock('@fastgpt/service/core/ai/sandbox/manualRecovery', () => ({
+  recoverSandboxWorkspace: mocks.recover,
+  canRecoverSandboxWorkspace: () => true
 }));
 vi.mock('@fastgpt/service/core/ai/sandbox/lease', () => ({ withSandboxLease: mocks.withLease }));
 vi.mock('@fastgpt/service/core/ai/sandbox/terminal', () => ({
@@ -85,9 +96,142 @@ beforeEach(() => {
     execute()
   );
   mocks.assertIdle.mockResolvedValue(undefined);
+  mocks.members.mockReturnValue({ populate: mocks.memberPopulate });
+  mocks.memberPopulate.mockReturnValue({ lean: mocks.memberLean });
+  mocks.memberLean.mockResolvedValue([]);
 });
 
 describe('sandbox workspace management API', () => {
+  it('rechecks permissions during recovery', async () => {
+    mocks.recover.mockImplementation(async (_instance, options) => {
+      mocks.authApp.mockRejectedValueOnce(new Error('permission revoked'));
+      await options.assertAuthorized();
+    });
+    await expect(
+      action({
+        body: {
+          sourceType: 'appRuntime',
+          sourceId: 'app-1',
+          sandboxId: 'workspace-1',
+          action: 'recover'
+        }
+      } as never)
+    ).rejects.toThrow('permission revoked');
+  });
+
+  it('rejects recovery of a Skill edit workspace', async () => {
+    mocks.findOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue({ ...instance, sourceType: 'skillEdit' })
+    });
+    await expect(
+      action({
+        body: {
+          sourceType: 'skillEdit',
+          sourceId: 'app-1',
+          sandboxId: 'workspace-1',
+          action: 'recover'
+        }
+      } as never)
+    ).rejects.toThrow();
+    expect(mocks.recover).not.toHaveBeenCalled();
+  });
+  it('returns empty rebuilding confirmation from an authorized recovery request', async () => {
+    mocks.recover.mockResolvedValue({
+      success: false,
+      status: 'confirmation_required',
+      recoveryRevision: 'b'.repeat(64)
+    });
+    const result = await action({
+      body: {
+        sourceType: 'appRuntime',
+        sourceId: 'app-1',
+        sandboxId: 'workspace-1',
+        action: 'recover'
+      }
+    } as never);
+    expect(result).toMatchObject({
+      status: 'confirmation_required',
+      recoveryRevision: 'b'.repeat(64)
+    });
+    expect(mocks.recover).toHaveBeenCalledWith(
+      instance,
+      expect.objectContaining({ rebuildEmpty: undefined, assertAuthorized: expect.any(Function) })
+    );
+    expect(mocks.delete).not.toHaveBeenCalled();
+  });
+
+  it('rejects empty rebuilding without a confirmation revision', async () => {
+    await expect(
+      action({
+        body: {
+          sourceType: 'appRuntime',
+          sourceId: 'app-1',
+          sandboxId: 'workspace-1',
+          action: 'recover',
+          rebuildEmpty: true
+        }
+      } as never)
+    ).rejects.toThrow();
+    expect(mocks.recover).not.toHaveBeenCalled();
+  });
+  it('resolves member names and accounts in one team-scoped query for a page', async () => {
+    const memberId = '507f1f77bcf86cd799439011';
+    mocks.find.mockReturnValue({
+      sort: vi.fn().mockReturnThis(),
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([
+        { ...instance, runtimeUserId: memberId },
+        { ...instance, sandboxId: 'workspace-2', runtimeUserId: memberId }
+      ])
+    });
+    mocks.memberLean.mockResolvedValue([
+      { _id: memberId, name: '张三', user: { username: 'zhangsan@example.com' } }
+    ]);
+    const result = await list({ body: { sourceType: 'appRuntime', sourceId: 'app-1' } } as never);
+    expect(
+      result.list.map(({ runtimeUserName, runtimeUserAccount }) => ({
+        runtimeUserName,
+        runtimeUserAccount
+      }))
+    ).toEqual([
+      { runtimeUserName: '张三', runtimeUserAccount: 'zhangsan@example.com' },
+      { runtimeUserName: '张三', runtimeUserAccount: 'zhangsan@example.com' }
+    ]);
+    expect(mocks.members).toHaveBeenCalledExactlyOnceWith(
+      { teamId: 'team-1', _id: { $in: [memberId] } },
+      '_id name userId'
+    );
+    expect(mocks.memberPopulate).toHaveBeenCalledWith({ path: 'user', select: 'username' });
+  });
+
+  it('keeps a member name when the linked account has been removed', async () => {
+    const memberId = '507f1f77bcf86cd799439011';
+    mocks.find.mockReturnValue({
+      sort: vi.fn().mockReturnThis(),
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([{ ...instance, runtimeUserId: memberId }])
+    });
+    mocks.memberLean.mockResolvedValue([{ _id: memberId, name: '张三', user: null }]);
+    const result = await list({ body: { sourceType: 'appRuntime', sourceId: 'app-1' } } as never);
+    expect(result.list[0].runtimeUserName).toBe('张三');
+    expect(result.list[0].runtimeUserAccount).toBeUndefined();
+  });
+
+  it('preserves an external user ID without trying to cast it as a member ID', async () => {
+    mocks.find.mockReturnValue({
+      sort: vi.fn().mockReturnThis(),
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([{ ...instance, runtimeUserId: 'external-visitor' }])
+    });
+    const result = await list({ body: { sourceType: 'appRuntime', sourceId: 'app-1' } } as never);
+    expect(result.list[0].runtimeUserId).toBe('external-visitor');
+    expect(result.list[0].runtimeUserAccount).toBeUndefined();
+    expect(mocks.members).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       sourceType: 'appRuntime',

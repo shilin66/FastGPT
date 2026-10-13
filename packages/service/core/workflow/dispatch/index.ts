@@ -1039,7 +1039,7 @@ export class WorkflowQueue {
         return {};
       })();
 
-      const nodeResponses = dispatchRes[DispatchNodeResponseKeyEnum.nodeResponses] || [];
+      const nodeResponses = [...(dispatchRes[DispatchNodeResponseKeyEnum.nodeResponses] || [])];
       // format response data. Add modulename and module type
       const formatResponseData: NodeResponseCompleteType['responseData'] = (() => {
         if (!dispatchRes[DispatchNodeResponseKeyEnum.nodeResponse]) return undefined;

@@ -27,7 +27,7 @@ export function buildPiModel(
     provider: 'openai',
     baseUrl,
     reasoning: cfg?.reasoning ?? false,
-    input: useVision ? ['text', 'image'] : ['text'],
+    input: useVision && cfg?.vision ? ['text', 'image'] : ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: cfg?.maxContext ?? 128000,
     maxTokens: Math.min(cfg?.maxResponse ?? 4096, (cfg?.maxContext ?? 128000) - 2048),

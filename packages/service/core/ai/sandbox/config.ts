@@ -220,7 +220,12 @@ export const prepareVolumeManagerConfig = ({
     throw new Error('Invalid volume sessionId');
   const { baseUrl, token } = service;
   const savedBinding = storage.volumeManager;
-  const generationId = savedBinding?.generationId ?? newGeneration;
+  const generationId =
+    savedBinding?.generationId ??
+    newGeneration ??
+    (!previous && action === 'ensure' && service.protocol === 'sessionId'
+      ? randomUUID().replaceAll('-', '').slice(0, 24)
+      : undefined);
   const protocol = generationId ? 'claimName' : service.protocol;
   if (savedBinding && (savedBinding.baseUrl !== baseUrl || savedBinding.protocol !== protocol)) {
     throw new SandboxVolumeConfigurationError('volume_manager_binding_mismatch');
@@ -338,6 +343,29 @@ export const ensureSessionVolume = async (
   if (binding.ensured && created === true)
     throw new Error('Previously confirmed Sandbox volume was recreated');
   return claimName;
+};
+
+export const inspectSessionVolume = async (
+  sessionId: string,
+  prepared = prepareVolumeManagerConfig({ sandboxId: sessionId, previous: {} })
+): Promise<boolean> => {
+  const claimName = prepared?.storage.volumes?.[0]?.claimName;
+  if (!prepared || !claimName || !prepared.binding.ensured)
+    throw new Error('Confirmed Sandbox volume binding is required');
+  const res = await fetch(
+    `${prepared.binding.baseUrl}/v1/volumes/${encodeURIComponent(claimName)}?mode=claimName`,
+    {
+      headers: prepared.token ? { Authorization: `Bearer ${prepared.token}` } : {},
+      signal: AbortSignal.timeout(10_000)
+    }
+  );
+  // A missing inspect route on an older service is not evidence of a missing volume.
+  if (!res.ok) throw new Error(`Sandbox volume inspection failed (${res.status})`);
+  const result = z
+    .object({ claimName: claimNameSchema, exists: z.boolean() })
+    .parse(await res.json());
+  if (result.claimName !== claimName) throw new Error('Sandbox volume inspection binding mismatch');
+  return result.exists;
 };
 export const deleteSessionVolume = async (
   sessionId: string,

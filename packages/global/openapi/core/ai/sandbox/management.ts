@@ -20,6 +20,8 @@ export const SandboxWorkspaceItemSchema = z.object({
   reuseScope: z.enum(['user', 'session', 'source', 'unknown']),
   purpose: z.enum(['runtime', 'chat', 'debug', 'edit', 'unknown']),
   runtimeUserId: z.string().optional(),
+  runtimeUserName: z.string().optional(),
+  runtimeUserAccount: z.string().optional(),
   sourceChatId: z.string().optional(),
   sessionId: z.string().optional(),
   technicalName: z.string(),
@@ -37,6 +39,7 @@ export const SandboxWorkspaceItemSchema = z.object({
   hasPersistentStorage: z.boolean(),
   canRelease: z.boolean(),
   canDelete: z.boolean(),
+  canRecover: z.boolean().optional(),
   canForceDelete: z.boolean().optional(),
   forceDeletionPending: z.boolean().optional(),
   deletionRevision: z
@@ -55,19 +58,31 @@ export type SandboxWorkspacesListResponse = z.infer<typeof SandboxWorkspacesList
 
 export const SandboxWorkspaceActionBodySchema = SandboxManagementScopeSchema.extend({
   sandboxId: z.string().min(1),
-  action: z.enum(['release', 'delete', 'forceDelete']),
+  action: z.enum(['release', 'delete', 'forceDelete', 'recover']),
+  rebuildEmpty: z.boolean().optional(),
+  recoveryRevision: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
   deletionRevision: z
     .string()
     .regex(/^[a-f0-9]{64}$/)
     .optional()
-}).refine((body) => body.action !== 'forceDelete' || !!body.deletionRevision, {
-  message: 'deletionRevision is required for forceDelete',
-  path: ['deletionRevision']
-});
+})
+  .refine((body) => !body.rebuildEmpty || (body.action === 'recover' && !!body.recoveryRevision), {
+    message: 'recoveryRevision is required to rebuild an empty Sandbox',
+    path: ['recoveryRevision']
+  })
+  .refine((body) => body.action !== 'forceDelete' || !!body.deletionRevision, {
+    message: 'deletionRevision is required for forceDelete',
+    path: ['deletionRevision']
+  });
 export type SandboxWorkspaceActionBody = z.infer<typeof SandboxWorkspaceActionBodySchema>;
 
 export type SandboxWorkspaceActionResponse = {
   success: boolean;
-  status?: 'deleted' | 'pending';
+  status?: 'deleted' | 'pending' | 'recovered' | 'confirmation_required';
   reason?: string;
+  recoveryRevision?: string;
+  strategy?: 'original' | 'backup' | 'empty';
 };

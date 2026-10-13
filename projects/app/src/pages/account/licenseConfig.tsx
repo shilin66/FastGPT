@@ -11,9 +11,11 @@ import type { LicenseDataType } from '@fastgpt/global/common/system/types';
 import { useRequest } from '@fastgpt/web/hooks/useRequest';
 import { createLicenseData, getLicenseData } from '@/web/support/license/api';
 import MyBox from '@fastgpt/web/components/common/MyBox';
+import { useQueryClient } from '@tanstack/react-query';
 
 const LicenseConfig = () => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const {
     data: licenseData = {},
@@ -47,6 +49,7 @@ const LicenseConfig = () => {
     {
       onSuccess: () => {
         refetch();
+        void queryClient.invalidateQueries(['licenseExpiryNotice']);
       },
       successToast: t('common:Success')
     }

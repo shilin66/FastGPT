@@ -48,6 +48,13 @@ const SandboxManagementModal = ({
   const [failed, setFailed] = useState<string[]>([]);
   const [incomplete, setIncomplete] = useState<string[]>([]);
   const [detailId, setDetailId] = useState<string>();
+  const [emptyRecovery, setEmptyRecovery] = useState<{
+    item: SandboxWorkspaceItem;
+    revision: string;
+  }>();
+  const [recoveryError, setRecoveryError] = useState(false);
+  const [recoveringId, setRecoveringId] = useState<string>();
+  const recoveryCancelRef = useRef<HTMLButtonElement>(null);
   const { openConfirm, ConfirmModal } = useConfirm();
   const requestSeq = useRef(0);
   const pageSize = 20;
@@ -102,6 +109,8 @@ const SandboxManagementModal = ({
   const allSelected =
     eligible.length > 0 && eligible.every((item) => selected.includes(item.sandboxId));
   const detail = items.find((item) => item.sandboxId === detailId);
+  const runtimeUserLabel = (item: SandboxWorkspaceItem) =>
+    item.runtimeUserName || item.runtimeUserAccount || item.runtimeUserId;
   const recordStatusLabel = (item: SandboxWorkspaceItem) =>
     item.forceDeletionPending
       ? t('chat:sandbox_manage_force_pending')
@@ -173,6 +182,32 @@ const SandboxManagementModal = ({
     })();
   };
 
+  const recover = async (item: SandboxWorkspaceItem, revision?: string) => {
+    if (pending) return;
+    setPending(true);
+    setRecoveryError(false);
+    setRecoveringId(item.sandboxId);
+    try {
+      const result = await actOnSandboxWorkspace({
+        ...scope,
+        sandboxId: item.sandboxId,
+        action: 'recover',
+        ...(revision ? { rebuildEmpty: true, recoveryRevision: revision } : {})
+      });
+      if (result.status === 'confirmation_required' && result.recoveryRevision) {
+        setEmptyRecovery({ item, revision: result.recoveryRevision });
+      } else if (result.success) {
+        setEmptyRecovery(undefined);
+        await refresh();
+      } else setRecoveryError(true);
+    } catch {
+      setRecoveryError(true);
+    } finally {
+      setPending(false);
+      setRecoveringId(undefined);
+    }
+  };
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={pending ? () => {} : onClose} size={'xl'} isCentered>
@@ -204,6 +239,14 @@ const SandboxManagementModal = ({
                     ['sourceType', sourceTypeLabel(detail)],
                     ['reuseScope', reuseScopeLabel(detail)],
                     ['purpose', purposeLabel(detail)],
+                    ['runtimeUserName', detail.runtimeUserName],
+                    [
+                      'runtimeUserAccount',
+                      detail.runtimeUserId
+                        ? detail.runtimeUserAccount ||
+                          t('chat:sandbox_manage_user_account_unavailable')
+                        : undefined
+                    ],
                     ['runtimeUserId', detail.runtimeUserId],
                     ['technicalName', detail.technicalName],
                     ['sandboxId', detail.sandboxId],
@@ -280,6 +323,11 @@ const SandboxManagementModal = ({
                     {t('chat:sandbox_manage_load_failed')}
                   </Text>
                 )}
+                {recoveryError && (
+                  <Text color={'red.500'} mb={3} role={'alert'}>
+                    {t('chat:sandbox_manage_recovery_failed')}
+                  </Text>
+                )}
                 {!supported ? (
                   <Text color={'myGray.600'}>{t('chat:sandbox_manage_docker_only')}</Text>
                 ) : (
@@ -351,6 +399,16 @@ const SandboxManagementModal = ({
                           <Text fontSize={'13px'} fontWeight={600} noOfLines={1}>
                             {item.sourceName}
                           </Text>
+                          {runtimeUserLabel(item) && (
+                            <Text
+                              fontSize={'12px'}
+                              color={'myGray.600'}
+                              noOfLines={1}
+                              title={runtimeUserLabel(item)}
+                            >
+                              {t('chat:sandbox_manage_user')}：{runtimeUserLabel(item)}
+                            </Text>
+                          )}
                           <Flex gap={3} flexWrap={'wrap'} fontSize={'12px'} color={'myGray.600'}>
                             <Text>
                               {t('chat:sandbox_manage_field_sourceType')}：{sourceTypeLabel(item)}
@@ -418,7 +476,13 @@ const SandboxManagementModal = ({
                         <Text w={'140px'} flexShrink={0} fontSize={'11px'} color={'myGray.500'}>
                           {new Date(item.lastActiveAt).toLocaleString(i18n.language)}
                         </Text>
-                        <Flex w={'235px'} flexShrink={0} justify={'flex-end'} gap={2}>
+                        <Flex
+                          w={'310px'}
+                          flexShrink={0}
+                          justify={'flex-end'}
+                          gap={2}
+                          flexWrap={'wrap'}
+                        >
                           <Button
                             size={'xs'}
                             variant={'whitePrimary'}
@@ -426,6 +490,17 @@ const SandboxManagementModal = ({
                           >
                             {t('chat:sandbox_manage_detail')}
                           </Button>
+                          {scope.sourceType === 'appRuntime' && (
+                            <Button
+                              size={'xs'}
+                              variant={'whitePrimary'}
+                              isDisabled={!item.canRecover || pending}
+                              isLoading={recoveringId === item.sandboxId}
+                              onClick={() => void recover(item)}
+                            >
+                              {t('chat:sandbox_manage_recover')}
+                            </Button>
+                          )}
                           <Button
                             size={'xs'}
                             variant={'whitePrimary'}
@@ -521,6 +596,48 @@ const SandboxManagementModal = ({
         </ModalContent>
       </Modal>
       <ConfirmModal isLoading={pending} />
+      <Modal
+        isOpen={!!emptyRecovery}
+        onClose={() => !pending && setEmptyRecovery(undefined)}
+        isCentered
+        initialFocusRef={recoveryCancelRef}
+      >
+        <ModalOverlay />
+        <ModalContent maxW={'460px'}>
+          <ModalHeader>{t('chat:sandbox_manage_empty_rebuild_title')}</ModalHeader>
+          <ModalCloseButton isDisabled={pending} />
+          <ModalBody whiteSpace={'pre-wrap'} fontSize={'sm'}>
+            {t('chat:sandbox_manage_empty_rebuild_confirm', {
+              name: emptyRecovery?.item.sourceName,
+              sandboxId: emptyRecovery?.item.sandboxId
+            })}
+            {recoveryError && (
+              <Text role={'alert'} color={'red.500'} mt={3}>
+                {t('chat:sandbox_manage_recovery_failed')}
+              </Text>
+            )}
+          </ModalBody>
+          <ModalFooter gap={3}>
+            <Button
+              ref={recoveryCancelRef}
+              variant={'whitePrimary'}
+              isDisabled={pending}
+              onClick={() => setEmptyRecovery(undefined)}
+            >
+              {t('chat:sandbox_manage_recovery_cancel')}
+            </Button>
+            <Button
+              variant={'dangerFill'}
+              isLoading={pending}
+              onClick={() =>
+                emptyRecovery && void recover(emptyRecovery.item, emptyRecovery.revision)
+              }
+            >
+              {t('chat:sandbox_manage_empty_rebuild')}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 };

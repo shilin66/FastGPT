@@ -1159,5 +1159,20 @@
   "xx_search_result": "{{key}} 的搜尋結果",
   "yes": "是",
   "yesterday": "昨天",
-  "yesterday_detail_time": "昨天 {{time}}"
+  "yesterday_detail_time": "昨天 {{time}}",
+  "license_expiry_notice_title": "系統訊息 · 授權到期提醒",
+  "license_expiry_acknowledge": "我知道了",
+  "license_expiry_days": "{{days}} 天",
+  "license_expiry_less_than_day": "不足 1 天",
+  "license_expiry_template_30": "系統授權將於 {{expiresAt}} 到期，剩餘 {{remainingDays}}。請聯絡系統管理員安排續期。",
+  "license_expiry_template_15": "系統授權剩餘 {{remainingDays}}，將於 {{expiresAt}} 到期。請及時聯絡系統管理員處理續期。",
+  "license_expiry_template_7": "系統授權即將到期，剩餘 {{remainingDays}}。到期時間：{{expiresAt}}。請儘快聯絡系統管理員。",
+  "license_expiry_settings_title": "License 到期提醒",
+  "license_expiry_settings_enable": "啟用到期提醒",
+  "license_expiry_settings_description": "所有登入使用者將在剩餘 30、15、7 天進入對應提醒階段，每個階段確認後不再提醒。",
+  "license_expiry_settings_variables": "可使用 {{expiresAt}} 和 {{remainingDays}}；留空使用預設文案。",
+  "license_expiry_settings_stage": "提前 {{days}} 天",
+  "license_expiry_settings_template": "提醒文案",
+  "license_expiry_settings_preview": "預覽（範例）",
+  "license_expiry_settings_renewal": "續期成功後，系統訊息恢復為「Welcome To OmniCockpit🎉」。"
 }
